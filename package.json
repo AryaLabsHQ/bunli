@@ -7,14 +7,15 @@
     "examples/*"
   ],
   "scripts": {
-    "build": "bun run build:all",
-    "build:all": "bun scripts/build.ts",
+    "build": "turbo build --filter='./packages/*'",
     "test": "bun test",
     "dev": "bun scripts/dev.ts",
     "release": "bun scripts/release.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",
-    "typescript": "^5.3.0"
-  }
+    "turbo": "^2.5.4",
+    "typescript": "^5.8.0"
+  },
+  "packageManager": "bun@1.2.2"
 }

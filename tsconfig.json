@@ -2,8 +2,5 @@
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "noEmit": true
-  },
-  "references": [
-    { "path": "./packages/bunli" }
-  ]
+  }
 }
