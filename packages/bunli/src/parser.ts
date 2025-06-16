@@ -43,10 +43,14 @@ export async function parseArgs<T extends Flags>(
     }
   }
   
-  // Apply defaults
+  // Apply defaults and check required
   for (const [name, option] of Object.entries(options)) {
-    if (!(name in flags) && 'default' in option) {
-      flags[name as keyof T] = option.default as T[keyof T]
+    if (!(name in flags)) {
+      if ('default' in option) {
+        flags[name as keyof T] = option.default as T[keyof T]
+      } else if (option.required) {
+        throw new Error(`Missing required option: --${name}`)
+      }
     }
   }
   

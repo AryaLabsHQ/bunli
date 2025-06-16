@@ -36,5 +36,8 @@
   },
   "engines": {
     "bun": ">=1.0.0"
+  },
+  "dependencies": {
+    "@standard-schema/spec": "^1.0.0"
   }
 }
