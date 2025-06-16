@@ -1,0 +1,40 @@
+{
+  "name": "@bunli/core",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Minimal, type-safe CLI framework for Bun",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "bun build.ts",
+    "test": "bun test",
+    "type-check": "tsc --noEmit"
+  },
+  "keywords": [
+    "cli",
+    "command-line",
+    "bun",
+    "typescript",
+    "framework"
+  ],
+  "author": "Saatvik Arya <aryasatvik@gmail.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.3.0"
+  },
+  "engines": {
+    "bun": ">=1.0.0"
+  }
+}
