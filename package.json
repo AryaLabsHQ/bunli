@@ -1,0 +1,20 @@
+{
+  "name": "bunli-monorepo",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "examples/*"
+  ],
+  "scripts": {
+    "build": "bun run build:all",
+    "build:all": "bun scripts/build.ts",
+    "test": "bun test",
+    "dev": "bun scripts/dev.ts",
+    "release": "bun scripts/release.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.3.0"
+  }
+}
