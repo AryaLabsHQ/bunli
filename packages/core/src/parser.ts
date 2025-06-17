@@ -79,8 +79,19 @@ async function validateOption(
   value: unknown,
   schema: StandardSchemaV1
 ): Promise<unknown> {
+  // Convert string 'true'/'false' to boolean for boolean schemas
+  let processedValue = value
+  if (typeof value === 'string' && (value === 'true' || value === 'false')) {
+    // Check if the schema expects a boolean by trying to validate true
+    const testResult = await schema['~standard'].validate(true)
+    if (!testResult.issues) {
+      // Schema accepts boolean, convert the string
+      processedValue = value === 'true'
+    }
+  }
+  
   // Use Standard Schema validation
-  const result = await schema['~standard'].validate(value)
+  const result = await schema['~standard'].validate(processedValue)
   
   if (result.issues) {
     // Add the option name as path prefix for clearer error messages
