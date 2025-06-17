@@ -26,3 +26,10 @@ yarn-error.log*
 .env*.local
 .vercel
 next-env.d.ts
+
+# sst
+.sst
+
+
+# open-next
+.open-next

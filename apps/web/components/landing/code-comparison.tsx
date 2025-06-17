@@ -86,8 +86,6 @@ export function CodeComparison() {
                 <DynamicCodeBlock
                   code={traditionalCode}
                   lang="javascript"
-                  filename="traditional-cli.js"
-                  className="[&_pre]:!bg-transparent [&_pre]:!p-4"
                 />
               </div>
             </TabsContent>
@@ -105,8 +103,6 @@ export function CodeComparison() {
                 <DynamicCodeBlock
                   code={bunliCode}
                   lang="typescript"
-                  filename="bunli-cli.ts"
-                  className="[&_pre]:!bg-transparent [&_pre]:!p-4"
                 />
               </div>
             </TabsContent>

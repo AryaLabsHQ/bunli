@@ -139,8 +139,6 @@ export function ExamplesShowcase() {
                   <DynamicCodeBlock
                     code={example.code}
                     lang="typescript"
-                    filename={`${key}.ts`}
-                    className="[&_pre]:!bg-transparent [&_pre]:!p-4"
                   />
                 </div>
               </TabsContent>

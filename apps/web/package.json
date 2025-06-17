@@ -5,8 +5,8 @@
   "scripts": {
     "build": "next build",
     "dev": "next dev --turbo",
-    "start": "next start",
-    "postinstall": "fumadocs-mdx"
+    "postinstall": "fumadocs-mdx",
+    "start": "next start"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.1.1",
@@ -56,6 +56,7 @@
     "react-resizable-panels": "^3.0.3",
     "recharts": "^2.15.3",
     "sonner": "^2.0.5",
+    "sst": "^3.17.5",
     "tailwind-merge": "^3.3.1",
     "vaul": "^1.1.2",
     "zod": "^3.25.67"
