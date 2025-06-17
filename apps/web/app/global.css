@@ -6,6 +6,8 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -118,5 +120,30 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+  code, pre, .font-mono {
+    font-family: var(--font-geist-mono), 'JetBrains Mono', 'Fira Code', monospace;
+  }
+}
+
+@layer base {
+  /* Smooth scroll behavior */
+  html {
+    @apply scroll-smooth;
+  }
+  
+  /* Code block styling with Geist Mono */
+  pre code {
+    font-family: var(--font-geist-mono), 'JetBrains Mono', 'Fira Code', monospace;
+    @apply text-sm leading-normal block whitespace-pre break-normal;
+  }
+}
+
+@layer components {
+  /* Subtle gradient for hero - can't be replaced with Tailwind utilities */
+  .hero-gradient {
+    background: radial-gradient(ellipse at center top, var(--primary) 0%, transparent 50%);
+    @apply opacity-10;
   }
 }
