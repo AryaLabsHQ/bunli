@@ -1,4 +1,6 @@
 import type { PromptOptions, ConfirmOptions, SelectOptions, SelectOption } from './types.js'
+import { SchemaError } from '@standard-schema/utils'
+import { colors } from './colors.js'
 
 // ANSI escape codes
 const ESC = '\x1b'
@@ -18,7 +20,7 @@ async function readline(prompt: string): Promise<string> {
   return ''
 }
 
-export async function prompt(message: string, options: PromptOptions = {}): Promise<string> {
+export async function prompt<T = string>(message: string, options: PromptOptions = {}): Promise<T> {
   const defaultHint = options.default ? ` (${options.default})` : ''
   const promptText = `${message}${defaultHint} `
   
@@ -26,10 +28,28 @@ export async function prompt(message: string, options: PromptOptions = {}): Prom
     const input = await readline(promptText)
     const value = input.trim() || options.default || ''
     
+    // Handle schema validation if provided
+    if (options.schema) {
+      const result = await options.schema['~standard'].validate(value)
+      
+      if (result.issues) {
+        console.error(colors.red('Invalid input:'))
+        for (const issue of result.issues) {
+          console.error(colors.dim(`  • ${issue.message}`))
+        }
+        console.error() // Empty line before retry
+        continue
+      }
+      
+      // Return the validated and potentially transformed value
+      return result.value as T
+    }
+    
+    // Handle custom validation function
     if (options.validate) {
       const result = options.validate(value)
       if (result === true) {
-        return value
+        return value as T
       } else if (typeof result === 'string') {
         console.error(`✗ ${result}`)
         continue
@@ -39,7 +59,7 @@ export async function prompt(message: string, options: PromptOptions = {}): Prom
       }
     }
     
-    return value
+    return value as T
   }
 }
 
@@ -132,7 +152,7 @@ function drawOptions<T>(options: SelectOption<T>[], selectedIndex: number) {
   })
 }
 
-export async function password(message: string, options: PromptOptions = {}): Promise<string> {
+export async function password<T = string>(message: string, options: PromptOptions = {}): Promise<T> {
   process.stdout.write(message + ' ')
   
   return new Promise((resolve) => {
@@ -147,24 +167,40 @@ export async function password(message: string, options: PromptOptions = {}): Pr
       console.log() // New line after password
     }
     
-    process.stdin.on('data', (data) => {
+    process.stdin.on('data', async (data) => {
       const key = data.toString()
       
       if (key === '\r' || key === '\n') { // Enter
         cleanup()
         
-        if (options.validate) {
+        // Handle schema validation if provided
+        if (options.schema) {
+          const result = await options.schema['~standard'].validate(input)
+          
+          if (result.issues) {
+            console.error(colors.red('Invalid input:'))
+            for (const issue of result.issues) {
+              console.error(colors.dim(`  • ${issue.message}`))
+            }
+            console.error() // Empty line before retry
+            // Recursively call password prompt again
+            password<T>(message, options).then(resolve)
+            return
+          }
+          
+          resolve(result.value as T)
+        } else if (options.validate) {
           const result = options.validate(input)
           if (result === true) {
-            resolve(input)
+            resolve(input as T)
           } else {
             const errorMsg = typeof result === 'string' ? result : 'Invalid input'
             console.error(`✗ ${errorMsg}`)
             // Recursively call password prompt again
-            password(message, options).then(resolve)
+            password<T>(message, options).then(resolve)
           }
         } else {
-          resolve(input)
+          resolve(input as T)
         }
       } else if (key === '\x03') { // Ctrl+C
         cleanup()

@@ -1,7 +1,10 @@
+import type { StandardSchemaV1 } from '@standard-schema/spec'
+
 // Prompt types
 export interface PromptOptions {
   default?: string
   validate?: (input: string) => boolean | string
+  schema?: StandardSchemaV1  // Optional schema for validation
 }
 
 export interface ConfirmOptions {
@@ -84,10 +87,10 @@ export interface Colors {
 // Main utilities interface
 export interface BunliUtils {
   prompt: {
-    (message: string, options?: PromptOptions): Promise<string>
+    <T = string>(message: string, options?: PromptOptions): Promise<T>
     confirm(message: string, options?: ConfirmOptions): Promise<boolean>
     select<T = string>(message: string, options: SelectOptions<T>): Promise<T>
-    password(message: string, options?: PromptOptions): Promise<string>
+    password<T = string>(message: string, options?: PromptOptions): Promise<T>
   }
   spinner: (options?: SpinnerOptions | string) => Spinner
   colors: Colors

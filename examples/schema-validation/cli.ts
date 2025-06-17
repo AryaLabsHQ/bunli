@@ -11,7 +11,10 @@ const cli = createCLI({
 await cli.load({
   basic: () => import('./commands/basic'),
   validation: () => import('./commands/validation'),
-  transform: () => import('./commands/transform')
+  transform: () => import('./commands/transform'),
+  errors: () => import('./commands/errors'),
+  interactive: () => import('./commands/interactive'),
+  batch: () => import('./commands/batch')
 })
 
 await cli.run()

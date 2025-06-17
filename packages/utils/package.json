@@ -38,6 +38,10 @@
     "url": "https://github.com/bunli/bunli/issues"
   },
   "homepage": "https://github.com/bunli/bunli#readme",
+  "dependencies": {
+    "@standard-schema/spec": "^1.0.0",
+    "@standard-schema/utils": "^0.3.0"
+  },
   "devDependencies": {
     "@types/bun": "latest",
     "typescript": "^5.8.0"

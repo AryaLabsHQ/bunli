@@ -62,7 +62,7 @@ export type CommandManifest = {
   [key: string]: CommandLoader | CommandManifest
 }
 
-export type CommandLoader = () => Promise<{ default: Command }>
+export type CommandLoader = () => Promise<{ default: Command<any> }>
 
 // Define command helper with proper type inference
 export function defineCommand<TOptions extends Options>(

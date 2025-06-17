@@ -1,4 +1,5 @@
 import type { Options, StandardSchemaV1, CLIOption } from './types.js'
+import { SchemaError } from '@standard-schema/utils'
 
 interface ParsedArgs {
   flags: Record<string, unknown>
@@ -82,10 +83,12 @@ async function validateOption(
   const result = await schema['~standard'].validate(value)
   
   if (result.issues) {
-    // Format error message from issues
-    const issue = result.issues[0]
-    const message = issue?.message || `Validation failed for option: --${name}`
-    throw new Error(message)
+    // Add the option name as path prefix for clearer error messages
+    const issuesWithPath = result.issues.map(issue => ({
+      ...issue,
+      path: [name, ...(issue.path || [])]
+    }))
+    throw new SchemaError(issuesWithPath)
   }
   
   return result.value

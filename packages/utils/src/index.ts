@@ -30,3 +30,7 @@ export const prompt = Object.assign(promptFn, {
 
 // Also export individual prompt methods
 export { confirm, select, password } from './prompt.js'
+
+// Export validation utilities
+export { validate, validateFields } from './validation.js'
+export { SchemaError, getDotPath } from '@standard-schema/utils'

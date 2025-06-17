@@ -1,5 +1,6 @@
 import type { CLI, Command, BunliConfig, CommandManifest, CommandLoader } from './types.js'
 import { parseArgs } from './parser.js'
+import { SchemaError, getDotPath } from '@standard-schema/utils'
 
 export function createCLI(config: BunliConfig | { name: string; version: string; description?: string }): CLI {
   // Normalize config - support both simple and full config
@@ -213,8 +214,41 @@ export function createCLI(config: BunliConfig | { name: string; version: string;
             colors
           })
         } catch (error) {
-          if (error instanceof Error) {
-            console.error(`Error: ${error.message}`)
+          const { colors } = await import('@bunli/utils')
+          
+          if (error instanceof SchemaError) {
+            console.error(colors.red('Validation errors:'))
+            
+            const fieldErrors: Record<string, string[]> = {}
+            const generalErrors: string[] = []
+            
+            for (const issue of error.issues) {
+              const dotPath = getDotPath(issue)
+              if (dotPath) {
+                // Group by field for cleaner output
+                fieldErrors[dotPath] ??= []
+                fieldErrors[dotPath].push(issue.message)
+              } else {
+                generalErrors.push(issue.message)
+              }
+            }
+            
+            // Display field-specific errors
+            for (const [field, messages] of Object.entries(fieldErrors)) {
+              console.error(colors.yellow(`  --${field}:`))
+              for (const message of messages) {
+                console.error(colors.dim(`    • ${message}`))
+              }
+            }
+            
+            // Display general errors
+            for (const message of generalErrors) {
+              console.error(colors.dim(`  • ${message}`))
+            }
+            
+            process.exit(1)
+          } else if (error instanceof Error) {
+            console.error(colors.red(`Error: ${error.message}`))
             process.exit(1)
           }
           throw error
