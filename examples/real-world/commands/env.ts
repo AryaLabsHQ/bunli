@@ -126,6 +126,11 @@ export default defineCommand({
       
       const [, key, value] = match
       const env = await parseEnvFile(envFile)
+
+      if (!key) {
+        console.error(colors.red('Invalid format. Use KEY=VALUE'))
+        process.exit(1)
+      }
       
       // Confirm if overwriting
       if (env[key]) {
@@ -137,6 +142,11 @@ export default defineCommand({
           console.log(colors.red('Cancelled'))
           return
         }
+      }
+
+      if (!value) {
+        console.error(colors.red('Invalid format. Use KEY=VALUE'))
+        process.exit(1)
       }
       
       env[key] = value

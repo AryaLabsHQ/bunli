@@ -41,6 +41,7 @@ export default defineCommand({
           if (!match) throw new Error('Invalid format')
           
           const [, num, unit] = match
+          if (!unit || !num) throw new Error('Invalid format')
           const multipliers = { k: 1024, m: 1024 * 1024, g: 1024 * 1024 * 1024 }
           return parseInt(num) * multipliers[unit.toLowerCase() as 'k' | 'm' | 'g']
         }),
