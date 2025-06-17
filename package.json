@@ -8,6 +8,7 @@
   ],
   "scripts": {
     "build": "turbo build --filter='./packages/*'",
+    "clean": "bun scripts/clean.ts",
     "test": "bun test",
     "dev": "bun scripts/dev.ts",
     "release": "bun scripts/release.ts"
