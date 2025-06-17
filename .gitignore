@@ -34,3 +34,5 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 .DS_Store
 
 .turbo
+
+.claude/settings.local.json

@@ -31,13 +31,13 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/bunli/bunli.git",
+    "url": "https://github.com/AryaLabsHQ/bunli.git",
     "directory": "packages/utils"
   },
   "bugs": {
-    "url": "https://github.com/bunli/bunli/issues"
+    "url": "https://github.com/AryaLabsHQ/bunli/issues"
   },
-  "homepage": "https://github.com/bunli/bunli#readme",
+  "homepage": "https://github.com/AryaLabsHQ/bunli#readme",
   "dependencies": {
     "@standard-schema/spec": "^1.0.0",
     "@standard-schema/utils": "^0.3.0"
