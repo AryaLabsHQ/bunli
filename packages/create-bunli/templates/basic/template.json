@@ -1,0 +1,31 @@
+{
+  "name": "bunli-basic",
+  "description": "Basic Bunli CLI template",
+  "variables": [
+    {
+      "name": "projectName",
+      "message": "Project name",
+      "type": "string",
+      "default": "my-bunli-cli"
+    },
+    {
+      "name": "description",
+      "message": "Project description",
+      "type": "string",
+      "default": "A CLI built with Bunli"
+    },
+    {
+      "name": "author",
+      "message": "Author name",
+      "type": "string",
+      "default": ""
+    }
+  ],
+  "files": {
+    "exclude": [
+      "node_modules/**",
+      ".git/**",
+      "template.json"
+    ]
+  }
+}

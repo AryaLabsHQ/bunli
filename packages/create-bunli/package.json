@@ -1,0 +1,36 @@
+{
+  "name": "create-bunli",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Scaffold new Bunli CLI projects",
+  "bin": {
+    "create-bunli": "./dist/cli.js"
+  },
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "templates"
+  ],
+  "scripts": {
+    "dev": "bun run src/cli.ts",
+    "build": "bun scripts/build.ts && bun run tsc",
+    "test": "bun test",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@bunli/core": "workspace:*",
+    "@bunli/utils": "workspace:*",
+    "giget": "^2.0.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.8.0"
+  }
+}

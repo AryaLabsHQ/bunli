@@ -1,0 +1,29 @@
+{
+  "name": "{{projectName}}",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "{{description}}",
+  "author": "{{author}}",
+  "bin": {
+    "{{projectName}}": "./dist/index.js"
+  },
+  "scripts": {
+    "dev": "bun run src/index.ts",
+    "build": "bunli build",
+    "test": "bun test",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@bunli/core": "latest"
+  },
+  "devDependencies": {
+    "@bunli/test": "latest",
+    "@types/bun": "latest",
+    "bunli": "latest",
+    "typescript": "^5.0.0"
+  },
+  "bunli": {
+    "entry": "./src/index.ts",
+    "outDir": "./dist"
+  }
+}

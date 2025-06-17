@@ -1,0 +1,34 @@
+{
+  "name": "@{{projectName}}/cli",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "CLI for {{projectName}}",
+  "author": "{{author}}",
+  "license": "MIT",
+  "bin": {
+    "{{projectName}}": "./dist/index.js"
+  },
+  "scripts": {
+    "dev": "bun run src/index.ts",
+    "build": "bunli build",
+    "test": "bun test",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@bunli/core": "latest",
+    "@{{projectName}}/core": "workspace:*",
+    "@{{projectName}}/utils": "workspace:*"
+  },
+  "devDependencies": {
+    "@bunli/test": "latest",
+    "@types/bun": "latest",
+    "bunli": "latest",
+    "typescript": "^5.0.0"
+  },
+  "bunli": {
+    "entry": "./src/index.ts",
+    "outDir": "./dist",
+    "external": ["@bunli/core", "@{{projectName}}/core", "@{{projectName}}/utils"]
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "name": "bunli-monorepo",
+  "description": "Monorepo template for multi-package Bunli projects",
+  "variables": [
+    {
+      "name": "projectName",
+      "message": "Project name",
+      "type": "string",
+      "default": "my-bunli-monorepo"
+    },
+    {
+      "name": "description",
+      "message": "Project description",
+      "type": "string",
+      "default": "A monorepo CLI project built with Bunli"
+    },
+    {
+      "name": "author",
+      "message": "Author name",
+      "type": "string",
+      "default": ""
+    }
+  ]
+}

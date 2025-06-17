@@ -1,0 +1,37 @@
+{
+  "name": "bunli-advanced",
+  "description": "Advanced Bunli CLI template with multiple commands",
+  "variables": [
+    {
+      "name": "projectName",
+      "message": "Project name",
+      "type": "string",
+      "default": "my-bunli-cli"
+    },
+    {
+      "name": "description",
+      "message": "Project description",
+      "type": "string",
+      "default": "A powerful CLI built with Bunli"
+    },
+    {
+      "name": "author",
+      "message": "Author name",
+      "type": "string",
+      "default": ""
+    },
+    {
+      "name": "license",
+      "message": "License",
+      "type": "select",
+      "default": "MIT",
+      "choices": [
+        { "label": "MIT", "value": "MIT" },
+        { "label": "Apache-2.0", "value": "Apache-2.0" },
+        { "label": "GPL-3.0", "value": "GPL-3.0" },
+        { "label": "BSD-3-Clause", "value": "BSD-3-Clause" },
+        { "label": "Unlicense", "value": "Unlicense" }
+      ]
+    }
+  ]
+}
