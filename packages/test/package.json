@@ -1,0 +1,33 @@
+{
+  "name": "@bunli/test",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Testing utilities for Bunli CLI applications",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "bun scripts/build.ts && bun run tsc",
+    "test": "bun test",
+    "type-check": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "bun": ">=1.0.0"
+  },
+  "dependencies": {
+    "@bunli/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "bun-types": "latest",
+    "typescript": "^5.8.0"
+  }
+}
