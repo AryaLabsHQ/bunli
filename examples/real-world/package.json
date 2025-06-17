@@ -1,0 +1,14 @@
+{
+  "name": "@examples/real-world",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "bun cli.ts",
+    "build": "bun build ./cli.ts --compile --outfile mycli"
+  },
+  "dependencies": {
+    "@bunli/core": "workspace:*",
+    "@bunli/utils": "workspace:*",
+    "zod": "^3.24.1"
+  }
+}
