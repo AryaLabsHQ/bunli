@@ -1,5 +1,6 @@
 export { createCLI } from './cli.js'
 export { defineCommand, defineConfig, option } from './types.js'
+export { SchemaError } from '@standard-schema/utils'
 export type {
   CLI,
   Command,
