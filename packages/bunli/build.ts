@@ -18,6 +18,6 @@ for (const entry of entrypoints) {
 }
 
 // Also generate TypeScript declarations
-await $`tsc --emitDeclarationOnly`
+await $`tsc`
 
 console.log('✅ @bunli/core built successfully')

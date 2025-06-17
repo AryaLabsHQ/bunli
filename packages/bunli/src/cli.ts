@@ -1,4 +1,4 @@
-import type { CLI, Command, BunliConfig, CommandManifest, CommandLoader, Flags } from './types.js'
+import type { CLI, Command, BunliConfig, CommandManifest, CommandLoader } from './types.js'
 import { parseArgs } from './parser.js'
 
 export function createCLI(config: BunliConfig | { name: string; version: string; description?: string }): CLI {
@@ -73,13 +73,12 @@ export function createCLI(config: BunliConfig | { name: string; version: string;
       
       if (cmd.options && Object.keys(cmd.options).length > 0) {
         console.log('\nOptions:')
-        for (const [name, option] of Object.entries(cmd.options)) {
-          const flag = `--${name}${option.short ? `, -${option.short}` : ''}`
-          const required = option.required ? ' (required)' : ''
-          console.log(`  ${flag.padEnd(20)} ${option.description || ''}${required}`)
-          if (option.default !== undefined) {
-            console.log(`  ${''.padEnd(20)} (default: ${option.default})`)
-          }
+        for (const [name, opt] of Object.entries(cmd.options)) {
+          // Normalize to CLIOption format
+          const normalized = 'schema' in opt ? opt : { schema: opt }
+          const flag = `--${name}${normalized.short ? `, -${normalized.short}` : ''}`
+          const description = normalized.description || ''
+          console.log(`  ${flag.padEnd(20)} ${description}`)
         }
       }
       
@@ -91,6 +90,7 @@ export function createCLI(config: BunliConfig | { name: string; version: string;
       }
     }
   }
+  
   
   // Auto-load commands from config if specified
   async function loadFromConfig() {
@@ -148,8 +148,8 @@ export function createCLI(config: BunliConfig | { name: string; version: string;
   }
   
   return {
-    command<T extends Flags>(cmd: Command<T>) {
-      registerCommand(cmd as Command)
+    command(cmd: Command) {
+      registerCommand(cmd)
     },
     
     async load(manifest: CommandManifest) {
@@ -202,17 +202,21 @@ export function createCLI(config: BunliConfig | { name: string; version: string;
       if (command.handler) {
         try {
           const parsed = await parseArgs(remainingArgs, command.options || {})
+          const { prompt, spinner, colors } = await import('@bunli/utils')
+          
           await command.handler({
-            flags: parsed.flags,
+            flags: parsed.flags as any, // Type-safe after validation
             positional: parsed.positional,
             shell: Bun.$,
             env: process.env,
-            cwd: process.cwd()
+            cwd: process.cwd(),
+            prompt,
+            spinner,
+            colors
           })
         } catch (error) {
-          if (error instanceof Error && error.message.startsWith('Missing required option:')) {
+          if (error instanceof Error) {
             console.error(`Error: ${error.message}`)
-            console.error(`\nRun '${fullConfig.name} ${command.name} --help' for usage information.`)
             process.exit(1)
           }
           throw error

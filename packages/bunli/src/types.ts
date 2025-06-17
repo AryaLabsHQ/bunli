@@ -5,50 +5,58 @@ export type { StandardSchemaV1 }
 
 // Core Bunli types
 export interface CLI {
-  command<T extends Flags = Flags>(cmd: Command<T>): void
+  command(cmd: Command): void
   load(manifest: CommandManifest): Promise<void>
   init(): Promise<void>
   run(argv?: string[]): Promise<void>
 }
 
-export interface Command<T extends Flags = Flags> {
+// generic Command type that carries options type information
+export interface Command<TOptions extends Options = Options> {
   name: string
   description: string
-  handler?: Handler<T>
-  options?: Options<T>
+  handler?: Handler<InferOptions<TOptions>>
+  options?: TOptions
   commands?: Command[]
   alias?: string | string[]
 }
 
-export type Handler<T extends Flags> = (args: HandlerArgs<T>) => void | Promise<void>
+// Type helper to extract output types from StandardSchemaV1
+type InferSchema<T> = T extends StandardSchemaV1<any, infer Out>
+  ? Out
+  : never
 
-export interface HandlerArgs<T extends Flags = Flags> {
-  flags: T
+type InferOptions<T extends Options> = {
+  [K in keyof T]: T[K] extends CLIOption<infer S>
+    ? InferSchema<S>
+    : InferSchema<T[K]>
+}
+
+// generic Handler type that accepts inferred flags type
+export type Handler<TFlags = Record<string, unknown>> = (args: HandlerArgs<TFlags>) => void | Promise<void>
+
+// generic HandlerArgs that accepts flags type
+export interface HandlerArgs<TFlags = Record<string, unknown>> {
+  flags: TFlags
   positional: string[]
   shell: typeof Bun.$
   env: typeof process.env
   cwd: string
-  // Utilities will be added later
-  // prompt: PromptUtils
-  // spinner: SpinnerUtils
-  // colors: typeof Bun.color
+  // Utilities
+  prompt: typeof import('@bunli/utils').prompt
+  spinner: typeof import('@bunli/utils').spinner
+  colors: typeof import('@bunli/utils').colors
 }
 
-export type Flags = Record<string, unknown>
-
-export type Options<T extends Flags> = {
-  [K in keyof T]: Option<T[K]>
-}
-
-export interface Option<T> {
-  type: 'string' | 'number' | 'boolean'
+// CLI option with metadata - generic to preserve schema type
+export interface CLIOption<S extends StandardSchemaV1 = StandardSchemaV1> {
+  schema: S
   short?: string
   description?: string
-  default?: T
-  required?: boolean
-  choices?: readonly T[]
-  schema?: StandardSchemaV1<unknown, T>
 }
+
+// Options can be either a schema directly or a CLIOption with metadata
+export type Options = Record<string, StandardSchemaV1 | CLIOption<any>>
 
 // Command manifest for lazy loading
 export type CommandManifest = {
@@ -57,13 +65,13 @@ export type CommandManifest = {
 
 export type CommandLoader = () => Promise<{ default: Command }>
 
-// Define command helper
-export interface DefineCommandOptions<T extends Flags = Flags> extends Omit<Command<T>, 'handler'> {
-  handler: Handler<T>
-}
-
-export function defineCommand<T extends Flags = Flags>(options: DefineCommandOptions<T>): Command<T> {
-  return options as Command<T>
+// Define command helper with proper type inference
+export function defineCommand<TOptions extends Options>(
+  command: Omit<Command<TOptions>, 'handler'> & {
+    handler?: (args: HandlerArgs<InferOptions<TOptions>>) => void | Promise<void>
+  }
+): Command<TOptions> {
+  return command as Command<TOptions>
 }
 
 // Config types
@@ -89,4 +97,15 @@ export interface BunliConfig {
 
 export function defineConfig(config: BunliConfig): BunliConfig {
   return config
+}
+
+// Helper to create a CLI option with metadata
+export function option<S extends StandardSchemaV1>(
+  schema: S,
+  metadata: { short?: string; description?: string }
+): CLIOption<S> {
+  return {
+    schema,
+    ...metadata
+  }
 }

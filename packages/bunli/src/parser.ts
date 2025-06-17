@@ -1,41 +1,73 @@
-import type { Options, Flags } from './types.js'
+import type { Options, StandardSchemaV1, CLIOption } from './types.js'
 
-interface ParsedArgs<T extends Flags> {
-  flags: T
+interface ParsedArgs {
+  flags: Record<string, unknown>
   positional: string[]
 }
 
-export async function parseArgs<T extends Flags>(
+/**
+ * helper to normalize an option to CLIOption format
+ */
+function normalizeOption(opt: StandardSchemaV1 | CLIOption): CLIOption {
+  if ('schema' in opt) {
+    return opt
+  }
+  return { schema: opt }
+}
+
+export async function parseArgs(
   args: string[],
-  options: Options<T>
-): Promise<ParsedArgs<T>> {
-  const flags = {} as T
+  options: Options
+): Promise<ParsedArgs> {
+  const flags: Record<string, unknown> = {}
   const positional: string[] = []
   
+  // Build lookup maps for short aliases
+  const shortToName = new Map<string, string>()
+  for (const [name, opt] of Object.entries(options)) {
+    const normalized = normalizeOption(opt)
+    if (normalized.short) {
+      shortToName.set(normalized.short, name)
+    }
+  }
+  
+  // Parse arguments
   for (let i = 0; i < args.length; i++) {
     const arg = args[i]
+    if (!arg) continue
     
     if (arg.startsWith('--')) {
-      // Long flag
-      const [name, value] = arg.slice(2).split('=')
-      const option = findOption(name, options)
+      // Long flag: --name or --name=value
+      const eqIndex = arg.indexOf('=')
+      const name = eqIndex > 0 ? arg.slice(2, eqIndex) : arg.slice(2)
+      const inlineValue = eqIndex > 0 ? arg.slice(eqIndex + 1) : undefined
       
-      if (option) {
-        const flagValue = value ?? args[++i]
-        flags[option.name as keyof T] = await parseValue(flagValue, option.option) as T[keyof T]
+      if (!name || !options[name]) continue
+      
+      // Get the value (inline, next arg, or 'true' for boolean-like flags)
+      let value: string | undefined = inlineValue
+      if (value === undefined && i + 1 < args.length && !args[i + 1]?.startsWith('-')) {
+        value = args[++i]
       }
-    } else if (arg.startsWith('-') && arg.length > 1) {
-      // Short flag
-      const short = arg.slice(1)
-      const option = findOptionByShort(short, options)
       
-      if (option) {
-        if (option.option.type === 'boolean') {
-          flags[option.name as keyof T] = true as T[keyof T]
-        } else {
-          const flagValue = args[++i]
-          flags[option.name as keyof T] = await parseValue(flagValue, option.option) as T[keyof T]
+      // Pass the value to the schema for validation
+      const normalized = normalizeOption(options[name]!)
+      flags[name] = await validateOption(name, value ?? 'true', normalized.schema)
+      
+    } else if (arg.startsWith('-') && arg.length > 1) {
+      // Short flag: -n or -n value
+      const short = arg.slice(1)
+      const name = shortToName.get(short)
+      
+      if (name && options[name]) {
+        // Get the next argument as value if available
+        let value: string | undefined
+        if (i + 1 < args.length && !args[i + 1]?.startsWith('-')) {
+          value = args[++i]
         }
+        
+        const normalized = normalizeOption(options[name]!)
+        flags[name] = await validateOption(name, value ?? 'true', normalized.schema)
       }
     } else {
       // Positional argument
@@ -43,77 +75,32 @@ export async function parseArgs<T extends Flags>(
     }
   }
   
-  // Apply defaults and check required
-  for (const [name, option] of Object.entries(options)) {
+  // Validate all options were provided (schemas handle their own defaults/required logic)
+  // We run validation with undefined for options not provided on command line
+  for (const [name, opt] of Object.entries(options)) {
     if (!(name in flags)) {
-      if ('default' in option) {
-        flags[name as keyof T] = option.default as T[keyof T]
-      } else if (option.required) {
-        throw new Error(`Missing required option: --${name}`)
-      }
+      const normalized = normalizeOption(opt)
+      flags[name] = await validateOption(name, undefined, normalized.schema)
     }
   }
   
   return { flags, positional }
 }
 
-function findOption<T extends Flags>(
+async function validateOption(
   name: string,
-  options: Options<T>
-): { name: string; option: Options<T>[keyof T] } | undefined {
-  for (const [optName, option] of Object.entries(options)) {
-    if (optName === name) {
-      return { name: optName, option }
-    }
-  }
-  return undefined
-}
-
-function findOptionByShort<T extends Flags>(
-  short: string,
-  options: Options<T>
-): { name: string; option: Options<T>[keyof T] } | undefined {
-  for (const [name, option] of Object.entries(options)) {
-    if (option.short === short) {
-      return { name, option }
-    }
-  }
-  return undefined
-}
-
-async function parseValue(value: string, option: any): Promise<unknown> {
-  // Basic type coercion
-  let parsed: unknown = value
+  value: unknown,
+  schema: StandardSchemaV1
+): Promise<unknown> {
+  // Use Standard Schema validation
+  const result = await schema['~standard'].validate(value)
   
-  switch (option.type) {
-    case 'number':
-      parsed = Number(value)
-      if (isNaN(parsed as number)) {
-        throw new Error(`Invalid number: ${value}`)
-      }
-      break
-    case 'boolean':
-      parsed = value === 'true' || value === '1' || value === undefined
-      break
-    case 'string':
-      parsed = value
-      break
+  if (result.issues) {
+    // Format error message from issues
+    const issue = result.issues[0]
+    const message = issue?.message || `Validation failed for option: --${name}`
+    throw new Error(message)
   }
   
-  // Validate with schema if provided
-  if (option.schema) {
-    const result = await option.schema['~standard'].validate(parsed)
-    if (result.issues) {
-      const issue = result.issues[0]
-      throw new Error(issue.message || 'Validation failed')
-    }
-    return result.value
-  }
-  
-  // Check choices
-  if (option.choices && !option.choices.includes(parsed)) {
-    throw new Error(`Invalid choice. Must be one of: ${option.choices.join(', ')}`)
-  }
-  
-  return parsed
+  return result.value
 }

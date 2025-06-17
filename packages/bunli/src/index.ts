@@ -1,14 +1,12 @@
 export { createCLI } from './cli.js'
-export { defineCommand, defineConfig } from './types.js'
+export { defineCommand, defineConfig, option } from './types.js'
 export type {
   CLI,
   Command,
   Handler,
   HandlerArgs,
-  Flags,
   Options,
-  Option,
-  DefineCommandOptions,
+  CLIOption,
   BunliConfig,
   CommandManifest,
   CommandLoader,

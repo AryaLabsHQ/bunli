@@ -3,7 +3,6 @@
   "version": "0.1.0",
   "type": "module",
   "description": "Minimal, type-safe CLI framework for Bun",
-  "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -32,12 +31,13 @@
   "license": "MIT",
   "devDependencies": {
     "@types/bun": "latest",
-    "typescript": "^5.3.0"
+    "typescript": "^5.8.0"
   },
   "engines": {
     "bun": ">=1.0.0"
   },
   "dependencies": {
+    "@bunli/utils": "workspace:*",
     "@standard-schema/spec": "^1.0.0"
   }
 }
