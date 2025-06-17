@@ -1,6 +1,16 @@
 {
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "noEmit": true
-  }
+    "noEmit": true,
+    "composite": true
+  },
+  "references": [
+    { "path": "./packages/core" },
+    { "path": "./packages/utils" },
+    { "path": "./packages/test" },
+    { "path": "./packages/create-bunli" },
+    { "path": "./packages/cli" }
+  ],
+  "include": [],
+  "exclude": ["node_modules", "**/dist", "**/build"]
 }
