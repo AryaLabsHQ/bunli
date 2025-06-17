@@ -20,4 +20,13 @@ export const utils: BunliUtils = {
 // Export individual utilities for convenience
 export { colors } from './colors.js'
 export { createSpinner as spinner } from './spinner.js'
-export { prompt, confirm, select, password } from './prompt.js'
+
+// Export prompt with attached methods
+export const prompt = Object.assign(promptFn, {
+  confirm,
+  select,
+  password
+}) as BunliUtils['prompt']
+
+// Also export individual prompt methods
+export { confirm, select, password } from './prompt.js'
