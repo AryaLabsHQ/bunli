@@ -5,7 +5,6 @@
  */
 
 import { $ } from 'bun'
-import path from 'node:path'
 
 const version = process.argv[2] || 'latest'
 const platforms = [
