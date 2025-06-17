@@ -1,6 +1,5 @@
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 
-// Re-export for convenience
 export type { StandardSchemaV1 }
 
 // Core Bunli types
