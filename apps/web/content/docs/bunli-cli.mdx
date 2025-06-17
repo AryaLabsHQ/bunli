@@ -41,10 +41,11 @@ bunli init my-cli
 ```
 
 **Options:**
+- `--name, -n` - Project name
 - `--template, -t` - Project template (`basic`, `advanced`, `monorepo`)
 - `--dir, -d` - Directory to create project in
-- `--no-git` - Skip git initialization
-- `--no-install` - Skip dependency installation
+- `--git, -g` - Initialize git repository (default: true)
+- `--install` - Install dependencies (default: true)
 - `--package-manager, -p` - Package manager to use (`bun`, `pnpm`, `yarn`, `npm`)
 
 ### bunli dev
@@ -90,26 +91,35 @@ bunli build
 **Options:**
 - `--entry, -e` - Entry file (defaults to auto-detect)
 - `--outdir, -o` - Output directory (default: `./dist`)
-- `--minify, -m` - Minify output
+- `--outfile` - Output filename (for single executable)
+- `--targets, -t` - Target platforms for compilation (e.g., darwin-arm64,linux-x64)
+- `--minify, -m` - Minify output (default: true)
 - `--sourcemap, -s` - Generate sourcemaps
-- `--target, -t` - Build target (`bun`, `node`, `browser`)
+- `--bytecode` - Enable bytecode compilation (experimental)
+- `--runtime, -r` - Runtime target for non-compiled builds (`bun`, `node`)
 - `--watch, -w` - Watch for changes
-- `--all` - Build for all platforms
 
 **Features:**
-- Single executable output with shebang
-- Multi-platform builds with `--all`
+- Standalone executable creation with Bun's `--compile` flag
+- Multi-platform compilation support
+- Traditional JavaScript builds (when no targets specified)
 - Automatic compression for multi-platform builds
 - ESM output format
 - External dependency configuration via bunli.config.ts
 
 **Example:**
 ```bash
-# Build for production
+# Build traditional JS (requires Bun runtime)
 bunli build
 
-# Build for all platforms with compression
-bunli build --all --minify
+# Build standalone executable for current platform
+bunli build --targets native
+
+# Build for specific platforms
+bunli build --targets darwin-arm64,linux-x64
+
+# Build for all supported platforms
+bunli build --targets all
 
 # Custom output directory
 bunli build --outdir ./bin
@@ -158,18 +168,43 @@ bunli test --all
 
 ### bunli release
 
-Release your CLI (coming soon).
+Create a release of your CLI.
 
 ```bash
 bunli release
 ```
 
-**Planned features:**
+**Options:**
+- `--version, -v` - Version to release (patch/minor/major/x.y.z)
+- `--tag, -t` - Git tag format
+- `--npm` - Publish to npm
+- `--github` - Create GitHub release
+- `--dry, -d` - Dry run - show what would be done
+- `--all` - Release all packages (workspace mode)
+
+**Features:**
+- Interactive version selection
 - Automated version bumping
-- Changelog generation
+- Git tag creation and pushing
 - npm publishing
-- GitHub releases
-- Conventional commits support
+- GitHub release creation
+- Workspace support for monorepos
+- Dry run mode for testing
+
+**Example:**
+```bash
+# Interactive release
+bunli release
+
+# Specific version bump
+bunli release --version patch
+
+# Dry run
+bunli release --dry
+
+# Release all workspace packages
+bunli release --all
+```
 
 ## Configuration
 
@@ -237,36 +272,47 @@ The CLI automatically detects your entry point in this order:
    - `index.ts`
    - `main.ts`
 
-## Multi-Platform Builds
+## Standalone Executables
 
-Build for multiple platforms simultaneously:
+Build standalone executables that bundle your CLI with the Bun runtime:
 
 ```bash
-bunli build --all
+# Build for all platforms
+bunli build --targets all
+
+# Build for specific platforms
+bunli build --targets darwin-arm64,linux-x64,windows-x64
+
+# Build for current platform only
+bunli build --targets native
 ```
 
-This creates platform-specific builds:
+Supported platforms:
+- `darwin-arm64` - macOS Apple Silicon
+- `darwin-x64` - macOS Intel
+- `linux-arm64` - Linux ARM64
+- `linux-x64` - Linux x64
+- `windows-x64` - Windows x64
+
+For multiple platforms, this creates:
 ```
 dist/
   darwin-arm64/
-    cli.js
+    cli          # macOS ARM64 executable
   darwin-x64/
-    cli.js
+    cli          # macOS x64 executable
   linux-x64/
-    cli.js
-  linux-arm64/
-    cli.js
+    cli          # Linux executable
   windows-x64/
-    cli.js
+    cli.exe      # Windows executable
 ```
 
-With compression enabled, it also creates:
+With compression enabled in config, it also creates:
 ```
 dist/
   darwin-arm64.tar.gz
   darwin-x64.tar.gz
   linux-x64.tar.gz
-  linux-arm64.tar.gz
   windows-x64.tar.gz
 ```
 

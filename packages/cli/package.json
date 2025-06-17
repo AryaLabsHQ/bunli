@@ -1,0 +1,40 @@
+{
+  "name": "bunli",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "The Bunli CLI toolchain for developing, building, and distributing CLIs",
+  "bin": {
+    "bunli": "./dist/cli.js"
+  },
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "bun run src/cli.ts",
+    "build": "bun run scripts/build.ts && bun run tsc",
+    "build:standalone": "bun run scripts/build.ts --compile",
+    "build:binaries": "bun run scripts/release-binaries.ts",
+    "test": "bun test",
+    "type-check": "tsc --noEmit",
+    "prepublishOnly": "bun run build"
+  },
+  "dependencies": {
+    "@bunli/core": "workspace:*",
+    "@bunli/utils": "workspace:*",
+    "glob": "^11.0.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "bun-types": "latest",
+    "typescript": "^5.8.0"
+  }
+}

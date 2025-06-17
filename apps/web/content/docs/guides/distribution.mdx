@@ -29,20 +29,23 @@ bunli build
 ### Build Options
 
 ```bash
-# Build for current platform
+# Build traditional JS (requires Bun runtime)
 bunli build
 
-# Build for all platforms
-bunli build --all
+# Build standalone executable for current platform
+bunli build --targets native
 
-# Build as standalone executable
-bunli build --compile
+# Build for specific platforms
+bunli build --targets darwin-arm64,linux-x64
+
+# Build for all platforms
+bunli build --targets all
 
 # Build with custom options
 bunli build \
+  --targets darwin-arm64,linux-x64 \
   --minify \
   --sourcemap \
-  --target darwin-arm64 \
   --outdir ./dist
 ```
 
@@ -79,10 +82,25 @@ export default defineConfig({
 ```
 
 ```bash
-bunli build --all
+bunli build --targets all
 ```
 
 This creates:
+```
+dist/
+├── darwin-arm64/
+│   └── cli
+├── darwin-x64/
+│   └── cli
+├── linux-arm64/
+│   └── cli
+├── linux-x64/
+│   └── cli
+└── windows-x64/
+    └── cli.exe
+```
+
+With compression enabled, also:
 ```
 dist/
 ├── darwin-arm64.tar.gz
@@ -96,17 +114,17 @@ dist/
 
 ### Creating Single-File Executables
 
-Bunli can compile your CLI into standalone executables that don't require Bun to be installed:
+Bunli uses Bun's `--compile` flag to create standalone executables that bundle the runtime:
 
 ```bash
 # Compile for current platform
-bunli build --compile
+bunli build --targets native
 
-# Compile for specific platform
-bunli build --compile --platform darwin-arm64
+# Compile for specific platforms
+bunli build --targets darwin-arm64,linux-x64
 
 # Compile with optimization
-bunli build --compile --minify --bytecode
+bunli build --targets native --minify --bytecode
 ```
 
 ### Executable Size Optimization
@@ -117,7 +135,7 @@ Reduce executable size:
 // bunli.config.ts
 export default defineConfig({
   build: {
-    compile: true,
+    targets: ['native'], // or specific platforms
     minify: true,
     external: [
       // Exclude large optional dependencies
@@ -135,16 +153,16 @@ Sign your macOS executables:
 
 ```bash
 # Build the executable
-bunli build --compile --platform darwin-arm64
+bunli build --targets darwin-arm64
 
 # Sign the executable
 codesign --sign "Developer ID Application: Your Name" \
   --options runtime \
   --entitlements entitlements.plist \
-  dist/my-cli
+  dist/darwin-arm64/my-cli
 
 # Verify signature
-codesign --verify --verbose dist/my-cli
+codesign --verify --verbose dist/darwin-arm64/my-cli
 ```
 
 ## Distribution Methods
@@ -173,7 +191,7 @@ jobs:
         run: bun install
         
       - name: Build for all platforms
-        run: bunli build --all
+        run: bunli build --targets all
         
       - name: Create Release
         uses: softprops/action-gh-release@v1
@@ -261,7 +279,7 @@ COPY package.json bun.lockb ./
 RUN bun install --frozen-lockfile
 
 COPY . .
-RUN bunli build --compile
+RUN bunli build --targets native
 
 FROM alpine:latest
 RUN apk add --no-cache libstdc++
@@ -376,7 +394,7 @@ export default defineConfig({
 
 2. **Build All Platforms**
    ```bash
-   bunli build --all
+   bunli build --targets all
    ```
 
 3. **Create Git Tag**
@@ -510,14 +528,14 @@ chmod +x ./my-cli
 
 **Missing dependencies:**
 ```bash
-# Include runtime dependencies
-bunli build --external none
+# Bundle all dependencies
+bunli build --targets native --external none
 ```
 
 **Large binary size:**
 ```bash
 # Enable optimizations
-bunli build --compile --minify --bytecode
+bunli build --targets native --minify --bytecode
 ```
 
 **Platform-specific issues:**
