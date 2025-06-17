@@ -74,10 +74,8 @@ export function createCLI(config: BunliConfig | { name: string; version: string;
       if (cmd.options && Object.keys(cmd.options).length > 0) {
         console.log('\nOptions:')
         for (const [name, opt] of Object.entries(cmd.options)) {
-          // Normalize to CLIOption format
-          const normalized = 'schema' in opt ? opt : { schema: opt }
-          const flag = `--${name}${normalized.short ? `, -${normalized.short}` : ''}`
-          const description = normalized.description || ''
+          const flag = `--${name}${opt.short ? `, -${opt.short}` : ''}`
+          const description = opt.description || ''
           console.log(`  ${flag.padEnd(20)} ${description}`)
         }
       }

@@ -11,7 +11,7 @@ export default defineCommand({
       name: 'get',
       description: 'Get a config value',
       options: {
-        key: z.string().describe('Config key')
+        key: option(z.string(), { description: 'Config key' })
       },
       handler: async ({ flags, colors }) => {
         // Simulate config lookup
@@ -35,8 +35,8 @@ export default defineCommand({
       name: 'set',
       description: 'Set a config value',
       options: {
-        key: z.string().describe('Config key'),
-        value: z.string().describe('Config value')
+        key: option(z.string(), { description: 'Config key' }),
+        value: option(z.string(), { description: 'Config value' })
       },
       handler: async ({ flags, colors }) => {
         console.log(`${colors.green('✓')} Set ${colors.cyan(flags.key)} = ${colors.yellow(flags.value)}`)

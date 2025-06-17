@@ -5,16 +5,6 @@ interface ParsedArgs {
   positional: string[]
 }
 
-/**
- * helper to normalize an option to CLIOption format
- */
-function normalizeOption(opt: StandardSchemaV1 | CLIOption): CLIOption {
-  if ('schema' in opt) {
-    return opt
-  }
-  return { schema: opt }
-}
-
 export async function parseArgs(
   args: string[],
   options: Options
@@ -25,9 +15,8 @@ export async function parseArgs(
   // Build lookup maps for short aliases
   const shortToName = new Map<string, string>()
   for (const [name, opt] of Object.entries(options)) {
-    const normalized = normalizeOption(opt)
-    if (normalized.short) {
-      shortToName.set(normalized.short, name)
+    if (opt.short) {
+      shortToName.set(opt.short, name)
     }
   }
   
@@ -51,8 +40,7 @@ export async function parseArgs(
       }
       
       // Pass the value to the schema for validation
-      const normalized = normalizeOption(options[name]!)
-      flags[name] = await validateOption(name, value ?? 'true', normalized.schema)
+      flags[name] = await validateOption(name, value ?? 'true', options[name]!.schema)
       
     } else if (arg.startsWith('-') && arg.length > 1) {
       // Short flag: -n or -n value
@@ -66,8 +54,7 @@ export async function parseArgs(
           value = args[++i]
         }
         
-        const normalized = normalizeOption(options[name]!)
-        flags[name] = await validateOption(name, value ?? 'true', normalized.schema)
+        flags[name] = await validateOption(name, value ?? 'true', options[name]!.schema)
       }
     } else {
       // Positional argument
@@ -79,8 +66,7 @@ export async function parseArgs(
   // We run validation with undefined for options not provided on command line
   for (const [name, opt] of Object.entries(options)) {
     if (!(name in flags)) {
-      const normalized = normalizeOption(opt)
-      flags[name] = await validateOption(name, undefined, normalized.schema)
+      flags[name] = await validateOption(name, undefined, opt.schema)
     }
   }
   

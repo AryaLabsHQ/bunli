@@ -5,7 +5,7 @@ export type { StandardSchemaV1 }
 
 // Core Bunli types
 export interface CLI {
-  command(cmd: Command): void
+  command(cmd: Command<any>): void
   load(manifest: CommandManifest): Promise<void>
   init(): Promise<void>
   run(argv?: string[]): Promise<void>
@@ -17,7 +17,7 @@ export interface Command<TOptions extends Options = Options> {
   description: string
   handler?: Handler<InferOptions<TOptions>>
   options?: TOptions
-  commands?: Command[]
+  commands?: Command<any>[]  // Allow any options type for subcommands
   alias?: string | string[]
 }
 
@@ -29,7 +29,7 @@ type InferSchema<T> = T extends StandardSchemaV1<any, infer Out>
 type InferOptions<T extends Options> = {
   [K in keyof T]: T[K] extends CLIOption<infer S>
     ? InferSchema<S>
-    : InferSchema<T[K]>
+    : never
 }
 
 // generic Handler type that accepts inferred flags type
@@ -55,8 +55,8 @@ export interface CLIOption<S extends StandardSchemaV1 = StandardSchemaV1> {
   description?: string
 }
 
-// Options can be either a schema directly or a CLIOption with metadata
-export type Options = Record<string, StandardSchemaV1 | CLIOption<any>>
+// Options must use the CLIOption wrapper
+export type Options = Record<string, CLIOption<any>>
 
 // Command manifest for lazy loading
 export type CommandManifest = {
@@ -102,7 +102,7 @@ export function defineConfig(config: BunliConfig): BunliConfig {
 // Helper to create a CLI option with metadata
 export function option<S extends StandardSchemaV1>(
   schema: S,
-  metadata: { short?: string; description?: string }
+  metadata?: { short?: string; description?: string }
 ): CLIOption<S> {
   return {
     schema,

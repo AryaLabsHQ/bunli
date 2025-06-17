@@ -6,10 +6,12 @@ export default defineCommand({
   description: 'Create a new project from template',
   alias: 'n',
   options: {
-    name: z.string()
-      .min(1)
-      .regex(/^[a-z0-9-]+$/, 'Use lowercase letters, numbers, and hyphens')
-      .describe('Project name'),
+    name: option(
+      z.string()
+        .min(1)
+        .regex(/^[a-z0-9-]+$/, 'Use lowercase letters, numbers, and hyphens'),
+      { description: 'Project name' }
+    ),
     
     template: option(
       z.enum(['node', 'react', 'vue', 'api', 'cli']).default('node'),

@@ -7,8 +7,8 @@ const greetCommand = defineCommand({
   name: 'greet',
   description: 'A minimal greeting CLI',
   options: {
-    // Simple string with default - no metadata needed
-    name: z.string().default('world'),
+    // Simple string with default
+    name: option(z.string().default('world')),
     
     // Boolean with short flag
     loud: option(

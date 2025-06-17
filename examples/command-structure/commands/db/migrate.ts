@@ -16,9 +16,10 @@ export default defineCommand({
       { short: 's', description: 'Number of migrations to run' }
     ),
     
-    env: z.string()
-      .default(process.env.NODE_ENV || 'development')
-      .describe('Environment')
+    env: option(
+      z.string().default(process.env.NODE_ENV || 'development'),
+      { description: 'Environment' }
+    )
   },
   
   handler: async ({ flags, colors, spinner }) => {
