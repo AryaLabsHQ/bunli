@@ -14,15 +14,35 @@ export const baseOptions: BaseLayoutProps = {
         <svg
           width="24"
           height="24"
+          viewBox="0 0 24 24"
+          fill="none"
           xmlns="http://www.w3.org/2000/svg"
-          aria-label="Logo"
+          aria-label="Bunli Logo"
         >
-          <circle cx={12} cy={12} r={12} fill="currentColor" />
+          {/* Terminal icon representing CLI */}
+          <rect x="2" y="4" width="20" height="16" rx="2" stroke="currentColor" strokeWidth="2"/>
+          <path d="M7 9L10 12L7 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M13 15H17" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
         </svg>
-        My App
+        <span className="font-bold">Bunli</span>
       </>
     ),
   },
-  // see https://fumadocs.dev/docs/ui/navigation/links
-  links: [],
+  links: [
+    {
+      text: 'Documentation',
+      url: '/docs',
+      active: 'nested-url',
+    },
+    {
+      text: 'GitHub',
+      url: 'https://github.com/AryaLabsHQ/bunli',
+      external: true,
+    },
+    {
+      text: 'npm',
+      url: 'https://www.npmjs.com/package/bunli',
+      external: true,
+    },
+  ],
 };

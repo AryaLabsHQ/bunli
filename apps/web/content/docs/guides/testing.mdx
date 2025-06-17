@@ -1,0 +1,535 @@
+---
+title: Testing
+description: Write comprehensive tests for your CLI applications
+---
+
+# Testing Guide
+
+Learn how to test your Bunli CLI applications using the built-in testing utilities.
+
+## Setup
+
+Bunli includes `@bunli/test` for testing CLI commands:
+
+```typescript
+// package.json
+{
+  "scripts": {
+    "test": "bunli test",
+    "test:watch": "bunli test --watch",
+    "test:coverage": "bunli test --coverage"
+  }
+}
+```
+
+## Basic Testing
+
+### Testing a Simple Command
+
+```typescript
+// src/commands/greet.ts
+import { defineCommand, option } from '@bunli/core'
+import { z } from 'zod'
+
+export default defineCommand({
+  name: 'greet',
+  options: {
+    name: option(z.string().default('World'))
+  },
+  handler: async ({ flags, colors }) => {
+    console.log(colors.green(`Hello, ${flags.name}!`))
+  }
+})
+```
+
+```typescript
+// src/commands/greet.test.ts
+import { test, expect } from '@bunli/test'
+import { createTestCLI } from '@bunli/test'
+import greet from './greet'
+
+test('greet command says hello', async () => {
+  const cli = createTestCLI()
+  cli.command(greet)
+  
+  const result = await cli.run(['greet'])
+  
+  expect(result.exitCode).toBe(0)
+  expect(result.stdout).toContain('Hello, World!')
+})
+
+test('greet command with custom name', async () => {
+  const cli = createTestCLI()
+  cli.command(greet)
+  
+  const result = await cli.run(['greet', '--name', 'Alice'])
+  
+  expect(result.exitCode).toBe(0)
+  expect(result.stdout).toContain('Hello, Alice!')
+})
+```
+
+## Testing Command Options
+
+### Testing Validation
+
+```typescript
+// src/commands/serve.ts
+import { defineCommand, option } from '@bunli/core'
+import { z } from 'zod'
+
+export default defineCommand({
+  name: 'serve',
+  options: {
+    port: option(
+      z.coerce.number().int().min(1).max(65535),
+      { description: 'Port number' }
+    ),
+    host: option(
+      z.string().default('localhost')
+    )
+  },
+  handler: async ({ flags }) => {
+    console.log(`Server running on ${flags.host}:${flags.port}`)
+  }
+})
+```
+
+```typescript
+// src/commands/serve.test.ts
+import { test, expect, describe } from '@bunli/test'
+import { createTestCLI } from '@bunli/test'
+import serve from './serve'
+
+describe('serve command', () => {
+  test('valid port number', async () => {
+    const cli = createTestCLI()
+    cli.command(serve)
+    
+    const result = await cli.run(['serve', '--port', '3000'])
+    
+    expect(result.exitCode).toBe(0)
+    expect(result.stdout).toContain('Server running on localhost:3000')
+  })
+  
+  test('invalid port number', async () => {
+    const cli = createTestCLI()
+    cli.command(serve)
+    
+    const result = await cli.run(['serve', '--port', '70000'])
+    
+    expect(result.exitCode).toBe(1)
+    expect(result.stderr).toContain('less than or equal to 65535')
+  })
+  
+  test('non-numeric port', async () => {
+    const cli = createTestCLI()
+    cli.command(serve)
+    
+    const result = await cli.run(['serve', '--port', 'abc'])
+    
+    expect(result.exitCode).toBe(1)
+    expect(result.stderr).toContain('Expected number')
+  })
+})
+```
+
+## Testing Interactive Commands
+
+### Mocking Prompts
+
+```typescript
+// src/commands/init.ts
+export default defineCommand({
+  name: 'init',
+  handler: async ({ prompt, colors }) => {
+    const name = await prompt('Project name:', {
+      default: 'my-project'
+    })
+    
+    const useTypeScript = await prompt.confirm('Use TypeScript?', {
+      default: true
+    })
+    
+    const template = await prompt.select('Choose a template:', {
+      choices: [
+        { value: 'basic', label: 'Basic' },
+        { value: 'full', label: 'Full-featured' }
+      ]
+    })
+    
+    console.log(colors.green('✓'), `Created ${name} with ${template} template`)
+    if (useTypeScript) {
+      console.log(colors.dim('  TypeScript enabled'))
+    }
+  }
+})
+```
+
+```typescript
+// src/commands/init.test.ts
+test('init command with prompts', async () => {
+  const cli = createTestCLI()
+  cli.command(init)
+  
+  // Mock prompt responses in order
+  cli.mockPrompts([
+    'awesome-cli',      // Project name
+    false,              // Use TypeScript
+    'full'              // Template
+  ])
+  
+  const result = await cli.run(['init'])
+  
+  expect(result.exitCode).toBe(0)
+  expect(result.stdout).toContain('Created awesome-cli with full template')
+  expect(result.stdout).not.toContain('TypeScript enabled')
+})
+
+test('init command with default values', async () => {
+  const cli = createTestCLI()
+  cli.command(init)
+  
+  // Press enter for all prompts (use defaults)
+  cli.mockPrompts([
+    '',     // Use default project name
+    '',     // Use default TypeScript option
+    'basic' // Select basic template
+  ])
+  
+  const result = await cli.run(['init'])
+  
+  expect(result.stdout).toContain('Created my-project with basic template')
+  expect(result.stdout).toContain('TypeScript enabled')
+})
+```
+
+## Testing Command Output
+
+### Capturing Output
+
+```typescript
+test('command output formatting', async () => {
+  const cli = createTestCLI()
+  
+  const result = await cli.run(['list'])
+  
+  // Test stdout
+  expect(result.stdout).toContain('Items:')
+  expect(result.stdout.split('\n')).toHaveLength(5)
+  
+  // Test stderr
+  expect(result.stderr).toBe('')
+  
+  // Test combined output
+  expect(result.output).toContain('Items:')
+})
+```
+
+### Testing Colored Output
+
+```typescript
+test('colored output', async () => {
+  const cli = createTestCLI({
+    // Force color output in tests
+    env: { FORCE_COLOR: '1' }
+  })
+  
+  const result = await cli.run(['status'])
+  
+  // Test for ANSI color codes
+  expect(result.stdout).toContain('\x1b[32m') // Green
+  expect(result.stdout).toContain('\x1b[31m') // Red
+  
+  // Or strip colors for easier testing
+  const stripped = stripAnsi(result.stdout)
+  expect(stripped).toContain('✓ Success')
+})
+```
+
+## Testing Error Handling
+
+### Exit Codes
+
+```typescript
+test('command failure', async () => {
+  const cli = createTestCLI()
+  
+  const result = await cli.run(['build', '--invalid-flag'])
+  
+  expect(result.exitCode).toBe(1)
+  expect(result.stderr).toContain('Unknown flag')
+})
+
+test('command throws error', async () => {
+  const cli = createTestCLI()
+  cli.command(defineCommand({
+    name: 'fail',
+    handler: async () => {
+      throw new Error('Something went wrong')
+    }
+  }))
+  
+  const result = await cli.run(['fail'])
+  
+  expect(result.exitCode).toBe(1)
+  expect(result.stderr).toContain('Something went wrong')
+})
+```
+
+### Validation Errors
+
+```typescript
+test('validation error messages', async () => {
+  const cli = createTestCLI()
+  
+  const result = await cli.run([
+    'deploy',
+    '--env', 'invalid',
+    '--port', '-1'
+  ])
+  
+  expect(result.exitCode).toBe(1)
+  expect(result.stderr).toContain('Validation errors:')
+  expect(result.stderr).toContain('--env: Invalid enum value')
+  expect(result.stderr).toContain('--port: Number must be greater than or equal to 1')
+})
+```
+
+## Testing File System Operations
+
+### Mocking File System
+
+```typescript
+import { mockFS, restoreFS } from '@bunli/test'
+
+test('command creates files', async () => {
+  // Setup mock file system
+  mockFS({
+    '/project': {
+      'package.json': JSON.stringify({ name: 'test' })
+    }
+  })
+  
+  const cli = createTestCLI({
+    cwd: '/project'
+  })
+  
+  const result = await cli.run(['generate', 'component', 'Button'])
+  
+  expect(result.exitCode).toBe(0)
+  
+  // Verify files were created
+  const fs = getMockFS()
+  expect(fs.existsSync('/project/src/components/Button.tsx')).toBe(true)
+  expect(fs.readFileSync('/project/src/components/Button.tsx', 'utf8'))
+    .toContain('export function Button')
+  
+  // Cleanup
+  restoreFS()
+})
+```
+
+## Testing Async Operations
+
+### Testing Spinners and Progress
+
+```typescript
+test('long running command', async () => {
+  const cli = createTestCLI()
+  
+  const result = await cli.run(['install'], {
+    timeout: 10000 // 10 seconds
+  })
+  
+  expect(result.exitCode).toBe(0)
+  expect(result.stdout).toContain('Installing dependencies...')
+  expect(result.stdout).toContain('✓ Installation complete')
+})
+
+test('command with progress updates', async () => {
+  const cli = createTestCLI()
+  
+  // Capture output as it happens
+  const outputs: string[] = []
+  cli.onOutput((chunk) => {
+    outputs.push(chunk)
+  })
+  
+  await cli.run(['download', 'large-file.zip'])
+  
+  // Verify progress updates
+  expect(outputs.some(o => o.includes('0%'))).toBe(true)
+  expect(outputs.some(o => o.includes('50%'))).toBe(true)
+  expect(outputs.some(o => o.includes('100%'))).toBe(true)
+})
+```
+
+## Testing Environment Variables
+
+```typescript
+test('command uses environment variables', async () => {
+  const cli = createTestCLI({
+    env: {
+      API_KEY: 'test-key-123',
+      DEBUG: 'true'
+    }
+  })
+  
+  const result = await cli.run(['api', 'status'])
+  
+  expect(result.stdout).toContain('Using API key: test-***-123')
+  expect(result.stdout).toContain('Debug mode enabled')
+})
+```
+
+## Testing Shell Commands
+
+```typescript
+test('command executes shell commands', async () => {
+  const cli = createTestCLI()
+  
+  // Mock shell commands
+  cli.mockShell({
+    'git status': {
+      stdout: 'On branch main\nnothing to commit',
+      exitCode: 0
+    },
+    'git pull': {
+      stdout: 'Already up to date.',
+      exitCode: 0
+    }
+  })
+  
+  const result = await cli.run(['sync'])
+  
+  expect(result.stdout).toContain('Already up to date')
+})
+```
+
+## Integration Testing
+
+### Testing Multiple Commands
+
+```typescript
+test('command workflow', async () => {
+  const cli = createTestCLI()
+  
+  // Initialize project
+  let result = await cli.run(['init', '--name', 'test-app'])
+  expect(result.exitCode).toBe(0)
+  
+  // Add a component
+  result = await cli.run(['add', 'component', 'Button'])
+  expect(result.exitCode).toBe(0)
+  
+  // Build project
+  result = await cli.run(['build'])
+  expect(result.exitCode).toBe(0)
+  expect(result.stdout).toContain('Build successful')
+})
+```
+
+## Test Utilities
+
+### Custom Matchers
+
+```typescript
+import { expect } from '@bunli/test'
+
+// Add custom matchers
+expect.extend({
+  toBeValidPort(received: number) {
+    const pass = received >= 1 && received <= 65535
+    return {
+      pass,
+      message: () => 
+        `Expected ${received} to be a valid port number (1-65535)`
+    }
+  }
+})
+
+// Use in tests
+test('port validation', () => {
+  expect(3000).toBeValidPort()
+  expect(70000).not.toBeValidPort()
+})
+```
+
+### Test Helpers
+
+```typescript
+// test-helpers.ts
+export function createAuthenticatedCLI() {
+  const cli = createTestCLI({
+    env: {
+      AUTH_TOKEN: 'test-token'
+    }
+  })
+  
+  // Add common commands
+  cli.command(loginCommand)
+  cli.command(logoutCommand)
+  
+  return cli
+}
+
+// Use in tests
+test('authenticated command', async () => {
+  const cli = createAuthenticatedCLI()
+  const result = await cli.run(['profile'])
+  expect(result.stdout).toContain('Logged in as: test-user')
+})
+```
+
+## Coverage Reports
+
+Run tests with coverage:
+
+```bash
+bunli test --coverage
+```
+
+This generates a coverage report showing:
+- Line coverage
+- Branch coverage
+- Function coverage
+- Statement coverage
+
+## Best Practices
+
+1. **Test User Scenarios**: Focus on how users interact with your CLI
+2. **Test Error Cases**: Ensure good error messages
+3. **Mock External Dependencies**: Don't make real API calls
+4. **Test Cross-Platform**: Consider Windows/Unix differences
+5. **Keep Tests Fast**: Mock slow operations
+6. **Test Output Format**: Users depend on consistent output
+
+## Debugging Tests
+
+```typescript
+test('debugging example', async () => {
+  const cli = createTestCLI({
+    // Enable debug output
+    debug: true
+  })
+  
+  // Log intermediate values
+  cli.onOutput((chunk) => {
+    console.log('Output:', chunk)
+  })
+  
+  const result = await cli.run(['complex-command'])
+  
+  // Detailed assertion messages
+  expect(result.exitCode).toBe(0, 
+    `Command failed with: ${result.stderr}`
+  )
+})
+```
+
+## Next Steps
+
+- [Distribution](/docs/guides/distribution) - Package and distribute your CLI
+- [@bunli/test API](/docs/packages/test) - Complete testing API reference
+- [Examples](/docs/examples) - See tests in real projects

@@ -1,0 +1,14 @@
+{
+  "title": "Documentation",
+  "pages": [
+    "index",
+    "getting-started",
+    "bunli-cli",
+    "---",
+    "core-concepts",
+    "packages",
+    "api",
+    "guides",
+    "examples"
+  ]
+}

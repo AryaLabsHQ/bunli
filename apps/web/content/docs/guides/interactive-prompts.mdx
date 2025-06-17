@@ -1,0 +1,527 @@
+---
+title: Interactive Prompts
+description: Build interactive CLI experiences with prompts and user input
+---
+
+# Interactive Prompts
+
+Create engaging CLI experiences with interactive prompts, confirmations, and selections.
+
+## Available Prompt Types
+
+Bunli provides several built-in prompt utilities through the handler context:
+
+```typescript
+export default defineCommand({
+  handler: async ({ prompt }) => {
+    // Text input
+    const name = await prompt('What is your name?')
+    
+    // Confirmation
+    const confirmed = await prompt.confirm('Continue?')
+    
+    // Selection
+    const choice = await prompt.select('Choose an option', {
+      choices: [
+        { value: 'a', label: 'Option A' },
+        { value: 'b', label: 'Option B' }
+      ]
+    })
+    
+    // Password input
+    const password = await prompt.password('Enter password:')
+  }
+})
+```
+
+## Text Input Prompts
+
+### Basic Text Input
+
+```typescript
+export default defineCommand({
+  name: 'init',
+  handler: async ({ prompt, colors }) => {
+    const projectName = await prompt('Project name:', {
+      default: 'my-project',
+      validate: (value) => {
+        if (!value) return 'Project name is required'
+        if (!/^[a-z0-9-]+$/.test(value)) {
+          return 'Project name can only contain lowercase letters, numbers, and dashes'
+        }
+        return true
+      }
+    })
+    
+    console.log(colors.green('✓'), `Creating project: ${projectName}`)
+  }
+})
+```
+
+### Multi-line Input
+
+```typescript
+export default defineCommand({
+  name: 'note',
+  handler: async ({ prompt }) => {
+    const content = await prompt('Enter your note (Ctrl+D to finish):', {
+      multiline: true
+    })
+    
+    console.log('Note saved with', content.split('\n').length, 'lines')
+  }
+})
+```
+
+### Input with Validation
+
+```typescript
+export default defineCommand({
+  name: 'register',
+  handler: async ({ prompt }) => {
+    const email = await prompt('Email address:', {
+      validate: (value) => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+        if (!emailRegex.test(value)) {
+          return 'Please enter a valid email address'
+        }
+        return true
+      }
+    })
+    
+    const age = await prompt('Age:', {
+      validate: (value) => {
+        const num = parseInt(value, 10)
+        if (isNaN(num)) return 'Please enter a number'
+        if (num < 18) return 'You must be 18 or older'
+        if (num > 150) return 'Please enter a valid age'
+        return true
+      },
+      transform: (value) => parseInt(value, 10)
+    })
+    
+    console.log(`Registered: ${email}, age ${age}`)
+  }
+})
+```
+
+## Confirmation Prompts
+
+### Basic Confirmation
+
+```typescript
+export default defineCommand({
+  name: 'delete',
+  handler: async ({ prompt, colors, positional }) => {
+    const [file] = positional
+    
+    const confirmed = await prompt.confirm(
+      `Are you sure you want to delete ${file}?`,
+      { default: false }
+    )
+    
+    if (confirmed) {
+      console.log(colors.red('✗'), `Deleted ${file}`)
+    } else {
+      console.log(colors.yellow('⚠'), 'Operation cancelled')
+    }
+  }
+})
+```
+
+### Dangerous Operations
+
+```typescript
+export default defineCommand({
+  name: 'deploy',
+  options: {
+    env: option(z.enum(['dev', 'staging', 'production']))
+  },
+  handler: async ({ flags, prompt, colors }) => {
+    if (flags.env === 'production') {
+      console.log(colors.yellow('⚠ WARNING: Deploying to production!'))
+      
+      const confirmed = await prompt.confirm(
+        'This will affect live users. Continue?',
+        { default: false }
+      )
+      
+      if (!confirmed) {
+        console.log('Deployment cancelled')
+        process.exit(0)
+      }
+      
+      // Double confirmation for critical operations
+      const reallyConfirmed = await prompt.confirm(
+        'Are you REALLY sure?',
+        { default: false }
+      )
+      
+      if (!reallyConfirmed) {
+        console.log('Deployment cancelled')
+        process.exit(0)
+      }
+    }
+    
+    console.log(`Deploying to ${flags.env}...`)
+  }
+})
+```
+
+## Selection Prompts
+
+### Single Selection
+
+```typescript
+export default defineCommand({
+  name: 'create',
+  handler: async ({ prompt, colors }) => {
+    const projectType = await prompt.select('What type of project?', {
+      choices: [
+        { value: 'web', label: 'Web Application' },
+        { value: 'api', label: 'REST API' },
+        { value: 'cli', label: 'CLI Tool' },
+        { value: 'lib', label: 'Library' }
+      ]
+    })
+    
+    const framework = await prompt.select('Choose a framework:', {
+      choices: projectType === 'web' ? [
+        { value: 'next', label: 'Next.js' },
+        { value: 'remix', label: 'Remix' },
+        { value: 'astro', label: 'Astro' }
+      ] : [
+        { value: 'hono', label: 'Hono' },
+        { value: 'elysia', label: 'Elysia' },
+        { value: 'express', label: 'Express' }
+      ]
+    })
+    
+    console.log(colors.green('✓'), `Creating ${projectType} with ${framework}`)
+  }
+})
+```
+
+### Multi-Selection
+
+```typescript
+export default defineCommand({
+  name: 'install',
+  handler: async ({ prompt, spinner }) => {
+    const features = await prompt.multiselect('Select features to install:', {
+      choices: [
+        { value: 'auth', label: 'Authentication', selected: true },
+        { value: 'db', label: 'Database', selected: true },
+        { value: 'email', label: 'Email Service' },
+        { value: 'storage', label: 'File Storage' },
+        { value: 'cache', label: 'Caching Layer' },
+        { value: 'queue', label: 'Job Queue' }
+      ],
+      min: 1,
+      max: 4
+    })
+    
+    const spin = spinner('Installing features...')
+    spin.start()
+    
+    for (const feature of features) {
+      spin.update(`Installing ${feature}...`)
+      await new Promise(resolve => setTimeout(resolve, 1000))
+    }
+    
+    spin.succeed(`Installed ${features.length} features`)
+  }
+})
+```
+
+## Password Prompts
+
+```typescript
+export default defineCommand({
+  name: 'login',
+  handler: async ({ prompt, colors }) => {
+    const username = await prompt('Username:')
+    
+    const password = await prompt.password('Password:', {
+      mask: '*',
+      validate: (value) => {
+        if (value.length < 8) {
+          return 'Password must be at least 8 characters'
+        }
+        return true
+      }
+    })
+    
+    // For sensitive operations, confirm password
+    const confirmPassword = await prompt.password('Confirm password:', {
+      mask: '*'
+    })
+    
+    if (password !== confirmPassword) {
+      console.log(colors.red('✗'), 'Passwords do not match')
+      process.exit(1)
+    }
+    
+    console.log(colors.green('✓'), 'Login successful')
+  }
+})
+```
+
+## Complex Interactive Flows
+
+### Setup Wizard
+
+```typescript
+export default defineCommand({
+  name: 'setup',
+  handler: async ({ prompt, colors, spinner }) => {
+    console.log(colors.blue('Welcome to the setup wizard!\n'))
+    
+    // Step 1: Basic Info
+    const projectName = await prompt('Project name:', {
+      default: 'my-app'
+    })
+    
+    const description = await prompt('Project description:', {
+      default: 'A Bunli CLI application'
+    })
+    
+    // Step 2: Configuration
+    const useTypeScript = await prompt.confirm('Use TypeScript?', {
+      default: true
+    })
+    
+    const features = await prompt.multiselect('Select features:', {
+      choices: [
+        { value: 'tests', label: 'Testing framework', selected: true },
+        { value: 'lint', label: 'Linting', selected: true },
+        { value: 'format', label: 'Code formatting', selected: true },
+        { value: 'git', label: 'Git repository', selected: true },
+        { value: 'ci', label: 'CI/CD pipeline' }
+      ]
+    })
+    
+    // Step 3: Advanced Options
+    let database = null
+    if (await prompt.confirm('Configure database?')) {
+      database = await prompt.select('Database type:', {
+        choices: [
+          { value: 'sqlite', label: 'SQLite' },
+          { value: 'postgres', label: 'PostgreSQL' },
+          { value: 'mysql', label: 'MySQL' },
+          { value: 'mongodb', label: 'MongoDB' }
+        ]
+      })
+    }
+    
+    // Step 4: Confirmation
+    console.log('\n' + colors.blue('Configuration Summary:'))
+    console.log(`  Name: ${projectName}`)
+    console.log(`  Description: ${description}`)
+    console.log(`  TypeScript: ${useTypeScript ? 'Yes' : 'No'}`)
+    console.log(`  Features: ${features.join(', ')}`)
+    if (database) {
+      console.log(`  Database: ${database}`)
+    }
+    
+    const proceed = await prompt.confirm('\nProceed with setup?', {
+      default: true
+    })
+    
+    if (!proceed) {
+      console.log(colors.yellow('Setup cancelled'))
+      process.exit(0)
+    }
+    
+    // Step 5: Execute Setup
+    const spin = spinner('Setting up project...')
+    spin.start()
+    
+    // Simulate setup steps
+    const steps = [
+      'Creating project structure',
+      'Installing dependencies',
+      'Configuring tools',
+      'Initializing git repository'
+    ]
+    
+    for (const step of steps) {
+      spin.update(step + '...')
+      await new Promise(resolve => setTimeout(resolve, 1000))
+    }
+    
+    spin.succeed('Project setup complete!')
+    console.log(colors.green('\n✓'), `cd ${projectName} && bunli dev`)
+  }
+})
+```
+
+### Interactive Configuration Editor
+
+```typescript
+export default defineCommand({
+  name: 'config',
+  handler: async ({ prompt, colors }) => {
+    const action = await prompt.select('What would you like to do?', {
+      choices: [
+        { value: 'view', label: 'View current configuration' },
+        { value: 'edit', label: 'Edit configuration' },
+        { value: 'reset', label: 'Reset to defaults' }
+      ]
+    })
+    
+    if (action === 'edit') {
+      const section = await prompt.select('Which section to edit?', {
+        choices: [
+          { value: 'general', label: 'General Settings' },
+          { value: 'api', label: 'API Configuration' },
+          { value: 'advanced', label: 'Advanced Options' }
+        ]
+      })
+      
+      switch (section) {
+        case 'general':
+          const theme = await prompt.select('Color theme:', {
+            choices: [
+              { value: 'auto', label: 'Auto (system)' },
+              { value: 'light', label: 'Light' },
+              { value: 'dark', label: 'Dark' }
+            ]
+          })
+          
+          const verbose = await prompt.confirm('Enable verbose logging?')
+          
+          console.log(colors.green('✓'), 'Settings updated')
+          break
+          
+        case 'api':
+          const endpoint = await prompt('API endpoint:', {
+            default: 'https://api.example.com',
+            validate: (value) => {
+              try {
+                new URL(value)
+                return true
+              } catch {
+                return 'Please enter a valid URL'
+              }
+            }
+          })
+          
+          const timeout = await prompt('Request timeout (seconds):', {
+            default: '30',
+            validate: (value) => {
+              const num = parseInt(value, 10)
+              if (isNaN(num) || num <= 0) {
+                return 'Please enter a positive number'
+              }
+              return true
+            }
+          })
+          
+          console.log(colors.green('✓'), 'API configuration updated')
+          break
+      }
+    }
+  }
+})
+```
+
+## Prompt Options
+
+### Common Options
+
+```typescript
+interface PromptOptions {
+  // Default value
+  default?: string
+  
+  // Validation function
+  validate?: (value: string) => boolean | string
+  
+  // Transform the value after validation
+  transform?: (value: string) => any
+  
+  // Custom error message
+  error?: string
+  
+  // Allow empty input
+  required?: boolean
+}
+```
+
+### Select Options
+
+```typescript
+interface SelectOptions<T> {
+  // Available choices
+  choices: Array<{
+    value: T
+    label: string
+    hint?: string
+  }>
+  
+  // Default selected value
+  default?: T
+  
+  // Maximum items to display
+  maxVisible?: number
+}
+```
+
+## Best Practices
+
+1. **Provide Defaults**: Always offer sensible defaults
+2. **Validate Input**: Catch errors early with validation
+3. **Show Progress**: Use spinners for long operations
+4. **Confirm Dangerous Actions**: Double-check destructive operations
+5. **Group Related Prompts**: Create logical flows
+6. **Handle Cancellation**: Allow users to exit gracefully
+
+## Error Handling
+
+```typescript
+export default defineCommand({
+  handler: async ({ prompt, colors }) => {
+    try {
+      const input = await prompt('Enter value:')
+      // Process input
+    } catch (error) {
+      if (error.message === 'Prompt cancelled') {
+        console.log(colors.yellow('\nOperation cancelled'))
+        process.exit(0)
+      }
+      throw error
+    }
+  }
+})
+```
+
+## Testing Interactive Commands
+
+```typescript
+import { test, expect } from '@bunli/test'
+import { createTestCLI } from '@bunli/test'
+
+test('interactive setup', async () => {
+  const cli = createTestCLI()
+  
+  // Mock prompt responses
+  cli.mockPrompts([
+    'my-project',     // Project name
+    true,             // Use TypeScript
+    ['tests', 'git'], // Features
+    true              // Confirm
+  ])
+  
+  const result = await cli.run(['setup'])
+  
+  expect(result.exitCode).toBe(0)
+  expect(result.output).toContain('Project setup complete')
+})
+```
+
+## Next Steps
+
+- [Testing](/docs/guides/testing) - Test interactive commands
+- [Building Your First CLI](/docs/guides/building-your-first-cli) - Complete example
+- [@bunli/utils](/docs/packages/utils) - Utility functions reference

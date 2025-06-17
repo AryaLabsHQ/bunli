@@ -1,0 +1,632 @@
+---
+title: Real-World CLI
+description: Complete production-ready CLI example
+---
+
+# Real-World CLI Example
+
+A complete, production-ready CLI application demonstrating best practices, error handling, configuration, and testing.
+
+## Overview
+
+This example shows a deployment tool CLI with:
+- Multiple environments
+- Configuration management
+- Git integration
+- Docker support
+- Health checks
+- Rollback capability
+- Comprehensive error handling
+- Testing suite
+
+## Project Structure
+
+```
+deploy-tool/
+├── src/
+│   ├── index.ts              # CLI entry point
+│   ├── commands/
+│   │   ├── deploy.ts         # Main deploy command
+│   │   ├── rollback.ts       # Rollback deployments
+│   │   ├── status.ts         # Check deployment status
+│   │   ├── config/           # Configuration commands
+│   │   │   ├── index.ts
+│   │   │   ├── init.ts
+│   │   │   ├── validate.ts
+│   │   │   └── show.ts
+│   │   └── env/              # Environment commands
+│   │       ├── index.ts
+│   │       ├── list.ts
+│   │       ├── add.ts
+│   │       └── remove.ts
+│   ├── lib/
+│   │   ├── config.ts         # Configuration management
+│   │   ├── deploy.ts         # Deployment logic
+│   │   ├── docker.ts         # Docker operations
+│   │   ├── git.ts            # Git operations
+│   │   ├── health.ts         # Health check utilities
+│   │   └── logger.ts         # Logging utilities
+│   └── types/
+│       └── index.ts          # Type definitions
+├── tests/
+│   ├── commands/
+│   │   └── deploy.test.ts
+│   └── lib/
+│       └── config.test.ts
+├── .deploy/                  # Configuration directory
+│   ├── config.json
+│   └── environments/
+├── package.json
+├── bunli.config.ts
+├── tsconfig.json
+└── README.md
+```
+
+## Main CLI Entry
+
+```typescript
+// src/index.ts
+#!/usr/bin/env bun
+import { createCLI } from '@bunli/core'
+import { loadGlobalConfig } from './lib/config'
+import { setupLogger } from './lib/logger'
+import { version } from '../package.json'
+
+const cli = createCLI({
+  name: 'deploy-tool',
+  version,
+  description: 'Production deployment automation',
+  commands: {
+    directory: './commands'
+  }
+})
+
+// Global setup
+cli.before(async (context) => {
+  // Initialize logger
+  const logger = setupLogger({
+    level: context.flags.verbose ? 'debug' : 'info',
+    silent: context.flags.quiet
+  })
+  
+  // Load configuration
+  const config = await loadGlobalConfig()
+  
+  // Add to context
+  context.logger = logger
+  context.config = config
+})
+
+// Global error handling
+cli.catch(async (error, context) => {
+  context.logger.error('Command failed:', error)
+  
+  if (error.code === 'CONFIG_NOT_FOUND') {
+    console.error('\nRun "deploy-tool config init" to create configuration')
+  }
+  
+  process.exit(1)
+})
+
+await cli.run()
+```
+
+## Deploy Command
+
+```typescript
+// src/commands/deploy.ts
+import { defineCommand, option } from '@bunli/core'
+import { z } from 'zod'
+import { deployService } from '../lib/deploy'
+import { checkGitStatus, getCurrentBranch } from '../lib/git'
+import { buildDocker, pushDocker } from '../lib/docker'
+import { runHealthChecks } from '../lib/health'
+
+export default defineCommand({
+  name: 'deploy',
+  description: 'Deploy application to environment',
+  options: {
+    env: option(
+      z.enum(['development', 'staging', 'production']),
+      { 
+        description: 'Target environment',
+        short: 'e'
+      }
+    ),
+    tag: option(
+      z.string().optional(),
+      { 
+        description: 'Version tag (defaults to git commit)',
+        short: 't'
+      }
+    ),
+    skipTests: option(
+      z.boolean().default(false),
+      { 
+        description: 'Skip pre-deployment tests',
+        short: 's'
+      }
+    ),
+    skipHealth: option(
+      z.boolean().default(false),
+      { 
+        description: 'Skip post-deployment health checks'
+      }
+    ),
+    force: option(
+      z.boolean().default(false),
+      { 
+        description: 'Force deployment (skip safety checks)',
+        short: 'f'
+      }
+    ),
+    dryRun: option(
+      z.boolean().default(false),
+      { 
+        description: 'Simulate deployment without making changes',
+        short: 'd'
+      }
+    )
+  },
+  handler: async ({ flags, prompt, spinner, colors, logger, config }) => {
+    const envConfig = config.environments[flags.env]
+    if (!envConfig) {
+      throw new Error(`Environment "${flags.env}" not configured`)
+    }
+    
+    logger.info(`Deploying to ${flags.env}`)
+    
+    // Step 1: Pre-deployment checks
+    if (!flags.force) {
+      const spin = spinner('Running pre-deployment checks...')
+      spin.start()
+      
+      try {
+        // Check git status
+        const gitStatus = await checkGitStatus()
+        if (!gitStatus.clean) {
+          spin.fail('Uncommitted changes detected')
+          
+          if (!flags.dryRun) {
+            const proceed = await prompt.confirm(
+              'You have uncommitted changes. Continue anyway?',
+              { default: false }
+            )
+            if (!proceed) {
+              logger.info('Deployment cancelled')
+              return
+            }
+          }
+        }
+        
+        // Check branch restrictions
+        const currentBranch = await getCurrentBranch()
+        if (flags.env === 'production' && currentBranch !== 'main') {
+          spin.fail(`Production deployments must be from main branch`)
+          
+          if (!flags.force && !flags.dryRun) {
+            throw new Error('Branch restriction violated')
+          }
+        }
+        
+        spin.succeed('Pre-deployment checks passed')
+      } catch (error) {
+        spin.fail('Pre-deployment checks failed')
+        throw error
+      }
+    }
+    
+    // Step 2: Run tests
+    if (!flags.skipTests && envConfig.runTests) {
+      const spin = spinner('Running tests...')
+      spin.start()
+      
+      try {
+        if (flags.dryRun) {
+          await new Promise(resolve => setTimeout(resolve, 2000))
+        } else {
+          const { exitCode } = await Bun.$`bun test`.quiet()
+          if (exitCode !== 0) {
+            throw new Error('Tests failed')
+          }
+        }
+        
+        spin.succeed('Tests passed')
+      } catch (error) {
+        spin.fail('Tests failed')
+        throw error
+      }
+    }
+    
+    // Step 3: Build Docker image
+    const tag = flags.tag || await Bun.$`git rev-parse --short HEAD`.text()
+    const imageName = `${envConfig.registry}/${config.project}:${tag.trim()}`
+    
+    const buildSpin = spinner('Building Docker image...')
+    buildSpin.start()
+    
+    try {
+      if (!flags.dryRun) {
+        await buildDocker({
+          dockerfile: envConfig.dockerfile || 'Dockerfile',
+          context: '.',
+          tag: imageName,
+          buildArgs: envConfig.buildArgs
+        })
+      }
+      
+      buildSpin.succeed('Docker image built')
+      logger.debug(`Image: ${imageName}`)
+    } catch (error) {
+      buildSpin.fail('Docker build failed')
+      throw error
+    }
+    
+    // Step 4: Push to registry
+    const pushSpin = spinner('Pushing to registry...')
+    pushSpin.start()
+    
+    try {
+      if (!flags.dryRun) {
+        await pushDocker(imageName)
+      }
+      
+      pushSpin.succeed('Image pushed to registry')
+    } catch (error) {
+      pushSpin.fail('Registry push failed')
+      throw error
+    }
+    
+    // Step 5: Deploy
+    const deploySpin = spinner(`Deploying to ${flags.env}...`)
+    deploySpin.start()
+    
+    try {
+      const deployment = await deployService({
+        environment: flags.env,
+        image: imageName,
+        config: envConfig,
+        dryRun: flags.dryRun
+      })
+      
+      deploySpin.succeed('Deployment initiated')
+      logger.info(`Deployment ID: ${deployment.id}`)
+      
+      // Step 6: Wait for deployment
+      const waitSpin = spinner('Waiting for deployment to complete...')
+      waitSpin.start()
+      
+      const result = await deployment.wait({
+        timeout: envConfig.deployTimeout || 300000, // 5 minutes
+        onProgress: (status) => {
+          waitSpin.update(`Deployment ${status}...`)
+        }
+      })
+      
+      if (result.status === 'success') {
+        waitSpin.succeed('Deployment completed successfully')
+      } else {
+        waitSpin.fail(`Deployment failed: ${result.error}`)
+        throw new Error(result.error)
+      }
+      
+    } catch (error) {
+      deploySpin.fail('Deployment failed')
+      
+      // Attempt rollback
+      if (!flags.dryRun && envConfig.autoRollback) {
+        console.log(colors.yellow('\nAttempting automatic rollback...'))
+        
+        try {
+          await Bun.$`deploy-tool rollback --env ${flags.env} --auto`
+          console.log(colors.green('✓ Rollback completed'))
+        } catch (rollbackError) {
+          console.log(colors.red('✗ Rollback failed'))
+          logger.error('Rollback error:', rollbackError)
+        }
+      }
+      
+      throw error
+    }
+    
+    // Step 7: Health checks
+    if (!flags.skipHealth && envConfig.healthCheck) {
+      const healthSpin = spinner('Running health checks...')
+      healthSpin.start()
+      
+      try {
+        const health = await runHealthChecks({
+          url: envConfig.healthCheck.url,
+          timeout: envConfig.healthCheck.timeout || 30000,
+          retries: envConfig.healthCheck.retries || 5,
+          delay: envConfig.healthCheck.delay || 5000
+        })
+        
+        if (health.healthy) {
+          healthSpin.succeed('Health checks passed')
+        } else {
+          healthSpin.fail('Health checks failed')
+          throw new Error(`Health check failed: ${health.error}`)
+        }
+      } catch (error) {
+        healthSpin.fail('Health checks failed')
+        throw error
+      }
+    }
+    
+    // Success!
+    console.log('\n' + colors.green('🚀 Deployment successful!'))
+    console.log(colors.dim(`Environment: ${flags.env}`))
+    console.log(colors.dim(`Version: ${tag.trim()}`))
+    console.log(colors.dim(`URL: ${envConfig.url}`))
+    
+    // Post-deployment notifications
+    if (envConfig.notifications && !flags.dryRun) {
+      await sendNotifications({
+        environment: flags.env,
+        version: tag.trim(),
+        url: envConfig.url,
+        channels: envConfig.notifications
+      })
+    }
+  }
+})
+```
+
+## Configuration Management
+
+```typescript
+// src/lib/config.ts
+import { z } from 'zod'
+import { existsSync } from 'node:fs'
+import { join } from 'node:path'
+
+const environmentSchema = z.object({
+  url: z.string().url(),
+  registry: z.string(),
+  dockerfile: z.string().optional(),
+  buildArgs: z.record(z.string()).optional(),
+  runTests: z.boolean().default(true),
+  deployTimeout: z.number().optional(),
+  autoRollback: z.boolean().default(true),
+  healthCheck: z.object({
+    url: z.string().url(),
+    timeout: z.number().optional(),
+    retries: z.number().optional(),
+    delay: z.number().optional()
+  }).optional(),
+  notifications: z.array(z.object({
+    type: z.enum(['slack', 'email', 'webhook']),
+    config: z.any()
+  })).optional()
+})
+
+const configSchema = z.object({
+  project: z.string(),
+  environments: z.record(environmentSchema),
+  defaults: z.object({
+    registry: z.string().optional(),
+    dockerfile: z.string().optional()
+  }).optional()
+})
+
+export type Config = z.infer<typeof configSchema>
+
+const CONFIG_DIR = '.deploy'
+const CONFIG_FILE = 'config.json'
+
+export async function loadGlobalConfig(): Promise<Config> {
+  const configPath = join(process.cwd(), CONFIG_DIR, CONFIG_FILE)
+  
+  if (!existsSync(configPath)) {
+    throw Object.assign(
+      new Error('Configuration not found'),
+      { code: 'CONFIG_NOT_FOUND' }
+    )
+  }
+  
+  const configData = await Bun.file(configPath).json()
+  return configSchema.parse(configData)
+}
+
+export async function saveConfig(config: Config): Promise<void> {
+  const configPath = join(process.cwd(), CONFIG_DIR, CONFIG_FILE)
+  const configDir = join(process.cwd(), CONFIG_DIR)
+  
+  if (!existsSync(configDir)) {
+    await Bun.$`mkdir -p ${configDir}`
+  }
+  
+  await Bun.write(
+    configPath,
+    JSON.stringify(config, null, 2)
+  )
+}
+
+export async function validateConfig(config: unknown): Promise<Config> {
+  return configSchema.parse(config)
+}
+```
+
+## Testing
+
+```typescript
+// tests/commands/deploy.test.ts
+import { test, expect, describe, beforeEach } from '@bunli/test'
+import { createTestCLI, mockFS, restoreFS } from '@bunli/test'
+import deployCommand from '../../src/commands/deploy'
+
+describe('deploy command', () => {
+  let cli: any
+  
+  beforeEach(() => {
+    cli = createTestCLI()
+    cli.command(deployCommand)
+    
+    // Mock configuration
+    mockFS({
+      '.deploy/config.json': JSON.stringify({
+        project: 'test-app',
+        environments: {
+          development: {
+            url: 'https://dev.example.com',
+            registry: 'registry.example.com',
+            runTests: false
+          },
+          production: {
+            url: 'https://example.com',
+            registry: 'registry.example.com',
+            runTests: true,
+            healthCheck: {
+              url: 'https://example.com/health'
+            }
+          }
+        }
+      })
+    })
+    
+    // Mock git commands
+    cli.mockShell({
+      'git status --porcelain': { stdout: '', exitCode: 0 },
+      'git branch --show-current': { stdout: 'main\n', exitCode: 0 },
+      'git rev-parse --short HEAD': { stdout: 'abc123\n', exitCode: 0 }
+    })
+  })
+  
+  afterEach(() => {
+    restoreFS()
+  })
+  
+  test('deploys to development', async () => {
+    const result = await cli.run([
+      'deploy',
+      '--env', 'development',
+      '--dry-run'
+    ])
+    
+    expect(result.exitCode).toBe(0)
+    expect(result.stdout).toContain('Deployment successful')
+    expect(result.stdout).toContain('Environment: development')
+  })
+  
+  test('enforces branch restrictions for production', async () => {
+    cli.mockShell({
+      'git branch --show-current': { stdout: 'feature/test\n', exitCode: 0 }
+    })
+    
+    const result = await cli.run([
+      'deploy',
+      '--env', 'production'
+    ])
+    
+    expect(result.exitCode).toBe(1)
+    expect(result.stderr).toContain('must be from main branch')
+  })
+  
+  test('runs health checks for production', async () => {
+    const result = await cli.run([
+      'deploy',
+      '--env', 'production',
+      '--dry-run'
+    ])
+    
+    expect(result.stdout).toContain('Running health checks')
+  })
+  
+  test('handles deployment failure with rollback', async () => {
+    cli.mockShell({
+      'docker build': { exitCode: 1, stderr: 'Build failed' }
+    })
+    
+    const result = await cli.run([
+      'deploy',
+      '--env', 'development'
+    ])
+    
+    expect(result.exitCode).toBe(1)
+    expect(result.stdout).toContain('Attempting automatic rollback')
+  })
+})
+```
+
+## Additional Commands
+
+### Status Command
+
+```typescript
+// src/commands/status.ts
+export default defineCommand({
+  name: 'status',
+  description: 'Check deployment status',
+  options: {
+    env: option(
+      z.enum(['all', 'development', 'staging', 'production']).default('all'),
+      { description: 'Environment to check' }
+    ),
+    format: option(
+      z.enum(['table', 'json', 'yaml']).default('table'),
+      { description: 'Output format' }
+    )
+  },
+  handler: async ({ flags, colors, config }) => {
+    const environments = flags.env === 'all' 
+      ? Object.keys(config.environments)
+      : [flags.env]
+    
+    const statuses = await Promise.all(
+      environments.map(async (env) => {
+        const health = await checkEnvironmentHealth(
+          config.environments[env]
+        )
+        return { env, ...health }
+      })
+    )
+    
+    if (flags.format === 'table') {
+      console.log(colors.bold('\nDeployment Status\n'))
+      
+      for (const status of statuses) {
+        const indicator = status.healthy 
+          ? colors.green('●') 
+          : colors.red('●')
+        
+        console.log(`${indicator} ${status.env.padEnd(12)} ${status.version.padEnd(10)} ${status.uptime}`)
+      }
+    } else {
+      // JSON or YAML output
+      console.log(formatOutput(statuses, flags.format))
+    }
+  }
+})
+```
+
+## Key Features Demonstrated
+
+1. **Production Configuration**: Environment-specific settings
+2. **Safety Checks**: Git status, branch restrictions
+3. **Error Recovery**: Automatic rollback on failure
+4. **Health Monitoring**: Post-deployment health checks
+5. **Notifications**: Slack/email notifications
+6. **Dry Run Mode**: Safe testing of deployments
+7. **Comprehensive Testing**: Unit and integration tests
+8. **Logging**: Structured logging throughout
+9. **Docker Integration**: Build and push workflows
+10. **Progress Feedback**: Real-time status updates
+
+## Best Practices Shown
+
+- **Modular Architecture**: Separated concerns
+- **Type Safety**: Full TypeScript coverage
+- **Error Handling**: Graceful failures
+- **Configuration Validation**: Schema-based validation
+- **Testing**: Comprehensive test coverage
+- **Documentation**: Clear command descriptions
+- **User Experience**: Interactive prompts and progress
+- **Security**: No hardcoded secrets
+- **Extensibility**: Easy to add new commands
+
+## Next Steps
+
+- [Distribution Guide](/docs/guides/distribution) - Package this CLI
+- [Testing Guide](/docs/guides/testing) - Learn about testing
+- [bunli CLI](/docs/bunli-cli) - Development workflow

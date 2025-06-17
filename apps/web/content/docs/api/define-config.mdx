@@ -1,0 +1,286 @@
+---
+title: defineConfig
+description: Define configuration for Bunli CLI projects
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# defineConfig
+
+Defines configuration for Bunli CLI projects. Used in `bunli.config.ts` files.
+
+## Syntax
+
+```typescript
+function defineConfig(config: BunliConfig): BunliConfig
+```
+
+## Parameters
+
+### config
+
+The configuration object for your CLI project.
+
+```typescript
+interface BunliConfig {
+  // Basic metadata
+  name?: string
+  version?: string
+  description?: string
+  
+  // Command configuration
+  commands?: {
+    manifest?: string
+    directory?: string
+  }
+  
+  // Build configuration
+  build?: {
+    entry?: string | string[]
+    outdir?: string
+    targets?: string[]
+    compress?: boolean
+    external?: string[]
+    minify?: boolean
+    sourcemap?: boolean
+  }
+  
+  // Development configuration
+  dev?: {
+    watch?: boolean
+    inspect?: boolean
+    port?: number
+  }
+  
+  // Test configuration
+  test?: {
+    pattern?: string | string[]
+    coverage?: boolean
+    watch?: boolean
+  }
+  
+  // Release configuration
+  release?: {
+    npm?: boolean
+    github?: boolean
+    tagFormat?: string
+    conventionalCommits?: boolean
+  }
+  
+  // Workspace configuration
+  workspace?: {
+    packages?: string[]
+    shared?: any
+    versionStrategy?: 'fixed' | 'independent'
+  }
+}
+```
+
+## Examples
+
+### Basic Configuration
+
+```typescript
+// bunli.config.ts
+import { defineConfig } from '@bunli/core'
+
+export default defineConfig({
+  name: 'my-cli',
+  version: '1.0.0',
+  description: 'My awesome CLI tool'
+})
+```
+
+### With Build Settings
+
+```typescript
+export default defineConfig({
+  name: 'my-cli',
+  version: '1.0.0',
+  build: {
+    entry: './src/cli.ts',
+    outdir: './dist',
+    minify: true,
+    compress: true,
+    targets: ['darwin-arm64', 'linux-x64', 'windows-x64']
+  }
+})
+```
+
+### With Command Manifest
+
+```typescript
+export default defineConfig({
+  name: 'my-cli',
+  version: '1.0.0',
+  commands: {
+    manifest: './src/commands/index.ts'
+  }
+})
+```
+
+### Development Configuration
+
+```typescript
+export default defineConfig({
+  name: 'my-cli',
+  version: '1.0.0',
+  dev: {
+    watch: true,
+    inspect: true,
+    port: 9229
+  },
+  test: {
+    pattern: ['**/*.test.ts', '**/*.spec.ts'],
+    coverage: true
+  }
+})
+```
+
+### Workspace Configuration
+
+```typescript
+export default defineConfig({
+  name: 'my-monorepo',
+  workspace: {
+    packages: ['packages/*'],
+    versionStrategy: 'independent',
+    shared: {
+      // Shared config for all packages
+      build: {
+        minify: true,
+        sourcemap: false
+      }
+    }
+  }
+})
+```
+
+## Configuration Options
+
+### Basic Metadata
+
+- `name` - CLI name (defaults to package.json name)
+- `version` - CLI version (defaults to package.json version)  
+- `description` - CLI description
+
+### commands
+
+Configure command loading:
+
+- `manifest` - Path to command manifest file for lazy loading
+- `directory` - Directory to auto-discover commands (not recommended for production)
+
+Example manifest:
+```typescript
+// src/commands/index.ts
+export default {
+  build: () => import('./build.js'),
+  test: () => import('./test.js'),
+  deploy: () => import('./deploy.js')
+}
+```
+
+### build
+
+Configure production builds:
+
+- `entry` - Entry file(s) to build
+- `outdir` - Output directory (default: `./dist`)
+- `targets` - Platform targets for multi-platform builds
+- `compress` - Compress builds with tar.gz
+- `external` - Packages to exclude from bundle
+- `minify` - Minify output (default: true)
+- `sourcemap` - Generate sourcemaps
+
+### dev
+
+Configure development mode:
+
+- `watch` - Enable file watching (default: true)
+- `inspect` - Enable debugger
+- `port` - Debugger port (default: 9229)
+
+### test
+
+Configure testing:
+
+- `pattern` - Test file patterns
+- `coverage` - Generate coverage reports
+- `watch` - Watch mode for tests
+
+### release
+
+Configure releases (planned feature):
+
+- `npm` - Publish to npm
+- `github` - Create GitHub releases
+- `tagFormat` - Git tag format
+- `conventionalCommits` - Use conventional commits
+
+### workspace
+
+Configure monorepo workspaces:
+
+- `packages` - Glob patterns for workspace packages
+- `shared` - Configuration shared by all packages
+- `versionStrategy` - How to version packages
+
+## Usage with Bunli CLI
+
+The configuration is automatically loaded by the `bunli` CLI:
+
+```bash
+# Uses build.entry from config
+bunli build
+
+# Uses dev settings from config
+bunli dev
+
+# Uses test.pattern from config
+bunli test
+```
+
+Command-line flags override config values:
+
+```bash
+# Overrides build.minify
+bunli build --no-minify
+
+# Overrides dev.port
+bunli dev --port 3000
+```
+
+## Loading Config
+
+The `bunli` CLI looks for config files in this order:
+
+1. `bunli.config.ts`
+2. `bunli.config.js`
+3. `bunli.config.mjs`
+
+You can also load config programmatically:
+
+```typescript
+import { loadConfig } from 'bunli'
+
+const config = await loadConfig()
+```
+
+<Callout type="tip">
+  Use `defineConfig` for better TypeScript support. It provides type checking and autocompletion for all configuration options.
+</Callout>
+
+## Best Practices
+
+1. **Keep config minimal** - Only configure what differs from defaults
+2. **Use TypeScript** - `bunli.config.ts` provides best type safety
+3. **Share workspace config** - Use `workspace.shared` for common settings
+4. **Externalize native deps** - Add binary dependencies to `build.external`
+5. **Enable compression** - Use `compress: true` for distribution builds
+
+## See Also
+
+- [bunli CLI](/docs/bunli-cli) - Using the Bunli CLI
+- [Configuration](/docs/core-concepts/configuration) - Configuration concepts
+- [Build & Distribution](/docs/guides/build-and-distribution) - Building for production

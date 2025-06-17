@@ -1,0 +1,280 @@
+---
+title: defineCommand
+description: Define type-safe commands with automatic inference
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# defineCommand
+
+Defines a command with full type inference for options and handler arguments.
+
+## Syntax
+
+```typescript
+function defineCommand<TOptions extends Options>(
+  command: CommandDefinition<TOptions>
+): Command<TOptions>
+```
+
+## Parameters
+
+### command
+
+The command definition object.
+
+```typescript
+interface CommandDefinition<TOptions> {
+  name: string
+  description: string
+  alias?: string | string[]
+  options?: TOptions
+  handler?: Handler<InferOptions<TOptions>>
+  commands?: Command[]
+}
+```
+
+## Type Inference
+
+`defineCommand` automatically infers types from your Zod schemas:
+
+```typescript
+import { defineCommand, option } from '@bunli/core'
+import { z } from 'zod'
+
+const command = defineCommand({
+  name: 'serve',
+  description: 'Start server',
+  options: {
+    port: option(z.coerce.number().default(3000)),
+    host: option(z.string().default('localhost'))
+  },
+  handler: async ({ flags }) => {
+    // TypeScript knows:
+    // flags.port is number
+    // flags.host is string
+  }
+})
+```
+
+## Examples
+
+### Basic Command
+
+```typescript
+export default defineCommand({
+  name: 'hello',
+  description: 'Say hello',
+  handler: async ({ colors }) => {
+    console.log(colors.green('Hello, World!'))
+  }
+})
+```
+
+### Command with Options
+
+```typescript
+export default defineCommand({
+  name: 'deploy',
+  description: 'Deploy application',
+  options: {
+    env: option(
+      z.enum(['dev', 'staging', 'prod']),
+      { description: 'Target environment', short: 'e' }
+    ),
+    force: option(
+      z.coerce.boolean().default(false),
+      { description: 'Force deployment', short: 'f' }
+    ),
+    tag: option(
+      z.string().optional(),
+      { description: 'Version tag' }
+    )
+  },
+  handler: async ({ flags, shell, spinner }) => {
+    const spin = spinner(`Deploying to ${flags.env}...`)
+    spin.start()
+    
+    if (flags.tag) {
+      await shell`git tag ${flags.tag}`
+    }
+    
+    await shell`deploy --env ${flags.env} ${flags.force ? '--force' : ''}`
+    spin.succeed('Deployed successfully!')
+  }
+})
+```
+
+### Command with Aliases
+
+```typescript
+export default defineCommand({
+  name: 'development',
+  alias: ['dev', 'd'],
+  description: 'Start development server',
+  handler: async ({ shell }) => {
+    await shell`bun run dev`
+  }
+})
+```
+
+### Nested Commands
+
+```typescript
+export default defineCommand({
+  name: 'db',
+  description: 'Database operations',
+  commands: [
+    defineCommand({
+      name: 'migrate',
+      alias: 'm',
+      description: 'Run migrations',
+      options: {
+        direction: option(
+          z.enum(['up', 'down']).default('up'),
+          { short: 'd', description: 'Migration direction' }
+        )
+      },
+      handler: async ({ flags, shell }) => {
+        await shell`bun run db:migrate ${flags.direction}`
+      }
+    }),
+    defineCommand({
+      name: 'seed',
+      description: 'Seed database',
+      handler: async ({ shell }) => {
+        await shell`bun run db:seed`
+      }
+    })
+  ]
+})
+```
+
+## Handler Context
+
+The handler receives a context object with these properties:
+
+```typescript
+interface HandlerArgs<TFlags> {
+  // Parsed and validated option values
+  flags: TFlags
+  
+  // Non-flag arguments
+  positional: string[]
+  
+  // Bun Shell ($)
+  shell: typeof Bun.$
+  
+  // Environment variables
+  env: typeof process.env
+  
+  // Current working directory
+  cwd: string
+  
+  // Interactive prompts (from @bunli/utils)
+  prompt: {
+    (message: string, options?: PromptOptions): Promise<string>
+    confirm(message: string, options?: ConfirmOptions): Promise<boolean>
+    select<T>(message: string, options: SelectOptions<T>): Promise<T>
+    password(message: string, options?: PromptOptions): Promise<string>
+  }
+  
+  // Progress spinner (from @bunli/utils)
+  spinner: (text?: string) => Spinner
+  
+  // Terminal colors (from @bunli/utils)
+  colors: Colors
+}
+```
+
+### Using Handler Context
+
+```typescript
+handler: async ({ flags, positional, shell, env, cwd, prompt, spinner, colors }) => {
+  // Access parsed flags
+  console.log(`Port: ${flags.port}`)
+  
+  // Use positional arguments
+  const [file] = positional
+  
+  // Run shell commands
+  const result = await shell`ls -la ${file}`.text()
+  
+  // Check environment
+  if (env.NODE_ENV === 'production') {
+    const confirm = await prompt.confirm('Deploy to production?')
+    if (!confirm) return
+  }
+  
+  // Show progress
+  const spin = spinner('Building...')
+  spin.start()
+  await shell`bun run build`
+  spin.succeed('Build complete!')
+  
+  // Colored output
+  console.log(colors.green('✓ Success'))
+}
+```
+
+## Validation
+
+Options are validated automatically before the handler runs:
+
+```typescript
+// This command requires a valid port number
+export default defineCommand({
+  name: 'serve',
+  options: {
+    port: option(
+      z.coerce.number()
+        .int()
+        .min(1)
+        .max(65535),
+      { description: 'Port number' }
+    )
+  },
+  handler: async ({ flags }) => {
+    // flags.port is guaranteed to be 1-65535
+  }
+})
+
+// Invalid input shows error:
+// $ my-cli serve --port 70000
+// Validation errors:
+//   --port:
+//     • Number must be less than or equal to 65535
+```
+
+## Command Without Handler
+
+Commands can be defined without handlers when they only contain subcommands:
+
+```typescript
+export default defineCommand({
+  name: 'tools',
+  description: 'Development tools',
+  commands: [
+    // Subcommands here
+  ]
+  // No handler - shows help when called directly
+})
+```
+
+<Callout type="tip">
+  Use `defineCommand` for the best TypeScript experience. It provides complete type inference from your option schemas to your handler implementation.
+</Callout>
+
+## Best Practices
+
+1. **Always add descriptions** - Help users understand what commands do
+2. **Use semantic names** - Command names should be verbs (build, deploy, test)
+3. **Add short flags** - For frequently used options
+4. **Group related commands** - Use nested commands for organization
+5. **Validate early** - Use Zod schemas to validate input before processing
+
+## See Also
+
+- [option](/docs/api/option) - Create command options
+- [Commands](/docs/core-concepts/commands) - Command concepts
+- [Type Inference](/docs/core-concepts/type-inference) - How type inference works

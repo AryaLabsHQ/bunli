@@ -1,13 +1,163 @@
 ---
-title: Hello World
-description: Your first document
+title: Introduction
+description: The complete CLI development ecosystem for Bun
 ---
 
-Welcome to the docs! You can start writing documents in `/content/docs`.
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 
-## What is Next?
+# Bunli
+
+Build production-ready, type-safe CLIs with strong type inference, validation, and cross-platform distribution.
+
+## What is Bunli?
+
+Bunli is a complete ecosystem for building command-line interfaces with Bun. It combines a minimal, type-safe framework with powerful tooling for development, testing, building, and distribution.
 
 <Cards>
-  <Card title="Learn more about Next.js" href="https://nextjs.org/docs" />
-  <Card title="Learn more about Fumadocs" href="https://fumadocs.vercel.app" />
+  <Card title="Type-Safe" description="Full TypeScript support with automatic type inference">
+    ```ts
+    // Types flow automatically
+    handler: async ({ flags }) => {
+      // flags is fully typed
+    }
+    ```
+  </Card>
+  <Card title="Zero Dependencies" description="Pure implementation with no external dependencies">
+    ```json
+    "dependencies": {}
+    ```
+  </Card>
+  <Card title="Fast Startup" description="Leverages Bun's quick boot time for instant CLI response">
+    ```bash
+    $ time mycli --help
+    0.012s
+    ```
+  </Card>
+  <Card title="Production Ready" description="Automated builds, releases, and cross-platform distribution">
+    ```bash
+    bunli build --all
+    bunli release
+    ```
+  </Card>
+</Cards>
+
+## Quick Start
+
+<Tabs groupId="package-manager" defaultValue="bun">
+  <Tab value="bun" label="Bun">
+    ```bash
+    # Create a new CLI project
+    bunx create-bunli my-cli
+    cd my-cli
+    
+    # Start development
+    bunli dev
+    
+    # Build for production
+    bunli build
+    ```
+  </Tab>
+  <Tab value="npm" label="npm">
+    ```bash
+    # Create a new CLI project
+    npx create-bunli my-cli
+    cd my-cli
+    
+    # Start development
+    npm run dev
+    
+    # Build for production
+    npm run build
+    ```
+  </Tab>
+</Tabs>
+
+## Why Bunli?
+
+### Designed for Bun
+
+Bunli is built specifically for the Bun runtime, taking advantage of:
+- Native TypeScript execution
+- Built-in test runner
+- Fast startup times
+- Bun Shell integration
+- Single-file executables
+
+### Type Inference First
+
+Strong typing without manual annotations:
+
+```typescript
+import { defineCommand, option } from '@bunli/core'
+import { z } from 'zod'
+
+// Bunli infers everything
+export default defineCommand({
+  name: 'deploy',
+  options: {
+    env: option(
+      z.enum(['dev', 'staging', 'prod']),
+      { description: 'Target environment' }
+    )
+  },
+  handler: async ({ flags }) => {
+    // TypeScript knows flags.env is 'dev' | 'staging' | 'prod'
+    switch (flags.env) {
+      case 'dev':     // ✅ Autocompleted
+      case 'staging': // ✅ Autocompleted
+      case 'prod':    // ✅ Autocompleted
+    }
+  }
+})
+```
+
+### Standard Schema Support
+
+Use any validation library you prefer:
+
+```typescript
+import { z } from 'zod'
+import * as v from 'valibot'
+
+// Use your favorite schema library
+options: {
+  email: option(z.string().email()),
+  port: option(v.number([v.minValue(1), v.maxValue(65535)]))
+}
+```
+
+### Complete Ecosystem
+
+Everything you need to build production CLIs:
+
+- **create-bunli** - Project scaffolding
+- **bunli dev** - Hot reload development
+- **bunli build** - Multi-platform builds
+- **bunli test** - Testing utilities
+- **bunli release** - Automated distribution
+
+## Next Steps
+
+<Cards>
+  <Card 
+    title="Getting Started" 
+    description="Create your first Bunli CLI"
+    href="/docs/getting-started"
+  />
+  <Card 
+    title="Core Concepts" 
+    description="Learn the fundamentals"
+    href="/docs/core-concepts/commands"
+  />
+  <Card 
+    title="Examples" 
+    description="See Bunli in action"
+    href="/docs/examples/minimal"
+  />
+  <Card 
+    title="API Reference" 
+    description="Explore the full API"
+    href="/docs/api/create-cli"
+  />
 </Cards>

@@ -1,0 +1,505 @@
+---
+title: Interactive CLI
+description: Using prompts, spinners, and rich interactions
+---
+
+# Interactive CLI Example
+
+Build engaging CLI experiences with prompts, progress indicators, and rich user interactions.
+
+## Complete Interactive CLI
+
+```typescript
+// setup-wizard.ts
+import { createCLI, defineCommand } from '@bunli/core'
+
+const cli = createCLI({
+  name: 'setup-wizard',
+  version: '1.0.0',
+  description: 'Interactive project setup wizard'
+})
+
+cli.command(
+  defineCommand({
+    name: 'init',
+    description: 'Initialize a new project',
+    handler: async ({ prompt, spinner, colors }) => {
+      console.log(colors.blue('🚀 Welcome to the Project Setup Wizard!\n'))
+      
+      // Step 1: Basic Information
+      const projectName = await prompt('What is your project name?', {
+        default: 'my-awesome-project',
+        validate: (value) => {
+          if (!/^[a-z0-9-]+$/.test(value)) {
+            return 'Project name can only contain lowercase letters, numbers, and dashes'
+          }
+          return true
+        }
+      })
+      
+      const description = await prompt('Project description:', {
+        default: 'A fantastic new project'
+      })
+      
+      const author = await prompt('Author name:', {
+        default: process.env.USER || 'Anonymous'
+      })
+      
+      // Step 2: Project Type Selection
+      const projectType = await prompt.select('What type of project is this?', {
+        choices: [
+          { value: 'web', label: '🌐 Web Application' },
+          { value: 'api', label: '🔌 REST API' },
+          { value: 'cli', label: '⌨️  CLI Tool' },
+          { value: 'lib', label: '📚 Library' },
+          { value: 'other', label: '🔧 Other' }
+        ]
+      })
+      
+      // Step 3: Technology Stack
+      let framework = null
+      if (projectType === 'web') {
+        framework = await prompt.select('Choose a web framework:', {
+          choices: [
+            { value: 'next', label: 'Next.js', hint: 'Full-stack React framework' },
+            { value: 'remix', label: 'Remix', hint: 'Modern full-stack framework' },
+            { value: 'astro', label: 'Astro', hint: 'Content-focused framework' },
+            { value: 'vite', label: 'Vite', hint: 'Fast build tool' }
+          ]
+        })
+      } else if (projectType === 'api') {
+        framework = await prompt.select('Choose an API framework:', {
+          choices: [
+            { value: 'hono', label: 'Hono', hint: 'Ultrafast web framework' },
+            { value: 'elysia', label: 'Elysia', hint: 'Ergonomic web framework' },
+            { value: 'express', label: 'Express', hint: 'Minimalist web framework' }
+          ]
+        })
+      }
+      
+      // Step 4: Features Selection
+      const features = await prompt.multiselect('Select features to include:', {
+        choices: [
+          { value: 'typescript', label: '📘 TypeScript', selected: true },
+          { value: 'eslint', label: '🔍 ESLint', selected: true },
+          { value: 'prettier', label: '✨ Prettier', selected: true },
+          { value: 'testing', label: '🧪 Testing (Vitest)', selected: false },
+          { value: 'git', label: '📦 Git repository', selected: true },
+          { value: 'docker', label: '🐳 Docker', selected: false },
+          { value: 'ci', label: '🔄 CI/CD (GitHub Actions)', selected: false }
+        ],
+        min: 1
+      })
+      
+      // Step 5: Database Selection (if applicable)
+      let database = null
+      if (['web', 'api'].includes(projectType)) {
+        const useDatabase = await prompt.confirm('Do you need a database?', {
+          default: true
+        })
+        
+        if (useDatabase) {
+          database = await prompt.select('Choose a database:', {
+            choices: [
+              { value: 'sqlite', label: 'SQLite', hint: 'Embedded database' },
+              { value: 'postgres', label: 'PostgreSQL', hint: 'Advanced SQL database' },
+              { value: 'mysql', label: 'MySQL', hint: 'Popular SQL database' },
+              { value: 'mongodb', label: 'MongoDB', hint: 'NoSQL database' },
+              { value: 'redis', label: 'Redis', hint: 'In-memory data store' }
+            ]
+          })
+        }
+      }
+      
+      // Step 6: Package Manager
+      const packageManager = await prompt.select('Preferred package manager:', {
+        choices: [
+          { value: 'bun', label: 'Bun', hint: 'Fast all-in-one toolkit' },
+          { value: 'npm', label: 'npm', hint: 'Default Node.js package manager' },
+          { value: 'pnpm', label: 'pnpm', hint: 'Fast, disk space efficient' },
+          { value: 'yarn', label: 'Yarn', hint: 'Fast, reliable, and secure' }
+        ]
+      })
+      
+      // Step 7: Additional Options
+      const license = await prompt.select('Choose a license:', {
+        choices: [
+          { value: 'MIT', label: 'MIT', hint: 'Permissive license' },
+          { value: 'Apache-2.0', label: 'Apache 2.0', hint: 'Permissive with patent protection' },
+          { value: 'GPL-3.0', label: 'GPL v3', hint: 'Copyleft license' },
+          { value: 'BSD-3-Clause', label: 'BSD 3-Clause', hint: 'Permissive license' },
+          { value: 'UNLICENSED', label: 'Proprietary', hint: 'All rights reserved' }
+        ]
+      })
+      
+      // Step 8: Confirmation
+      console.log('\n' + colors.blue('📋 Configuration Summary:'))
+      console.log(colors.dim('─'.repeat(50)))
+      console.log(`  Project: ${colors.bold(projectName)}`)
+      console.log(`  Description: ${description}`)
+      console.log(`  Author: ${author}`)
+      console.log(`  Type: ${projectType}`)
+      if (framework) console.log(`  Framework: ${framework}`)
+      console.log(`  Features: ${features.join(', ')}`)
+      if (database) console.log(`  Database: ${database}`)
+      console.log(`  Package Manager: ${packageManager}`)
+      console.log(`  License: ${license}`)
+      console.log(colors.dim('─'.repeat(50)))
+      
+      const proceed = await prompt.confirm('\nProceed with project setup?', {
+        default: true
+      })
+      
+      if (!proceed) {
+        console.log(colors.yellow('\n⚠️  Setup cancelled'))
+        process.exit(0)
+      }
+      
+      // Step 9: Project Creation
+      console.log()
+      const setupSpinner = spinner('Creating project structure...')
+      setupSpinner.start()
+      
+      // Simulate project setup steps
+      const steps = [
+        'Creating directory structure',
+        'Initializing package.json',
+        'Installing dependencies',
+        'Setting up TypeScript',
+        'Configuring linters',
+        'Creating initial files',
+        'Setting up git repository'
+      ]
+      
+      for (const step of steps) {
+        setupSpinner.update(step + '...')
+        await new Promise(resolve => setTimeout(resolve, 800))
+      }
+      
+      setupSpinner.succeed('Project setup complete!')
+      
+      // Step 10: Next Steps
+      console.log('\n' + colors.green('✨ Your project is ready!'))
+      console.log('\nNext steps:')
+      console.log(colors.dim(`  cd ${projectName}`))
+      console.log(colors.dim(`  ${packageManager} ${packageManager === 'npm' ? 'run' : ''} dev`))
+      console.log('\nHappy coding! 🎉')
+    }
+  })
+)
+
+await cli.run()
+```
+
+## Interactive Components
+
+### Progress Indicators
+
+```typescript
+// progress-example.ts
+export default defineCommand({
+  name: 'download',
+  description: 'Download files with progress',
+  handler: async ({ positional, spinner, colors }) => {
+    const [url] = positional
+    
+    if (!url) {
+      console.log(colors.red('Please provide a URL'))
+      return
+    }
+    
+    // Simple spinner
+    const spin = spinner('Connecting...')
+    spin.start()
+    
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    spin.update('Downloading...')
+    
+    // Simulate download progress
+    const totalSize = 1024 * 1024 * 50 // 50MB
+    let downloaded = 0
+    
+    const interval = setInterval(() => {
+      downloaded += 1024 * 1024 * 5 // 5MB per tick
+      const percent = Math.min(100, Math.round((downloaded / totalSize) * 100))
+      
+      spin.update(`Downloading... ${percent}%`)
+      
+      if (percent >= 100) {
+        clearInterval(interval)
+        spin.succeed('Download complete!')
+      }
+    }, 200)
+  }
+})
+```
+
+### Multi-Step Forms
+
+```typescript
+// form-example.ts
+export default defineCommand({
+  name: 'register',
+  description: 'User registration wizard',
+  handler: async ({ prompt, colors }) => {
+    console.log(colors.blue('👤 User Registration\n'))
+    
+    // Personal Information
+    const personalInfo = {}
+    
+    personalInfo.firstName = await prompt('First name:', {
+      validate: (value) => value.length > 0 || 'First name is required'
+    })
+    
+    personalInfo.lastName = await prompt('Last name:', {
+      validate: (value) => value.length > 0 || 'Last name is required'
+    })
+    
+    personalInfo.email = await prompt('Email address:', {
+      validate: (value) => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+        return emailRegex.test(value) || 'Please enter a valid email'
+      }
+    })
+    
+    // Account Security
+    console.log('\n' + colors.blue('🔐 Account Security'))
+    
+    let password, confirmPassword
+    do {
+      password = await prompt.password('Choose a password:', {
+        mask: '●',
+        validate: (value) => {
+          if (value.length < 8) return 'Password must be at least 8 characters'
+          if (!/[A-Z]/.test(value)) return 'Password must contain an uppercase letter'
+          if (!/[0-9]/.test(value)) return 'Password must contain a number'
+          return true
+        }
+      })
+      
+      confirmPassword = await prompt.password('Confirm password:', {
+        mask: '●'
+      })
+      
+      if (password !== confirmPassword) {
+        console.log(colors.red('Passwords do not match. Please try again.'))
+      }
+    } while (password !== confirmPassword)
+    
+    // Preferences
+    console.log('\n' + colors.blue('⚙️  Preferences'))
+    
+    const preferences = {}
+    
+    preferences.newsletter = await prompt.confirm(
+      'Subscribe to newsletter?',
+      { default: true }
+    )
+    
+    preferences.theme = await prompt.select('Preferred theme:', {
+      choices: [
+        { value: 'light', label: '☀️  Light' },
+        { value: 'dark', label: '🌙 Dark' },
+        { value: 'auto', label: '🔄 Auto (system)' }
+      ]
+    })
+    
+    preferences.language = await prompt.select('Preferred language:', {
+      choices: [
+        { value: 'en', label: '🇬🇧 English' },
+        { value: 'es', label: '🇪🇸 Spanish' },
+        { value: 'fr', label: '🇫🇷 French' },
+        { value: 'de', label: '🇩🇪 German' },
+        { value: 'ja', label: '🇯🇵 Japanese' }
+      ]
+    })
+    
+    // Terms and Conditions
+    const acceptTerms = await prompt.confirm(
+      'Do you accept the terms and conditions?',
+      { default: false }
+    )
+    
+    if (!acceptTerms) {
+      console.log(colors.red('\nYou must accept the terms to continue.'))
+      return
+    }
+    
+    // Registration
+    console.log('\n' + colors.green('✅ Registration successful!'))
+    console.log(colors.dim(`Welcome, ${personalInfo.firstName}!`))
+  }
+})
+```
+
+### Dynamic Menus
+
+```typescript
+// menu-example.ts
+export default defineCommand({
+  name: 'menu',
+  description: 'Interactive menu system',
+  handler: async ({ prompt, colors }) => {
+    let running = true
+    
+    while (running) {
+      console.clear()
+      console.log(colors.blue('📱 Main Menu\n'))
+      
+      const choice = await prompt.select('What would you like to do?', {
+        choices: [
+          { value: 'profile', label: '👤 View Profile' },
+          { value: 'settings', label: '⚙️  Settings' },
+          { value: 'help', label: '❓ Help' },
+          { value: 'exit', label: '🚪 Exit' }
+        ]
+      })
+      
+      switch (choice) {
+        case 'profile':
+          await showProfile(prompt, colors)
+          break
+          
+        case 'settings':
+          await showSettings(prompt, colors)
+          break
+          
+        case 'help':
+          await showHelp(colors)
+          break
+          
+        case 'exit':
+          running = false
+          break
+      }
+      
+      if (running && choice !== 'exit') {
+        await prompt.confirm('\nPress enter to continue...', {
+          default: true
+        })
+      }
+    }
+    
+    console.log(colors.green('\nGoodbye! 👋'))
+  }
+})
+
+async function showProfile(prompt: any, colors: any) {
+  console.log('\n' + colors.blue('👤 User Profile'))
+  console.log(colors.dim('─'.repeat(30)))
+  console.log('Name: John Doe')
+  console.log('Email: john@example.com')
+  console.log('Member since: 2024')
+}
+
+async function showSettings(prompt: any, colors: any) {
+  console.log('\n' + colors.blue('⚙️  Settings'))
+  
+  const setting = await prompt.select('Choose a setting:', {
+    choices: [
+      { value: 'notifications', label: '🔔 Notifications' },
+      { value: 'privacy', label: '🔒 Privacy' },
+      { value: 'appearance', label: '🎨 Appearance' },
+      { value: 'back', label: '← Back' }
+    ]
+  })
+  
+  if (setting !== 'back') {
+    console.log(colors.green(`\n✓ ${setting} settings updated`))
+  }
+}
+
+async function showHelp(colors: any) {
+  console.log('\n' + colors.blue('❓ Help'))
+  console.log(colors.dim('─'.repeat(30)))
+  console.log('This is an interactive menu demo.')
+  console.log('Navigate using arrow keys and enter.')
+}
+```
+
+### Real-time Updates
+
+```typescript
+// monitor-example.ts
+export default defineCommand({
+  name: 'monitor',
+  description: 'Real-time system monitor',
+  handler: async ({ colors }) => {
+    console.log(colors.blue('📊 System Monitor\n'))
+    console.log('Press Ctrl+C to exit\n')
+    
+    // Set up real-time updates
+    const updateInterval = setInterval(() => {
+      // Clear previous lines
+      process.stdout.write('\x1B[3A') // Move up 3 lines
+      process.stdout.write('\x1B[0J') // Clear from cursor to end
+      
+      // Display updated stats
+      const cpu = Math.round(Math.random() * 100)
+      const memory = Math.round(Math.random() * 100)
+      const disk = Math.round(Math.random() * 100)
+      
+      console.log(`CPU:    ${getBar(cpu, colors)} ${cpu}%`)
+      console.log(`Memory: ${getBar(memory, colors)} ${memory}%`)
+      console.log(`Disk:   ${getBar(disk, colors)} ${disk}%`)
+    }, 1000)
+    
+    // Handle cleanup
+    process.on('SIGINT', () => {
+      clearInterval(updateInterval)
+      console.log('\n\n' + colors.yellow('Monitor stopped'))
+      process.exit(0)
+    })
+  }
+})
+
+function getBar(percent: number, colors: any): string {
+  const width = 20
+  const filled = Math.round((percent / 100) * width)
+  const empty = width - filled
+  
+  const color = percent > 80 ? colors.red : 
+                percent > 50 ? colors.yellow : 
+                colors.green
+  
+  return color('█'.repeat(filled)) + colors.dim('░'.repeat(empty))
+}
+```
+
+## Error Handling in Interactive CLIs
+
+```typescript
+export default defineCommand({
+  name: 'safe-prompt',
+  description: 'Graceful error handling',
+  handler: async ({ prompt, colors }) => {
+    try {
+      const input = await prompt('Enter value:')
+      // Process input...
+    } catch (error) {
+      if (error.message === 'Prompt cancelled') {
+        console.log(colors.yellow('\n✋ Operation cancelled by user'))
+        process.exit(0)
+      }
+      
+      console.error(colors.red('An error occurred:'), error.message)
+      process.exit(1)
+    }
+  }
+})
+```
+
+## Best Practices
+
+1. **Clear Visual Hierarchy**: Use colors and symbols to guide users
+2. **Provide Defaults**: Make it easy to proceed with sensible defaults
+3. **Validate Early**: Check input as soon as it's entered
+4. **Show Progress**: Keep users informed during long operations
+5. **Allow Cancellation**: Let users exit gracefully at any point
+6. **Handle Errors**: Provide helpful error messages
+
+## Next Steps
+
+- [Real-World Example](/docs/examples/real-world) - Complete production example
+- [Interactive Prompts Guide](/docs/guides/interactive-prompts) - Deep dive into prompts
+- [@bunli/utils](/docs/packages/utils) - Utility functions reference

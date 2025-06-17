@@ -1,0 +1,524 @@
+---
+title: '@bunli/core'
+description: The core CLI framework for Bunli
+---
+
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# @bunli/core
+
+The core CLI framework that powers Bunli. Provides type-safe command definitions, automatic validation, and rich handler contexts.
+
+<Callout type="info">
+  @bunli/core has **zero dependencies** and integrates with the Standard Schema v1 specification for validation, supporting Zod, Valibot, and other schema libraries.
+</Callout>
+
+## Installation
+
+<Tabs groupId="package-manager" defaultValue="bun">
+  <Tab value="bun" label="Bun">
+    ```bash
+    bun add @bunli/core
+    ```
+  </Tab>
+  <Tab value="npm" label="npm">
+    ```bash
+    npm install @bunli/core
+    ```
+  </Tab>
+  <Tab value="pnpm" label="pnpm">
+    ```bash
+    pnpm add @bunli/core
+    ```
+  </Tab>
+</Tabs>
+
+## Core APIs
+
+### createCLI
+
+Create a new CLI instance with configuration:
+
+```typescript
+import { createCLI } from '@bunli/core'
+
+const cli = createCLI({
+  name: 'my-cli',
+  version: '1.0.0',
+  description: 'My awesome CLI tool'
+})
+
+// With command manifest for lazy loading
+const cli = createCLI({
+  name: 'my-cli',
+  version: '1.0.0',
+  description: 'My awesome CLI tool',
+  commands: {
+    manifest: './commands/manifest.js'
+  }
+})
+
+// Add commands
+cli.command({
+  name: 'hello',
+  description: 'Say hello',
+  handler: async () => {
+    console.log('Hello, World!')
+  }
+})
+
+// Initialize (loads manifest if configured)
+await cli.init()
+
+// Run the CLI
+await cli.run()
+```
+
+### defineCommand
+
+Define commands with full type inference:
+
+```typescript
+import { defineCommand, option } from '@bunli/core'
+import { z } from 'zod'
+
+export default defineCommand({
+  name: 'deploy',
+  description: 'Deploy the application',
+  alias: ['d', 'ship'], // Can be string or array
+  options: {
+    env: option(
+      z.enum(['dev', 'staging', 'prod']),
+      { description: 'Target environment' }
+    ),
+    dry: option(
+      z.coerce.boolean().default(false),
+      { short: 'd', description: 'Perform a dry run' }
+    )
+  },
+  handler: async ({ flags, positional, shell, env, cwd, prompt, spinner, colors }) => {
+    const spin = spinner(`Deploying to ${flags.env}...`)
+    spin.start()
+    
+    if (!flags.dry) {
+      await shell`git push ${flags.env} main`
+    }
+    
+    spin.succeed('Deployed successfully!')
+  }
+})
+```
+
+### option
+
+Create typed options with validation:
+
+```typescript
+import { option } from '@bunli/core'
+import { z } from 'zod'
+
+// Options always require a schema
+const portOption = option(
+  z.coerce.number().int().min(1).max(65535).default(3000),
+  {
+    description: 'Port number',
+    short: 'p'
+  }
+)
+
+// Use in command
+defineCommand({
+  name: 'serve',
+  options: {
+    port: portOption,
+    host: option(
+      z.string().ip().or(z.literal('localhost')).default('localhost'),
+      { description: 'Host to bind to', short: 'h' }
+    )
+  },
+  handler: async ({ flags }) => {
+    // flags.port is number between 1-65535
+    // flags.host is valid IP or 'localhost'
+  }
+})
+```
+
+<Callout type="important">
+  **All options must have a schema** - there are no raw options in Bunli. Use `z.coerce` for CLI inputs to automatically convert string inputs to the correct type (boolean, number, etc.)
+</Callout>
+
+## Handler Context
+
+Every command handler receives a rich context object:
+
+```typescript
+interface HandlerArgs<T> {
+  // Parsed and validated flags
+  flags: T
+  
+  // Non-flag arguments
+  positional: string[]
+  
+  // Bun Shell for running commands
+  shell: typeof Bun.$
+  
+  // Environment variables
+  env: typeof process.env
+  
+  // Current working directory
+  cwd: string
+  
+  // Utility functions from @bunli/utils (auto-imported)
+  prompt: typeof import('@bunli/utils').prompt
+  spinner: typeof import('@bunli/utils').spinner
+  colors: typeof import('@bunli/utils').colors
+}
+```
+
+### Using the Shell
+
+The shell is Bun's native shell with full support for piping, globbing, and more:
+
+```typescript
+handler: async ({ shell, flags }) => {
+  // Simple commands
+  await shell`echo "Hello, World!"`
+  
+  // With variables (automatically escaped)
+  const file = "my file.txt"
+  await shell`cat ${file}`
+  
+  // Piping
+  const count = await shell`ls -la | wc -l`.text()
+  
+  // Error handling
+  try {
+    await shell`test -f ${flags.config}`
+  } catch {
+    throw new Error('Config file not found')
+  }
+  
+  // Get output as text
+  const branch = await shell`git branch --show-current`.text()
+  
+  // Check if command exists
+  if (await shell`which docker`.quiet()) {
+    await shell`docker ps`
+  }
+}
+```
+
+### Interactive Prompts
+
+```typescript
+handler: async ({ prompt }) => {
+  // Text input
+  const name = await prompt('What is your name?')
+  
+  // With validation
+  const email = await prompt('Email:', {
+    validate: (value) => {
+      if (!value.includes('@')) {
+        return 'Please enter a valid email'
+      }
+    }
+  })
+  
+  // Confirmation
+  if (await prompt.confirm('Continue?')) {
+    // User confirmed
+  }
+  
+  // Selection
+  const color = await prompt.select('Choose a color:', {
+    options: [
+      { value: 'red', label: 'Red' },
+      { value: 'blue', label: 'Blue' },
+      { value: 'green', label: 'Green' }
+    ]
+  })
+  
+  // Password (with masking)
+  const password = await prompt.password('Enter password:')
+  
+  // With schema validation
+  const apiKey = await prompt('API Key:', {
+    schema: z.string().min(32).regex(/^[A-Za-z0-9]+$/)
+  })
+}
+```
+
+### Progress Indicators
+
+```typescript
+handler: async ({ spinner, shell }) => {
+  // Basic spinner
+  const spin = spinner('Loading...')
+  spin.start()
+  await shell`sleep 2`
+  spin.stop()
+  
+  // With status updates
+  spin.update('Downloading...')
+  await downloadFile()
+  
+  spin.update('Installing...')
+  await install()
+  
+  // Success/failure states
+  spin.succeed('Installation complete!')
+  // or
+  spin.fail('Installation failed')
+  
+  // Warning state
+  spin.warn('Installation completed with warnings')
+}
+```
+
+## Nested Commands
+
+Organize related commands:
+
+```typescript
+cli.command({
+  name: 'db',
+  description: 'Database commands',
+  commands: [
+    defineCommand({
+      name: 'migrate',
+      description: 'Run migrations',
+      handler: async ({ shell }) => {
+        await shell`bun run db:migrate`
+      }
+    }),
+    defineCommand({
+      name: 'seed',
+      description: 'Seed database',
+      options: {
+        force: option(
+          z.coerce.boolean().default(false),
+          { description: 'Force seed in production' }
+        )
+      },
+      handler: async ({ flags, env, shell }) => {
+        if (env.NODE_ENV === 'production' && !flags.force) {
+          throw new Error('Use --force to seed in production')
+        }
+        await shell`bun run db:seed`
+      }
+    })
+  ]
+})
+```
+
+## Command Manifests
+
+For larger CLIs, use command manifests for lazy loading:
+
+```typescript
+// commands/manifest.ts
+export default {
+  build: () => import('./build.js'),
+  deploy: () => import('./deploy.js'),
+  test: () => import('./test.js'),
+  // Nested commands
+  db: {
+    migrate: () => import('./db/migrate.js'),
+    seed: () => import('./db/seed.js'),
+    backup: () => import('./db/backup.js')
+  }
+}
+
+// cli.ts
+import { createCLI } from '@bunli/core'
+import manifest from './commands/manifest.js'
+
+const cli = createCLI({
+  name: 'my-cli',
+  version: '1.0.0'
+})
+
+// Load commands from manifest
+await cli.load(manifest)
+await cli.run()
+```
+
+<Callout type="tip">
+  Command manifests enable lazy loading, significantly improving startup time for large CLIs. Commands are only loaded when actually invoked.
+</Callout>
+
+## Error Handling
+
+Bunli provides helpful error messages automatically:
+
+```typescript
+// Validation errors are automatically formatted
+$ my-cli deploy --env=qa
+Validation errors:
+  --env:
+    • Invalid enum value. Expected 'dev' | 'staging' | 'prod', received 'qa'
+
+// Invalid option value with details
+$ my-cli serve --port abc
+Validation errors:
+  --port:
+    • Expected number, received nan
+
+// Unknown command
+$ my-cli unknown
+Unknown command: unknown
+
+// Automatic help generation
+$ my-cli deploy --help
+Usage: my-cli deploy [options]
+
+Deploy the application
+
+Options:
+  --env        Target environment
+  --dry, -d    Perform a dry run (default: false)
+```
+
+Custom error handling:
+
+```typescript
+handler: async ({ flags }) => {
+  try {
+    await riskyOperation()
+  } catch (error) {
+    // Re-throw with helpful context
+    throw new Error(`Failed to deploy to ${flags.env}: ${error.message}`)
+  }
+}
+```
+
+## Type Safety
+
+Bunli provides complete type safety throughout:
+
+```typescript
+const command = defineCommand({
+  options: {
+    port: option(
+      z.coerce.number().int().positive().default(3000),
+      { description: 'Server port' }
+    ),
+    host: option(
+      z.string().default('localhost'),
+      { description: 'Server host' }
+    ),
+    secure: option(
+      z.coerce.boolean().optional(),
+      { description: 'Use HTTPS' }
+    )
+  },
+  handler: async ({ flags }) => {
+    // TypeScript infers types from Zod schemas:
+    // flags.port: number
+    // flags.host: string  
+    // flags.secure: boolean | undefined
+    
+    // This would be a type error:
+    // flags.port.toUpperCase()
+  }
+})
+```
+
+<Callout type="tip">
+  Use `defineCommand` for the best type inference experience. TypeScript will automatically infer types from your options configuration.
+</Callout>
+
+## Advanced Features
+
+### defineConfig
+
+Define configuration for the Bunli CLI:
+
+```typescript
+// bunli.config.ts
+import { defineConfig } from '@bunli/core'
+
+export default defineConfig({
+  name: 'my-cli',
+  version: '1.0.0',
+  description: 'My CLI tool',
+  commands: {
+    manifest: './commands/manifest.js'
+  },
+  build: {
+    entry: './src/cli.ts',
+    outdir: './dist',
+    targets: ['darwin-arm64', 'linux-x64', 'windows-x64'],
+    compress: true
+  },
+  dev: {
+    watch: true,
+    inspect: false
+  }
+})
+```
+
+### Schema Transforms
+
+Leverage schema transforms for advanced parsing:
+
+```typescript
+// Parse JSON input
+const configOption = option(
+  z.string().transform(val => JSON.parse(val)).pipe(
+    z.object({
+      name: z.string(),
+      port: z.number()
+    })
+  ),
+  { description: 'JSON configuration' }
+)
+
+// Parse key-value pairs
+const envOption = option(
+  z.string().transform(val => {
+    const pairs = val.split(',')
+    return Object.fromEntries(
+      pairs.map(p => p.split('='))
+    )
+  }),
+  { description: 'Environment variables (KEY=VALUE,...)' }
+)
+
+// Parse file size
+const sizeOption = option(
+  z.string().regex(/^\d+[kmg]b?$/i).transform(val => {
+    const match = val.match(/^(\d+)([kmg])b?$/i)
+    const [, num, unit] = match!
+    const multipliers = { k: 1024, m: 1024**2, g: 1024**3 }
+    return parseInt(num) * multipliers[unit.toLowerCase()]
+  }),
+  { description: 'Size limit (e.g., 512k, 1g)' }
+)
+```
+
+### Standard Schema Support
+
+Bunli supports any validation library that implements Standard Schema v1:
+
+```typescript
+// Using Valibot instead of Zod
+import * as v from 'valibot'
+import { option } from '@bunli/core'
+
+const portOption = option(
+  v.pipe(
+    v.string(),
+    v.transform((val) => parseInt(val, 10)),
+    v.number(),
+    v.minValue(1),
+    v.maxValue(65535)
+  ),
+  { short: 'p', description: 'Port number' }
+)
+```
+
+## API Reference
+
+See the [API Reference](/docs/api/create-cli) for detailed documentation of all exports.

@@ -1,0 +1,334 @@
+---
+title: Building Your First CLI
+description: Complete walkthrough of building a CLI with Bunli
+---
+
+# Building Your First CLI
+
+This guide walks you through building your first CLI application with Bunli.
+
+## Prerequisites
+
+- [Bun](https://bun.sh) installed (v1.0 or later)
+- Basic TypeScript knowledge
+- A terminal/command line
+
+## Creating a New Project
+
+Start by creating a new Bunli project:
+
+```bash
+bunx create-bunli todo-cli
+cd todo-cli
+```
+
+This creates a new project with:
+- TypeScript configuration
+- Bunli dependencies
+- Example command structure
+- Development scripts
+
+## Project Structure
+
+Your new project has this structure:
+
+```
+todo-cli/
+├── src/
+│   ├── index.ts          # CLI entry point
+│   └── commands/         # Command definitions
+│       └── hello.ts      # Example command
+├── package.json
+├── tsconfig.json
+├── bunli.config.ts       # Bunli configuration
+└── README.md
+```
+
+## Your First Command
+
+Let's create a simple todo list CLI. Replace the hello command with a new `add` command:
+
+```typescript
+// src/commands/add.ts
+import { defineCommand, option } from '@bunli/core'
+import { z } from 'zod'
+
+export default defineCommand({
+  name: 'add',
+  description: 'Add a new todo item',
+  options: {
+    task: option(
+      z.string().min(1),
+      { description: 'Task description' }
+    ),
+    priority: option(
+      z.enum(['low', 'medium', 'high']).default('medium'),
+      { short: 'p', description: 'Task priority' }
+    ),
+    due: option(
+      z.string().optional(),
+      { short: 'd', description: 'Due date' }
+    )
+  },
+  handler: async ({ flags, colors }) => {
+    console.log(colors.green('✓'), 'Added task:', flags.task)
+    console.log(colors.dim(`Priority: ${flags.priority}`))
+    if (flags.due) {
+      console.log(colors.dim(`Due: ${flags.due}`))
+    }
+  }
+})
+```
+
+## Setting Up the CLI
+
+Update your main CLI file:
+
+```typescript
+// src/index.ts
+import { createCLI } from '@bunli/core'
+
+const cli = createCLI({
+  name: 'todo',
+  version: '1.0.0',
+  description: 'Simple todo list manager'
+})
+
+// The CLI will auto-discover commands in src/commands/
+await cli.run()
+```
+
+## Running in Development
+
+Start the development server:
+
+```bash
+bunli dev
+```
+
+Now test your command:
+
+```bash
+./src/index.ts add --task "Write documentation" --priority high
+```
+
+## Adding More Commands
+
+Let's add a `list` command:
+
+```typescript
+// src/commands/list.ts
+import { defineCommand, option } from '@bunli/core'
+import { z } from 'zod'
+
+export default defineCommand({
+  name: 'list',
+  description: 'List all todos',
+  alias: 'ls',
+  options: {
+    filter: option(
+      z.enum(['all', 'pending', 'completed']).default('all'),
+      { short: 'f', description: 'Filter tasks' }
+    ),
+    sort: option(
+      z.enum(['priority', 'due', 'created']).default('created'),
+      { short: 's', description: 'Sort order' }
+    )
+  },
+  handler: async ({ flags, colors, spinner }) => {
+    const spin = spinner('Loading tasks...')
+    spin.start()
+    
+    // Simulate loading
+    await new Promise(resolve => setTimeout(resolve, 500))
+    
+    const tasks = [
+      { id: 1, task: 'Write documentation', priority: 'high', completed: false },
+      { id: 2, task: 'Add tests', priority: 'medium', completed: false },
+      { id: 3, task: 'Review PR', priority: 'low', completed: true }
+    ]
+    
+    spin.succeed('Tasks loaded')
+    
+    const filtered = tasks.filter(task => {
+      if (flags.filter === 'pending') return !task.completed
+      if (flags.filter === 'completed') return task.completed
+      return true
+    })
+    
+    console.log('\nYour tasks:\n')
+    filtered.forEach(task => {
+      const status = task.completed 
+        ? colors.green('✓') 
+        : colors.yellow('○')
+      const priority = colors.dim(`[${task.priority}]`)
+      console.log(`${status} ${task.task} ${priority}`)
+    })
+  }
+})
+```
+
+## Interactive Commands
+
+Add an interactive `complete` command:
+
+```typescript
+// src/commands/complete.ts
+import { defineCommand } from '@bunli/core'
+
+export default defineCommand({
+  name: 'complete',
+  description: 'Mark a task as completed',
+  handler: async ({ prompt, colors }) => {
+    const tasks = [
+      { id: 1, task: 'Write documentation', completed: false },
+      { id: 2, task: 'Add tests', completed: false },
+      { id: 3, task: 'Review PR', completed: false }
+    ]
+    
+    const pendingTasks = tasks.filter(t => !t.completed)
+    
+    if (pendingTasks.length === 0) {
+      console.log(colors.yellow('No pending tasks!'))
+      return
+    }
+    
+    const selected = await prompt.select('Which task did you complete?', {
+      choices: pendingTasks.map(task => ({
+        value: task.id,
+        label: task.task
+      }))
+    })
+    
+    console.log(colors.green('✓'), 'Marked as complete!')
+  }
+})
+```
+
+## Nested Commands
+
+Create a group of database commands:
+
+```typescript
+// src/commands/db.ts
+import { defineCommand } from '@bunli/core'
+
+export default defineCommand({
+  name: 'db',
+  description: 'Database operations',
+  commands: [
+    defineCommand({
+      name: 'init',
+      description: 'Initialize database',
+      handler: async ({ colors }) => {
+        console.log(colors.green('✓'), 'Database initialized')
+      }
+    }),
+    defineCommand({
+      name: 'backup',
+      description: 'Backup database',
+      handler: async ({ spinner }) => {
+        const spin = spinner('Creating backup...')
+        spin.start()
+        await new Promise(resolve => setTimeout(resolve, 2000))
+        spin.succeed('Backup created: backup-2024-01-15.db')
+      }
+    })
+  ]
+})
+```
+
+## Building for Production
+
+Build your CLI for distribution:
+
+```bash
+# Build for current platform
+bunli build
+
+# Build for all platforms
+bunli build --all
+
+# Build standalone executable
+bunli build --compile
+```
+
+## Adding Tests
+
+Create a test for your command:
+
+```typescript
+// src/commands/add.test.ts
+import { test, expect } from '@bunli/test'
+import { createTestCLI } from '@bunli/test'
+import add from './add'
+
+test('add command creates a task', async () => {
+  const cli = createTestCLI()
+  cli.command(add)
+  
+  const result = await cli.run(['add', '--task', 'Test task'])
+  
+  expect(result.exitCode).toBe(0)
+  expect(result.output).toContain('Added task: Test task')
+})
+```
+
+Run tests:
+
+```bash
+bunli test
+```
+
+## Configuration
+
+Customize your CLI behavior with `bunli.config.ts`:
+
+```typescript
+import { defineConfig } from 'bunli'
+
+export default defineConfig({
+  name: 'todo',
+  commands: {
+    directory: './src/commands'
+  },
+  build: {
+    entry: './src/index.ts',
+    outdir: './dist',
+    compile: true,
+    targets: ['darwin-arm64', 'linux-x64', 'windows-x64']
+  }
+})
+```
+
+## Distribution
+
+When you're ready to share your CLI:
+
+1. **Build for all platforms:**
+   ```bash
+   bunli build --all
+   ```
+
+2. **Create a release:**
+   ```bash
+   bunli release
+   ```
+
+3. **Publish to npm:**
+   ```bash
+   npm publish
+   ```
+
+## Next Steps
+
+You've built a functional CLI! Here's what to explore next:
+
+- [Schema Validation](/docs/guides/schema-validation) - Advanced validation
+- [Interactive Prompts](/docs/guides/interactive-prompts) - Rich user interactions
+- [Testing](/docs/guides/testing) - Comprehensive testing strategies
+- [Distribution](/docs/guides/distribution) - Publishing and deployment
+
+## Complete Example
+
+Find the complete todo CLI example in the [Bunli repository](https://github.com/AryaLabsHQ/bunli/tree/main/examples/todo-cli).

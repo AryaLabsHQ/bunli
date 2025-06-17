@@ -1,0 +1,206 @@
+---
+title: createCLI
+description: Create a new CLI instance with configuration
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# createCLI
+
+Creates a new CLI instance with global configuration.
+
+## Syntax
+
+```typescript
+function createCLI(config: CLIConfig): CLI
+```
+
+## Parameters
+
+### config
+
+The configuration object for your CLI.
+
+```typescript
+interface CLIConfig {
+  name: string
+  version: string
+  description?: string
+  commands?: {
+    manifest?: string
+  }
+}
+```
+
+## Returns
+
+A `CLI` instance with the following methods:
+
+```typescript
+interface CLI {
+  command(cmd: Command): void
+  load(manifest: CommandManifest): Promise<void>
+  init(): Promise<void>
+  run(argv?: string[]): Promise<void>
+}
+```
+
+## Examples
+
+### Basic Usage
+
+```typescript
+import { createCLI } from '@bunli/core'
+
+const cli = createCLI({
+  name: 'my-cli',
+  version: '1.0.0',
+  description: 'My awesome CLI tool'
+})
+
+// Add commands
+cli.command({
+  name: 'hello',
+  description: 'Say hello',
+  handler: async () => {
+    console.log('Hello, World!')
+  }
+})
+
+// Run the CLI
+await cli.run()
+```
+
+### With Command Manifest
+
+```typescript
+import { createCLI } from '@bunli/core'
+
+const cli = createCLI({
+  name: 'my-cli',
+  version: '1.0.0',
+  description: 'My CLI with lazy-loaded commands',
+  commands: {
+    manifest: './commands/manifest.js'
+  }
+})
+
+// Initialize (loads manifest)
+await cli.init()
+
+// Run the CLI
+await cli.run()
+```
+
+### Loading Commands Manually
+
+```typescript
+import { createCLI } from '@bunli/core'
+import manifest from './commands/manifest.js'
+
+const cli = createCLI({
+  name: 'my-cli',
+  version: '1.0.0'
+})
+
+// Load commands from manifest
+await cli.load(manifest)
+
+// Run the CLI
+await cli.run()
+```
+
+## CLI Methods
+
+### command(cmd)
+
+Add a command to the CLI.
+
+```typescript
+cli.command({
+  name: 'build',
+  description: 'Build the project',
+  handler: async () => {
+    // Command implementation
+  }
+})
+```
+
+### load(manifest)
+
+Load commands from a manifest for lazy loading.
+
+```typescript
+const manifest = {
+  build: () => import('./commands/build.js'),
+  test: () => import('./commands/test.js'),
+  deploy: () => import('./commands/deploy.js')
+}
+
+await cli.load(manifest)
+```
+
+### init()
+
+Initialize the CLI. This loads commands from the manifest if configured.
+
+```typescript
+await cli.init()
+```
+
+### run(argv?)
+
+Run the CLI with the given arguments. If no arguments are provided, uses `process.argv.slice(2)`.
+
+```typescript
+// Use process arguments
+await cli.run()
+
+// Use custom arguments
+await cli.run(['build', '--watch'])
+```
+
+## Automatic Features
+
+When you create a CLI with `createCLI`, you get:
+
+- **Automatic help generation** - `--help` flag shows available commands
+- **Version display** - `--version` flag shows CLI version
+- **Command routing** - Automatically routes to the correct command
+- **Error handling** - Friendly error messages for unknown commands
+- **Nested command support** - Commands can have subcommands
+- **Alias support** - Commands can have shortcuts
+
+## Help Output
+
+Running with `--help` shows:
+
+```bash
+$ my-cli --help
+my-cli v1.0.0
+My awesome CLI tool
+
+Commands:
+  hello                Say hello
+  build                Build the project
+  test                 Run tests
+```
+
+## Error Handling
+
+Unknown commands show helpful messages:
+
+```bash
+$ my-cli unknown
+Unknown command: unknown
+```
+
+<Callout type="tip">
+  The CLI automatically handles help flags at any level. For example, `my-cli build --help` shows help for the build command specifically.
+</Callout>
+
+## See Also
+
+- [defineCommand](/docs/api/define-command) - Define type-safe commands
+- [Command Manifests](/docs/core-concepts/commands#command-manifests) - Learn about lazy loading
+- [Configuration](/docs/core-concepts/configuration) - CLI configuration options

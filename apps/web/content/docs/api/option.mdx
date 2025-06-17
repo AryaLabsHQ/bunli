@@ -1,0 +1,335 @@
+---
+title: option
+description: Create command options with schema validation
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# option
+
+Creates a command option with schema validation and metadata.
+
+## Syntax
+
+```typescript
+function option<S extends StandardSchemaV1>(
+  schema: S,
+  metadata?: {
+    short?: string
+    description?: string
+  }
+): CLIOption<S>
+```
+
+## Parameters
+
+### schema
+
+A Standard Schema v1 compatible schema (Zod, Valibot, etc.) that validates and transforms the option value.
+
+### metadata (optional)
+
+Additional metadata for the option:
+- `short` - Single character alias for the option
+- `description` - Help text shown in --help output
+
+## Returns
+
+A `CLIOption` object that can be used in command definitions.
+
+## Examples
+
+### Basic Options
+
+```typescript
+import { option } from '@bunli/core'
+import { z } from 'zod'
+
+// String option with default
+const name = option(
+  z.string().default('world'),
+  { description: 'Name to greet' }
+)
+
+// Number with validation
+const port = option(
+  z.coerce.number().int().min(1).max(65535).default(3000),
+  { short: 'p', description: 'Port number' }
+)
+
+// Boolean flag
+const verbose = option(
+  z.coerce.boolean().default(false),
+  { short: 'v', description: 'Enable verbose output' }
+)
+
+// Enum option
+const env = option(
+  z.enum(['dev', 'staging', 'prod']),
+  { short: 'e', description: 'Target environment' }
+)
+```
+
+### Using in Commands
+
+```typescript
+import { defineCommand, option } from '@bunli/core'
+import { z } from 'zod'
+
+export default defineCommand({
+  name: 'serve',
+  description: 'Start the server',
+  options: {
+    port: option(
+      z.coerce.number().default(3000),
+      { short: 'p', description: 'Port to listen on' }
+    ),
+    host: option(
+      z.string().default('localhost'),
+      { short: 'h', description: 'Host to bind to' }
+    ),
+    secure: option(
+      z.coerce.boolean().default(false),
+      { short: 's', description: 'Use HTTPS' }
+    )
+  },
+  handler: async ({ flags }) => {
+    // flags.port: number
+    // flags.host: string
+    // flags.secure: boolean
+  }
+})
+```
+
+## Schema Types
+
+### Coercion
+
+Use `z.coerce` for automatic type conversion from command-line strings:
+
+```typescript
+// Coerce string to number
+option(z.coerce.number())  // "123" → 123
+
+// Coerce string to boolean
+option(z.coerce.boolean()) // "true" → true, "false" → false
+
+// Coerce string to date
+option(z.coerce.date())    // "2024-01-01" → Date object
+```
+
+### Transformations
+
+Transform input values with custom logic:
+
+```typescript
+// Parse JSON
+const config = option(
+  z.string().transform(val => JSON.parse(val)),
+  { description: 'JSON configuration' }
+)
+
+// Convert to uppercase
+const env = option(
+  z.string().transform(val => val.toUpperCase()),
+  { description: 'Environment name' }
+)
+
+// Parse comma-separated values
+const tags = option(
+  z.string().transform(val => val.split(',')),
+  { description: 'Comma-separated tags' }
+)
+
+// Parse file size with units
+const size = option(
+  z.string()
+    .regex(/^\d+[kmg]b?$/i)
+    .transform(val => {
+      const match = val.match(/^(\d+)([kmg])b?$/i)!
+      const [, num, unit] = match
+      const multipliers = { k: 1024, m: 1024**2, g: 1024**3 }
+      return parseInt(num) * multipliers[unit.toLowerCase()]
+    }),
+  { description: 'Size limit (e.g., 512k, 1g)' }
+)
+```
+
+### Complex Schemas
+
+```typescript
+// Object validation
+const server = option(
+  z.string()
+    .transform(val => JSON.parse(val))
+    .pipe(z.object({
+      host: z.string(),
+      port: z.number(),
+      secure: z.boolean().optional()
+    })),
+  { description: 'Server config as JSON' }
+)
+
+// Array with validation
+const ignore = option(
+  z.string()
+    .transform(val => val.split(','))
+    .pipe(z.array(z.string().min(1))),
+  { description: 'Comma-separated ignore patterns' }
+)
+
+// Union types
+const output = option(
+  z.union([
+    z.literal('json'),
+    z.literal('yaml'),
+    z.literal('toml')
+  ]).default('json'),
+  { description: 'Output format' }
+)
+```
+
+## Validation
+
+Schemas are validated automatically when commands run:
+
+```typescript
+const port = option(
+  z.coerce.number()
+    .int('Port must be an integer')
+    .min(1, 'Port must be at least 1')
+    .max(65535, 'Port must be at most 65535'),
+  { short: 'p', description: 'Port number' }
+)
+
+// $ my-cli serve --port abc
+// Validation errors:
+//   --port:
+//     • Expected number, received nan
+
+// $ my-cli serve --port 0
+// Validation errors:
+//   --port:
+//     • Port must be at least 1
+
+// $ my-cli serve --port 80000
+// Validation errors:
+//   --port:
+//     • Port must be at most 65535
+```
+
+## Optional vs Required
+
+```typescript
+// Required option (no default)
+const input = option(
+  z.string(),
+  { description: 'Input file' }
+)
+
+// Optional with default
+const output = option(
+  z.string().default('./output'),
+  { description: 'Output directory' }
+)
+
+// Truly optional (can be undefined)
+const config = option(
+  z.string().optional(),
+  { description: 'Config file path' }
+)
+
+// Nullable option
+const template = option(
+  z.string().nullable().default(null),
+  { description: 'Template name' }
+)
+```
+
+## Standard Schema Support
+
+The `option` function accepts any Standard Schema v1 compatible schema:
+
+```typescript
+// Using Zod
+import { z } from 'zod'
+option(z.string())
+
+// Using Valibot
+import * as v from 'valibot'
+option(v.pipe(v.string(), v.minLength(1)))
+
+// Any Standard Schema v1 library
+import { schema } from 'any-standard-schema-lib'
+option(schema.string())
+```
+
+<Callout type="important">
+  **All options must have a schema**. There are no "raw" options in Bunli - this ensures type safety and consistent validation across your CLI.
+</Callout>
+
+## Best Practices
+
+1. **Use descriptive names** - Option names should clearly indicate their purpose
+2. **Add descriptions** - Always include helpful description text
+3. **Use short flags wisely** - Reserve single letters for commonly used options
+4. **Provide defaults** - Make options easier to use with sensible defaults
+5. **Use coerce for CLI inputs** - `z.coerce` handles string-to-type conversion
+6. **Validate constraints** - Add `.min()`, `.max()`, `.regex()` etc. for validation
+7. **Transform when needed** - Parse complex inputs with `.transform()`
+
+## Common Patterns
+
+### File Paths
+
+```typescript
+const file = option(
+  z.string().refine(
+    (val) => existsSync(val),
+    (val) => ({ message: `File not found: ${val}` })
+  ),
+  { description: 'Input file path' }
+)
+```
+
+### URLs
+
+```typescript
+const url = option(
+  z.string().url('Must be a valid URL'),
+  { description: 'API endpoint' }
+)
+```
+
+### Environment Variables
+
+```typescript
+const apiKey = option(
+  z.string().default(process.env.API_KEY || ''),
+  { description: 'API key (or set API_KEY env var)' }
+)
+```
+
+### Multiple Values
+
+```typescript
+// From repeated flags: --tag foo --tag bar
+const tags = option(
+  z.array(z.string()).default([]),
+  { description: 'Tags (can be used multiple times)' }
+)
+
+// From comma-separated: --tags foo,bar,baz
+const tags = option(
+  z.string()
+    .transform(val => val.split(',').map(s => s.trim()))
+    .pipe(z.array(z.string())),
+  { description: 'Comma-separated tags' }
+)
+```
+
+## See Also
+
+- [defineCommand](/docs/api/define-command) - Use options in commands
+- [Validation](/docs/core-concepts/validation) - Learn about validation
+- [Type Inference](/docs/core-concepts/type-inference) - How types are inferred

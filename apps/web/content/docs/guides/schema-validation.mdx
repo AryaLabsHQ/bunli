@@ -1,0 +1,469 @@
+---
+title: Schema Validation
+description: Add validation to your commands with Standard Schema
+---
+
+# Schema Validation Guide
+
+Learn how to add robust validation to your CLI commands using Standard Schema and your favorite validation library.
+
+## Why Schema Validation?
+
+CLI applications receive user input as strings. Schema validation helps you:
+
+- Convert strings to proper types (numbers, booleans, dates)
+- Validate input constraints (min/max, patterns, etc.)
+- Provide helpful error messages
+- Ensure type safety throughout your application
+
+## Choosing a Validation Library
+
+Bunli supports any [Standard Schema](https://github.com/standard-schema/standard-schema) compatible library:
+
+### Zod (Recommended)
+
+```bash
+bun add zod
+```
+
+```typescript
+import { z } from 'zod'
+import { option } from '@bunli/core'
+
+// Use Zod schemas with the option helper
+const portOption = option(
+  z.number().min(1).max(65535)
+)
+```
+
+### Valibot
+
+```bash
+bun add valibot
+```
+
+```typescript
+import * as v from 'valibot'
+import { option } from '@bunli/core'
+
+// Valibot schemas work too
+const emailOption = option(
+  v.string([v.email()])
+)
+```
+
+### TypeBox
+
+```bash
+bun add @sinclair/typebox
+```
+
+```typescript
+import { Type } from '@sinclair/typebox'
+import { option } from '@bunli/core'
+
+// TypeBox for JSON Schema compatibility
+const configOption = option(
+  Type.Object({
+    host: Type.String(),
+    port: Type.Number()
+  })
+)
+```
+
+## Basic Validation Patterns
+
+### String Validation
+
+```typescript
+export default defineCommand({
+  options: {
+    // Basic string
+    name: option(z.string()),
+    
+    // With constraints
+    username: option(
+      z.string()
+        .min(3, 'Username must be at least 3 characters')
+        .max(20, 'Username must be at most 20 characters')
+        .regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores')
+    ),
+    
+    // Email validation
+    email: option(z.string().email('Invalid email address')),
+    
+    // URL validation
+    webhook: option(z.string().url('Invalid URL')),
+    
+    // Custom validation
+    password: option(
+      z.string().refine(
+        (val) => /[A-Z]/.test(val) && /[0-9]/.test(val),
+        'Password must contain at least one uppercase letter and one number'
+      )
+    )
+  }
+})
+```
+
+### Number Validation
+
+```typescript
+export default defineCommand({
+  options: {
+    // Basic number with coercion
+    port: option(z.coerce.number()),
+    
+    // With constraints
+    age: option(
+      z.coerce.number()
+        .int('Age must be a whole number')
+        .min(0, 'Age cannot be negative')
+        .max(150, 'Age seems unrealistic')
+    ),
+    
+    // Float with precision
+    price: option(
+      z.coerce.number()
+        .multipleOf(0.01, 'Price must have at most 2 decimal places')
+    ),
+    
+    // Port number validation
+    serverPort: option(
+      z.coerce.number()
+        .int()
+        .min(1)
+        .max(65535)
+        .default(3000)
+    )
+  }
+})
+```
+
+### Boolean Validation
+
+```typescript
+export default defineCommand({
+  options: {
+    // Boolean with coercion
+    verbose: option(z.coerce.boolean()),
+    
+    // Optional boolean
+    debug: option(z.coerce.boolean().optional()),
+    
+    // Boolean with default
+    production: option(z.coerce.boolean().default(false))
+  }
+})
+
+// CLI usage:
+// --verbose        → true
+// --verbose true   → true
+// --verbose false  → false
+// --no-verbose     → false (with proper CLI setup)
+```
+
+### Date Validation
+
+```typescript
+export default defineCommand({
+  options: {
+    // Date with coercion
+    since: option(z.coerce.date()),
+    
+    // Date with constraints
+    deadline: option(
+      z.coerce.date().refine(
+        (date) => date > new Date(),
+        'Deadline must be in the future'
+      )
+    ),
+    
+    // Date range
+    startDate: option(z.coerce.date()),
+    endDate: option(z.coerce.date())
+  },
+  handler: async ({ flags }) => {
+    // Validate date range
+    if (flags.endDate < flags.startDate) {
+      throw new Error('End date must be after start date')
+    }
+  }
+})
+
+// CLI usage:
+// --since 2024-01-01
+// --since "2024-01-01T10:00:00Z"
+// --since "January 1, 2024"
+```
+
+## Advanced Validation
+
+### Enum and Literal Types
+
+```typescript
+export default defineCommand({
+  options: {
+    // Enum validation
+    logLevel: option(
+      z.enum(['debug', 'info', 'warn', 'error']),
+      { 
+        description: 'Logging level',
+        short: 'l' 
+      }
+    ),
+    
+    // Multiple choice with default
+    environment: option(
+      z.enum(['development', 'staging', 'production'])
+        .default('development')
+    ),
+    
+    // Union of literals
+    output: option(
+      z.union([
+        z.literal('json'),
+        z.literal('yaml'),
+        z.literal('table')
+      ])
+    )
+  }
+})
+```
+
+### Array and Multiple Values
+
+```typescript
+export default defineCommand({
+  options: {
+    // Array of strings
+    tags: option(
+      z.array(z.string()),
+      { description: 'Tags (can be specified multiple times)' }
+    ),
+    
+    // Comma-separated values
+    features: option(
+      z.string().transform(val => 
+        val.split(',').map(s => s.trim())
+      )
+    ),
+    
+    // Array with validation
+    ports: option(
+      z.array(
+        z.coerce.number().min(1).max(65535)
+      ).min(1, 'At least one port required')
+    )
+  }
+})
+
+// CLI usage:
+// --tags ui --tags backend --tags api
+// --features "auth,payments,notifications"
+// --ports 3000 --ports 3001 --ports 3002
+```
+
+### Object and JSON Validation
+
+```typescript
+export default defineCommand({
+  options: {
+    // JSON string to object
+    config: option(
+      z.string()
+        .transform(str => JSON.parse(str))
+        .pipe(z.object({
+          host: z.string(),
+          port: z.number(),
+          ssl: z.boolean().optional()
+        }))
+    ),
+    
+    // Nested object validation
+    database: option(
+      z.object({
+        host: z.string(),
+        port: z.number().default(5432),
+        name: z.string(),
+        credentials: z.object({
+          user: z.string(),
+          password: z.string()
+        }).optional()
+      })
+    )
+  }
+})
+
+// CLI usage:
+// --config '{"host":"localhost","port":3000}'
+```
+
+### Conditional Validation
+
+```typescript
+const deploySchema = z.object({
+  environment: z.enum(['dev', 'staging', 'prod']),
+  skipTests: z.boolean().optional(),
+  apiKey: z.string().optional()
+}).refine(
+  (data) => {
+    // API key required for production
+    if (data.environment === 'prod' && !data.apiKey) {
+      return false
+    }
+    return true
+  },
+  {
+    message: 'API key is required for production deployments'
+  }
+)
+
+export default defineCommand({
+  options: {
+    deploy: option(deploySchema)
+  }
+})
+```
+
+## Error Handling
+
+### Custom Error Messages
+
+```typescript
+export default defineCommand({
+  options: {
+    email: option(
+      z.string().email({
+        message: 'Please provide a valid email address (e.g., user@example.com)'
+      })
+    ),
+    
+    age: option(
+      z.coerce.number().int().min(18, {
+        message: 'You must be at least 18 years old'
+      })
+    )
+  }
+})
+```
+
+### Handling Validation Errors
+
+```typescript
+export default defineCommand({
+  options: {
+    config: option(z.string())
+  },
+  handler: async ({ flags }) => {
+    try {
+      const parsed = JSON.parse(flags.config)
+      // Additional validation
+      const validated = configSchema.parse(parsed)
+      // Use validated config
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        console.error('Configuration validation failed:')
+        error.errors.forEach(err => {
+          console.error(`  - ${err.path.join('.')}: ${err.message}`)
+        })
+        process.exit(1)
+      }
+      throw error
+    }
+  }
+})
+```
+
+## Real-World Examples
+
+### API Client Configuration
+
+```typescript
+const apiConfigSchema = z.object({
+  baseUrl: z.string().url(),
+  timeout: z.number().min(0).default(30000),
+  retries: z.number().int().min(0).max(5).default(3),
+  headers: z.record(z.string()).optional(),
+  auth: z.union([
+    z.object({ type: z.literal('basic'), username: z.string(), password: z.string() }),
+    z.object({ type: z.literal('bearer'), token: z.string() }),
+    z.object({ type: z.literal('apikey'), key: z.string() })
+  ]).optional()
+})
+
+export default defineCommand({
+  name: 'api-call',
+  options: {
+    config: option(apiConfigSchema)
+  }
+})
+```
+
+### File Processing Options
+
+```typescript
+export default defineCommand({
+  name: 'process',
+  options: {
+    input: option(
+      z.string().refine(
+        (path) => existsSync(path),
+        'Input file does not exist'
+      )
+    ),
+    
+    output: option(
+      z.string().refine(
+        (path) => {
+          const dir = dirname(path)
+          return existsSync(dir)
+        },
+        'Output directory does not exist'
+      )
+    ),
+    
+    format: option(
+      z.enum(['csv', 'json', 'xml']).transform(fmt => fmt.toLowerCase())
+    ),
+    
+    encoding: option(
+      z.enum(['utf8', 'utf16', 'ascii']).default('utf8')
+    )
+  }
+})
+```
+
+## Best Practices
+
+1. **Always Use Coercion**: For CLI inputs, use `z.coerce` variants
+2. **Provide Clear Messages**: Custom error messages help users
+3. **Set Sensible Defaults**: Use `.default()` for optional configs
+4. **Validate Early**: Catch errors before processing begins
+5. **Type Everything**: Let TypeScript infer from your schemas
+
+## Testing Validation
+
+```typescript
+import { test, expect } from '@bunli/test'
+import { createTestCLI } from '@bunli/test'
+
+test('validates port number', async () => {
+  const cli = createTestCLI()
+  
+  // Valid port
+  const valid = await cli.run(['serve', '--port', '3000'])
+  expect(valid.exitCode).toBe(0)
+  
+  // Invalid port
+  const invalid = await cli.run(['serve', '--port', '70000'])
+  expect(invalid.exitCode).toBe(1)
+  expect(invalid.error).toContain('less than or equal to 65535')
+})
+```
+
+## Next Steps
+
+- [Interactive Prompts](/docs/guides/interactive-prompts) - Validate user input interactively
+- [Testing](/docs/guides/testing) - Test your validation logic
+- [API Reference](/docs/api/option) - Complete option API

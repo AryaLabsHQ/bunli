@@ -1,0 +1,11 @@
+{
+  "title": "Guides",
+  "pages": [
+    "index",
+    "building-your-first-cli",
+    "schema-validation",
+    "interactive-prompts",
+    "testing",
+    "distribution"
+  ]
+}

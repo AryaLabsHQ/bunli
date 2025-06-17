@@ -1,0 +1,321 @@
+---
+title: Validation
+description: Schema validation with Standard Schema in Bunli
+---
+
+# Validation
+
+Bunli uses [Standard Schema](https://github.com/standard-schema/standard-schema) for validation, allowing you to use any compatible validation library.
+
+## Standard Schema Support
+
+Standard Schema is a specification that provides a common interface for validation libraries. Bunli supports any library that implements this standard:
+
+- **Zod** - Popular TypeScript-first schema validation
+- **Valibot** - Modular and lightweight validation
+- **TypeBox** - JSON Schema Type Builder
+- **Arktype** - TypeScript's type syntax at runtime
+- And many more...
+
+## Basic Validation
+
+```typescript
+import { defineCommand, option } from '@bunli/core'
+import { z } from 'zod'
+
+export default defineCommand({
+  name: 'deploy',
+  options: {
+    port: option(
+      z.number()
+        .int()
+        .min(1)
+        .max(65535),
+      { description: 'Server port' }
+    ),
+    email: option(
+      z.string().email(),
+      { description: 'Contact email' }
+    )
+  },
+  handler: async ({ flags }) => {
+    // flags.port is guaranteed to be 1-65535
+    // flags.email is guaranteed to be valid email
+  }
+})
+```
+
+## Validation Libraries
+
+### Using Zod
+
+```typescript
+import { z } from 'zod'
+
+export default defineCommand({
+  options: {
+    // Basic types
+    name: option(z.string()),
+    age: option(z.number()),
+    active: option(z.boolean()),
+    
+    // With constraints
+    username: option(
+      z.string()
+        .min(3)
+        .max(20)
+        .regex(/^[a-zA-Z0-9_]+$/)
+    ),
+    
+    // Optional with default
+    timeout: option(
+      z.number().default(30)
+    ),
+    
+    // Complex types
+    config: option(
+      z.object({
+        host: z.string(),
+        port: z.number(),
+        secure: z.boolean()
+      })
+    )
+  }
+})
+```
+
+### Using Valibot
+
+```typescript
+import * as v from 'valibot'
+
+export default defineCommand({
+  options: {
+    // Basic validation
+    name: option(v.string()),
+    count: option(v.number([
+      v.minValue(0),
+      v.maxValue(100)
+    ])),
+    
+    // Email validation
+    email: option(v.string([v.email()])),
+    
+    // Custom validation
+    password: option(
+      v.string([
+        v.minLength(8),
+        v.regex(/[A-Z]/),
+        v.regex(/[0-9]/)
+      ])
+    )
+  }
+})
+```
+
+### Using TypeBox
+
+```typescript
+import { Type } from '@sinclair/typebox'
+
+export default defineCommand({
+  options: {
+    // JSON Schema compatible
+    name: option(Type.String()),
+    port: option(Type.Number({ 
+      minimum: 1, 
+      maximum: 65535 
+    })),
+    
+    // Complex schema
+    server: option(Type.Object({
+      host: Type.String(),
+      port: Type.Number(),
+      ssl: Type.Optional(Type.Boolean())
+    }))
+  }
+})
+```
+
+## Coercion
+
+Bunli automatically handles string-to-type coercion for command-line inputs:
+
+```typescript
+export default defineCommand({
+  options: {
+    // String inputs are coerced to numbers
+    port: option(z.coerce.number()),
+    
+    // String "true"/"false" coerced to boolean
+    verbose: option(z.coerce.boolean()),
+    
+    // String dates coerced to Date objects
+    since: option(z.coerce.date())
+  },
+  handler: async ({ flags }) => {
+    // Types are properly coerced:
+    // --port 3000 → flags.port is number 3000
+    // --verbose true → flags.verbose is boolean true
+    // --since 2024-01-01 → flags.since is Date object
+  }
+})
+```
+
+## Custom Validation
+
+You can add custom validation logic:
+
+```typescript
+const portSchema = z.number().refine(
+  (port) => !isPortInUse(port),
+  (port) => ({ message: `Port ${port} is already in use` })
+)
+
+export default defineCommand({
+  options: {
+    port: option(portSchema)
+  }
+})
+```
+
+## Array and Multiple Values
+
+Handle multiple values for an option:
+
+```typescript
+export default defineCommand({
+  options: {
+    // Accept multiple tags
+    tags: option(
+      z.array(z.string()),
+      { description: 'Tags (can be specified multiple times)' }
+    ),
+    
+    // Comma-separated values
+    features: option(
+      z.string().transform(val => val.split(','))
+    )
+  }
+})
+
+// Usage:
+// mycli --tags ui --tags backend --tags api
+// mycli --features auth,payments,notifications
+```
+
+## Error Messages
+
+Validation errors are automatically formatted and displayed:
+
+```bash
+$ mycli deploy --port 70000 --email invalid
+
+Validation errors:
+  --port:
+    • Number must be less than or equal to 65535
+  --email:
+    • Invalid email
+```
+
+## Optional vs Required
+
+Control whether options are required:
+
+```typescript
+export default defineCommand({
+  options: {
+    // Required option
+    name: option(z.string()),
+    
+    // Optional option
+    description: option(z.string().optional()),
+    
+    // Optional with default
+    port: option(z.number().default(3000)),
+    
+    // Nullable option
+    config: option(z.string().nullable())
+  }
+})
+```
+
+## Complex Validation Scenarios
+
+### Dependent Validation
+
+```typescript
+const schema = z.object({
+  mode: z.enum(['dev', 'prod']),
+  debugPort: z.number().optional()
+}).refine(
+  data => data.mode !== 'prod' || !data.debugPort,
+  { message: 'Debug port cannot be used in production mode' }
+)
+```
+
+### Union Types
+
+```typescript
+export default defineCommand({
+  options: {
+    output: option(
+      z.union([
+        z.literal('json'),
+        z.literal('yaml'),
+        z.literal('table'),
+        z.string().regex(/^custom:/)
+      ])
+    )
+  }
+})
+```
+
+### Transform and Preprocess
+
+```typescript
+export default defineCommand({
+  options: {
+    // Parse JSON input
+    data: option(
+      z.string().transform(str => JSON.parse(str))
+    ),
+    
+    // Normalize paths
+    file: option(
+      z.string().transform(path => resolve(path))
+    ),
+    
+    // Parse environment variables
+    env: option(
+      z.string()
+        .transform(str => str.split(','))
+        .pipe(z.array(z.enum(['dev', 'test', 'prod'])))
+    )
+  }
+})
+```
+
+## Best Practices
+
+1. **Use Coercion**: For CLI inputs, prefer `z.coerce` variants
+2. **Provide Descriptions**: Help users understand valid values
+3. **Set Sensible Defaults**: Use `.default()` for optional configs
+4. **Validate Early**: Catch errors before processing
+5. **Custom Error Messages**: Provide helpful validation messages
+
+## Standard Schema Adapters
+
+If your validation library doesn't natively support Standard Schema, you can use adapters:
+
+```typescript
+import { toStandardSchema } from '@standard-schema/zod'
+
+const schema = toStandardSchema(z.string().email())
+```
+
+## See Also
+
+- [Type Inference](/docs/core-concepts/type-inference) - Automatic type inference
+- [option API](/docs/api/option) - Option helper reference
+- [Standard Schema](https://github.com/standard-schema/standard-schema) - Standard Schema specification

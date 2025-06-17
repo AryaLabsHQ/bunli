@@ -1,0 +1,392 @@
+---
+title: Commands
+description: Learn how to define and organize commands in Bunli
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+
+# Commands
+
+Commands are the building blocks of your CLI. Bunli provides a powerful, type-safe way to define commands with automatic inference and validation.
+
+## Basic Command
+
+The simplest command requires just a name and handler:
+
+```typescript
+import { defineCommand } from '@bunli/core'
+
+export default defineCommand({
+  name: 'hello',
+  description: 'Say hello',
+  handler: async () => {
+    console.log('Hello, World!')
+  }
+})
+```
+
+## Command Options
+
+Add typed options to your commands using the `option()` helper with Zod schemas:
+
+```typescript
+import { option } from '@bunli/core'
+import { z } from 'zod'
+
+export default defineCommand({
+  name: 'greet',
+  description: 'Greet someone',
+  options: {
+    name: option(
+      z.string().min(1),
+      { description: 'Name to greet', short: 'n' }
+    ),
+    times: option(
+      z.coerce.number().int().positive().default(1),
+      { description: 'Number of times to greet', short: 't' }
+    ),
+    loud: option(
+      z.coerce.boolean().default(false),
+      { description: 'Shout the greeting', short: 'l' }
+    )
+  },
+  handler: async ({ flags }) => {
+    // TypeScript knows the exact types from Zod schemas:
+    // flags.name: string
+    // flags.times: number
+    // flags.loud: boolean
+    
+    for (let i = 0; i < flags.times; i++) {
+      const greeting = `Hello, ${flags.name}!`
+      console.log(flags.loud ? greeting.toUpperCase() : greeting)
+    }
+  }
+})
+```
+
+<Callout type="important">
+  **All options must have a schema** - there are no raw options in Bunli. This ensures type safety and validation. Use `z.coerce` for CLI inputs to handle string-to-type conversions automatically.
+</Callout>
+
+## Handler Context
+
+Every command handler receives a rich context object:
+
+```typescript
+handler: async ({ flags, positional, shell, env, cwd, prompt, spinner, colors }) => {
+  // flags - Parsed and validated command options
+  // positional - Non-flag arguments
+  // shell - Bun Shell for running commands (Bun.$)
+  // env - Environment variables (process.env)
+  // cwd - Current working directory
+  // prompt - Interactive prompts (auto-imported from @bunli/utils)
+  // spinner - Progress indicators (auto-imported from @bunli/utils)
+  // colors - Terminal colors (auto-imported from @bunli/utils)
+}
+```
+
+### Using Positional Arguments
+
+```typescript
+export default defineCommand({
+  name: 'copy',
+  description: 'Copy files',
+  handler: async ({ positional, shell }) => {
+    const [source, dest] = positional
+    
+    if (!source || !dest) {
+      throw new Error('Usage: copy <source> <dest>')
+    }
+    
+    await shell`cp ${source} ${dest}`
+  }
+})
+```
+
+### Shell Integration
+
+Use Bun Shell directly in your commands:
+
+```typescript
+handler: async ({ shell, flags }) => {
+  // Run shell commands with automatic escaping
+  const files = await shell`ls -la ${flags.dir}`.text()
+  
+  // Pipe commands
+  const count = await shell`cat ${flags.file} | wc -l`.text()
+  
+  // Check exit codes
+  try {
+    await shell`test -f ${flags.file}`
+    console.log('File exists')
+  } catch {
+    console.log('File not found')
+  }
+}
+```
+
+### Interactive Prompts
+
+```typescript
+handler: async ({ prompt, flags }) => {
+  // Text input
+  const name = await prompt('What is your name?')
+  
+  // Confirmation
+  const proceed = await prompt.confirm('Continue?', { default: true })
+  
+  // Selection
+  const color = await prompt.select('Favorite color?', {
+    options: ['red', 'green', 'blue']
+  })
+  
+  // Password (with masking)
+  const secret = await prompt.password('Enter password:')
+  
+  // With schema validation
+  const apiKey = await prompt('API Key:', {
+    schema: z.string().min(32).regex(/^[A-Za-z0-9-_]+$/)
+  })
+}
+```
+
+### Progress Indicators
+
+```typescript
+handler: async ({ spinner, shell }) => {
+  const spin = spinner('Installing dependencies...')
+  spin.start()
+  
+  try {
+    await shell`bun install`
+    spin.succeed('Dependencies installed')
+  } catch (error) {
+    spin.fail('Installation failed')
+    throw error
+  }
+}
+```
+
+## Nested Commands
+
+Organize related commands hierarchically:
+
+```typescript
+export default defineCommand({
+  name: 'db',
+  description: 'Database operations',
+  commands: [
+    defineCommand({
+      name: 'migrate',
+      description: 'Run migrations',
+      options: {
+        direction: option(
+          z.enum(['up', 'down']).default('up'),
+          { description: 'Migration direction', short: 'd' }
+        )
+      },
+      handler: async ({ flags, shell }) => {
+        await shell`bun run db:migrate --direction ${flags.direction}`
+      }
+    }),
+    defineCommand({
+      name: 'seed',
+      description: 'Seed database',
+      options: {
+        force: option(
+          z.coerce.boolean().default(false),
+          { description: 'Force seed in production', short: 'f' }
+        )
+      },
+      handler: async ({ flags, env, shell }) => {
+        if (env.NODE_ENV === 'production' && !flags.force) {
+          throw new Error('Use --force to seed in production')
+        }
+        await shell`bun run db:seed`
+      }
+    }),
+    defineCommand({
+      name: 'reset',
+      description: 'Reset database',
+      handler: async ({ prompt, shell }) => {
+        const confirm = await prompt.confirm('Reset database? All data will be lost!')
+        if (confirm) {
+          await shell`bun run db:reset`
+        }
+      }
+    })
+  ]
+})
+```
+
+## Command Organization
+
+<Tabs groupId="organization" defaultValue="single">
+  <Tab value="single" label="Single File">
+    For simple CLIs, define all commands in one file:
+    
+    ```typescript
+    // src/index.ts
+    import { createCLI } from '@bunli/core'
+    
+    const cli = createCLI({
+      name: 'my-cli',
+      version: '1.0.0'
+    })
+    
+    cli.command({
+      name: 'serve',
+      handler: async () => { /* ... */ }
+    })
+    
+    cli.command({
+      name: 'build',
+      handler: async () => { /* ... */ }
+    })
+    
+    cli.run()
+    ```
+  </Tab>
+  
+  <Tab value="separate" label="Separate Files">
+    For larger CLIs, organize commands in separate files:
+    
+    ```typescript
+    // src/commands/serve.ts
+    export default defineCommand({
+      name: 'serve',
+      handler: async () => { /* ... */ }
+    })
+    
+    // src/commands/build.ts
+    export default defineCommand({
+      name: 'build',
+      handler: async () => { /* ... */ }
+    })
+    
+    // src/index.ts
+    import { createCLI } from '@bunli/core'
+    import serve from './commands/serve'
+    import build from './commands/build'
+    
+    const cli = createCLI({ name: 'my-cli' })
+    cli.command(serve)
+    cli.command(build)
+    cli.run()
+    ```
+  </Tab>
+  
+  <Tab value="manifest" label="Command Manifest">
+    Use a manifest for lazy loading:
+    
+    ```typescript
+    // src/commands/index.ts
+    export default {
+      serve: () => import('./serve'),
+      build: () => import('./build'),
+      db: {
+        migrate: () => import('./db/migrate'),
+        seed: () => import('./db/seed')
+      }
+    }
+    
+    // src/index.ts
+    import { createCLI } from '@bunli/core'
+    import manifest from './commands/index.js'
+    
+    const cli = createCLI({ name: 'my-cli' })
+    await cli.load(manifest)
+    await cli.run()
+    ```
+  </Tab>
+</Tabs>
+
+## Command Aliases
+
+Add shortcuts for frequently used commands:
+
+```typescript
+export default defineCommand({
+  name: 'development',
+  alias: ['dev', 'd'], // Can be string or array
+  description: 'Start development server',
+  handler: async () => {
+    // Users can run any of:
+    // my-cli development
+    // my-cli dev
+    // my-cli d
+  }
+})
+
+// Aliases work with nested commands too
+export default defineCommand({
+  name: 'database',
+  alias: 'db',
+  commands: [
+    defineCommand({
+      name: 'migrate',
+      alias: 'm',
+      handler: async () => {
+        // Can be called as:
+        // my-cli database migrate
+        // my-cli db migrate
+        // my-cli db m
+      }
+    })
+  ]
+})
+```
+
+## Error Handling
+
+Bunli provides automatic error handling with formatted output:
+
+```typescript
+// Schema validation errors are automatically caught and formatted
+$ my-cli serve --port abc
+Validation errors:
+  --port:
+    • Expected number, received nan
+
+// Custom errors in handlers
+handler: async ({ flags, colors }) => {
+  if (flags.port < 1024 && !flags.sudo) {
+    throw new Error('Ports below 1024 require sudo')
+  }
+}
+
+// Unknown commands show help
+$ my-cli unknown
+Unknown command: unknown
+
+// Automatic help generation
+$ my-cli serve --help
+Usage: my-cli serve [options]
+
+Start the development server
+
+Options:
+  --port, -p    Port to listen on (default: 3000)
+  --host, -h    Host to bind to (default: localhost)
+```
+
+<Callout type="tip">
+  Commands are lazy-loaded by default when using a manifest, improving startup time for CLIs with many commands.
+</Callout>
+
+## Best Practices
+
+1. **Use descriptive names** - Command names should be clear and memorable
+2. **Add descriptions** - Help users understand what each command does
+3. **Provide examples** - Show common usage patterns in descriptions
+4. **Group related commands** - Use nested commands for logical organization
+5. **Handle errors gracefully** - Provide helpful error messages
+6. **Keep handlers focused** - Each command should do one thing well
+
+## Next Steps
+
+- Learn about [Type Inference](/docs/core-concepts/type-inference) for better autocomplete
+- Add [Validation](/docs/core-concepts/validation) to ensure correct input
+- Explore [Configuration](/docs/core-concepts/configuration) options
+- See [Examples](/docs/examples/minimal) of real commands

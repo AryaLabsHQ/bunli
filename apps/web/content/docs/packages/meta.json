@@ -1,0 +1,10 @@
+{
+  "title": "Packages",
+  "pages": [
+    "index",
+    "create-bunli",
+    "core",
+    "utils",
+    "test"
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "title": "Examples",
+  "pages": [
+    "index",
+    "minimal",
+    "multi-command",
+    "interactive",
+    "real-world"
+  ]
+}

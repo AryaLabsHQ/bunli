@@ -1,0 +1,228 @@
+---
+title: Type Inference
+description: How Bunli provides automatic type inference for your CLI
+---
+
+# Type Inference
+
+Bunli provides excellent TypeScript support with automatic type inference throughout your CLI application.
+
+## How It Works
+
+When you define commands with options, Bunli automatically infers the types from your schema definitions. This means you get full type safety and autocomplete without manual type annotations.
+
+## Basic Type Inference
+
+```typescript
+import { defineCommand, option } from '@bunli/core'
+import { z } from 'zod'
+
+export default defineCommand({
+  name: 'serve',
+  options: {
+    port: option(z.number().default(3000)),
+    host: option(z.string().default('localhost')),
+    ssl: option(z.boolean().optional())
+  },
+  handler: async ({ flags }) => {
+    // TypeScript knows:
+    // flags.port is number
+    // flags.host is string  
+    // flags.ssl is boolean | undefined
+    
+    console.log(`Starting server on ${flags.host}:${flags.port}`)
+  }
+})
+```
+
+## Advanced Type Inference
+
+### Enum Types
+
+```typescript
+export default defineCommand({
+  options: {
+    env: option(z.enum(['dev', 'staging', 'prod']))
+  },
+  handler: async ({ flags }) => {
+    // flags.env is typed as 'dev' | 'staging' | 'prod'
+    switch (flags.env) {
+      case 'dev':     // ✅ Autocompleted
+      case 'staging': // ✅ Autocompleted
+      case 'prod':    // ✅ Autocompleted
+    }
+  }
+})
+```
+
+### Complex Object Types
+
+```typescript
+const configSchema = z.object({
+  name: z.string(),
+  port: z.number(),
+  features: z.array(z.string())
+})
+
+export default defineCommand({
+  options: {
+    config: option(configSchema)
+  },
+  handler: async ({ flags }) => {
+    // flags.config is fully typed
+    flags.config.name     // string
+    flags.config.port     // number
+    flags.config.features // string[]
+  }
+})
+```
+
+### Union Types
+
+```typescript
+export default defineCommand({
+  options: {
+    output: option(
+      z.union([
+        z.literal('json'),
+        z.literal('yaml'),
+        z.literal('table')
+      ])
+    )
+  },
+  handler: async ({ flags }) => {
+    // flags.output is 'json' | 'yaml' | 'table'
+    if (flags.output === 'json') {
+      // TypeScript knows output is 'json' here
+    }
+  }
+})
+```
+
+## Handler Context Types
+
+The handler receives a fully typed context object:
+
+```typescript
+export default defineCommand({
+  options: {
+    verbose: option(z.boolean())
+  },
+  handler: async (context) => {
+    // All properties are typed:
+    context.flags       // { verbose: boolean }
+    context.positional  // string[]
+    context.shell       // Bun Shell ($)
+    context.env         // process.env
+    context.cwd         // string
+    context.prompt      // Prompt utilities
+    context.spinner     // Spinner utility
+    context.colors      // Color utilities
+  }
+})
+```
+
+## Generic Type Constraints
+
+Bunli uses TypeScript generics to flow types through your application:
+
+```typescript
+import type { Command } from '@bunli/core'
+
+// The Command type is generic over your options
+function processCommand<T extends Options>(
+  cmd: Command<T>
+): void {
+  // Type information is preserved
+}
+```
+
+## Type Inference with Multiple Schemas
+
+Bunli works with any Standard Schema compatible validation library:
+
+```typescript
+import { z } from 'zod'
+import * as v from 'valibot'
+import { Type } from '@sinclair/typebox'
+
+export default defineCommand({
+  options: {
+    // Zod
+    name: option(z.string()),
+    
+    // Valibot
+    age: option(v.number([v.minValue(0)])),
+    
+    // TypeBox
+    email: option(Type.String({ format: 'email' }))
+  },
+  handler: async ({ flags }) => {
+    // All types are correctly inferred
+    flags.name  // string
+    flags.age   // number
+    flags.email // string
+  }
+})
+```
+
+## Nested Command Types
+
+Type inference works seamlessly with nested commands:
+
+```typescript
+const dbCommand = defineCommand({
+  name: 'db',
+  commands: [
+    defineCommand({
+      name: 'migrate',
+      options: {
+        direction: option(z.enum(['up', 'down']))
+      },
+      handler: async ({ flags }) => {
+        // flags.direction is 'up' | 'down'
+      }
+    })
+  ]
+})
+```
+
+## Best Practices
+
+1. **Let TypeScript Infer**: Don't manually annotate types that can be inferred
+2. **Use Const Assertions**: For literal types, use `as const`
+3. **Leverage Autocomplete**: Your IDE will provide suggestions based on inferred types
+4. **Type Narrowing**: Use TypeScript's type guards for runtime checks
+
+## Troubleshooting
+
+### Types Not Inferring?
+
+Make sure your `tsconfig.json` has:
+
+```json
+{
+  "compilerOptions": {
+    "strict": true,
+    "moduleResolution": "bundler"
+  }
+}
+```
+
+### Generic Type Issues
+
+If you're passing commands between functions, preserve the generic type:
+
+```typescript
+function wrapCommand<T extends Options>(
+  cmd: Command<T>
+): Command<T> {
+  return cmd
+}
+```
+
+## See Also
+
+- [Commands](/docs/core-concepts/commands) - Learn about defining commands
+- [Validation](/docs/core-concepts/validation) - Schema validation with Standard Schema
+- [API Reference](/docs/api) - Complete API documentation

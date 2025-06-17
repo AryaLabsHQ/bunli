@@ -1,0 +1,591 @@
+---
+title: Multi-Command CLI
+description: CLI with multiple commands and subcommands
+---
+
+# Multi-Command CLI Example
+
+Build a CLI with multiple commands, subcommands, and shared functionality.
+
+## Project Structure
+
+```
+task-cli/
+├── src/
+│   ├── index.ts
+│   ├── commands/
+│   │   ├── add.ts
+│   │   ├── list.ts
+│   │   ├── complete.ts
+│   │   └── project/
+│   │       ├── index.ts
+│   │       ├── create.ts
+│   │       └── delete.ts
+│   └── lib/
+│       └── database.ts
+├── package.json
+└── tsconfig.json
+```
+
+## Main CLI Entry
+
+```typescript
+// src/index.ts
+import { createCLI } from '@bunli/core'
+
+const cli = createCLI({
+  name: 'task',
+  version: '1.0.0',
+  description: 'Task management CLI',
+  commands: {
+    // Auto-discover commands in this directory
+    directory: './commands'
+  }
+})
+
+await cli.run()
+```
+
+## Individual Commands
+
+### Add Command
+
+```typescript
+// src/commands/add.ts
+import { defineCommand, option } from '@bunli/core'
+import { z } from 'zod'
+import { db } from '../lib/database'
+
+export default defineCommand({
+  name: 'add',
+  description: 'Add a new task',
+  alias: 'a',
+  options: {
+    task: option(
+      z.string().min(1),
+      { 
+        description: 'Task description',
+        short: 't'
+      }
+    ),
+    project: option(
+      z.string().optional(),
+      { 
+        description: 'Project name',
+        short: 'p'
+      }
+    ),
+    priority: option(
+      z.enum(['low', 'medium', 'high']).default('medium'),
+      { 
+        description: 'Task priority',
+        short: 'r'
+      }
+    ),
+    due: option(
+      z.string().optional(),
+      { 
+        description: 'Due date (YYYY-MM-DD)',
+        short: 'd'
+      }
+    )
+  },
+  handler: async ({ flags, colors }) => {
+    const task = await db.tasks.create({
+      description: flags.task,
+      project: flags.project,
+      priority: flags.priority,
+      due: flags.due ? new Date(flags.due) : null
+    })
+    
+    console.log(colors.green('✓'), 'Task added:', colors.bold(`#${task.id}`))
+    console.log(colors.dim(`  ${task.description}`))
+  }
+})
+```
+
+### List Command
+
+```typescript
+// src/commands/list.ts
+import { defineCommand, option } from '@bunli/core'
+import { z } from 'zod'
+import { db } from '../lib/database'
+
+export default defineCommand({
+  name: 'list',
+  description: 'List all tasks',
+  alias: ['ls', 'l'],
+  options: {
+    project: option(
+      z.string().optional(),
+      { 
+        description: 'Filter by project',
+        short: 'p'
+      }
+    ),
+    status: option(
+      z.enum(['all', 'pending', 'completed']).default('pending'),
+      { 
+        description: 'Filter by status',
+        short: 's'
+      }
+    ),
+    priority: option(
+      z.enum(['all', 'low', 'medium', 'high']).default('all'),
+      { 
+        description: 'Filter by priority',
+        short: 'r'
+      }
+    ),
+    sort: option(
+      z.enum(['created', 'due', 'priority']).default('created'),
+      { 
+        description: 'Sort order',
+        short: 'o'
+      }
+    )
+  },
+  handler: async ({ flags, colors, spinner }) => {
+    const spin = spinner('Loading tasks...')
+    spin.start()
+    
+    const tasks = await db.tasks.list({
+      project: flags.project,
+      status: flags.status,
+      priority: flags.priority !== 'all' ? flags.priority : undefined,
+      sort: flags.sort
+    })
+    
+    spin.stop()
+    
+    if (tasks.length === 0) {
+      console.log(colors.yellow('No tasks found'))
+      return
+    }
+    
+    console.log(`\nTasks (${tasks.length}):\n`)
+    
+    for (const task of tasks) {
+      const checkbox = task.completed 
+        ? colors.green('✓') 
+        : colors.gray('○')
+      
+      const priority = {
+        low: colors.blue('●'),
+        medium: colors.yellow('●'),
+        high: colors.red('●')
+      }[task.priority]
+      
+      const due = task.due 
+        ? colors.dim(` due ${formatDate(task.due)}`)
+        : ''
+      
+      console.log(
+        `${checkbox} ${priority} ${task.description}${due}`
+      )
+      
+      if (task.project) {
+        console.log(colors.dim(`    Project: ${task.project}`))
+      }
+    }
+  }
+})
+
+function formatDate(date: Date): string {
+  return date.toLocaleDateString()
+}
+```
+
+### Complete Command
+
+```typescript
+// src/commands/complete.ts
+import { defineCommand, option } from '@bunli/core'
+import { z } from 'zod'
+import { db } from '../lib/database'
+
+export default defineCommand({
+  name: 'complete',
+  description: 'Mark tasks as completed',
+  alias: ['done', 'c'],
+  options: {
+    id: option(
+      z.coerce.number().optional(),
+      { 
+        description: 'Task ID',
+        short: 'i'
+      }
+    ),
+    all: option(
+      z.boolean().default(false),
+      { 
+        description: 'Complete all tasks',
+        short: 'a'
+      }
+    )
+  },
+  handler: async ({ flags, prompt, colors, positional }) => {
+    let taskIds: number[] = []
+    
+    // Get task IDs from various sources
+    if (flags.all) {
+      const confirm = await prompt.confirm(
+        'Complete ALL pending tasks?',
+        { default: false }
+      )
+      if (!confirm) return
+      
+      const tasks = await db.tasks.list({ status: 'pending' })
+      taskIds = tasks.map(t => t.id)
+    } else if (flags.id) {
+      taskIds = [flags.id]
+    } else if (positional.length > 0) {
+      // Accept IDs as positional arguments
+      taskIds = positional.map(id => parseInt(id, 10))
+    } else {
+      // Interactive selection
+      const tasks = await db.tasks.list({ status: 'pending' })
+      
+      if (tasks.length === 0) {
+        console.log(colors.yellow('No pending tasks'))
+        return
+      }
+      
+      const selected = await prompt.multiselect(
+        'Select tasks to complete:',
+        {
+          choices: tasks.map(task => ({
+            value: task.id,
+            label: task.description,
+            hint: task.project
+          }))
+        }
+      )
+      
+      taskIds = selected
+    }
+    
+    // Complete the tasks
+    for (const id of taskIds) {
+      await db.tasks.complete(id)
+      const task = await db.tasks.get(id)
+      console.log(colors.green('✓'), `Completed: ${task.description}`)
+    }
+    
+    console.log(colors.green(`\n${taskIds.length} task(s) completed!`))
+  }
+})
+```
+
+## Nested Commands
+
+### Project Group
+
+```typescript
+// src/commands/project/index.ts
+import { defineCommand } from '@bunli/core'
+
+export default defineCommand({
+  name: 'project',
+  description: 'Manage projects',
+  alias: 'p',
+  // No handler - just a group for subcommands
+})
+```
+
+### Project Create
+
+```typescript
+// src/commands/project/create.ts
+import { defineCommand, option } from '@bunli/core'
+import { z } from 'zod'
+import { db } from '../../lib/database'
+
+export default defineCommand({
+  name: 'create',
+  description: 'Create a new project',
+  options: {
+    name: option(
+      z.string().min(1),
+      { 
+        description: 'Project name',
+        short: 'n'
+      }
+    ),
+    description: option(
+      z.string().optional(),
+      { 
+        description: 'Project description',
+        short: 'd'
+      }
+    ),
+    color: option(
+      z.enum(['red', 'blue', 'green', 'yellow', 'purple']).optional(),
+      { 
+        description: 'Project color',
+        short: 'c'
+      }
+    )
+  },
+  handler: async ({ flags, colors }) => {
+    const project = await db.projects.create({
+      name: flags.name,
+      description: flags.description,
+      color: flags.color
+    })
+    
+    console.log(colors.green('✓'), 'Project created:', colors.bold(project.name))
+    if (project.description) {
+      console.log(colors.dim(`  ${project.description}`))
+    }
+  }
+})
+```
+
+### Project Delete
+
+```typescript
+// src/commands/project/delete.ts
+import { defineCommand, option } from '@bunli/core'
+import { z } from 'zod'
+import { db } from '../../lib/database'
+
+export default defineCommand({
+  name: 'delete',
+  description: 'Delete a project',
+  options: {
+    name: option(
+      z.string(),
+      { 
+        description: 'Project name',
+        short: 'n'
+      }
+    ),
+    force: option(
+      z.boolean().default(false),
+      { 
+        description: 'Skip confirmation',
+        short: 'f'
+      }
+    )
+  },
+  handler: async ({ flags, prompt, colors }) => {
+    const project = await db.projects.get(flags.name)
+    if (!project) {
+      console.log(colors.red('Project not found:', flags.name))
+      return
+    }
+    
+    const taskCount = await db.tasks.count({ project: project.name })
+    
+    if (!flags.force) {
+      const message = taskCount > 0
+        ? `Delete project "${project.name}" and its ${taskCount} tasks?`
+        : `Delete project "${project.name}"?`
+      
+      const confirm = await prompt.confirm(message, { default: false })
+      if (!confirm) return
+    }
+    
+    await db.projects.delete(project.name)
+    console.log(colors.red('✗'), `Deleted project: ${project.name}`)
+    
+    if (taskCount > 0) {
+      console.log(colors.dim(`  Also deleted ${taskCount} tasks`))
+    }
+  }
+})
+```
+
+## Database Module
+
+```typescript
+// src/lib/database.ts
+interface Task {
+  id: number
+  description: string
+  project?: string
+  priority: 'low' | 'medium' | 'high'
+  completed: boolean
+  due?: Date
+  created: Date
+}
+
+interface Project {
+  name: string
+  description?: string
+  color?: string
+}
+
+// Simple in-memory database for example
+class Database {
+  private tasks: Task[] = []
+  private projects: Project[] = []
+  private nextId = 1
+  
+  tasks = {
+    create: async (data: Omit<Task, 'id' | 'completed' | 'created'>) => {
+      const task: Task = {
+        id: this.nextId++,
+        completed: false,
+        created: new Date(),
+        ...data
+      }
+      this.tasks.push(task)
+      return task
+    },
+    
+    list: async (filters: any = {}) => {
+      let results = [...this.tasks]
+      
+      if (filters.project) {
+        results = results.filter(t => t.project === filters.project)
+      }
+      
+      if (filters.status === 'pending') {
+        results = results.filter(t => !t.completed)
+      } else if (filters.status === 'completed') {
+        results = results.filter(t => t.completed)
+      }
+      
+      if (filters.priority) {
+        results = results.filter(t => t.priority === filters.priority)
+      }
+      
+      // Sort
+      results.sort((a, b) => {
+        switch (filters.sort) {
+          case 'due':
+            return (a.due?.getTime() ?? Infinity) - (b.due?.getTime() ?? Infinity)
+          case 'priority':
+            const order = { high: 0, medium: 1, low: 2 }
+            return order[a.priority] - order[b.priority]
+          default:
+            return b.created.getTime() - a.created.getTime()
+        }
+      })
+      
+      return results
+    },
+    
+    get: async (id: number) => {
+      return this.tasks.find(t => t.id === id)!
+    },
+    
+    complete: async (id: number) => {
+      const task = this.tasks.find(t => t.id === id)
+      if (task) task.completed = true
+    },
+    
+    count: async (filters: any = {}) => {
+      return (await this.tasks.list(filters)).length
+    }
+  }
+  
+  projects = {
+    create: async (data: Project) => {
+      this.projects.push(data)
+      return data
+    },
+    
+    get: async (name: string) => {
+      return this.projects.find(p => p.name === name)
+    },
+    
+    delete: async (name: string) => {
+      this.projects = this.projects.filter(p => p.name !== name)
+      this.tasks = this.tasks.filter(t => t.project !== name)
+    }
+  }
+}
+
+export const db = new Database()
+```
+
+## Usage Examples
+
+```bash
+# Add tasks
+task add --task "Write documentation" --priority high
+task add -t "Review PR" -p "website" -r medium -d 2024-12-20
+
+# List tasks
+task list
+task list --project website
+task list --status all --sort priority
+
+# Complete tasks
+task complete --id 1
+task complete 1 2 3  # Multiple IDs
+task complete       # Interactive selection
+
+# Project management
+task project create --name website --color blue
+task project create -n api -d "Backend API project"
+task project delete --name old-project
+
+# Using aliases
+task a -t "Quick task"      # add
+task ls -p website          # list
+task c 5                    # complete
+task p create -n mobile     # project create
+```
+
+## Command Discovery
+
+Bunli automatically discovers commands in the configured directory:
+
+```
+commands/
+├── add.ts          → task add
+├── list.ts         → task list
+├── complete.ts     → task complete
+└── project/
+    ├── index.ts    → task project
+    ├── create.ts   → task project create
+    └── delete.ts   → task project delete
+```
+
+## Help Output
+
+```bash
+task --help
+# task v1.0.0
+# Task management CLI
+#
+# Commands:
+#   add (a)       Add a new task
+#   list (ls, l)  List all tasks
+#   complete (done, c)  Mark tasks as completed
+#   project (p)   Manage projects
+#
+# Run 'task <command> --help' for command details
+
+task add --help
+# Add a new task
+#
+# Usage: task add [options]
+#
+# Options:
+#   -t, --task <string>      Task description
+#   -p, --project <string>   Project name
+#   -r, --priority <priority> Task priority (low|medium|high) [default: medium]
+#   -d, --due <date>         Due date (YYYY-MM-DD)
+```
+
+## Key Features Demonstrated
+
+1. **Command Organization**: Logical grouping of related commands
+2. **Aliases**: Short versions for frequently used commands
+3. **Options**: Rich option handling with validation
+4. **Interactive Mode**: Fallback to prompts when options not provided
+5. **Subcommands**: Nested command structure for complex CLIs
+6. **Shared Code**: Database module used across commands
+7. **Auto-discovery**: Commands automatically found and loaded
+
+## Next Steps
+
+- [Interactive Example](/docs/examples/interactive) - Rich interactive features
+- [Testing Guide](/docs/guides/testing) - Test multi-command CLIs
+- [Command Documentation](/docs/core-concepts/commands) - Deep dive into commands

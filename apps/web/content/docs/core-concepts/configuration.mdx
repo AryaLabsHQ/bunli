@@ -1,0 +1,326 @@
+---
+title: Configuration
+description: Configure your Bunli CLI project with bunli.config.ts
+---
+
+# Configuration
+
+Configure your Bunli CLI project behavior with `bunli.config.ts`.
+
+## Configuration File
+
+Create a `bunli.config.ts` file in your project root:
+
+```typescript
+import { defineConfig } from 'bunli'
+
+export default defineConfig({
+  name: 'my-cli',
+  version: '1.0.0',
+  description: 'My awesome CLI tool',
+  
+  // Command options
+  commands: {
+    directory: './src/commands',
+    manifest: './src/commands/manifest.ts'
+  },
+  
+  // Build configuration
+  build: {
+    entry: './src/index.ts',
+    outdir: './dist',
+    targets: ['darwin-arm64', 'linux-x64', 'windows-x64'],
+    compress: true,
+    minify: true,
+    sourcemap: false
+  }
+})
+```
+
+## Configuration Options
+
+### Basic Information
+
+```typescript
+export default defineConfig({
+  // CLI name (defaults to package.json name)
+  name: 'my-cli',
+  
+  // Version (defaults to package.json version)
+  version: '1.0.0',
+  
+  // Description for help text
+  description: 'A powerful CLI tool'
+})
+```
+
+### Command Configuration
+
+```typescript
+export default defineConfig({
+  commands: {
+    // Where to find command files
+    directory: './src/commands',
+    
+    // Command manifest for lazy loading
+    manifest: './src/commands/manifest.ts',
+    
+    // Auto-discovery pattern (coming soon)
+    pattern: '**/*.command.ts'
+  }
+})
+```
+
+### Build Configuration
+
+```typescript
+export default defineConfig({
+  build: {
+    // Entry point(s)
+    entry: './src/index.ts',
+    // or multiple entries
+    entry: ['./src/cli.ts', './src/server.ts'],
+    
+    // Output directory
+    outdir: './dist',
+    
+    // Target platforms for compiled builds
+    targets: [
+      'darwin-arm64',   // macOS Apple Silicon
+      'darwin-x64',     // macOS Intel
+      'linux-arm64',    // Linux ARM64
+      'linux-x64',      // Linux x64
+      'windows-x64'     // Windows x64
+    ],
+    
+    // Compress output archives
+    compress: true,
+    
+    // External dependencies (not bundled)
+    external: ['sqlite3', 'sharp'],
+    
+    // Minify output
+    minify: true,
+    
+    // Generate sourcemaps
+    sourcemap: false,
+    
+    // Create standalone executables
+    compile: true
+  }
+})
+```
+
+### Development Configuration
+
+```typescript
+export default defineConfig({
+  dev: {
+    // Watch for file changes
+    watch: true,
+    
+    // Enable Node.js inspector
+    inspect: true,
+    
+    // Inspector port
+    port: 9229
+  }
+})
+```
+
+### Test Configuration
+
+```typescript
+export default defineConfig({
+  test: {
+    // Test file patterns
+    pattern: ['**/*.test.ts', '**/*.spec.ts'],
+    
+    // Coverage reporting
+    coverage: true,
+    
+    // Watch mode
+    watch: false
+  }
+})
+```
+
+### Release Configuration
+
+```typescript
+export default defineConfig({
+  release: {
+    // Publish to npm
+    npm: true,
+    
+    // Create GitHub release
+    github: true,
+    
+    // Git tag format
+    tagFormat: 'v${version}',
+    
+    // Use conventional commits
+    conventionalCommits: true
+  }
+})
+```
+
+### Workspace Configuration
+
+For monorepos:
+
+```typescript
+export default defineConfig({
+  workspace: {
+    // Package locations
+    packages: ['packages/*', 'apps/*'],
+    
+    // Shared configuration
+    shared: {
+      typescript: true,
+      eslint: true
+    },
+    
+    // Version strategy
+    versionStrategy: 'independent' // or 'fixed'
+  }
+})
+```
+
+## Environment-Specific Config
+
+Use environment variables or conditions:
+
+```typescript
+export default defineConfig({
+  name: 'my-cli',
+  build: {
+    minify: process.env.NODE_ENV === 'production',
+    sourcemap: process.env.DEBUG === 'true',
+    targets: process.env.CI 
+      ? ['darwin-arm64', 'linux-x64', 'windows-x64']
+      : [process.platform + '-' + process.arch]
+  }
+})
+```
+
+## Extending Configuration
+
+Share configuration across projects:
+
+```typescript
+// base.config.ts
+export const baseConfig = {
+  build: {
+    minify: true,
+    compress: true
+  }
+}
+
+// bunli.config.ts
+import { defineConfig } from 'bunli'
+import { baseConfig } from './base.config'
+
+export default defineConfig({
+  ...baseConfig,
+  name: 'my-cli',
+  build: {
+    ...baseConfig.build,
+    entry: './src/index.ts'
+  }
+})
+```
+
+## Platform-Specific Builds
+
+Configure different settings per platform:
+
+```typescript
+const platforms = {
+  'darwin-arm64': {
+    external: ['fsevents']
+  },
+  'windows-x64': {
+    external: ['node-gyp']
+  }
+}
+
+export default defineConfig({
+  build: {
+    targets: Object.keys(platforms),
+    // Platform-specific externals handled by build process
+  }
+})
+```
+
+## Configuration Schema
+
+The configuration is validated using Zod:
+
+```typescript
+const configSchema = z.object({
+  name: z.string().optional(),
+  version: z.string().optional(),
+  description: z.string().optional(),
+  commands: z.object({
+    manifest: z.string().optional(),
+    directory: z.string().optional()
+  }).optional(),
+  build: z.object({
+    entry: z.string().or(z.array(z.string())).optional(),
+    outdir: z.string().optional(),
+    targets: z.array(z.string()).optional(),
+    compress: z.boolean().optional(),
+    external: z.array(z.string()).optional(),
+    minify: z.boolean().optional(),
+    sourcemap: z.boolean().optional(),
+    compile: z.boolean().optional()
+  }).optional(),
+  // ... more options
+})
+```
+
+## Loading Configuration
+
+Bunli automatically looks for configuration files in this order:
+
+1. `bunli.config.ts`
+2. `bunli.config.js`
+3. `bunli.config.mjs`
+
+The configuration is loaded and validated before any CLI commands run.
+
+## Default Values
+
+If no configuration file is found, these defaults are used:
+
+```typescript
+{
+  name: package.name,
+  version: package.version,
+  description: package.description,
+  commands: {
+    directory: './src/commands'
+  },
+  build: {
+    entry: './src/index.ts',
+    outdir: './dist',
+    minify: true,
+    compile: false
+  }
+}
+```
+
+## Best Practices
+
+1. **Keep It Simple**: Start with minimal configuration
+2. **Use TypeScript**: Get autocomplete and type checking
+3. **Environment Variables**: Use for deployment-specific settings
+4. **Share Common Config**: Extract shared settings to separate files
+5. **Document Options**: Add comments for team members
+
+## See Also
+
+- [defineConfig API](/docs/api/define-config) - Configuration helper
+- [bunli CLI](/docs/bunli-cli) - CLI commands
+- [Building & Distribution](/docs/guides/distribution) - Build and release process

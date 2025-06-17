@@ -1,0 +1,10 @@
+{
+  "title": "API Reference",
+  "pages": [
+    "index",
+    "create-cli",
+    "define-command",
+    "option",
+    "define-config"
+  ]
+}
