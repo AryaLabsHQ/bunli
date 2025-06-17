@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   },
   description: 'Build type-safe CLIs with Bunli. Zero config, full TypeScript support, powered by Bun.',
   keywords: ['cli', 'bun', 'typescript', 'command-line', 'terminal', 'developer-tools', 'type-safe', 'minimal'],
-  authors: [{ name: 'Bunli Team' }],
+  authors: [{ name: 'Arya Labs, Inc.' }],
   openGraph: {
     title: 'Bunli - The Minimal CLI Framework for Bun',
     description: 'Build type-safe CLIs with zero configuration',
