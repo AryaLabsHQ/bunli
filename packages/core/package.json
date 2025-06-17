@@ -18,7 +18,8 @@
   "scripts": {
     "build": "bun scripts/build.ts && bun run tsc",
     "test": "bun test",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "prepublishOnly": "bun run build"
   },
   "keywords": [
     "cli",
