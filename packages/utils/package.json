@@ -27,8 +27,11 @@
     "spinner",
     "terminal"
   ],
-  "author": "Saatvik Arya <aryasaatvik@gmail.com>",
+  "author": "Arya Labs, Inc.",
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/AryaLabsHQ/bunli.git",

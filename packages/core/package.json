@@ -25,10 +25,24 @@
     "command-line",
     "bun",
     "typescript",
-    "framework"
+    "framework",
+    "bunli",
+    "type-safe"
   ],
-  "author": "Saatvik Arya <aryasatvik@gmail.com>",
+  "author": "Arya Labs, Inc.",
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AryaLabsHQ/bunli.git",
+    "directory": "packages/core"
+  },
+  "bugs": {
+    "url": "https://github.com/AryaLabsHQ/bunli/issues"
+  },
+  "homepage": "https://github.com/AryaLabsHQ/bunli#readme",
   "devDependencies": {
     "@types/bun": "latest",
     "typescript": "^5.8.0"

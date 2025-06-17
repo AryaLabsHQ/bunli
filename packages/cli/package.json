@@ -17,6 +17,26 @@
   "files": [
     "dist"
   ],
+  "author": "Arya Labs, Inc.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AryaLabsHQ/bunli.git",
+    "directory": "packages/cli"
+  },
+  "bugs": {
+    "url": "https://github.com/AryaLabsHQ/bunli/issues"
+  },
+  "homepage": "https://github.com/AryaLabsHQ/bunli#readme",
+  "keywords": [
+    "bunli",
+    "cli",
+    "toolchain",
+    "bun",
+    "typescript",
+    "build-tool",
+    "development"
+  ],
   "scripts": {
     "dev": "bun run src/cli.ts",
     "build": "bun run scripts/build.ts && bun run tsc",

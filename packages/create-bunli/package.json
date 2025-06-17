@@ -18,6 +18,27 @@
     "dist",
     "templates"
   ],
+  "author": "Arya Labs, Inc.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AryaLabsHQ/bunli.git",
+    "directory": "packages/create-bunli"
+  },
+  "bugs": {
+    "url": "https://github.com/AryaLabsHQ/bunli/issues"
+  },
+  "homepage": "https://github.com/AryaLabsHQ/bunli#readme",
+  "keywords": [
+    "bunli",
+    "create",
+    "scaffold",
+    "cli",
+    "starter",
+    "template",
+    "bun",
+    "typescript"
+  ],
   "scripts": {
     "dev": "bun run src/cli.ts",
     "build": "bun scripts/build.ts && bun run tsc",

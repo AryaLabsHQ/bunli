@@ -14,6 +14,30 @@
   "files": [
     "dist"
   ],
+  "author": "Arya Labs, Inc.",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AryaLabsHQ/bunli.git",
+    "directory": "packages/test"
+  },
+  "bugs": {
+    "url": "https://github.com/AryaLabsHQ/bunli/issues"
+  },
+  "homepage": "https://github.com/AryaLabsHQ/bunli#readme",
+  "keywords": [
+    "bunli",
+    "test",
+    "testing",
+    "cli",
+    "bun",
+    "typescript",
+    "matchers",
+    "assertions"
+  ],
   "scripts": {
     "build": "bun scripts/build.ts && bun run tsc",
     "test": "bun test",
