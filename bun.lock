@@ -9,14 +9,49 @@
         "typescript": "^5.8.0",
       },
     },
-    "examples/basic-cli": {
-      "name": "basic-cli-example",
-      "version": "0.1.0",
+    "examples/command-structure": {
+      "name": "@examples/command-structure",
+      "version": "1.0.0",
       "dependencies": {
         "@bunli/core": "workspace:*",
+        "@bunli/utils": "workspace:*",
+        "zod": "^3.24.1",
       },
-      "devDependencies": {
-        "@types/bun": "latest",
+    },
+    "examples/interactive": {
+      "name": "@examples/interactive",
+      "version": "1.0.0",
+      "dependencies": {
+        "@bunli/core": "workspace:*",
+        "@bunli/utils": "workspace:*",
+        "zod": "^3.24.1",
+      },
+    },
+    "examples/minimal": {
+      "name": "@examples/minimal",
+      "version": "1.0.0",
+      "dependencies": {
+        "@bunli/core": "workspace:*",
+        "@bunli/utils": "workspace:*",
+        "zod": "^3.24.1",
+      },
+    },
+    "examples/real-world": {
+      "name": "@examples/real-world",
+      "version": "1.0.0",
+      "dependencies": {
+        "@bunli/core": "workspace:*",
+        "@bunli/utils": "workspace:*",
+        "zod": "^3.24.1",
+      },
+    },
+    "examples/schema-validation": {
+      "name": "@examples/schema-validation",
+      "version": "1.0.0",
+      "dependencies": {
+        "@bunli/core": "workspace:*",
+        "@bunli/utils": "workspace:*",
+        "zod": "^3.24.1",
       },
     },
     "packages/bunli": {
@@ -60,6 +95,16 @@
 
     "@bunli/utils": ["@bunli/utils@workspace:packages/utils"],
 
+    "@examples/command-structure": ["@examples/command-structure@workspace:examples/command-structure"],
+
+    "@examples/interactive": ["@examples/interactive@workspace:examples/interactive"],
+
+    "@examples/minimal": ["@examples/minimal@workspace:examples/minimal"],
+
+    "@examples/real-world": ["@examples/real-world@workspace:examples/real-world"],
+
+    "@examples/schema-validation": ["@examples/schema-validation@workspace:examples/schema-validation"],
+
     "@oven/bun-darwin-aarch64": ["@oven/bun-darwin-aarch64@1.2.16", "", { "os": "darwin", "cpu": "arm64" }, "sha512-NLVU9YDORq/3WuJOE5TQv5of3R99n56gYZPfdqP4U0/5nllbC8yzRxA2BWwAS2RxxD0Y3bxqEVUsIGiTNN2jxg=="],
 
     "@oven/bun-darwin-x64": ["@oven/bun-darwin-x64@1.2.16", "", { "os": "darwin", "cpu": "x64" }, "sha512-HpcSVCTH9n+9bG2zu3OUJ9h22m6HzNgZpqib9r4NEVZg7Z2U86bOUMKlTCA0ZANaWsK9czl2VIhMWbLF4fgvLA=="],
@@ -88,8 +133,6 @@
 
     "@types/node": ["@types/node@24.0.3", "", { "dependencies": { "undici-types": "~7.8.0" } }, "sha512-R4I/kzCYAdRLzfiCabn9hxWfbuHS573x+r0dJMkkzThEa7pbrcDWK+9zu3e7aBOouf+rQAciqPFMnxwr0aWgKg=="],
 
-    "basic-cli-example": ["basic-cli-example@workspace:examples/basic-cli"],
-
     "bun": ["bun@1.2.16", "", { "optionalDependencies": { "@oven/bun-darwin-aarch64": "1.2.16", "@oven/bun-darwin-x64": "1.2.16", "@oven/bun-darwin-x64-baseline": "1.2.16", "@oven/bun-linux-aarch64": "1.2.16", "@oven/bun-linux-aarch64-musl": "1.2.16", "@oven/bun-linux-x64": "1.2.16", "@oven/bun-linux-x64-baseline": "1.2.16", "@oven/bun-linux-x64-musl": "1.2.16", "@oven/bun-linux-x64-musl-baseline": "1.2.16", "@oven/bun-windows-x64": "1.2.16", "@oven/bun-windows-x64-baseline": "1.2.16" }, "os": [ "linux", "win32", "darwin", ], "cpu": [ "x64", "arm64", ], "bin": { "bun": "bin/bun.exe", "bunx": "bin/bun.exe" } }, "sha512-sjZH6rr1P6yu44+XPA8r+ZojwmK9Kbz9lO6KAA/4HRIupdpC31k7b93crLBm19wEYmd6f2+3+57/7tbOcmHbGg=="],
 
     "bun-types": ["bun-types@1.2.16", "", { "dependencies": { "@types/node": "*" } }, "sha512-ciXLrHV4PXax9vHvUrkvun9VPVGOVwbbbBF/Ev1cXz12lyEZMoJpIJABOfPcN9gDJRaiKF9MVbSygLg4NXu3/A=="],
@@ -117,5 +160,7 @@
     "typescript": ["typescript@5.8.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-p1diW6TqL9L07nNxvRMM7hMMw4c5XOo/1ibL4aAIGmSAt9slTE1Xgw5KWuof2uTOvCg9BY7ZRi+GaF+7sfgPeQ=="],
 
     "undici-types": ["undici-types@7.8.0", "", {}, "sha512-9UJ2xGDvQ43tYyVMpuHlsgApydB8ZKfVYTsLDhXkFL/6gfkp+U8xTGdh8pMJv1SpZna0zxG1DwsKZsreLbXBxw=="],
+
+    "zod": ["zod@3.25.67", "", {}, "sha512-idA2YXwpCdqUSKRCACDE6ItZD9TZzy3OZMtpfLoh6oPR47lipysRrJfjzMqFxQ3uJuUPyUeWe1r9vLH33xO/Qw=="],
   }
 }
