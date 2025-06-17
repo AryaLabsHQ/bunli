@@ -16,7 +16,7 @@
     "README.md"
   ],
   "scripts": {
-    "build": "bun build.ts",
+    "build": "bun scripts/build.ts && bun run tsc",
     "test": "bun test",
     "type-check": "tsc --noEmit"
   },
