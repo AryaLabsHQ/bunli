@@ -43,10 +43,6 @@ async function run() {
         z.boolean().default(true),
         { short: 'i', description: 'Install dependencies' }
       ),
-      'package-manager': option(
-        z.enum(['bun', 'pnpm', 'yarn', 'npm']).default('bun'),
-        { short: 'p', description: 'Package manager to use' }
-      ),
       offline: option(
         z.boolean().default(false),
         { description: 'Use cached templates when available' }

@@ -13,7 +13,7 @@ interface CreateProjectOptions extends CreateOptions {
 }
 
 export async function createProject(options: CreateProjectOptions) {
-  const { name, dir, template, git, install, packageManager, prompt, spinner, colors, shell, offline } = options
+  const { name, dir, template, git, install, prompt, spinner, colors, shell, offline } = options
   
   // Check if directory exists
   try {
@@ -54,7 +54,6 @@ export async function createProject(options: CreateProjectOptions) {
         projectName: name,
         description: `A CLI built with Bunli`,
         author: '',
-        packageManager: packageManager || 'bun',
         year: new Date().getFullYear().toString()
       }
     })
@@ -80,21 +79,16 @@ export async function createProject(options: CreateProjectOptions) {
     
     // Install dependencies
     if (install) {
-      const installSpin = spinner(`Installing dependencies with ${packageManager}...`)
+      const installSpin = spinner(`Installing dependencies...`)
       installSpin.start()
       
       try {
-        const installCmd = packageManager === 'bun' ? 'bun install' :
-                          packageManager === 'pnpm' ? 'pnpm install' :
-                          packageManager === 'yarn' ? 'yarn install' :
-                          'npm install'
-        
-        await shell`cd ${dir} && ${installCmd}`
+        await shell`cd ${dir} && bun install`
         
         installSpin.succeed('Dependencies installed')
       } catch (error) {
         installSpin.fail('Failed to install dependencies')
-        console.error(colors.dim(`  You can install them manually by running: ${packageManager} install`))
+        console.error(colors.dim(`  You can install them manually by running: bun install`))
       }
     }
   } catch (error) {

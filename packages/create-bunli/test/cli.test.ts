@@ -2,7 +2,7 @@ import { test, expect } from 'bun:test'
 import { testCommand, expectCommand } from '@bunli/test'
 import { createCLI, defineCommand, option } from '@bunli/core'
 import { z } from 'zod'
-import { create } from '../src/create'
+import { create } from '../src/create.js'
 
 // Create test command
 const createTestCommand = () => {
@@ -26,10 +26,6 @@ const createTestCommand = () => {
       install: option(
         z.boolean().default(true),
         { short: 'i', description: 'Install dependencies' }
-      ),
-      'package-manager': option(
-        z.enum(['bun', 'pnpm', 'yarn', 'npm']).default('bun'),
-        { short: 'p', description: 'Package manager to use' }
       )
     },
     handler: create
@@ -89,24 +85,5 @@ test('create command - different templates', async () => {
     })
     
     expectCommand(result).toContainInStdout(`Template: ${template}`)
-  }
-})
-
-test('create command - package manager options', async () => {
-  const packageManagers = ['bun', 'pnpm', 'yarn', 'npm']
-  
-  for (const pm of packageManagers) {
-    const command = createTestCommand()
-    const result = await testCommand(command, {
-      args: ['test-app'],
-      flags: { 
-        'package-manager': pm,
-        git: false,
-        install: false
-      },
-      stdin: ['n']
-    })
-    
-    expectCommand(result).toContainInStdout(`Package:  ${pm}`)
   }
 })

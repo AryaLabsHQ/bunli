@@ -8,14 +8,9 @@ Scaffold new Bunli CLI projects with ease.
 # Using bunx (recommended)
 bunx create-bunli my-cli
 
-# Using npm
-npm create bunli@latest my-cli
-
-# Using yarn
-yarn create bunli my-cli
-
-# Using pnpm
-pnpm create bunli my-cli
+# Or install globally and use directly
+bun add -g create-bunli
+create-bunli my-cli
 ```
 
 ## Features
@@ -75,7 +70,6 @@ bunx create-bunli [name] [options]
 Options:
   -t, --template <template>    Project template (default: "basic")
   -d, --dir <dir>             Directory to create project in
-  -p, --package-manager <pm>   Package manager (bun, npm, yarn, pnpm) (default: "bun")
   -g, --git                   Initialize git repository (default: true)
   -i, --install               Install dependencies (default: true)
   --offline                   Use cached templates when available
@@ -88,9 +82,6 @@ Options:
 ```bash
 # Create in current directory
 bunx create-bunli .
-
-# Create with specific package manager
-bunx create-bunli my-cli --package-manager pnpm
 
 # Create without installing dependencies
 bunx create-bunli my-cli --no-install
@@ -223,7 +214,6 @@ Use these variables in your template files:
 - `{{author}}` - Author name
 - `{{license}}` - License type
 - `{{year}}` - Current year
-- `{{packageManager}}` - Selected package manager
 
 Variables can be used in file contents and filenames:
 - `__projectName__.config.js` → `my-app.config.js`
@@ -236,7 +226,6 @@ import { createProject } from 'create-bunli'
 await createProject({
   name: 'my-cli',
   template: 'advanced',
-  packageManager: 'bun',
   install: true,
   git: true
 })
@@ -275,8 +264,8 @@ If you get a "template not found" error, ensure:
 
 If dependency installation fails:
 - Check your internet connection
-- Ensure the package manager is installed
-- Try running with `--no-install` and install manually
+- Ensure Bun is installed correctly
+- Try running with `--no-install` and install manually with `bun install`
 
 ### Permission errors
 

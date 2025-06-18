@@ -1,6 +1,5 @@
 import type { HandlerArgs } from '@bunli/core'
 import { createProject } from './create-project.js'
-import type { PackageManager } from './types.js'
 import path from 'node:path'
 
 interface CreateOptions {
@@ -9,7 +8,6 @@ interface CreateOptions {
   dir?: string
   git: boolean
   install: boolean
-  'package-manager': PackageManager
   offline?: boolean
 }
 
@@ -44,7 +42,6 @@ export async function create(context: HandlerArgs<CreateOptions>) {
   console.log(colors.dim('  Location: ') + colors.cyan(projectDir))
   console.log(colors.dim('  Git:      ') + colors.cyan(flags.git ? 'Yes' : 'No'))
   console.log(colors.dim('  Install:  ') + colors.cyan(flags.install ? 'Yes' : 'No'))
-  console.log(colors.dim('  Package:  ') + colors.cyan(flags['package-manager']))
   console.log()
   
   const confirmed = await prompt.confirm('Continue?', { default: true })
@@ -62,7 +59,6 @@ export async function create(context: HandlerArgs<CreateOptions>) {
     template: flags.template,
     git: flags.git,
     install: flags.install,
-    packageManager: flags['package-manager'],
     offline: flags.offline,
     prompt,
     spinner,
@@ -78,14 +74,10 @@ export async function create(context: HandlerArgs<CreateOptions>) {
   console.log(colors.gray(`  cd ${path.relative(process.cwd(), projectDir)}`))
   
   if (!flags.install) {
-    console.log(colors.gray(`  ${flags['package-manager']} install`))
+    console.log(colors.gray(`  bun install`))
   }
   
-  if (flags.template === 'monorepo') {
-    console.log(colors.gray(`  ${flags['package-manager']} run dev`))
-  } else {
-    console.log(colors.gray(`  ${flags['package-manager'] === 'bun' ? 'bun' : flags['package-manager'] + ' run'} dev`))
-  }
+  console.log(colors.gray(`  bun run dev`))
   
   console.log()
 }

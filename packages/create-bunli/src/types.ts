@@ -1,17 +1,13 @@
 export interface CreateOptions {
   template?: string
-  packageManager?: PackageManager
   install?: boolean
   git?: boolean
   offline?: boolean
 }
 
-export type PackageManager = 'bun' | 'npm' | 'yarn' | 'pnpm'
-
 export interface ProjectConfig {
   name: string
   template: string
-  packageManager: PackageManager
   install: boolean
   git: boolean
   offline?: boolean

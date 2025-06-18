@@ -1,6 +1,5 @@
 import { test, expect } from 'bun:test'
 import { resolveTemplateSource, isLocalTemplate, getBundledTemplatePath } from '../src/template-engine.js'
-import { join } from 'node:path'
 
 test('resolveTemplateSource - handles special templates', () => {
   expect(resolveTemplateSource('basic')).toBe('github:bunli/templates/basic')
