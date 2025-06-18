@@ -42,19 +42,32 @@ A complete, production-ready CLI application demonstrating best practices.
 
 ## Getting Started
 
-Each example can be run independently. Navigate to an example directory and run:
+Each example demonstrates the recommended Bunli development workflow:
 
 ```bash
-# Install dependencies (if any)
+# Navigate to an example
+cd minimal
+
+# Install dependencies (includes bunli CLI)
 bun install
 
-# Run the CLI
-bun run cli.ts
+# Start development with hot reload
+bun run dev
 
-# Or make it executable
-chmod +x cli.ts
-./cli.ts
+# Build for production
+bun run build
+
+# Run the built executable
+./dist/cli
+
+# Or run directly (without hot reload)
+bun cli.ts
 ```
+
+All examples include:
+- `bunli.config.ts` - Configuration for building and development
+- Development scripts using `bunli dev` for hot reload
+- Build scripts using `bunli build` for production
 
 ## Progression Path
 
@@ -106,23 +119,51 @@ const confirmed = await prompt.confirm('Continue?')
 
 ## Building for Distribution
 
-See the **real-world** example for build configuration:
+All examples use `bunli.config.ts` for build configuration:
 
 ```typescript
 // bunli.config.ts
+import { defineConfig } from '@bunli/core'
+
 export default defineConfig({
+  name: 'my-cli',
+  version: '1.0.0',
+  description: 'My awesome CLI',
+  
   build: {
     entry: './cli.ts',
     outdir: './dist',
-    targets: ['darwin-arm64', 'linux-x64', 'windows-x64']
+    targets: ['native'],     // or specific platforms
+    minify: true
+  },
+  
+  dev: {
+    watch: true,
+    inspect: false
   }
 })
 ```
 
-Then build with:
+Build commands:
 ```bash
-bunli build
+# Build for current platform
+bun run build
+
+# Build for specific platforms
+bunli build --targets darwin-arm64,linux-x64
+
+# Build for all platforms
+bunli build --targets all
+
+# Build with custom settings
+bunli build --minify --sourcemap
 ```
+
+The Bunli CLI handles:
+- Hot reload in development (`bunli dev`)
+- Standalone executable creation with Bun's `--compile` flag
+- Multi-platform builds
+- Automatic compression for releases
 
 ## Learn More
 

@@ -2,6 +2,19 @@
 
 This example demonstrates the full power of schema-driven validation in Bunli using Zod.
 
+## Getting Started
+
+```bash
+# Install dependencies
+bun install
+
+# Start development mode with hot reload
+bun run dev
+
+# Build for production
+bun run build
+```
+
 ## Features Demonstrated
 
 - Basic type validation (string, number, boolean, enum)
@@ -10,6 +23,8 @@ This example demonstrates the full power of schema-driven validation in Bunli us
 - Data transformation with `.transform()`
 - Chaining validations with `.pipe()`
 - Error messages customization
+- Development with hot reload
+- Production builds
 
 ## Commands
 
@@ -17,51 +32,60 @@ This example demonstrates the full power of schema-driven validation in Bunli us
 Shows simple validation for common types with constraints.
 
 ```bash
-# Valid usage
-bun cli.ts basic -u john_doe -a 25 -r admin -s
+# Valid usage (development mode)
+bun run dev basic -u john_doe -a 25 -r admin -s
 
 # Invalid examples (will show errors)
-bun cli.ts basic -u ab              # Too short
-bun cli.ts basic -a 200            # Out of range
-bun cli.ts basic -e invalid-email  # Invalid format
+bun run dev basic -u ab              # Too short
+bun run dev basic -a 200            # Out of range
+bun run dev basic -e invalid-email  # Invalid format
+
+# Using built executable
+./dist/cli basic -u john_doe -a 25 -r admin
 ```
 
 ### `validation` - Complex Validation
 Demonstrates advanced validation patterns.
 
 ```bash
-# Valid usage
-bun cli.ts validation \
+# Valid usage (development mode)
+bun run dev validation \
   -w https://example.com/webhook \
   -p SecurePass123 \
   -d 2024-03-15 \
   -t "web,api,backend"
 
 # With optional host
-bun cli.ts validation \
+bun run dev validation \
   -w https://api.example.com \
   -p MyPass123 \
   -h 192.168.1.1 \
   -d 2024-12-25 \
   -t "prod,critical"
+
+# Production build
+./dist/cli validation -w https://api.example.com -p MyPass123
 ```
 
 ### `transform` - Data Transformation
 Shows how schemas can transform input data.
 
 ```bash
-# JSON parsing
-bun cli.ts transform \
+# JSON parsing (development mode)
+bun run dev transform \
   -c '{"name":"myapp","port":3000,"enabled":true}' \
   -e dev \
   -m 512m
 
 # With variables
-bun cli.ts transform \
+bun run dev transform \
   -c '{"name":"api"}' \
   -e staging \
   -m 2g \
   -v "API_KEY=secret,DB_HOST=localhost"
+
+# Production executable
+./dist/cli transform -c '{"name":"prod-app"}' -e production -m 4g
 ```
 
 ## Key Concepts
@@ -77,10 +101,25 @@ bun cli.ts transform \
 Bunli automatically catches validation errors and displays helpful messages:
 
 ```bash
-# Example error
-bun cli.ts basic -u a
+# Example errors in development mode
+bun run dev basic -u a
 # Error: Username must be at least 3 characters
 
-bun cli.ts validation -p weak
+bun run dev validation -p weak
 # Error: Password must be at least 8 characters
+```
+
+## Building and Distribution
+
+The example includes a `bunli.config.ts` for easy building:
+
+```bash
+# Build for current platform
+bun run build
+
+# Build for specific platforms
+bunli build --targets darwin-arm64,linux-x64
+
+# Test the built executable
+./dist/cli basic -u test_user -a 30
 ```

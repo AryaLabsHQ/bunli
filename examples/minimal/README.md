@@ -12,11 +12,13 @@ This is the simplest possible Bunli CLI - a single command with schema-driven op
 
 ## Usage
 
+### Direct Usage (Quick Start)
+
 ```bash
 # Install dependencies
 bun install
 
-# Run the CLI
+# Run the CLI directly
 bun cli.ts greet
 
 # With options
@@ -27,6 +29,19 @@ bun cli.ts greet -l -t 5
 
 # Show help
 bun cli.ts greet --help
+```
+
+### Using Bunli CLI (Recommended)
+
+```bash
+# Start development with hot reload
+bun run dev greet --name Developer
+
+# Build for production
+bun run build
+
+# Run the built executable
+./dist/cli greet --name "Production User" --loud
 ```
 
 ## Key Concepts

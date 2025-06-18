@@ -2,6 +2,19 @@
 
 This example demonstrates interactive features in Bunli using prompts, spinners, and progress indicators.
 
+## Getting Started
+
+```bash
+# Install dependencies
+bun install
+
+# Start development mode with hot reload
+bun run dev
+
+# Build for production
+bun run build
+```
+
 ## Features Demonstrated
 
 - Text prompts with validation
@@ -12,6 +25,8 @@ This example demonstrates interactive features in Bunli using prompts, spinners,
 - Multi-step processes
 - Conditional prompts
 - Colored output
+- Hot reload development
+- Production builds
 
 ## Commands
 
@@ -19,13 +34,16 @@ This example demonstrates interactive features in Bunli using prompts, spinners,
 A comprehensive setup wizard that guides users through project configuration.
 
 ```bash
-# Run the full wizard
-bun cli.ts setup
+# Run in development mode (with hot reload)
+bun run dev setup
 
 # Use a preset to skip some prompts
-bun cli.ts setup --preset minimal
-bun cli.ts setup -p standard
-bun cli.ts setup -p full
+bun run dev setup --preset minimal
+bun run dev setup -p standard
+bun run dev setup -p full
+
+# Or run the built version
+./dist/cli setup --preset minimal
 ```
 
 Features:
@@ -39,14 +57,17 @@ Features:
 Shows detailed progress during deployment with ability to skip steps.
 
 ```bash
-# Deploy to staging
-bun cli.ts deploy -e staging
+# Deploy to staging (development mode)
+bun run dev deploy -e staging
 
 # Deploy to production, skip tests
-bun cli.ts deploy -e production --skip tests
+bun run dev deploy -e production --skip tests
 
 # Skip multiple steps
-bun cli.ts deploy -e staging -s tests,cache
+bun run dev deploy -e staging -s tests,cache
+
+# Using built executable
+./dist/cli deploy -e production
 ```
 
 Features:
@@ -59,7 +80,11 @@ Features:
 Demonstrates all prompt types in a survey format.
 
 ```bash
-bun cli.ts survey
+# Run in development mode
+bun run dev survey
+
+# Or use the built version
+./dist/cli survey
 ```
 
 Features:
@@ -125,6 +150,39 @@ spin.fail('Error occurred')
 
 ### Multi-step Progress
 See the `deploy` command for an example of showing progress through multiple steps with substeps.
+
+## Building and Distribution
+
+```bash
+# Build for current platform
+bun run build
+
+# Build for multiple platforms
+bunli build --targets darwin-arm64,linux-x64,windows-x64
+
+# Build with custom output directory
+bunli build --outdir ./bin
+
+# The built executables will be in:
+# ./dist/cli (or ./dist/cli.exe on Windows)
+```
+
+## Configuration
+
+The `bunli.config.ts` file defines build and development settings:
+
+```typescript
+export default defineConfig({
+  name: 'interactive-cli',
+  version: '1.0.0',
+  build: {
+    entry: './cli.ts',
+    outdir: './dist',
+    targets: ['native'], // Build for current platform
+    minify: true
+  }
+})
+```
 
 ## Best Practices
 
