@@ -1,7 +1,7 @@
 import { downloadTemplate } from 'giget'
 import { readdir } from 'node:fs/promises'
 import { join } from 'node:path'
-import type { TemplateManifest, TemplateVariable } from './types.js'
+import type { TemplateManifest } from './types.js'
 
 export interface TemplateOptions {
   source: string

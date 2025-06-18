@@ -124,7 +124,7 @@
     },
     "packages/cli": {
       "name": "bunli",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "bin": {
         "bunli": "./dist/cli.js",
       },
@@ -155,7 +155,7 @@
     },
     "packages/create-bunli": {
       "name": "create-bunli",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "bin": {
         "create-bunli": "./dist/cli.js",
       },
@@ -163,6 +163,7 @@
         "@bunli/core": "workspace:*",
         "@bunli/utils": "workspace:*",
         "giget": "^2.0.0",
+        "zod": "^3.25.67",
       },
       "devDependencies": {
         "@types/bun": "latest",
