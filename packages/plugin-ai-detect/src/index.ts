@@ -59,7 +59,7 @@ interface AIDetectStore {
 /**
  * AI agent detection plugin factory
  */
-export const aiAgentPlugin = createPlugin((options: AIDetectPluginOptions = {}) => {
+export const aiAgentPlugin = createPlugin<AIDetectPluginOptions, AIDetectStore>((options = {}) => {
   const agents = [...AI_AGENTS, ...(options.customAgents || [])]
   
   return {
@@ -123,7 +123,7 @@ export const aiAgentPlugin = createPlugin((options: AIDetectPluginOptions = {}) 
         context.store.aiAgentEnvVars = []
       }
     }
-  } satisfies BunliPlugin<AIDetectStore>
+  }
 })
 
 // Default export for convenience

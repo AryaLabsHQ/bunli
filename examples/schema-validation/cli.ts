@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 import { createCLI } from '@bunli/core'
 
-const cli = createCLI({
+const cli = await createCLI({
   name: 'validate',
   version: '1.0.0',
   description: 'Schema validation examples'

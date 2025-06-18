@@ -7,36 +7,50 @@ import type { BunliPlugin, PluginFactory } from './types.js'
 /**
  * Create a plugin - supports both direct plugins and plugin factories
  * 
- * @example Direct plugin (no options):
+ * @example Direct plugin with explicit store type:
  * ```typescript
- * const myPlugin = createPlugin({
+ * interface MyStore {
+ *   count: number
+ *   message: string
+ * }
+ * 
+ * const myPlugin = createPlugin<MyStore>({
  *   name: 'my-plugin',
  *   store: {
  *     count: 0,
- *     message: '' as string
+ *     message: ''
  *   },
- *   beforeCommand({ store }) {
- *     store.count++ // TypeScript knows the type!
+ *   beforeCommand(context) {
+ *     context.store.count++ // TypeScript knows the type!
  *   }
  * })
  * ```
  * 
- * @example Plugin with options (using a function):
+ * @example Plugin factory with options:
  * ```typescript
  * const myPlugin = createPlugin((options: { prefix: string }) => ({
  *   name: 'my-plugin',
  *   store: {
  *     count: 0
  *   },
- *   beforeCommand({ store }) {
- *     console.log(`${options.prefix}: ${store.count}`)
+ *   beforeCommand(context) {
+ *     console.log(`${options.prefix}: ${context.store.count}`)
  *   }
- * }))
+ * } satisfies BunliPlugin<{ count: number }>))
  * 
  * // Use it:
  * myPlugin({ prefix: 'Hello' })
  * ```
  */
+// Overload for direct plugin
+export function createPlugin<TStore = {}>(
+  plugin: BunliPlugin<TStore>
+): BunliPlugin<TStore>
+
+export function createPlugin<TOptions, TStore = {}>(
+  factory: (options: TOptions) => BunliPlugin<TStore>
+): (options: TOptions) => BunliPlugin<TStore>
+
 export function createPlugin<T>(
   input: T
 ): T {

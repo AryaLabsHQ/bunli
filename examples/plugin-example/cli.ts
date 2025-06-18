@@ -11,7 +11,7 @@ interface TimingStore {
 }
 
 // Custom plugin that adds timing information
-const timingPlugin = createPlugin((): BunliPlugin<TimingStore> => ({
+const timingPlugin = createPlugin<TimingStore>({
   name: 'timing-plugin',
   
   // Define the store shape inline
@@ -34,7 +34,7 @@ const timingPlugin = createPlugin((): BunliPlugin<TimingStore> => ({
       console.log(`⏱️  Command completed in ${duration}ms`)
     }
   }
-}))
+})
 
 // Create CLI with plugins - types flow through!
 const cli = await createCLI({
@@ -54,8 +54,8 @@ const cli = await createCLI({
     // Detect AI agents
     aiAgentPlugin({ verbose: true }),
     
-    // Custom timing plugin - call the factory
-    timingPlugin()
+    // Custom timing plugin
+    timingPlugin
   ] as const  // Use 'as const' for better type inference
 })
 

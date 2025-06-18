@@ -35,7 +35,7 @@ export interface ConfigPluginOptions {
 /**
  * Config merger plugin factory
  */
-export const configMergerPlugin = createPlugin((options: ConfigPluginOptions = {}) => {
+export const configMergerPlugin = createPlugin<ConfigPluginOptions, {}>((options = {}) => {
   const sources = options.sources || [
     '~/.config/{{name}}/config.json',
     '.{{name}}rc',
@@ -100,7 +100,7 @@ export const configMergerPlugin = createPlugin((options: ConfigPluginOptions = {
         context.logger.info(`Merged ${configs.length} config file(s)`)
       }
     }
-  } satisfies BunliPlugin
+  }
 })
 
 // Default export for convenience
