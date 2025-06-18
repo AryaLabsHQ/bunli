@@ -3,7 +3,6 @@
   "pages": [
     "index",
     "getting-started",
-    "bunli-cli",
     "---",
     "core-concepts",
     "packages",

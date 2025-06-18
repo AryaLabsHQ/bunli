@@ -5,6 +5,7 @@
     "create-bunli",
     "core",
     "utils",
-    "test"
+    "test",
+    "cli"
   ]
 }

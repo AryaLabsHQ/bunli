@@ -1,0 +1,503 @@
+---
+title: 'bunli'
+description: 'CLI toolchain for developing, building, testing, and distributing Bunli applications'
+---
+
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Steps } from 'fumadocs-ui/components/steps';
+
+# bunli
+
+The official Bunli CLI toolchain provides a complete development environment for building, testing, and distributing CLI applications. It includes commands for development, building standalone executables, testing, project initialization, and automated releases.
+
+## Installation
+
+<Tabs groupId="package-manager" defaultValue="bun">
+  <Tab value="bun" label="Bun">
+    ```bash
+    bun add -g bunli
+    ```
+  </Tab>
+  <Tab value="npm" label="npm">
+    ```bash
+    npm install -g bunli
+    ```
+  </Tab>
+  <Tab value="pnpm" label="pnpm">
+    ```bash
+    pnpm add -g bunli
+    ```
+  </Tab>
+</Tabs>
+
+## Features
+
+- 🚀 **Development Mode** - Hot reload with Bun's `--hot` flag
+- 🏗️ **Build System** - Create standalone executables or traditional JS builds
+- 🧪 **Test Runner** - Integrated testing with coverage support
+- 📦 **Release Automation** - Version bumping, git tags, and npm publishing
+- 🎯 **Multi-Platform** - Build for macOS, Linux, and Windows from any platform
+- ⚙️ **Configuration** - Flexible `bunli.config.ts` system
+- 🔍 **Debugging** - Built-in debugger support
+- 📁 **Workspace Support** - Monorepo-friendly commands
+
+## Commands
+
+### bunli init
+
+Initialize a new Bunli CLI project. This is an alias for `create-bunli`.
+
+```bash
+bunli init my-cli
+cd my-cli
+```
+
+**Options:**
+- `--name, -n` - Project name
+- `--template, -t` - Project template (`basic`, `advanced`, `monorepo`)
+- `--dir, -d` - Directory to create project in
+- `--git, -g` - Initialize git repository (default: true)
+- `--install` - Install dependencies (default: true)
+- `--package-manager, -p` - Package manager to use (`bun`, `pnpm`, `yarn`, `npm`)
+
+### bunli dev
+
+Run your CLI in development mode with hot reload.
+
+```bash
+bunli dev
+```
+
+**Options:**
+- `--entry, -e` - Entry file (defaults to auto-detect)
+- `--watch, -w` - Watch for changes (default: true)
+- `--inspect, -i` - Enable debugger
+- `--port, -p` - Debugger port (default: 9229)
+
+**Features:**
+- Automatic hot reload with Bun's `--hot` flag
+- Debugger support for breakpoint debugging
+- Auto-detection of entry point from package.json or common patterns
+- Pass-through arguments to your CLI
+
+**Example:**
+```bash
+# Run with debugger
+bunli dev --inspect
+
+# Run with custom entry and arguments
+bunli dev --entry src/cli.ts -- --verbose
+
+# Disable watch mode
+bunli dev --no-watch
+```
+
+### bunli build
+
+Build your CLI for production, either as standalone executables or traditional JavaScript.
+
+```bash
+bunli build
+```
+
+**Options:**
+- `--entry, -e` - Entry file (defaults to auto-detect)
+- `--outdir, -o` - Output directory (default: `./dist`)
+- `--outfile` - Output filename (for single executable)
+- `--targets, -t` - Target platforms for compilation
+- `--minify, -m` - Minify output (default: true)
+- `--sourcemap, -s` - Generate sourcemaps
+- `--bytecode` - Enable bytecode compilation (experimental)
+- `--runtime, -r` - Runtime target (`bun`, `node`)
+- `--watch, -w` - Watch for changes
+
+**Target Platforms:**
+- `native` - Current platform only
+- `darwin-arm64` - macOS Apple Silicon
+- `darwin-x64` - macOS Intel
+- `linux-arm64` - Linux ARM64
+- `linux-x64` - Linux x64
+- `windows-x64` - Windows x64
+- `all` - All supported platforms
+
+**Examples:**
+```bash
+# Build traditional JS (requires Bun runtime)
+bunli build
+
+# Build standalone executable for current platform
+bunli build --targets native
+
+# Build for specific platforms
+bunli build --targets darwin-arm64,linux-x64
+
+# Build for all platforms with compression
+bunli build --targets all --compress
+
+# Custom output directory
+bunli build --outdir ./bin
+
+# Watch mode
+bunli build --watch
+```
+
+### bunli test
+
+Run tests for your CLI using Bun's native test runner.
+
+```bash
+bunli test
+```
+
+**Options:**
+- `--pattern, -p` - Test file patterns (default: `**/*.test.ts`)
+- `--watch, -w` - Watch for changes
+- `--coverage, -c` - Generate coverage report
+- `--bail, -b` - Stop on first failure
+- `--timeout` - Test timeout in milliseconds
+- `--all` - Run tests in all packages (workspace mode)
+
+**Examples:**
+```bash
+# Run all tests
+bunli test
+
+# Run with coverage
+bunli test --coverage
+
+# Run specific test files
+bunli test --pattern "src/**/*.test.ts"
+
+# Run tests in all workspace packages
+bunli test --all
+
+# Watch mode for TDD
+bunli test --watch
+```
+
+### bunli release
+
+Create a release of your CLI with automated version bumping, git tagging, and publishing.
+
+```bash
+bunli release
+```
+
+**Options:**
+- `--version, -v` - Version to release (patch/minor/major/x.y.z)
+- `--tag, -t` - Git tag format
+- `--npm` - Publish to npm (default: true)
+- `--github` - Create GitHub release
+- `--dry, -d` - Dry run - show what would be done
+- `--all` - Release all packages (workspace mode)
+
+**Features:**
+- Interactive version selection
+- Automated version bumping following semver
+- Git tag creation and pushing
+- npm publishing with proper build step
+- GitHub release creation with assets
+- Workspace support for monorepos
+- Dry run mode for testing
+
+**Examples:**
+```bash
+# Interactive release
+bunli release
+
+# Specific version bump
+bunli release --version patch
+
+# Major version with GitHub release
+bunli release --version major --github
+
+# Dry run to preview changes
+bunli release --dry
+
+# Release all workspace packages
+bunli release --all
+```
+
+## Configuration
+
+Create a `bunli.config.ts` file in your project root to configure the CLI behavior:
+
+```typescript
+import { defineConfig } from 'bunli'
+
+export default defineConfig({
+  name: 'my-cli',
+  version: '1.0.0',
+  description: 'My awesome CLI',
+  
+  // Command configuration
+  commands: {
+    manifest: './src/commands/manifest.js',
+    directory: './src/commands'
+  },
+  
+  // Build configuration
+  build: {
+    entry: './src/cli.ts',
+    outdir: './dist',
+    targets: ['darwin-arm64', 'linux-x64', 'windows-x64'],
+    compress: true,
+    external: ['@aws-sdk/*'],
+    minify: true,
+    sourcemap: false
+  },
+  
+  // Development configuration
+  dev: {
+    watch: true,
+    inspect: false,
+    port: 9229
+  },
+  
+  // Test configuration
+  test: {
+    pattern: ['**/*.test.ts', '**/*.spec.ts'],
+    coverage: false,
+    watch: false
+  },
+  
+  // Release configuration
+  release: {
+    npm: true,
+    github: true,
+    tagFormat: 'v${version}',
+    conventionalCommits: true
+  },
+  
+  // Workspace configuration (monorepos)
+  workspace: {
+    packages: ['packages/*'],
+    versionStrategy: 'independent'
+  }
+})
+```
+
+## Entry Point Detection
+
+The CLI automatically detects your entry point in this order:
+
+1. `--entry` flag
+2. `build.entry` in bunli.config.ts
+3. `bin` field in package.json
+4. Common patterns:
+   - `src/cli.ts`
+   - `src/index.ts`
+   - `src/main.ts`
+   - `cli.ts`
+   - `index.ts`
+   - `main.ts`
+
+## Standalone Executables
+
+Build standalone executables that bundle your CLI with the Bun runtime:
+
+```bash
+# Build for current platform
+bunli build --targets native
+
+# Build for all platforms
+bunli build --targets all
+
+# Build for specific platforms
+bunli build --targets darwin-arm64,linux-x64,windows-x64
+```
+
+Output structure:
+```
+dist/
+├── darwin-arm64/
+│   └── my-cli
+├── darwin-x64/
+│   └── my-cli
+├── linux-x64/
+│   └── my-cli
+└── windows-x64/
+    └── my-cli.exe
+```
+
+With compression enabled:
+```
+dist/
+├── darwin-arm64.tar.gz
+├── darwin-x64.tar.gz
+├── linux-x64.tar.gz
+└── windows-x64.tar.gz
+```
+
+## Workspace Support
+
+For monorepos, the CLI supports workspace-aware commands:
+
+```bash
+# Run tests in all packages
+bunli test --all
+
+# Build all packages
+bunli build --all
+
+# Release all packages
+bunli release --all
+
+# Run dev in specific package
+cd packages/my-package && bunli dev
+```
+
+Configure workspaces in bunli.config.ts:
+
+```typescript
+export default defineConfig({
+  workspace: {
+    packages: ['packages/*'],
+    shared: {
+      // Shared configuration for all packages
+      build: {
+        minify: true
+      }
+    },
+    versionStrategy: 'independent' // or 'fixed'
+  }
+})
+```
+
+## Environment Variables
+
+The CLI sets these environment variables:
+
+- `NODE_ENV` - Set to `development` in dev mode, `test` in test mode, `production` in build mode
+- `BUNLI_VERSION` - The version of the bunli CLI
+- Standard Bun environment variables
+
+## Advanced Usage
+
+### Debug Mode
+
+Enable debugging for your CLI during development:
+
+```bash
+# Start with debugger
+bunli dev --inspect
+
+# Custom debugger port
+bunli dev --inspect --port 9230
+```
+
+Then attach your debugger (VS Code, Chrome DevTools, etc.) to the specified port.
+
+### Custom Build Pipeline
+
+Extend the build process with pre/post hooks:
+
+```typescript
+// bunli.config.ts
+export default defineConfig({
+  build: {
+    onBeforeBuild: async () => {
+      // Generate types, clean directories, etc.
+    },
+    onAfterBuild: async (result) => {
+      // Copy additional files, generate docs, etc.
+    }
+  }
+})
+```
+
+### Cross-Platform Considerations
+
+When building for multiple platforms:
+
+```typescript
+// bunli.config.ts
+export default defineConfig({
+  build: {
+    targets: ['darwin-arm64', 'linux-x64', 'windows-x64'],
+    external: process.platform === 'win32' 
+      ? ['node-pty'] 
+      : ['windows-specific-module']
+  }
+})
+```
+
+### Continuous Integration
+
+Example GitHub Actions workflow:
+
+```yaml
+name: Build and Test
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v1
+      
+      - name: Install dependencies
+        run: bun install
+        
+      - name: Run tests
+        run: bunli test --coverage
+        
+      - name: Build for all platforms
+        run: bunli build --targets all
+        
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: builds
+          path: dist/*.tar.gz
+```
+
+## Troubleshooting
+
+<Callout type="warning">
+  **Command not found**: If `bunli` is not found after installation, ensure your global bin directory is in PATH. Alternatively, use `bunx bunli` to run without global installation.
+</Callout>
+
+### Common Issues
+
+**Build fails with module errors:**
+- Check that all dependencies are installed
+- Verify entry point exists
+- Use `--external` for native modules
+- Check TypeScript configuration
+
+**Hot reload not working:**
+- Ensure you're using `bunli dev`
+- Check that Bun version supports `--hot`
+- Some file changes may require manual restart
+
+**Tests not found:**
+- Verify test file pattern matches your test files
+- Default pattern is `**/*.test.ts`
+- Use `--pattern` to specify custom patterns
+
+## API Reference
+
+### CLI Options
+
+All commands support these global options:
+
+- `--help, -h` - Show help for command
+- `--version, -v` - Show CLI version
+- `--config, -c` - Path to config file (default: ./bunli.config.ts)
+- `--verbose` - Enable verbose logging
+- `--quiet, -q` - Suppress non-error output
+
+### Configuration Schema
+
+The configuration is validated using Zod. See the [Configuration](/docs/core-concepts/configuration) guide for the complete schema.
+
+## See Also
+
+- [Getting Started](/docs/getting-started) - Quick start guide
+- [Configuration](/docs/core-concepts/configuration) - Detailed configuration options
+- [Distribution Guide](/docs/guides/distribution) - Publishing and distribution strategies
+- [@bunli/test](/docs/packages/test) - Testing utilities for CLI applications
