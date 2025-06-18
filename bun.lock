@@ -83,6 +83,7 @@
       "dependencies": {
         "@bunli/core": "workspace:*",
         "@bunli/utils": "workspace:*",
+        "bunli": "workspace:*",
         "zod": "^3.24.1",
       },
     },
@@ -92,6 +93,7 @@
       "dependencies": {
         "@bunli/core": "workspace:*",
         "@bunli/utils": "workspace:*",
+        "bunli": "workspace:*",
         "zod": "^3.24.1",
       },
     },
@@ -101,7 +103,18 @@
       "dependencies": {
         "@bunli/core": "workspace:*",
         "@bunli/utils": "workspace:*",
+        "bunli": "workspace:*",
         "zod": "^3.24.1",
+      },
+    },
+    "examples/plugin-example": {
+      "name": "@examples/plugin-example",
+      "version": "1.0.0",
+      "dependencies": {
+        "@bunli/core": "workspace:*",
+        "@bunli/plugin-ai-detect": "workspace:*",
+        "@bunli/plugin-config": "workspace:*",
+        "@bunli/utils": "workspace:*",
       },
     },
     "examples/real-world": {
@@ -110,6 +123,7 @@
       "dependencies": {
         "@bunli/core": "workspace:*",
         "@bunli/utils": "workspace:*",
+        "bunli": "workspace:*",
         "zod": "^3.24.1",
       },
     },
@@ -119,6 +133,7 @@
       "dependencies": {
         "@bunli/core": "workspace:*",
         "@bunli/utils": "workspace:*",
+        "bunli": "workspace:*",
         "zod": "^3.24.1",
       },
     },
@@ -155,7 +170,7 @@
     },
     "packages/create-bunli": {
       "name": "create-bunli",
-      "version": "0.1.2",
+      "version": "0.1.3",
       "bin": {
         "create-bunli": "./dist/cli.js",
       },
@@ -168,6 +183,28 @@
       "devDependencies": {
         "@types/bun": "latest",
         "typescript": "^5.8.0",
+      },
+    },
+    "packages/plugin-ai-detect": {
+      "name": "@bunli/plugin-ai-detect",
+      "version": "0.1.0",
+      "dependencies": {
+        "@bunli/core": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "typescript": "^5.7.0",
+      },
+    },
+    "packages/plugin-config": {
+      "name": "@bunli/plugin-config",
+      "version": "0.1.0",
+      "dependencies": {
+        "@bunli/core": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "typescript": "^5.7.0",
       },
     },
     "packages/test": {
@@ -209,6 +246,10 @@
     "@babel/runtime": ["@babel/runtime@7.27.6", "", {}, "sha512-vbavdySgbTTrmFE+EsiqUTzlOr5bzlnJtUv9PynGCAKvfQqjIXbvFdumPM/GxMDfyuGMJaJAU6TO4zc1Jf1i8Q=="],
 
     "@bunli/core": ["@bunli/core@workspace:packages/core"],
+
+    "@bunli/plugin-ai-detect": ["@bunli/plugin-ai-detect@workspace:packages/plugin-ai-detect"],
+
+    "@bunli/plugin-config": ["@bunli/plugin-config@workspace:packages/plugin-config"],
 
     "@bunli/test": ["@bunli/test@workspace:packages/test"],
 
@@ -273,6 +314,8 @@
     "@examples/interactive": ["@examples/interactive@workspace:examples/interactive"],
 
     "@examples/minimal": ["@examples/minimal@workspace:examples/minimal"],
+
+    "@examples/plugin-example": ["@examples/plugin-example@workspace:examples/plugin-example"],
 
     "@examples/real-world": ["@examples/real-world@workspace:examples/real-world"],
 
