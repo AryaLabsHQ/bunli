@@ -1,0 +1,305 @@
+---
+title: '@bunli/plugin-ai-detect'
+description: AI agent detection plugin for Bunli
+---
+
+# @bunli/plugin-ai-detect
+
+The AI detect plugin automatically detects when your CLI is being run by AI coding assistants like Claude, Cursor, and others. This enables you to provide AI-optimized output or adjust behavior based on the execution context.
+
+## Installation
+
+```bash
+bun add @bunli/plugin-ai-detect
+```
+
+## Features
+
+- Detect popular AI coding assistants
+- Type-safe store integration
+- Module augmentation for environment info
+- Support for custom AI agent detection
+- Verbose logging option
+- Zero configuration required
+
+## Basic Usage
+
+```typescript
+import { createCLI } from '@bunli/core'
+import { aiAgentPlugin } from '@bunli/plugin-ai-detect'
+
+const cli = await createCLI({
+  name: 'my-cli',
+  plugins: [
+    aiAgentPlugin()
+  ]
+})
+
+// In your commands:
+cli.command(defineCommand({
+  name: 'info',
+  handler: async ({ context }) => {
+    if (context?.env.isAIAgent) {
+      console.log('Running in AI agent environment!')
+      console.log(`Detected: ${context.store.aiAgents.join(', ')}`)
+    }
+  }
+}))
+```
+
+## Options
+
+```typescript
+interface AIDetectPluginOptions {
+  /**
+   * Additional custom AI agents to detect
+   */
+  customAgents?: AIAgentInfo[]
+  
+  /**
+   * Whether to log detection results
+   * Default: false
+   */
+  verbose?: boolean
+}
+```
+
+## Store Properties
+
+The plugin provides a type-safe store with the following properties:
+
+```typescript
+interface AIDetectStore {
+  /** Whether any AI agent was detected */
+  isAIAgent: boolean
+  
+  /** Array of detected AI agent names */
+  aiAgents: string[]
+  
+  /** Environment variables that triggered detection */
+  aiAgentEnvVars: string[]
+}
+```
+
+## Built-in AI Agents
+
+The plugin detects these AI agents out of the box:
+
+### Claude (Anthropic)
+- Environment variable: `CLAUDECODE`
+- Detection: Checks for the presence of `CLAUDECODE` variable
+
+### Cursor
+- Environment variable: `CURSOR_TRACE_ID`
+- Detection: Checks for the presence of `CURSOR_TRACE_ID` variable
+
+## Examples
+
+### Verbose Output
+
+```typescript
+aiAgentPlugin({ verbose: true })
+
+// Output when AI agent detected:
+// 🤖 AI agent detected: claude
+//    Environment variables: CLAUDECODE
+```
+
+### Custom AI Agents
+
+```typescript
+aiAgentPlugin({
+  customAgents: [
+    {
+      name: 'github-copilot',
+      envVars: ['GITHUB_COPILOT_ACTIVE'],
+      detect: (env) => !!env.GITHUB_COPILOT_ACTIVE
+    },
+    {
+      name: 'codeium',
+      envVars: ['CODEIUM_API_KEY', 'CODEIUM_ENABLED'],
+      detect: (env) => !!env.CODEIUM_API_KEY || env.CODEIUM_ENABLED === '1'
+    }
+  ]
+})
+```
+
+### AI-Optimized Output
+
+```typescript
+cli.command(defineCommand({
+  name: 'generate',
+  handler: async ({ context, flags }) => {
+    const isAI = context?.env.isAIAgent
+    
+    if (isAI) {
+      // Provide structured output for AI agents
+      console.log('```json')
+      console.log(JSON.stringify({
+        status: 'success',
+        files: generatedFiles,
+        nextSteps: [
+          'Review the generated files',
+          'Run tests with `bun test`',
+          'Deploy with `bun run deploy`'
+        ]
+      }, null, 2))
+      console.log('```')
+    } else {
+      // Human-friendly output
+      console.log('✅ Generated successfully!')
+      console.log(`\nCreated ${generatedFiles.length} files:`)
+      generatedFiles.forEach(f => console.log(`  - ${f}`))
+    }
+  }
+}))
+```
+
+### Conditional Features
+
+```typescript
+cli.command(defineCommand({
+  name: 'debug',
+  handler: async ({ context }) => {
+    // Enable extra debugging for AI agents
+    const debugLevel = context?.env.isAIAgent ? 'verbose' : 'normal'
+    
+    if (context?.store.isAIAgent) {
+      console.log('AI Context Information:')
+      console.log(`- Agents: ${context.store.aiAgents.join(', ')}`)
+      console.log(`- Env vars: ${context.store.aiAgentEnvVars.join(', ')}`)
+      console.log(`- Debug level: ${debugLevel}`)
+    }
+  }
+}))
+```
+
+## Module Augmentation
+
+The plugin extends the `EnvironmentInfo` interface:
+
+```typescript
+declare module '@bunli/core/plugin' {
+  interface EnvironmentInfo {
+    /** AI agent detected */
+    isAIAgent: boolean
+    
+    /** Detected AI agents */
+    aiAgents: string[]
+  }
+}
+```
+
+This means you can access AI detection info through `context.env`:
+
+```typescript
+if (context.env.isAIAgent) {
+  console.log(`AI agents: ${context.env.aiAgents.join(', ')}`)
+}
+```
+
+## Use Cases
+
+### 1. Structured Error Output
+
+```typescript
+try {
+  await riskyOperation()
+} catch (error) {
+  if (context?.env.isAIAgent) {
+    // Structured error for AI parsing
+    console.error(JSON.stringify({
+      error: {
+        message: error.message,
+        stack: error.stack,
+        code: error.code,
+        suggestions: getSuggestions(error)
+      }
+    }))
+  } else {
+    // Human-friendly error
+    console.error(`❌ ${error.message}`)
+  }
+}
+```
+
+### 2. Skip Interactive Prompts
+
+```typescript
+import { prompt } from '@bunli/prompts'
+
+const name = context?.env.isAIAgent 
+  ? flags.name || 'default-name'  // Use defaults for AI
+  : await prompt({                 // Interactive for humans
+      type: 'text',
+      message: 'Enter project name:'
+    })
+```
+
+### 3. Enhanced Logging
+
+```typescript
+const logger = {
+  info: (msg: string) => {
+    if (context?.env.isAIAgent) {
+      console.log(`[INFO] ${new Date().toISOString()} ${msg}`)
+    } else {
+      console.log(`ℹ️  ${msg}`)
+    }
+  }
+}
+```
+
+## Best Practices
+
+### 1. Always Check for Context
+
+```typescript
+// ✅ Good - defensive checking
+if (context?.env.isAIAgent) {
+  // AI-specific logic
+}
+
+// ❌ Bad - assumes context exists
+if (context.env.isAIAgent) {
+  // May throw error
+}
+```
+
+### 2. Provide Structured Data
+
+When AI is detected, prefer structured output:
+
+```typescript
+if (context?.env.isAIAgent) {
+  // Structured data
+  console.log(JSON.stringify(result, null, 2))
+} else {
+  // Pretty formatted
+  console.table(result)
+}
+```
+
+### 3. Document AI Behavior
+
+Let users know about AI-specific features:
+
+```typescript
+export const command = defineCommand({
+  name: 'build',
+  description: 'Build the project (AI agents receive JSON output)',
+  // ...
+})
+```
+
+### 4. Test Both Modes
+
+```typescript
+// Test with AI agent
+process.env.CLAUDECODE = '1'
+await cli.run(['build'])
+
+// Test without AI agent
+delete process.env.CLAUDECODE
+await cli.run(['build'])
+```

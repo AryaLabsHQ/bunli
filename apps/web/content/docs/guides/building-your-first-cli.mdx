@@ -280,6 +280,49 @@ Run tests:
 bunli test
 ```
 
+## Adding Plugins
+
+Enhance your CLI with plugins. Let's add configuration loading and AI detection:
+
+```typescript
+// src/index.ts
+import { createCLI } from '@bunli/core'
+import { configMergerPlugin } from '@bunli/plugin-config'
+import { aiAgentPlugin } from '@bunli/plugin-ai-detect'
+
+const cli = await createCLI({
+  name: 'todo',
+  version: '1.0.0',
+  description: 'Simple todo list manager',
+  plugins: [
+    // Load config from .todorc.json or ~/.config/todo/config.json
+    configMergerPlugin(),
+    
+    // Detect if running in AI assistant
+    aiAgentPlugin({ verbose: true })
+  ]
+})
+
+await cli.run()
+```
+
+Now your commands can use plugin features:
+
+```typescript
+// src/commands/list.ts
+handler: async ({ flags, colors, context }) => {
+  // Provide structured output for AI agents
+  if (context?.env.isAIAgent) {
+    console.log(JSON.stringify({ tasks }, null, 2))
+  } else {
+    // Human-friendly output
+    tasks.forEach(task => {
+      console.log(`${colors.green('✓')} ${task.name}`)
+    })
+  }
+}
+```
+
 ## Configuration
 
 Customize your CLI behavior with `bunli.config.ts`:

@@ -29,6 +29,7 @@ interface CLIConfig {
   commands?: {
     manifest?: string
   }
+  plugins?: PluginConfig[]
 }
 ```
 
@@ -110,6 +111,39 @@ await cli.load(manifest)
 await cli.run()
 ```
 
+### With Plugins
+
+```typescript
+import { createCLI } from '@bunli/core'
+import { configMergerPlugin } from '@bunli/plugin-config'
+import { aiAgentPlugin } from '@bunli/plugin-ai-detect'
+
+const cli = await createCLI({
+  name: 'my-cli',
+  version: '1.0.0',
+  plugins: [
+    // Load configuration from files
+    configMergerPlugin(),
+    
+    // Detect AI agents
+    aiAgentPlugin({ verbose: true })
+  ] as const // Use 'as const' for better type inference
+})
+
+// Commands can access plugin store
+cli.command({
+  name: 'info',
+  handler: async ({ context }) => {
+    if (context?.env.isAIAgent) {
+      console.log('Running in AI agent!')
+      console.log(`Agents: ${context.store.aiAgents.join(', ')}`)
+    }
+  }
+})
+
+await cli.run()
+```
+
 ## CLI Methods
 
 ### command(cmd)
@@ -170,6 +204,8 @@ When you create a CLI with `createCLI`, you get:
 - **Error handling** - Friendly error messages for unknown commands
 - **Nested command support** - Commands can have subcommands
 - **Alias support** - Commands can have shortcuts
+- **Plugin system** - Extend functionality with type-safe plugins
+- **Type-safe context** - Plugin stores are fully typed in commands
 
 ## Help Output
 
@@ -202,5 +238,7 @@ Unknown command: unknown
 ## See Also
 
 - [defineCommand](/docs/api/define-command) - Define type-safe commands
+- [Plugins](/docs/core-concepts/plugins) - Learn about the plugin system
+- [Plugin API](/docs/api/plugins) - Plugin API reference
 - [Command Manifests](/docs/core-concepts/commands#command-manifests) - Learn about lazy loading
 - [Configuration](/docs/core-concepts/configuration) - CLI configuration options

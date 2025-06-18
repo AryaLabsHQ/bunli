@@ -496,6 +496,160 @@ This generates a coverage report showing:
 - Function coverage
 - Statement coverage
 
+## Testing Plugins
+
+### Testing Plugin Integration
+
+```typescript
+// src/plugins/analytics.test.ts
+import { test, expect } from '@bunli/test'
+import { createTestCLI } from '@bunli/test'
+import { createPlugin } from '@bunli/core/plugin'
+
+const analyticsPlugin = createPlugin({
+  name: 'analytics',
+  store: {
+    commandCount: 0,
+    commands: [] as string[]
+  },
+  beforeCommand({ store, command }) {
+    store.commandCount++
+    store.commands.push(command)
+  }
+})
+
+test('analytics plugin tracks commands', async () => {
+  const cli = createTestCLI({
+    plugins: [analyticsPlugin]
+  })
+  
+  cli.command(defineCommand({
+    name: 'test',
+    handler: async ({ context }) => {
+      // Access plugin store in command
+      console.log(`Count: ${context?.store.commandCount}`)
+    }
+  }))
+  
+  const result = await cli.run(['test'])
+  
+  expect(result.exitCode).toBe(0)
+  expect(result.stdout).toContain('Count: 1')
+})
+```
+
+### Testing Plugin Hooks
+
+```typescript
+test('plugin lifecycle hooks', async () => {
+  const events: string[] = []
+  
+  const testPlugin = createPlugin({
+    name: 'test-plugin',
+    setup() {
+      events.push('setup')
+    },
+    configResolved() {
+      events.push('configResolved')
+    },
+    beforeCommand() {
+      events.push('beforeCommand')
+    },
+    afterCommand() {
+      events.push('afterCommand')
+    }
+  })
+  
+  const cli = createTestCLI({
+    plugins: [testPlugin]
+  })
+  
+  await cli.run(['help'])
+  
+  expect(events).toEqual([
+    'setup',
+    'configResolved',
+    'beforeCommand',
+    'afterCommand'
+  ])
+})
+```
+
+### Testing Plugin Store Types
+
+```typescript
+interface TimerStore {
+  startTime: number | null
+  endTime: number | null
+}
+
+const timerPlugin = createPlugin((): BunliPlugin<TimerStore> => ({
+  name: 'timer',
+  store: {
+    startTime: null,
+    endTime: null
+  },
+  beforeCommand({ store }) {
+    store.startTime = Date.now()
+  },
+  afterCommand({ store }) {
+    store.endTime = Date.now()
+  }
+}))
+
+test('plugin store type safety', async () => {
+  const cli = createTestCLI({
+    plugins: [timerPlugin] as const
+  })
+  
+  cli.command(defineCommand({
+    name: 'timed',
+    handler: async ({ context }) => {
+      // TypeScript knows the store types!
+      if (context?.store.startTime) {
+        console.log(`Started at: ${context.store.startTime}`)
+      }
+    }
+  }))
+  
+  const result = await cli.run(['timed'])
+  expect(result.stdout).toMatch(/Started at: \d+/)
+})
+```
+
+### Testing Multiple Plugins
+
+```typescript
+test('multiple plugins interaction', async () => {
+  const pluginA = createPlugin({
+    name: 'plugin-a',
+    store: { valueA: 'A' }
+  })
+  
+  const pluginB = createPlugin({
+    name: 'plugin-b',
+    store: { valueB: 'B' }
+  })
+  
+  const cli = createTestCLI({
+    plugins: [pluginA, pluginB] as const
+  })
+  
+  cli.command(defineCommand({
+    name: 'test',
+    handler: async ({ context }) => {
+      // Access both plugin stores
+      console.log(context?.store.valueA) // 'A'
+      console.log(context?.store.valueB) // 'B'
+    }
+  }))
+  
+  const result = await cli.run(['test'])
+  expect(result.stdout).toContain('A')
+  expect(result.stdout).toContain('B')
+})
+```
+
 ## Best Practices
 
 1. **Test User Scenarios**: Focus on how users interact with your CLI
@@ -504,6 +658,7 @@ This generates a coverage report showing:
 4. **Test Cross-Platform**: Consider Windows/Unix differences
 5. **Keep Tests Fast**: Mock slow operations
 6. **Test Output Format**: Users depend on consistent output
+7. **Test Plugin Integration**: Ensure plugins work with your commands
 
 ## Debugging Tests
 

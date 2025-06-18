@@ -184,13 +184,16 @@ interface HandlerArgs<TFlags> {
   
   // Terminal colors (from @bunli/utils)
   colors: Colors
+  
+  // Plugin context (when using plugins)
+  context?: CommandContext<TStore>
 }
 ```
 
 ### Using Handler Context
 
 ```typescript
-handler: async ({ flags, positional, shell, env, cwd, prompt, spinner, colors }) => {
+handler: async ({ flags, positional, shell, env, cwd, prompt, spinner, colors, context }) => {
   // Access parsed flags
   console.log(`Port: ${flags.port}`)
   
@@ -261,6 +264,44 @@ export default defineCommand({
 })
 ```
 
+## Using Plugin Context
+
+When using plugins, commands can access the type-safe plugin store:
+
+```typescript
+// With plugins configured in createCLI
+const cli = await createCLI({
+  plugins: [
+    aiAgentPlugin(),
+    timingPlugin()
+  ] as const
+})
+
+// In your command:
+export default defineCommand({
+  name: 'build',
+  description: 'Build the project',
+  handler: async ({ flags, context, colors }) => {
+    // Access plugin store with full type safety
+    if (context?.env.isAIAgent) {
+      // Provide structured output for AI
+      console.log(JSON.stringify({
+        status: 'building',
+        agents: context.store.aiAgents
+      }))
+    } else {
+      // Human-friendly output
+      console.log(colors.blue('Building project...'))
+    }
+    
+    // Access timing data from plugin
+    if (context?.store.startTime) {
+      console.log(`Started at: ${new Date(context.store.startTime)}`)
+    }
+  }
+})
+```
+
 <Callout type="tip">
   Use `defineCommand` for the best TypeScript experience. It provides complete type inference from your option schemas to your handler implementation.
 </Callout>
@@ -278,3 +319,5 @@ export default defineCommand({
 - [option](/docs/api/option) - Create command options
 - [Commands](/docs/core-concepts/commands) - Command concepts
 - [Type Inference](/docs/core-concepts/type-inference) - How type inference works
+- [Plugins](/docs/core-concepts/plugins) - Learn about plugins and context
+- [Plugin API](/docs/api/plugins) - Plugin API reference

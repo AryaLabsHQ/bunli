@@ -5,6 +5,7 @@
     "create-cli",
     "define-command",
     "option",
-    "define-config"
+    "define-config",
+    "plugins"
   ]
 }

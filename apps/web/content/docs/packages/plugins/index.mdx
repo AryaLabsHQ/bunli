@@ -1,0 +1,46 @@
+---
+title: Plugin Packages
+description: Official Bunli plugins for extending your CLI
+---
+
+# Plugin Packages
+
+Bunli provides official plugins to extend your CLI with common functionality. All plugins are designed with type safety in mind and integrate seamlessly with the Bunli ecosystem.
+
+## Available Plugins
+
+### [@bunli/plugin-config](/docs/packages/plugins/config)
+
+Loads and merges configuration from multiple sources including JSON files, RC files, and user config directories.
+
+```bash
+bun add @bunli/plugin-config
+```
+
+### [@bunli/plugin-ai-detect](/docs/packages/plugins/ai-detect)
+
+Detects AI coding assistants and agents from environment variables, providing context about the execution environment.
+
+```bash
+bun add @bunli/plugin-ai-detect
+```
+
+## Quick Start
+
+```typescript
+import { createCLI } from '@bunli/core'
+import { configMergerPlugin } from '@bunli/plugin-config'
+import { aiAgentPlugin } from '@bunli/plugin-ai-detect'
+
+const cli = await createCLI({
+  name: 'my-cli',
+  plugins: [
+    configMergerPlugin(),
+    aiAgentPlugin({ verbose: true })
+  ]
+})
+```
+
+## Creating Custom Plugins
+
+See the [Plugin Development Guide](/docs/core-concepts/plugins) for information on creating your own plugins.

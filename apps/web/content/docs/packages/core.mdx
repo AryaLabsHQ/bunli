@@ -59,6 +59,17 @@ const cli = createCLI({
   }
 })
 
+// With plugins for extended functionality
+const cli = await createCLI({
+  name: 'my-cli',
+  version: '1.0.0',
+  description: 'My awesome CLI tool',
+  plugins: [
+    configMergerPlugin(),
+    aiAgentPlugin()
+  ]
+})
+
 // Add commands
 cli.command({
   name: 'hello',
@@ -173,6 +184,12 @@ interface HandlerArgs<T> {
   prompt: typeof import('@bunli/utils').prompt
   spinner: typeof import('@bunli/utils').spinner
   colors: typeof import('@bunli/utils').colors
+  
+  // Plugin context (when using plugins)
+  context?: CommandContext<TStore>
+  
+  // CLI instance
+  cli: CLI
 }
 ```
 
@@ -518,6 +535,44 @@ const portOption = option(
   { short: 'p', description: 'Port number' }
 )
 ```
+
+## Plugin System
+
+Bunli includes a powerful plugin system for extending functionality:
+
+```typescript
+import { createPlugin } from '@bunli/core/plugin'
+
+// Create a simple plugin
+const myPlugin = createPlugin({
+  name: 'my-plugin',
+  store: {
+    requestCount: 0
+  },
+  beforeCommand({ store }) {
+    store.requestCount++
+  },
+  afterCommand({ store }) {
+    console.log(`Total requests: ${store.requestCount}`)
+  }
+})
+
+// Use in CLI with type-safe store
+const cli = await createCLI({
+  name: 'my-cli',
+  plugins: [myPlugin]
+})
+
+// Access plugin store in commands
+defineCommand({
+  name: 'info',
+  handler: async ({ context }) => {
+    console.log(`Requests: ${context?.store.requestCount}`)
+  }
+})
+```
+
+Learn more in the [Plugin Documentation](/docs/core-concepts/plugins).
 
 ## API Reference
 

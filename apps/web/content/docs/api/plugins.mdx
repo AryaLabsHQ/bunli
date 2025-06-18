@@ -1,0 +1,422 @@
+---
+title: Plugin API
+description: Complete API reference for Bunli's plugin system
+---
+
+# Plugin API
+
+This page provides a complete API reference for Bunli's plugin system.
+
+## Types
+
+### BunliPlugin\<TStore\>
+
+The core plugin interface.
+
+```typescript
+interface BunliPlugin<TStore = {}> {
+  /** Unique plugin name */
+  name: string
+  
+  /** Optional plugin version */
+  version?: string
+  
+  /** Plugin store schema/initial state */
+  store?: TStore
+  
+  /** Setup hook - Called during CLI initialization */
+  setup?(context: PluginContext): void | Promise<void>
+  
+  /** Config resolved hook - Called after configuration is finalized */
+  configResolved?(config: ResolvedConfig): void | Promise<void>
+  
+  /** Before command hook - Called before command execution */
+  beforeCommand?(context: CommandContext<TStore>): void | Promise<void>
+  
+  /** After command hook - Called after command execution */
+  afterCommand?(
+    context: CommandContext<TStore> & CommandResult
+  ): void | Promise<void>
+}
+```
+
+### PluginContext
+
+Context available during the setup phase.
+
+```typescript
+interface PluginContext {
+  /** Current configuration (being built) */
+  readonly config: Partial<BunliConfig>
+  
+  /** Update configuration */
+  updateConfig(partial: Partial<BunliConfig>): void
+  
+  /** Register a new command */
+  registerCommand(command: CommandDefinition): void
+  
+  /** Add global middleware */
+  use(middleware: Middleware): void
+  
+  /** Shared storage between plugins */
+  readonly store: Map<string, any>
+  
+  /** Plugin logger */
+  readonly logger: Logger
+  
+  /** System paths */
+  readonly paths: PathInfo
+}
+```
+
+### CommandContext\<TStore\>
+
+Context available during command execution.
+
+```typescript
+interface CommandContext<TStore = {}> {
+  /** Command name being executed */
+  readonly command: string
+  
+  /** Positional arguments */
+  readonly args: string[]
+  
+  /** Parsed flags/options */
+  readonly flags: Record<string, any>
+  
+  /** Environment information */
+  readonly env: EnvironmentInfo
+  
+  /** Type-safe context store */
+  readonly store: TStore
+}
+```
+
+### CommandResult
+
+Result of command execution.
+
+```typescript
+interface CommandResult {
+  /** Command return value */
+  result?: any
+  
+  /** Error if command failed */
+  error?: Error
+  
+  /** Exit code */
+  exitCode?: number
+}
+```
+
+### PathInfo
+
+System path information.
+
+```typescript
+interface PathInfo {
+  /** Current working directory */
+  cwd: string
+  
+  /** User home directory */
+  home: string
+  
+  /** Config directory path */
+  config: string
+}
+```
+
+### EnvironmentInfo
+
+Environment information available to plugins.
+
+```typescript
+interface EnvironmentInfo {
+  /** Running in CI environment */
+  isCI: boolean
+}
+```
+
+## Functions
+
+### createPlugin
+
+Helper function for creating plugins with proper typing.
+
+```typescript
+function createPlugin<T>(input: T): T
+```
+
+**Examples:**
+
+```typescript
+// Direct plugin with explicit store type
+interface MyStore {
+  count: number
+  message: string
+}
+
+const myPlugin = createPlugin<MyStore>({
+  name: 'my-plugin',
+  store: { count: 0, message: '' }
+})
+
+// Plugin factory with options and store type
+interface Options {
+  prefix: string
+}
+
+interface MyStore {
+  count: number
+}
+
+const myPlugin = createPlugin<Options, MyStore>((options) => ({
+  name: 'my-plugin',
+  store: { count: 0 },
+  beforeCommand(context) {
+    console.log(`${options.prefix}: ${context.store.count}`)
+  }
+}))
+```
+
+## Type Utilities
+
+### StoreOf\<P\>
+
+Extract the store type from a plugin.
+
+```typescript
+type StoreOf<P> = P extends BunliPlugin<infer S> ? S : {}
+
+// Example
+type MyStore = StoreOf<typeof myPlugin>
+```
+
+### MergeStores\<Plugins\>
+
+Merge multiple plugin stores into one type.
+
+```typescript
+type MergeStores<Plugins extends readonly BunliPlugin[]>
+
+// Example
+type CombinedStore = MergeStores<[
+  typeof pluginA,
+  typeof pluginB
+]>
+```
+
+### InferPluginOptions\<T\>
+
+Infer plugin options type from a plugin factory.
+
+```typescript
+type InferPluginOptions<T> = 
+  T extends PluginFactory<infer O, any> ? O : never
+
+// Example
+type Options = InferPluginOptions<typeof myPlugin>
+```
+
+### InferPluginStore\<T\>
+
+Infer plugin store type.
+
+```typescript
+type InferPluginStore<T> = 
+  T extends BunliPlugin<infer S> 
+    ? S 
+    : T extends PluginFactory<any, infer S> 
+      ? S 
+      : {}
+
+// Example
+type Store = InferPluginStore<typeof myPlugin>
+```
+
+## Plugin Configuration
+
+### PluginConfig
+
+Type for plugin configuration in createCLI.
+
+```typescript
+type PluginConfig = 
+  | string                    // Path to plugin
+  | BunliPlugin              // Plugin object
+  | PluginFactory            // Plugin factory function
+  | [PluginFactory, any]     // Plugin with options
+```
+
+**Examples:**
+
+```typescript
+const cli = await createCLI({
+  plugins: [
+    // Plugin object
+    myPlugin,
+    
+    // Plugin factory with options
+    myPlugin({ verbose: true }),
+    
+    // Path to plugin file
+    './plugins/custom.js',
+    
+    // Plugin with options as tuple
+    [myPlugin, { verbose: true }]
+  ]
+})
+```
+
+## Logger API
+
+The logger available in plugin context.
+
+```typescript
+interface Logger {
+  /** Log debug message */
+  debug(message: string): void
+  
+  /** Log info message */
+  info(message: string): void
+  
+  /** Log warning message */
+  warn(message: string): void
+  
+  /** Log error message */
+  error(message: string): void
+}
+```
+
+## Middleware
+
+Middleware function type for global command interception.
+
+```typescript
+type Middleware = (
+  context: CommandContext, 
+  next: () => Promise<any>
+) => Promise<any>
+
+// Example
+const loggingMiddleware: Middleware = async (context, next) => {
+  console.log(`Before: ${context.command}`)
+  const result = await next()
+  console.log(`After: ${context.command}`)
+  return result
+}
+```
+
+## Module Augmentation
+
+Extend core interfaces in your plugins.
+
+```typescript
+declare module '@bunli/core/plugin' {
+  interface EnvironmentInfo {
+    // Add custom fields
+    isDocker: boolean
+    containerName?: string
+  }
+  
+  interface PluginStore {
+    // Extend shared store
+    myPluginData: string
+  }
+  
+  interface CommandContext {
+    // Extend command context
+    customField: number
+  }
+  
+  interface BunliConfig {
+    // Extend configuration
+    myPluginConfig?: {
+      enabled: boolean
+    }
+  }
+}
+```
+
+## Plugin Lifecycle
+
+### Execution Order
+
+1. **Load Phase**: Plugins are loaded and validated
+2. **Setup Phase**: All `setup` hooks run in order
+3. **Config Resolution**: Configuration is finalized
+4. **Config Resolved Phase**: All `configResolved` hooks run
+5. **Command Execution**:
+   - All `beforeCommand` hooks run in order
+   - Command handler executes
+   - All `afterCommand` hooks run in reverse order
+
+### Error Handling
+
+- Errors in `setup` or `configResolved` will prevent CLI initialization
+- Errors in `beforeCommand` will prevent command execution
+- Errors in `afterCommand` are logged but don't affect the command result
+
+## Complete Example
+
+```typescript
+import { createPlugin, type BunliPlugin } from '@bunli/core/plugin'
+import { defineCommand } from '@bunli/core'
+
+interface MetricsStore {
+  commandCount: number
+  totalDuration: number
+  averageDuration: number
+}
+
+export const metricsPlugin = createPlugin<{ detailed?: boolean }, MetricsStore>(
+  (options = {}) => ({
+    name: '@company/metrics-plugin',
+    version: '1.0.0',
+    
+    store: {
+      commandCount: 0,
+      totalDuration: 0,
+      averageDuration: 0
+    },
+    
+    setup(context) {
+      context.logger.info('Metrics plugin initialized')
+      
+      // Register metrics command
+      context.registerCommand(defineCommand({
+        name: 'metrics',
+        description: 'Show command metrics',
+        handler: async ({ context }) => {
+          const store = context?.store
+          console.log(`Commands run: ${store.commandCount}`)
+          console.log(`Average duration: ${store.averageDuration}ms`)
+        }
+      }))
+    },
+    
+    configResolved(config) {
+      console.log(`Metrics enabled for ${config.name}`)
+    },
+    
+    beforeCommand(context) {
+      // Store start time in command context
+      ;(context as any)._startTime = Date.now()
+    },
+    
+    afterCommand(context) {
+      const duration = Date.now() - (context as any)._startTime
+      
+      // Update metrics
+      context.store.commandCount++
+      context.store.totalDuration += duration
+      context.store.averageDuration = Math.round(
+        context.store.totalDuration / context.store.commandCount
+      )
+      
+      if (options.detailed) {
+        console.log(`Command duration: ${duration}ms`)
+      }
+    }
+  })
+)

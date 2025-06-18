@@ -5,6 +5,7 @@
     "commands",
     "type-inference",
     "validation",
-    "configuration"
+    "configuration",
+    "plugins"
   ]
 }

@@ -6,6 +6,7 @@
     "core",
     "utils",
     "test",
-    "cli"
+    "cli",
+    "plugins"
   ]
 }
