@@ -6,11 +6,18 @@ Bunli is a minimal, type-safe CLI framework designed specifically for Bun. It le
 
 ## Packages
 
-- **[@bunli/core](./packages/bunli)** - Core framework with type-safe command definitions
-- **[create-bunli](./packages/create-bunli)** - Scaffolding tool for new CLI projects
-- **[bunli](./packages/cli)** - CLI toolchain for development and building
+### Core
+- **[@bunli/core](./packages/core)** - Core framework with type-safe command definitions
 - **[@bunli/utils](./packages/utils)** - Shared utilities (prompts, spinners, colors)
 - **[@bunli/test](./packages/test)** - Testing utilities for CLI applications
+
+### CLI Tools
+- **[bunli](./packages/cli)** - CLI toolchain for development and building
+- **[create-bunli](./packages/create-bunli)** - Scaffolding tool for new CLI projects
+
+### Plugins
+- **[@bunli/plugin-ai-detect](./packages/plugin-ai-detect)** - Detect AI coding assistants
+- **[@bunli/plugin-config](./packages/plugin-config)** - Configuration file loading and merging
 
 ## Getting Started
 

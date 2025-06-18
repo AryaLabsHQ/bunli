@@ -1,0 +1,8 @@
+{
+  "apiKey": "demo-key-12345",
+  "environment": "development",
+  "features": {
+    "telemetry": true,
+    "autoUpdate": false
+  }
+}

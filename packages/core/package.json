@@ -8,11 +8,20 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "import": "./src/index.ts"
+    },
+    "./plugin": {
+      "types": "./dist/plugin/index.d.ts",
+      "import": "./src/plugin/index.ts"
+    },
+    "./utils": {
+      "types": "./dist/utils/index.d.ts",
+      "import": "./src/utils/index.ts"
     }
   },
   "files": [
     "dist",
+    "src",
     "README.md"
   ],
   "scripts": {

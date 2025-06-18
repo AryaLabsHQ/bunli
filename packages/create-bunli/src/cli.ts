@@ -16,7 +16,7 @@ async function run() {
     process.argv.splice(2, 0, 'create')
   }
   
-  const cli = createCLI({
+  const cli = await createCLI({
     name: 'create-bunli',
     version: '0.1.0',
     description: 'Scaffold new Bunli CLI projects'

@@ -1,0 +1,33 @@
+{
+  "name": "@bunli/plugin-config",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Config merger plugin for Bunli - loads config from multiple sources",
+  "keywords": ["bunli", "cli", "plugin", "config"],
+  "author": "Bunli Team",
+  "license": "MIT",
+  "main": "./src/index.ts",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "bun run scripts/build.ts",
+    "type-check": "tsc --noEmit",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@bunli/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.7.0"
+  }
+}

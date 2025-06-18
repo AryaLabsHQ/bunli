@@ -3,20 +3,38 @@ import type { StandardSchemaV1 } from '@standard-schema/spec'
 export type { StandardSchemaV1 }
 
 // Core Bunli types
-export interface CLI {
-  command(cmd: Command<any>): void
+/**
+ * CLI instance with plugin type information
+ */
+export interface CLI<TStore = {}> {
+  /**
+   * Register a command
+   */
+  command(command: Command<any, TStore>): void
+  
+  /**
+   * Load commands from a manifest
+   */
   load(manifest: CommandManifest): Promise<void>
+  
+  /**
+   * Initialize the CLI (load config, etc)
+   */
   init(): Promise<void>
+  
+  /**
+   * Run the CLI with given arguments
+   */
   run(argv?: string[]): Promise<void>
 }
 
 // generic Command type that carries options type information
-export interface Command<TOptions extends Options = Options> {
+export interface Command<TOptions extends Options = Options, TStore = {}> {
   name: string
   description: string
-  handler?: Handler<InferOptions<TOptions>>
+  handler?: Handler<InferOptions<TOptions>, TStore>
   options?: TOptions
-  commands?: Command<any>[]  // Allow any options type for subcommands
+  commands?: Command<any, TStore>[]  // Allow any options type for subcommands
   alias?: string | string[]
 }
 
@@ -32,10 +50,10 @@ type InferOptions<T extends Options> = {
 }
 
 // generic Handler type that accepts inferred flags type
-export type Handler<TFlags = Record<string, unknown>> = (args: HandlerArgs<TFlags>) => void | Promise<void>
+export type Handler<TFlags = Record<string, unknown>, TStore = {}> = (args: HandlerArgs<TFlags, TStore>) => void | Promise<void>
 
 // generic HandlerArgs that accepts flags type
-export interface HandlerArgs<TFlags = Record<string, unknown>> {
+export interface HandlerArgs<TFlags = Record<string, unknown>, TStore = {}> {
   flags: TFlags
   positional: string[]
   shell: typeof Bun.$
@@ -45,6 +63,8 @@ export interface HandlerArgs<TFlags = Record<string, unknown>> {
   prompt: typeof import('@bunli/utils').prompt
   spinner: typeof import('@bunli/utils').spinner
   colors: typeof import('@bunli/utils').colors
+  // Plugin context (if plugins are loaded)
+  context?: import('./plugin/types.js').CommandContext<TStore>
 }
 
 // CLI option with metadata - generic to preserve schema type
@@ -65,12 +85,12 @@ export type CommandManifest = {
 export type CommandLoader = () => Promise<{ default: Command<any> }>
 
 // Define command helper with proper type inference
-export function defineCommand<TOptions extends Options>(
-  command: Omit<Command<TOptions>, 'handler'> & {
-    handler?: (args: HandlerArgs<InferOptions<TOptions>>) => void | Promise<void>
+export function defineCommand<TOptions extends Options = Options, TStore = {}>(
+  command: Omit<Command<TOptions, TStore>, 'handler'> & {
+    handler?: (args: HandlerArgs<InferOptions<TOptions>, TStore>) => void | Promise<void>
   }
-): Command<TOptions> {
-  return command as Command<TOptions>
+): Command<TOptions, TStore> {
+  return command as Command<TOptions, TStore>
 }
 
 // Config types
@@ -92,6 +112,15 @@ export interface BunliConfig {
     watch?: boolean
     inspect?: boolean
   }
+  plugins?: PluginConfig[]
+}
+
+// Plugin configuration type (imported from plugin/types)
+export type PluginConfig = import('./plugin/types.js').PluginConfig
+
+// Resolved config after all plugins have run
+export interface ResolvedConfig extends Required<BunliConfig> {
+  // All optional fields are now required with defaults
 }
 
 export function defineConfig(config: BunliConfig): BunliConfig {

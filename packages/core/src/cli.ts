@@ -1,17 +1,54 @@
-import type { CLI, Command, BunliConfig, CommandManifest, CommandLoader } from './types.js'
+import type { CLI, Command, BunliConfig, CommandManifest, CommandLoader, ResolvedConfig, CLIOption } from './types.js'
 import { parseArgs } from './parser.js'
 import { SchemaError, getDotPath } from '@standard-schema/utils'
+import { PluginManager } from './plugin/manager.js'
+import type { CommandContext, BunliPlugin, MergeStores } from './plugin/types.js'
 
-export function createCLI(config: BunliConfig | { name: string; version: string; description?: string }): CLI {
+export async function createCLI<TPlugins extends readonly BunliPlugin[] = []>(
+  config: BunliConfig & { 
+    plugins?: TPlugins 
+  }
+): Promise<CLI<MergeStores<TPlugins>>> {
+  type TStore = MergeStores<TPlugins>
+  
   // Normalize config - support both simple and full config
-  const fullConfig: BunliConfig = 'commands' in config
+  let fullConfig: BunliConfig = 'commands' in config
     ? config as BunliConfig 
     : { ...config, commands: undefined }
   
-  const commands = new Map<string, Command>()
+  const commands = new Map<string, Command<any, TStore>>()
+  const pluginManager = new PluginManager()
+  
+  // Load plugins if configured
+  if ('plugins' in fullConfig && fullConfig.plugins) {
+    await pluginManager.loadPlugins(fullConfig.plugins)
+    
+    // Run setup hooks - this may modify config
+    const { config: updatedConfig, commands: pluginCommands, middlewares } = await pluginManager.runSetup(fullConfig)
+    fullConfig = updatedConfig as BunliConfig
+    
+    // Register plugin commands
+    pluginCommands.forEach(cmd => registerCommand(cmd))
+  }
+  
+  // Create resolved config with defaults
+  const resolvedConfig: ResolvedConfig = {
+    name: fullConfig.name,
+    version: fullConfig.version,
+    description: fullConfig.description || '',
+    commands: fullConfig.commands || {},
+    build: fullConfig.build || {},
+    dev: fullConfig.dev || {},
+    plugins: fullConfig.plugins || []
+  }
+  
+  // Run configResolved hooks
+  if ('plugins' in fullConfig && fullConfig.plugins) {
+    await pluginManager.runConfigResolved(resolvedConfig)
+  }
   
   // Helper to register a command and its aliases
-  function registerCommand(cmd: Command, path: string[] = []) {
+  function registerCommand(cmd: Command<any, TStore>, path: string[] = []) {
     const fullName = [...path, cmd.name].join(' ')
     commands.set(fullName, cmd)
     
@@ -33,7 +70,7 @@ export function createCLI(config: BunliConfig | { name: string; version: string;
   }
   
   // Helper to find command by path
-  function findCommand(args: string[]): { command: Command | undefined; remainingArgs: string[] } {
+  function findCommand(args: string[]): { command: Command<any, TStore> | undefined; remainingArgs: string[] } {
     // Try to find the deepest matching command
     for (let i = args.length; i > 0; i--) {
       const cmdPath = args.slice(0, i).join(' ')
@@ -46,7 +83,7 @@ export function createCLI(config: BunliConfig | { name: string; version: string;
   }
   
   // Helper to show help for a command
-  function showHelp(cmd?: Command, path: string[] = []) {
+  function showHelp(cmd?: Command<any, TStore>, path: string[] = []) {
     if (!cmd) {
       // Show root help
       console.log(`${fullConfig.name} v${fullConfig.version}`)
@@ -56,7 +93,7 @@ export function createCLI(config: BunliConfig | { name: string; version: string;
       console.log('\nCommands:')
       
       // Show only top-level commands
-      const topLevel = new Set<Command>()
+      const topLevel = new Set<Command<any, TStore>>()
       for (const [name, command] of commands) {
         if (!name.includes(' ') && !command.alias?.includes(name)) {
           topLevel.add(command)
@@ -75,8 +112,9 @@ export function createCLI(config: BunliConfig | { name: string; version: string;
       if (cmd.options && Object.keys(cmd.options).length > 0) {
         console.log('\nOptions:')
         for (const [name, opt] of Object.entries(cmd.options)) {
-          const flag = `--${name}${opt.short ? `, -${opt.short}` : ''}`
-          const description = opt.description || ''
+          const option = opt as CLIOption<any>
+          const flag = `--${name}${option.short ? `, -${option.short}` : ''}`
+          const description = option.description || ''
           console.log(`  ${flag.padEnd(20)} ${description}`)
         }
       }
@@ -111,8 +149,8 @@ export function createCLI(config: BunliConfig | { name: string; version: string;
   
   // Helper function to load commands from manifest
   async function loadCommandsFromManifest(manifest: CommandManifest) {
-    async function loadFromManifest(obj: CommandManifest | CommandLoader, path: string[] = []): Promise<Command[]> {
-      const commands: Command[] = []
+    async function loadFromManifest(obj: CommandManifest | CommandLoader, path: string[] = []): Promise<Command<any, TStore>[]> {
+      const commands: Command<any, TStore>[] = []
       
       if (typeof obj === 'function') {
         const { default: command } = await obj()
@@ -129,7 +167,7 @@ export function createCLI(config: BunliConfig | { name: string; version: string;
           const subCommands = await loadFromManifest(value, [...path, key])
           if (subCommands.length > 0) {
             // Create a parent command that contains the subcommands
-            const parentCommand: Command = {
+            const parentCommand: Command<any, TStore> = {
               name: key,
               description: `${key} commands`,
               commands: subCommands
@@ -147,7 +185,7 @@ export function createCLI(config: BunliConfig | { name: string; version: string;
   }
   
   return {
-    command(cmd: Command) {
+    command(cmd: Command<any, TStore>) {
       registerCommand(cmd)
     },
     
@@ -199,11 +237,22 @@ export function createCLI(config: BunliConfig | { name: string; version: string;
       }
       
       if (command.handler) {
+        let context: CommandContext<TStore> | undefined
+        
         try {
           const parsed = await parseArgs(remainingArgs, command.options || {})
           const { prompt, spinner, colors } = await import('@bunli/utils')
           
-          await command.handler({
+          // Run beforeCommand hooks if plugins are loaded
+          if ('plugins' in fullConfig && fullConfig.plugins) {
+            context = await pluginManager.runBeforeCommand(
+              command.name,
+              parsed.positional,
+              parsed.flags as any
+            )
+          }
+          
+          const result = await command.handler({
             flags: parsed.flags as any, // Type-safe after validation
             positional: parsed.positional,
             shell: Bun.$,
@@ -211,9 +260,27 @@ export function createCLI(config: BunliConfig | { name: string; version: string;
             cwd: process.cwd(),
             prompt,
             spinner,
-            colors
+            colors,
+            // Add context if plugins are loaded
+            ...(context ? { context } : {})
           })
+          
+          // Run afterCommand hooks if plugins are loaded
+          if ('plugins' in fullConfig && fullConfig.plugins && context) {
+            await pluginManager.runAfterCommand(context as any, {
+              result,
+              exitCode: 0
+            })
+          }
         } catch (error) {
+          // Run afterCommand hooks even on error
+          if ('plugins' in fullConfig && fullConfig.plugins && context) {
+            await pluginManager.runAfterCommand(context as any, {
+              error: error as Error,
+              exitCode: 1
+            })
+          }
+          
           const { colors } = await import('@bunli/utils')
           
           if (error instanceof SchemaError) {

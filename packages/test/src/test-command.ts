@@ -1,4 +1,4 @@
-import type { Command } from '@bunli/core'
+import type { Command, CLI } from '@bunli/core'
 import type { TestOptions, TestResult, MockHandlerArgs, ShellPromise } from './types.js'
 import { createCLI } from '@bunli/core'
 
@@ -377,7 +377,7 @@ export async function testCommand(
 }
 
 export async function testCLI(
-  setupCLI: (cli: ReturnType<typeof createCLI>) => void,
+  setupCLI: (cli: CLI) => void,
   argv: string[],
   options: Omit<TestOptions, 'args'> = {}
 ): Promise<TestResult> {
@@ -409,7 +409,7 @@ export async function testCLI(
   
   try {
     // Create and setup CLI
-    const cli = createCLI({
+    const cli = await createCLI({
       name: 'test-cli',
       version: '1.0.0',
       description: 'Test CLI'

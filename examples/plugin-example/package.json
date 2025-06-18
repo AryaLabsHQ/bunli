@@ -1,0 +1,14 @@
+{
+  "name": "@examples/plugin-example",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "cli": "bun cli.ts"
+  },
+  "dependencies": {
+    "@bunli/core": "workspace:*",
+    "@bunli/utils": "workspace:*",
+    "@bunli/plugin-config": "workspace:*",
+    "@bunli/plugin-ai-detect": "workspace:*"
+  }
+}
