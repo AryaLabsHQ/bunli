@@ -1,0 +1,67 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Bunli CLI Development Patterns
+
+Follow these patterns when developing CLI functionality in the Bunli framework.
+
+## Command Structure
+
+Commands follow a consistent pattern using the core framework:
+
+```typescript
+// In any command file (e.g., packages/cli/src/commands/build.ts)
+import { defineCommand } from '@bunli/core'
+
+export const buildCommand = defineCommand({
+  meta: {
+    name: 'build',
+    description: 'Build the project'
+  },
+  args: {
+    // Define arguments with validation
+    output: {
+      type: 'string',
+      description: 'Output directory',
+      default: 'dist'
+    }
+  },
+  run: async ({ args, logger }) => {
+    // Implementation
+  }
+})
+```
+
+## Configuration
+
+- Use [bunli.config.ts](mdc:examples/minimal/bunli.config.ts) files for project configuration
+- Configuration is defined using [packages/core/src/types.ts](mdc:packages/core/src/types.ts)
+- See examples in [examples/](mdc:examples) for different config patterns
+
+## File Naming
+
+- Use kebab-case for all files: `my-command.ts` not `MyCommand.ts`
+- Commands go in `commands/` directory
+- Use `.js` extensions in imports when using NodeNext module resolution
+- Keep files focused on single responsibilities
+
+## Error Handling
+
+- Use the logger from the command context: `logger.error()`, `logger.warn()`, `logger.info()`
+- Throw meaningful errors with helpful messages
+- Use validation from [packages/utils/src/validation.ts](mdc:packages/utils/src/validation.ts)
+
+## Testing
+
+- Write tests using Bun's built-in test runner
+- Use testing utilities from [packages/test/](mdc:packages/test)
+- Test files should be in `test/` directories with `.test.ts` suffix
+- Follow patterns in [packages/test/test/](mdc:packages/test/test) for advanced scenarios
+
+## Plugin Integration
+
+- Use the plugin system from [packages/core/src/plugin/](mdc:packages/core/src/plugin)
+- Plugins should be self-contained with clear interfaces
+- Register plugins in configuration or CLI setup

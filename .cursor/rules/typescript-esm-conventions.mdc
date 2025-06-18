@@ -1,0 +1,73 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# TypeScript and ESM Conventions
+
+Follow these TypeScript and ESM patterns for consistency across the Bunli codebase.
+
+## Module System
+
+- **Always use ESM imports/exports**, never CommonJS (`require`/`module.exports`)
+- Use `.js` extensions in local imports when [tsconfig.json](mdc:tsconfig.json) uses NodeNext module resolution
+- Prefer named exports over default exports for better tree-shaking
+
+```typescript
+// ✅ Good - ESM with .js extension for local files
+import { defineCommand } from '@bunli/core'
+import { validateConfig } from './utils/validation.js'
+
+// ✅ Good - Named exports
+export { myFunction, MyClass }
+
+// ❌ Avoid - CommonJS
+const { defineCommand } = require('@bunli/core')
+
+// ❌ Avoid - Missing .js extension with NodeNext
+import { helper } from './helper'
+```
+
+## File Naming
+
+- Use kebab-case for all files: `config-parser.ts`, `user-input.ts`
+- Test files: `my-feature.test.ts`
+- Type definition files: `api-types.ts`
+- Never use PascalCase or camelCase for file names
+
+## Type Safety
+
+- Use strict TypeScript configuration from [tsconfig.base.json](mdc:tsconfig.base.json)
+- Define types in [packages/core/src/types.ts](mdc:packages/core/src/types.ts) for shared interfaces
+- Use type inference where possible, explicit types where clarity is needed
+- Leverage the plugin type system in [packages/core/src/plugin/types.ts](mdc:packages/core/src/plugin/types.ts)
+
+## Package Development
+
+- Each package has its own [package.json](mdc:packages/core/package.json) with proper ESM configuration
+- Use `"type": "module"` in package.json
+- Build scripts are in `scripts/build.ts` using Bun's bundler
+- Export types and runtime code separately when needed
+
+## Validation and Schema
+
+- Use validation utilities from [packages/utils/src/validation.ts](mdc:packages/utils/src/validation.ts)
+- Follow schema validation patterns from [examples/schema-validation/](mdc:examples/schema-validation)
+- Implement runtime type checking for user inputs
+
+## Import Organization
+
+1. External packages first
+2. Internal packages (`@bunli/*`)
+3. Relative imports
+4. Type-only imports last
+
+```typescript
+// ✅ Good import order
+import { z } from 'zod'
+import { defineCommand } from '@bunli/core'
+import { logger } from '@bunli/utils'
+import { parseConfig } from './config.js'
+import { validateInput } from '../validation/index.js'
+import type { CommandOptions } from './types.js'
+```

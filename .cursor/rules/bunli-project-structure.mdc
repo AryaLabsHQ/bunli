@@ -1,0 +1,44 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Bunli Project Structure Guide
+
+This is a monorepo for the Bunli CLI framework, organized into apps, packages, and examples.
+
+## Core Architecture
+
+- **[packages/core/](mdc:packages/core)** - Core CLI framework functionality with plugin system
+- **[packages/cli/](mdc:packages/cli)** - Main CLI application with build, dev, init, release, and test commands
+- **[packages/create-bunli/](mdc:packages/create-bunli)** - Project scaffolding tool with templates
+- **[apps/web/](mdc:apps/web)** - Next.js documentation website and landing page
+
+## Plugin Ecosystem
+
+- **[packages/plugin-ai-detect/](mdc:packages/plugin-ai-detect)** - AI detection plugin
+- **[packages/plugin-config/](mdc:packages/plugin-config)** - Configuration management plugin
+- **[packages/test/](mdc:packages/test)** - Testing utilities and helpers
+- **[packages/utils/](mdc:packages/utils)** - Shared utilities (colors, prompts, validation)
+
+## Examples and Templates
+
+- **[examples/](mdc:examples)** - Working examples showing different CLI patterns
+- **[packages/create-bunli/templates/](mdc:packages/create-bunli/templates)** - Project templates for scaffolding
+
+## Key Entry Points
+
+- **[packages/core/src/index.ts](mdc:packages/core/src/index.ts)** - Core framework exports
+- **[packages/cli/src/index.ts](mdc:packages/cli/src/index.ts)** - CLI application entry
+- **[packages/core/src/cli.ts](mdc:packages/core/src/cli.ts)** - Main CLI creation function
+
+## Development Workflow
+
+1. Use `bun dev` from root to start development mode
+2. Each package has its own `scripts/build.ts` for building
+3. The [turbo.jsonc](mdc:turbo.jsonc) defines the monorepo task pipeline
+4. All packages use TypeScript with shared [tsconfig.base.json](mdc:tsconfig.base.json)
+
+## Plugin Development
+
+Plugins are created using the plugin system in [packages/core/src/plugin/](mdc:packages/core/src/plugin). See existing plugins for patterns.

@@ -1,0 +1,85 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Bunli Quick Reference
+
+Essential commands and conventions for working with the Bunli CLI framework.
+
+## Key Commands
+
+```bash
+# Development
+bun dev                    # Start development mode
+bun test                   # Run all tests
+bun run build             # Build all packages
+bun run clean             # Clean artifacts
+
+# Package-specific
+cd packages/core && bun run build
+cd packages/cli && bun test
+cd apps/web && bun dev
+```
+
+## File Conventions
+
+- **Naming**: Always kebab-case (`my-command.ts`, not `MyCommand.ts`)
+- **Imports**: ESM only, use `.js` extensions for local files
+- **Tests**: `.test.ts` suffix in `test/` directories
+- **Exports**: Prefer named exports over default
+
+## Quick File Templates
+
+### Command Definition
+```typescript
+import { defineCommand } from '@bunli/core'
+
+export const myCommand = defineCommand({
+  meta: { name: 'my-command', description: 'Description' },
+  args: { input: { type: 'string', description: 'Input' } },
+  run: async ({ args, logger }) => {
+    // Implementation
+  }
+})
+```
+
+### Test File
+```typescript
+import { describe, it, expect } from 'bun:test'
+import { testCommand } from '@bunli/test'
+
+describe('My Command', () => {
+  it('works', async () => {
+    const result = await testCommand(myCommand, { args: {} })
+    expect(result.exitCode).toBe(0)
+  })
+})
+```
+
+## Common Imports
+
+```typescript
+// Core framework
+import { defineCommand, defineConfig } from '@bunli/core'
+
+// Utilities
+import { logger, spinner, prompt } from '@bunli/utils'
+
+// Testing
+import { testCommand } from '@bunli/test'
+```
+
+## Directory Navigation
+
+- [packages/core/](mdc:packages/core) - Framework core
+- [packages/cli/](mdc:packages/cli) - Main CLI
+- [examples/](mdc:examples) - Working examples
+- [apps/web/](mdc:apps/web) - Documentation site
+
+## Common Tasks
+
+1. **Add new command**: Create in `packages/cli/src/commands/`
+2. **Add new plugin**: Create in `packages/plugin-*/`
+3. **Update docs**: Edit MDX in `apps/web/content/docs/`
+4. **Add example**: Create in `examples/`

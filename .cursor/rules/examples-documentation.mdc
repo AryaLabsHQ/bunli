@@ -1,0 +1,92 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Examples Documentation Strategy
+
+Bunli has a comprehensive examples system with dual documentation approaches for different audiences.
+
+## Examples Structure
+
+The [examples/](mdc:examples) directory contains 6 examples organized in learning progression:
+
+1. **[minimal/](mdc:examples/minimal)** - Single command, basic setup (starting point)
+2. **[schema-validation/](mdc:examples/schema-validation)** - Type-safe validation with Zod
+3. **[command-structure/](mdc:examples/command-structure)** - Multi-command organization 
+4. **[interactive/](mdc:examples/interactive)** - Prompts, wizards, user interaction
+5. **[real-world/](mdc:examples/real-world)** - Production-ready patterns and best practices
+6. **[plugin-example/](mdc:examples/plugin-example)** - Plugin development patterns
+
+## Dual Documentation Approach
+
+### Repository Documentation
+- **[examples/README.md](mdc:examples/README.md)** - 172 lines covering all examples, key concepts, build patterns
+- **Individual READMEs** - Each example has detailed README with usage, concepts, and features demonstrated
+- **Runnable code** - All examples can be run with `bun install` and `bun cli.ts`
+
+### Web Documentation  
+- **[apps/web/content/docs/examples/index.mdx](mdc:apps/web/content/docs/examples/index.mdx)** - Landing page
+- **Detailed tutorials** - Each example has comprehensive MDX documentation:
+  - [minimal.mdx](mdc:apps/web/content/docs/examples/minimal.mdx) - 213 lines
+  - [interactive.mdx](mdc:apps/web/content/docs/examples/interactive.mdx) - 505 lines  
+  - [multi-command.mdx](mdc:apps/web/content/docs/examples/multi-command.mdx) - 591 lines
+  - [real-world.mdx](mdc:apps/web/content/docs/examples/real-world.mdx) - 632 lines
+
+## Working with Examples
+
+### For Learning
+Follow the progression path:
+1. Start with minimal to understand basics
+2. Move to schema-validation for type safety
+3. Explore command-structure for organization
+4. Try interactive for user experience
+5. Study real-world for production patterns
+
+### For Development
+```bash
+cd examples/minimal
+bun install
+bun run dev          # Hot reload development
+bun run build        # Production build
+./dist/cli           # Run built executable
+```
+
+### For Reference
+- Use examples as templates for new CLI projects
+- Copy patterns from real-world example for production setups
+- Reference interactive example for prompt implementations
+
+## Adding New Examples
+
+When adding examples:
+
+1. **Create directory** in [examples/](mdc:examples)
+2. **Add README.md** with features demonstrated, usage, key concepts
+3. **Create MDX documentation** in [apps/web/content/docs/examples/](mdc:apps/web/content/docs/examples)
+4. **Update main README** in [examples/README.md](mdc:examples/README.md)
+5. **Update web index** in [examples/index.mdx](mdc:apps/web/content/docs/examples/index.mdx)
+6. **Follow naming convention** - use kebab-case directory names
+
+## Documentation Patterns
+
+### README Structure
+- Features demonstrated
+- Usage instructions (direct + bunli dev)
+- Key concepts explained
+- Code examples with explanations
+
+### MDX Structure  
+- Complete code examples with syntax highlighting
+- Step-by-step progression
+- Usage examples with expected output
+- Links to related concepts and APIs
+- Next steps for learning
+
+## Examples as Teaching Tools
+
+Examples serve multiple purposes:
+- **Learning path** - Structured progression from simple to complex
+- **Reference implementations** - Production-ready patterns
+- **Testing ground** - Validate new features work in practice
+- **Documentation** - Living examples that stay current with code

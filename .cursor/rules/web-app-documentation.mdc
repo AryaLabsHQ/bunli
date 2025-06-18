@@ -1,0 +1,107 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Web App and Documentation Patterns
+
+Guidelines for working with the Next.js documentation website in [apps/web/](mdc:apps/web).
+
+## Next.js App Structure
+
+- Uses Next.js 15+ with App Router
+- Documentation content in [apps/web/content/docs/](mdc:apps/web/content/docs)
+- Landing page components in [apps/web/components/landing/](mdc:apps/web/components/landing)
+- UI components using shadcn/ui in [apps/web/components/ui/](mdc:apps/web/components/ui)
+
+## Documentation Content
+
+- MDX files with frontmatter in [content/docs/](mdc:apps/web/content/docs)
+- Meta files for navigation: [meta.json](mdc:apps/web/content/docs/meta.json)
+- API documentation in [content/docs/api/](mdc:apps/web/content/docs/api)
+- Examples and guides in respective subdirectories
+
+## File Naming in Web App
+
+- Use kebab-case for components: `code-comparison.tsx`, `features-grid.tsx`
+- Page files follow Next.js conventions: `page.tsx`, `layout.tsx`
+- Keep component files focused and modular
+
+## Landing Page Components
+
+Key landing page sections in [components/landing/](mdc:apps/web/components/landing):
+
+- [hero.tsx](mdc:apps/web/components/landing/hero.tsx) - Main hero section
+- [features-grid.tsx](mdc:apps/web/components/landing/features-grid.tsx) - Feature highlights
+- [code-comparison.tsx](mdc:apps/web/components/landing/code-comparison.tsx) - Code examples
+- [examples-showcase.tsx](mdc:apps/web/components/landing/examples-showcase.tsx) - Live examples
+- [cta-section.tsx](mdc:apps/web/components/landing/cta-section.tsx) - Call-to-action
+
+## Styling
+
+- Tailwind CSS for styling
+- Custom styles in [global.css](mdc:apps/web/app/global.css)
+- Use CSS variables for theming
+- Responsive design patterns throughout
+
+## Content Management
+
+- MDX content processed by Fumadocs (see [source.config.ts](mdc:apps/web/source.config.ts))
+- API route for search in [app/api/search/route.ts](mdc:apps/web/app/api/search/route.ts)
+- Dynamic routing for docs in [app/docs/[[...slug]]/page.tsx](mdc:apps/web/app/docs/[[...slug]]/page.tsx)
+
+## Development
+
+- Run `bun dev` from web directory for development
+- Hot reloading for both code and content changes
+- Build with `bun run build`
+
+## Design System
+
+- Uses shadcn/ui components as base
+- Consistent spacing and typography
+- Dark/light mode support
+- Accessible component patterns
+
+## Infrastructure with SST
+
+- Uses SST (Serverless Stack) for infrastructure as code
+- Configuration in [sst.config.ts](mdc:apps/web/sst.config.ts)
+- AWS as primary provider (us-west-2 region)
+- Cloudflare for DNS management
+- Custom domain: `bunli.dev` with `www.bunli.dev` alias
+
+### SST Resources
+
+- `BunliWeb` - Next.js application deployment
+- Auto-generated types in [sst-env.d.ts](mdc:apps/web/sst-env.d.ts)
+- Production protection and retention policies
+
+### Deployment Commands
+
+```bash
+# Deploy to development
+bun sst deploy
+
+# Deploy to production
+bun sst deploy --stage production
+
+# Remove development stack
+bun sst remove
+
+# View SST console
+bun sst console
+```
+
+### Environment Management
+
+- Development: Resources are removed on stack deletion
+- Production: Resources are retained and protected
+- Environment variables managed through SST
+- Domain configuration with Cloudflare DNS
+
+## SEO and Meta
+
+- Proper meta tags and OpenGraph setup
+- Structured data for documentation
+- Sitemap generation for better indexing

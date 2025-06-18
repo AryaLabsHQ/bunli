@@ -1,0 +1,81 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Testing and Development Workflow
+
+Guidelines for testing and development practices in the Bunli CLI framework.
+
+## Testing Framework
+
+- Use **Bun's built-in test runner** with `bun test`
+- Test files should have `.test.ts` suffix in `test/` directories
+- Use testing utilities from [packages/test/](mdc:packages/test) for CLI-specific testing
+
+## Test Structure
+
+```typescript
+// Example test file structure
+import { describe, it, expect } from 'bun:test'
+import { testCommand } from '@bunli/test'
+import { myCommand } from '../src/commands/my-command.js'
+
+describe('My Command', () => {
+  it('should execute successfully', async () => {
+    const result = await testCommand(myCommand, {
+      args: { input: 'test' }
+    })
+    
+    expect(result.exitCode).toBe(0)
+    expect(result.output).toContain('success')
+  })
+})
+```
+
+## Testing Patterns
+
+- **Unit tests**: Test individual functions and classes
+- **Command tests**: Use [packages/test/src/test-command.ts](mdc:packages/test/src/test-command.ts) for CLI testing
+- **Integration tests**: Test complete workflows in [packages/test/test/advanced-scenarios.test.ts](mdc:packages/test/test/advanced-scenarios.test.ts)
+
+## Development Commands
+
+From the root directory:
+
+- `bun dev` - Start development mode with watch
+- `bun test` - Run all tests
+- `bun run build` - Build all packages
+- `bun run clean` - Clean build artifacts
+
+## Package-Specific Development
+
+Each package has its own development setup:
+
+- `bun run build` in package directory
+- Individual test commands
+- Build scripts in `scripts/build.ts`
+
+## Examples and Templates
+
+- Use [examples/](mdc:examples) as working references
+- Test new features against multiple example projects
+- Update templates in [packages/create-bunli/templates/](mdc:packages/create-bunli/templates) when adding features
+
+## Debugging
+
+- Use Bun's built-in debugger: `bun --inspect`
+- Add logging with the logger utilities from [packages/utils/src/logger.ts](mdc:packages/utils/src/logger.ts)
+- Test CLI commands in isolation using the test utilities
+
+## Plugin Testing
+
+- Plugins should have comprehensive tests in their `tests/` directories
+- Use the plugin testing helpers from [packages/test/](mdc:packages/test)
+- Test plugin integration with the core system
+
+## Continuous Integration
+
+- Tests run on each package using the [turbo.jsonc](mdc:turbo.jsonc) pipeline
+- Build and test scripts are coordinated across the monorepo
+- Use `bun` commands throughout the CI process
