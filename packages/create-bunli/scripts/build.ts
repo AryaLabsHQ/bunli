@@ -23,6 +23,7 @@ await $`chmod +x dist/cli.js`
 
 // Add shebang to CLI file
 const cliContent = await Bun.file('./dist/cli.js').text()
-await Bun.write('./dist/cli.js', `#!/usr/bin/env bun\n${cliContent}`)
+const finalContent = cliContent.startsWith('#!') ? cliContent : `#!/usr/bin/env bun\n${cliContent}`
+await Bun.write('./dist/cli.js', finalContent)
 
 console.log('✅ create-bunli built successfully')
