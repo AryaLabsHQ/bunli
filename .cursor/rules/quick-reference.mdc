@@ -25,7 +25,7 @@ cd apps/web && bun dev
 ## File Conventions
 
 - **Naming**: Always kebab-case (`my-command.ts`, not `MyCommand.ts`)
-- **Imports**: ESM only, use `.js` extensions for local files
+- **Imports**: ESM only, use `.js` extensions for local imports
 - **Tests**: `.test.ts` suffix in `test/` directories
 - **Exports**: Prefer named exports over default
 
@@ -33,13 +33,27 @@ cd apps/web && bun dev
 
 ### Command Definition
 ```typescript
-import { defineCommand } from '@bunli/core'
+import { defineCommand, option } from '@bunli/core'
+import { z } from 'zod'
 
 export const myCommand = defineCommand({
-  meta: { name: 'my-command', description: 'Description' },
-  args: { input: { type: 'string', description: 'Input' } },
-  run: async ({ args, logger }) => {
-    // Implementation
+  name: 'my-command',
+  description: 'Description',
+  options: {
+    input: option(
+      z.string().default('default'),
+      { description: 'Input value', short: 'i' }
+    )
+  },
+  handler: async ({ flags, positional, shell, env, cwd, prompt, spinner, colors, context }) => {
+    // Implementation - all utilities available
+    console.log(colors.green(`Input: ${flags.input}`))
+    console.log(`Args: ${positional.join(', ')}`)
+    
+    // Access plugin store if available
+    if (context?.store.someData) {
+      console.log(context.store.someData)
+    }
   }
 })
 ```
@@ -48,11 +62,16 @@ export const myCommand = defineCommand({
 ```typescript
 import { describe, it, expect } from 'bun:test'
 import { testCommand } from '@bunli/test'
+import { myCommand } from './my-command.js'
 
 describe('My Command', () => {
   it('works', async () => {
-    const result = await testCommand(myCommand, { args: {} })
+    const result = await testCommand(myCommand, {
+      flags: { input: 'test' },  // Named options
+      args: ['file.txt']         // Positional arguments
+    })
     expect(result.exitCode).toBe(0)
+    expect(result.stdout).toContain('Input: test')
   })
 })
 ```
@@ -61,10 +80,15 @@ describe('My Command', () => {
 
 ```typescript
 // Core framework
-import { defineCommand, defineConfig } from '@bunli/core'
+import { defineCommand, defineConfig, option, createCLI } from '@bunli/core'
+import { createPlugin } from '@bunli/core/plugin'
 
 // Utilities
-import { logger, spinner, prompt } from '@bunli/utils'
+import { colors, spinner, prompt } from '@bunli/utils'
+
+// Plugins
+import { aiAgentPlugin } from '@bunli/plugin-ai-detect'
+import { configMergerPlugin } from '@bunli/plugin-config'
 
 // Testing
 import { testCommand } from '@bunli/test'
@@ -83,3 +107,25 @@ import { testCommand } from '@bunli/test'
 2. **Add new plugin**: Create in `packages/plugin-*/`
 3. **Update docs**: Edit MDX in `apps/web/content/docs/`
 4. **Add example**: Create in `examples/`
+
+## Configuration Template
+
+### bunli.config.ts
+```typescript
+import { defineConfig } from '@bunli/core'
+
+export default defineConfig({
+  name: 'my-cli',
+  version: '1.0.0',
+  description: 'My CLI tool',
+  build: {
+    entry: 'src/index.ts',
+    outdir: 'dist',
+    targets: ['node16', 'bun'],
+    compress: true
+  },
+  plugins: [
+    // Plugin configuration
+  ]
+})
+```

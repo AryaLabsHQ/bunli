@@ -16,7 +16,7 @@ The [examples/](mdc:examples) directory contains 6 examples organized in learnin
 3. **[command-structure/](mdc:examples/command-structure)** - Multi-command organization 
 4. **[interactive/](mdc:examples/interactive)** - Prompts, wizards, user interaction
 5. **[real-world/](mdc:examples/real-world)** - Production-ready patterns and best practices
-6. **[plugin-example/](mdc:examples/plugin-example)** - Plugin development patterns
+6. **[plugin-example/](mdc:examples/plugin-example)** - Plugin development with type-safe stores
 
 ## Dual Documentation Approach
 
@@ -52,6 +52,14 @@ bun run build        # Production build
 ./dist/cli           # Run built executable
 ```
 
+### Plugin Example Features
+The plugin-example demonstrates:
+- Creating custom plugins with type-safe stores
+- Using built-in plugins (AI detection, config merger)
+- Accessing plugin data in command handlers
+- Plugin lifecycle hooks (beforeCommand, afterCommand)
+- Type inference with 'as const' for better typing
+
 ### For Reference
 - Use examples as templates for new CLI projects
 - Copy patterns from real-world example for production setups
@@ -75,6 +83,7 @@ When adding examples:
 - Usage instructions (direct + bunli dev)
 - Key concepts explained
 - Code examples with explanations
+- Configuration examples (bunli.config.ts)
 
 ### MDX Structure  
 - Complete code examples with syntax highlighting
@@ -82,6 +91,7 @@ When adding examples:
 - Usage examples with expected output
 - Links to related concepts and APIs
 - Next steps for learning
+- Plugin integration examples where relevant
 
 ## Examples as Teaching Tools
 

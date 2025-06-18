@@ -10,11 +10,11 @@ Follow these TypeScript and ESM patterns for consistency across the Bunli codeba
 ## Module System
 
 - **Always use ESM imports/exports**, never CommonJS (`require`/`module.exports`)
-- Use `.js` extensions in local imports when [tsconfig.json](mdc:tsconfig.json) uses NodeNext module resolution
+- Use `.js` extensions for all local imports (ESM requirement)
 - Prefer named exports over default exports for better tree-shaking
 
 ```typescript
-// ✅ Good - ESM with .js extension for local files
+// ✅ Good - ESM with .js extensions for local files
 import { defineCommand } from '@bunli/core'
 import { validateConfig } from './utils/validation.js'
 
@@ -24,7 +24,7 @@ export { myFunction, MyClass }
 // ❌ Avoid - CommonJS
 const { defineCommand } = require('@bunli/core')
 
-// ❌ Avoid - Missing .js extension with NodeNext
+// ❌ Avoid - Missing .js extension for local imports
 import { helper } from './helper'
 ```
 
@@ -41,6 +41,34 @@ import { helper } from './helper'
 - Define types in [packages/core/src/types.ts](mdc:packages/core/src/types.ts) for shared interfaces
 - Use type inference where possible, explicit types where clarity is needed
 - Leverage the plugin type system in [packages/core/src/plugin/types.ts](mdc:packages/core/src/plugin/types.ts)
+
+### Plugin Type Patterns
+
+```typescript
+// Define store types for plugins
+interface MyPluginStore {
+  data: string[]
+  count: number
+}
+
+// Use createPlugin with generics for type safety
+const myPlugin = createPlugin<MyPluginStore>({
+  name: 'my-plugin',
+  store: {
+    data: [],
+    count: 0
+  },
+  beforeCommand({ store }) {
+    // TypeScript knows store.data is string[]
+    store.data.push('command')
+  }
+})
+
+// For plugin factories with options
+const myPlugin = createPlugin<Options, Store>((options) => ({
+  // Plugin definition
+}))
+```
 
 ## Package Development
 
@@ -65,9 +93,28 @@ import { helper } from './helper'
 ```typescript
 // ✅ Good import order
 import { z } from 'zod'
-import { defineCommand } from '@bunli/core'
-import { logger } from '@bunli/utils'
+import { defineCommand, option } from '@bunli/core'
+import { createPlugin } from '@bunli/core/plugin'
+import { colors, spinner } from '@bunli/utils'
 import { parseConfig } from './config.js'
 import { validateInput } from '../validation/index.js'
 import type { CommandOptions } from './types.js'
+```
+
+## Command Handler Context
+
+Commands receive a rich context object with utilities:
+
+```typescript
+handler: async ({ flags, positional, shell, env, cwd, prompt, spinner, colors, context }) => {
+  // flags: Parsed and validated options
+  // positional: Non-flag arguments (string[])
+  // shell: Bun.$ for running shell commands
+  // env: process.env object
+  // cwd: Current working directory (string)
+  // prompt: Interactive prompting utilities
+  // spinner: Progress spinner utility
+  // colors: Terminal color utilities
+  // context: Plugin store access (when plugins are used)
+}
 ```

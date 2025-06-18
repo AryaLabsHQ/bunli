@@ -4,15 +4,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Bunli is a minimal, type-safe CLI framework for Bun. It's a monorepo managed with Bun workspaces and Turborepo.
+Bunli is a minimal, type-safe CLI framework for Bun with an advanced plugin system. It's a monorepo managed with Bun workspaces and Turborepo.
 
 ### Key Packages
 
-- **@bunli/core** - Core CLI framework with type-safe command definitions
+- **@bunli/core** - Core CLI framework with type-safe command definitions and plugin system
 - **@bunli/utils** - Shared utilities (colors, prompts, spinners, validation)
 - **@bunli/test** - Testing utilities for CLI applications
 - **bunli** - CLI toolchain for development and building
 - **create-bunli** - Project scaffolding tool
+- **@bunli/plugin-ai-detect** - Plugin for detecting AI coding assistants
+- **@bunli/plugin-config** - Plugin for loading and merging configuration files
 
 ## Development Commands
 
@@ -42,21 +44,34 @@ bun test -t "test name"         # Run tests matching pattern
 ### Module System
 - Pure ESM modules (all packages have `"type": "module"`)
 - TypeScript with `"moduleResolution": "bundler"`
-- No `.js` extensions needed in imports (unlike NodeNext resolution)
+- Use `.js` extensions for all local imports (ESM requirement)
 - Use named exports, avoid default exports
 
 ### Command Definition Pattern
 Commands in Bunli use a type-safe builder pattern:
 
 ```typescript
+import { defineCommand, option } from '@bunli/core'
+import { z } from 'zod'
+
 export const command = defineCommand({
   name: 'command-name',
   description: 'Command description',
-  flags: {
-    flagName: flag.string().optional()
+  options: {
+    flagName: option(
+      z.string().optional(),
+      { description: 'Flag description', short: 'f' }
+    )
   },
-  handler: async ({ flags }) => {
-    // Implementation
+  handler: async ({ flags, positional, shell, env, cwd, prompt, spinner, colors, context }) => {
+    // Implementation with full type safety
+    console.log(flags.flagName) // TypeScript knows the type
+    console.log(positional[0]) // Access positional args
+    
+    // Access plugin store if available
+    if (context?.store.someData) {
+      console.log(context.store.someData)
+    }
   }
 });
 ```
@@ -88,10 +103,10 @@ Each package uses explicit exports in package.json:
 
 ## Important Conventions
 
-- **Always use Bun** instead of npm/yarn/pnpm
+- **Always use Bun** instead of npm/yarn/pnpm (overrides user preference)
 - **Always use ESM** - no CommonJS
 - **File naming**: Always use kebab-case (e.g., `my-command.ts`)
-- **Imports**: No file extensions needed due to bundler resolution
+- **Imports**: Always use `.js` extensions for local imports (ESM requirement)
 - **Type exports**: Export types explicitly for better tree-shaking
 
 ## Common Tasks
@@ -118,7 +133,77 @@ bun run src/index.ts [command]
 ## Type Safety
 
 Bunli emphasizes type safety throughout:
-- Command flags are fully typed
+- Command flags are fully typed via Zod schemas
+- Plugin stores provide compile-time type safety
 - Validation schemas integrate with TypeScript
 - Builder pattern ensures compile-time safety
 - Test utilities provide typed mocks and assertions
+
+## Plugin System
+
+### Creating Plugins
+
+```typescript
+import { createPlugin } from '@bunli/core/plugin'
+
+interface MyStore {
+  count: number
+  data: string[]
+}
+
+export const myPlugin = createPlugin<MyStore>({
+  name: 'my-plugin',
+  store: {
+    count: 0,
+    data: []
+  },
+  beforeCommand({ store }) {
+    store.count++ // Type-safe!
+  }
+})
+```
+
+### Using Plugins
+
+```typescript
+import { createCLI } from '@bunli/core'
+import { aiAgentPlugin } from '@bunli/plugin-ai-detect'
+import { configMergerPlugin } from '@bunli/plugin-config'
+
+const cli = await createCLI({
+  name: 'my-cli',
+  version: '1.0.0',
+  plugins: [
+    aiAgentPlugin({ verbose: true }),
+    configMergerPlugin({ sources: ['.myrc.json'] }),
+    myPlugin
+  ] as const // Use 'as const' for better type inference
+})
+```
+
+## Configuration
+
+Projects use `bunli.config.ts` for configuration:
+
+```typescript
+import { defineConfig } from '@bunli/core'
+
+export default defineConfig({
+  name: 'my-cli',
+  version: '1.0.0',
+  description: 'My CLI tool',
+  build: {
+    entry: 'src/index.ts',
+    outdir: 'dist',
+    targets: ['node16', 'bun'],
+    compress: true
+  },
+  dev: {
+    watch: true,
+    inspect: false
+  },
+  plugins: [
+    // Plugin configuration
+  ]
+})
+```

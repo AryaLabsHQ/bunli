@@ -9,17 +9,17 @@ This is a monorepo for the Bunli CLI framework, organized into apps, packages, a
 
 ## Core Architecture
 
-- **[packages/core/](mdc:packages/core)** - Core CLI framework functionality with plugin system
-- **[packages/cli/](mdc:packages/cli)** - Main CLI application with build, dev, init, release, and test commands
+- **[packages/core/](mdc:packages/core)** - Core CLI framework functionality with type-safe plugin system and store
+- **[packages/cli/](mdc:packages/cli)** - Main CLI application (bunli) with build, dev, init, release, and test commands
 - **[packages/create-bunli/](mdc:packages/create-bunli)** - Project scaffolding tool with templates
 - **[apps/web/](mdc:apps/web)** - Next.js documentation website and landing page
 
 ## Plugin Ecosystem
 
-- **[packages/plugin-ai-detect/](mdc:packages/plugin-ai-detect)** - AI detection plugin
-- **[packages/plugin-config/](mdc:packages/plugin-config)** - Configuration management plugin
-- **[packages/test/](mdc:packages/test)** - Testing utilities and helpers
-- **[packages/utils/](mdc:packages/utils)** - Shared utilities (colors, prompts, validation)
+- **[packages/plugin-ai-detect/](mdc:packages/plugin-ai-detect)** - Detects AI coding assistants (Claude, Cursor) from environment
+- **[packages/plugin-config/](mdc:packages/plugin-config)** - Loads and merges configuration from multiple sources
+- **[packages/test/](mdc:packages/test)** - Testing utilities with custom matchers and CLI test helpers
+- **[packages/utils/](mdc:packages/utils)** - Shared utilities (colors, prompts, spinners, validation)
 
 ## Examples and Templates
 
@@ -28,9 +28,10 @@ This is a monorepo for the Bunli CLI framework, organized into apps, packages, a
 
 ## Key Entry Points
 
-- **[packages/core/src/index.ts](mdc:packages/core/src/index.ts)** - Core framework exports
+- **[packages/core/src/index.ts](mdc:packages/core/src/index.ts)** - Core framework exports (defineCommand, createCLI, option)
+- **[packages/core/src/plugin/index.ts](mdc:packages/core/src/plugin/index.ts)** - Plugin system exports (createPlugin, BunliPlugin)
 - **[packages/cli/src/index.ts](mdc:packages/cli/src/index.ts)** - CLI application entry
-- **[packages/core/src/cli.ts](mdc:packages/core/src/cli.ts)** - Main CLI creation function
+- **[packages/core/src/cli.ts](mdc:packages/core/src/cli.ts)** - Main CLI creation function with plugin support
 
 ## Development Workflow
 
@@ -41,4 +42,40 @@ This is a monorepo for the Bunli CLI framework, organized into apps, packages, a
 
 ## Plugin Development
 
-Plugins are created using the plugin system in [packages/core/src/plugin/](mdc:packages/core/src/plugin). See existing plugins for patterns.
+Plugins are created using the type-safe plugin system in [packages/core/src/plugin/](mdc:packages/core/src/plugin):
+
+```typescript
+import { createPlugin } from '@bunli/core/plugin'
+
+interface MyStore {
+  data: string[]
+}
+
+export const myPlugin = createPlugin<MyStore>({
+  name: 'my-plugin',
+  store: { data: [] },
+  beforeCommand({ store }) {
+    store.data.push('command started')
+  }
+})
+```
+
+See [packages/plugin-ai-detect/](mdc:packages/plugin-ai-detect) and [packages/plugin-config/](mdc:packages/plugin-config) for reference implementations.
+
+## Configuration
+
+Projects use `bunli.config.ts` for configuration:
+
+```typescript
+import { defineConfig } from '@bunli/core'
+
+export default defineConfig({
+  name: 'my-cli',
+  version: '1.0.0',
+  build: {
+    entry: 'src/index.ts',
+    outdir: 'dist',
+    targets: ['node16', 'bun']
+  }
+})
+```

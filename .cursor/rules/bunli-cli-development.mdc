@@ -13,23 +13,36 @@ Commands follow a consistent pattern using the core framework:
 
 ```typescript
 // In any command file (e.g., packages/cli/src/commands/build.ts)
-import { defineCommand } from '@bunli/core'
+import { defineCommand, option } from '@bunli/core'
+import { z } from 'zod'
 
 export const buildCommand = defineCommand({
-  meta: {
-    name: 'build',
-    description: 'Build the project'
+  name: 'build',
+  description: 'Build the project',
+  options: {
+    // Define options with Zod validation
+    output: option(
+      z.string().default('dist'),
+      { description: 'Output directory', short: 'o' }
+    ),
+    compress: option(
+      z.boolean().default(false),
+      { description: 'Compress output' }
+    )
   },
-  args: {
-    // Define arguments with validation
-    output: {
-      type: 'string',
-      description: 'Output directory',
-      default: 'dist'
+  handler: async ({ flags, positional, shell, env, cwd, prompt, spinner, colors, context }) => {
+    // Access type-safe flags
+    const spin = spinner(`Building to ${flags.output}...`)
+    spin.start()
+    
+    // Access plugin context if available
+    if (context?.env.isAIAgent) {
+      console.log(`AI Agent detected: ${context.store.aiAgents.join(', ')}`)
     }
-  },
-  run: async ({ args, logger }) => {
+    
     // Implementation
+    await shell`bun build src/index.ts --outdir ${flags.output}`
+    spin.succeed('Build complete!')
   }
 })
 ```
@@ -44,13 +57,14 @@ export const buildCommand = defineCommand({
 
 - Use kebab-case for all files: `my-command.ts` not `MyCommand.ts`
 - Commands go in `commands/` directory
-- Use `.js` extensions in imports when using NodeNext module resolution
+- Use `.js` extensions for all local imports (ESM requirement)
 - Keep files focused on single responsibilities
 
 ## Error Handling
 
-- Use the logger from the command context: `logger.error()`, `logger.warn()`, `logger.info()`
+- Use utilities from the handler context: `colors.error()`, `colors.warn()`, `colors.info()`
 - Throw meaningful errors with helpful messages
+- Zod schemas provide automatic validation for command options
 - Use validation from [packages/utils/src/validation.ts](mdc:packages/utils/src/validation.ts)
 
 ## Testing
@@ -63,5 +77,38 @@ export const buildCommand = defineCommand({
 ## Plugin Integration
 
 - Use the plugin system from [packages/core/src/plugin/](mdc:packages/core/src/plugin)
-- Plugins should be self-contained with clear interfaces
-- Register plugins in configuration or CLI setup
+- Plugins provide type-safe stores accessible in command handlers
+- Create plugins with `createPlugin` helper:
+
+```typescript
+import { createPlugin } from '@bunli/core/plugin'
+
+interface MyStore {
+  count: number
+  messages: string[]
+}
+
+const myPlugin = createPlugin<MyStore>({
+  name: 'my-plugin',
+  store: {
+    count: 0,
+    messages: []
+  },
+  beforeCommand({ store }) {
+    store.count++
+  }
+})
+```
+
+- Register plugins in CLI creation:
+
+```typescript
+const cli = await createCLI({
+  name: 'my-cli',
+  plugins: [
+    aiAgentPlugin(),
+    configMergerPlugin({ sources: ['.myrc.json'] }),
+    myPlugin
+  ] as const // Use 'as const' for better type inference
+})
+```

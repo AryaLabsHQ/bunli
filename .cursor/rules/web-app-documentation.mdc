@@ -19,6 +19,8 @@ Guidelines for working with the Next.js documentation website in [apps/web/](mdc
 - MDX files with frontmatter in [content/docs/](mdc:apps/web/content/docs)
 - Meta files for navigation: [meta.json](mdc:apps/web/content/docs/meta.json)
 - API documentation in [content/docs/api/](mdc:apps/web/content/docs/api)
+- Plugin documentation in [content/docs/core-concepts/plugins.mdx](mdc:apps/web/content/docs/core-concepts/plugins.mdx)
+- Package docs for plugins in [content/docs/packages/plugins/](mdc:apps/web/content/docs/packages/plugins)
 - Examples and guides in respective subdirectories
 
 ## File Naming in Web App
@@ -49,6 +51,37 @@ Key landing page sections in [components/landing/](mdc:apps/web/components/landi
 - MDX content processed by Fumadocs (see [source.config.ts](mdc:apps/web/source.config.ts))
 - API route for search in [app/api/search/route.ts](mdc:apps/web/app/api/search/route.ts)
 - Dynamic routing for docs in [app/docs/[[...slug]]/page.tsx](mdc:apps/web/app/docs/[[...slug]]/page.tsx)
+
+## Plugin Documentation Patterns
+
+When documenting plugins:
+
+```mdx
+# Plugin Name
+
+## Installation
+```bash
+bun add @bunli/plugin-name
+```
+
+## Usage
+```typescript
+import { pluginName } from '@bunli/plugin-name'
+
+const cli = await createCLI({
+  plugins: [
+    pluginName({
+      // options
+    })
+  ]
+})
+```
+
+## API Reference
+- Document plugin options interface
+- Explain store properties
+- Show lifecycle hook usage
+```
 
 ## Development
 
@@ -105,3 +138,11 @@ bun sst console
 - Proper meta tags and OpenGraph setup
 - Structured data for documentation
 - Sitemap generation for better indexing
+
+## Recent Documentation Updates
+
+- Added comprehensive plugin system documentation
+- Created API reference for plugin types and utilities
+- Added package docs for @bunli/plugin-ai-detect and @bunli/plugin-config
+- Updated command patterns to show new handler context with plugin access
+- Enhanced examples to demonstrate plugin usage

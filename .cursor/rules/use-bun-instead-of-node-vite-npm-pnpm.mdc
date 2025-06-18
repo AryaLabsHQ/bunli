@@ -13,6 +13,14 @@ Default to using Bun instead of Node.js.
 - Use `bun run <script>` instead of `npm run <script>` or `yarn run <script>` or `pnpm run <script>`
 - Bun automatically loads .env, so don't use dotenv.
 
+## Bunli-Specific Commands
+
+- Use `bunli dev` for hot-reload development
+- Use `bunli build` to build CLI executables
+- Use `bunli test` to run tests with coverage
+- Use `bunli init` to scaffold new projects
+- Use `bunli release` to publish packages
+
 ## APIs
 
 - `Bun.serve()` supports WebSockets, HTTPS, and routes. Don't use `express`.
@@ -22,6 +30,36 @@ Default to using Bun instead of Node.js.
 - `WebSocket` is built-in. Don't use `ws`.
 - Prefer `Bun.file` over `node:fs`'s readFile/writeFile
 - Bun.$`ls` instead of execa.
+
+## Bunli Development
+
+When developing Bunli CLIs:
+
+```typescript
+// bunli.config.ts
+import { defineConfig } from '@bunli/core'
+
+export default defineConfig({
+  name: 'my-cli',
+  version: '1.0.0',
+  description: 'My CLI tool',
+  build: {
+    entry: 'src/index.ts',
+    outdir: 'dist',
+    targets: ['bun', 'node16']
+  }
+})
+```
+
+Use Bun's shell for command execution in handlers:
+
+```typescript
+handler: async ({ shell }) => {
+  // Use Bun's shell instead of child_process or execa
+  const result = await shell`git status`.text()
+  console.log(result)
+}
+```
 
 ## Frontend
 

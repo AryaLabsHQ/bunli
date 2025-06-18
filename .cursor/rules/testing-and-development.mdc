@@ -24,11 +24,33 @@ import { myCommand } from '../src/commands/my-command.js'
 describe('My Command', () => {
   it('should execute successfully', async () => {
     const result = await testCommand(myCommand, {
-      args: { input: 'test' }
+      flags: { input: 'test' }  // Note: use 'flags', not 'args'
     })
     
     expect(result.exitCode).toBe(0)
-    expect(result.output).toContain('success')
+    expect(result.stdout).toContain('success')
+  })
+  
+  it('should handle positional arguments', async () => {
+    const result = await testCommand(myCommand, {
+      flags: { verbose: true },
+      args: ['file1.txt', 'file2.txt']  // 'args' is for positional arguments
+    })
+    
+    expect(result.stdout).toContain('file1.txt')
+  })
+  
+  it('should handle plugin context', async () => {
+    const result = await testCommand(myCommand, {
+      flags: { verbose: true },
+      context: {
+        store: {
+          someData: 'test data'
+        }
+      }
+    })
+    
+    expect(result.stdout).toContain('test data')
   })
 })
 ```
@@ -65,14 +87,34 @@ Each package has its own development setup:
 ## Debugging
 
 - Use Bun's built-in debugger: `bun --inspect`
-- Add logging with the logger utilities from [packages/utils/src/logger.ts](mdc:packages/utils/src/logger.ts)
+- Add logging with the color utilities from [packages/utils/src/colors.ts](mdc:packages/utils/src/colors.ts)
 - Test CLI commands in isolation using the test utilities
+- Use `bunli dev` for hot-reload development
 
 ## Plugin Testing
 
-- Plugins should have comprehensive tests in their `tests/` directories
-- Use the plugin testing helpers from [packages/test/](mdc:packages/test)
-- Test plugin integration with the core system
+- Plugins should have comprehensive tests in their `test/` directories
+- Test plugin lifecycle hooks and store functionality:
+
+```typescript
+import { describe, it, expect } from 'bun:test'
+import { createCLI } from '@bunli/core'
+import { myPlugin } from '../src'
+
+describe('My Plugin', () => {
+  it('should update store in beforeCommand', async () => {
+    const cli = await createCLI({
+      name: 'test-cli',
+      plugins: [myPlugin({ verbose: true })]
+    })
+    
+    // Test plugin behavior
+  })
+})
+```
+
+- Test type inference and store merging with multiple plugins
+- Verify plugin options are handled correctly
 
 ## Continuous Integration
 
