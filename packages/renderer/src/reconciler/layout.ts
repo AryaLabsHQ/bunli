@@ -78,18 +78,39 @@ function layoutElement(
   let height = marginConstraints.maxHeight
   
   if (props.width !== undefined) {
-    width = typeof props.width === 'number' 
-      ? props.width 
-      : parseFloat(props.width)
+    if (typeof props.width === 'string' && props.width.endsWith('%')) {
+      const percentage = parseFloat(props.width) / 100
+      width = Math.floor(marginConstraints.maxWidth * percentage)
+    } else {
+      width = typeof props.width === 'number' 
+        ? props.width 
+        : parseFloat(props.width)
+    }
     width = Math.min(width, marginConstraints.maxWidth)
   }
   
   if (props.height !== undefined) {
-    height = typeof props.height === 'number'
-      ? props.height
-      : parseFloat(props.height)
+    if (typeof props.height === 'string' && props.height.endsWith('%')) {
+      const percentage = parseFloat(props.height) / 100
+      height = Math.floor(marginConstraints.maxHeight * percentage)
+    } else {
+      height = typeof props.height === 'number'
+        ? props.height
+        : parseFloat(props.height)
+    }
     height = Math.min(height, marginConstraints.maxHeight)
   }
+  
+  // Apply style-based constraints (min/max width/height)
+  const style = props.style || {}
+  const minWidth = style.minWidth || 0
+  const maxWidth = style.maxWidth !== undefined ? style.maxWidth : Infinity
+  const minHeight = style.minHeight || 0
+  const maxHeight = style.maxHeight !== undefined ? style.maxHeight : Infinity
+  
+  // Enforce min/max constraints
+  width = Math.max(minWidth, Math.min(maxWidth, width))
+  height = Math.max(minHeight, Math.min(maxHeight, height))
   
   // Content constraints (after padding)
   const contentConstraints: LayoutConstraints = {
@@ -126,13 +147,27 @@ function layoutElement(
   
   // Calculate final size (including padding and border)
   const borderSpace = borderOffset * 2
+  
+  // For flex items or items with constrained width, use the constraint width
+  // Otherwise use content size
+  const isFlexItem = constraints.minWidth === constraints.maxWidth && constraints.minWidth > 0
+  
+  // Box elements should stretch to fill available width by default (like CSS flexbox)
+  const shouldStretch = element.elementType === 'box' && props.width === undefined && !props.flex
+  
   const finalWidth = props.width !== undefined 
     ? width 
-    : Math.min(contentSize.width + pLeft + pRight + borderSpace, width)
+    : isFlexItem 
+      ? width // Use the constrained width for flex items
+      : shouldStretch
+        ? width // Stretch to fill available width
+        : Math.min(contentSize.width + pLeft + pRight + borderSpace, width)
     
   const finalHeight = props.height !== undefined
     ? height
-    : Math.min(contentSize.height + pTop + pBottom + borderSpace, height)
+    : constraints.minHeight === constraints.maxHeight && constraints.minHeight > 0
+      ? height // Use the constrained height for flex items
+      : Math.min(contentSize.height + pTop + pBottom + borderSpace, height)
   
   // Store layout information
   const oldLayout = element.layout
@@ -268,14 +303,28 @@ function layoutHorizontal(
       maxHeight = Math.max(maxHeight, size.height)
     } else {
       const flex = child.props.flex || 0
-      const childWidth = flex > 0 ? Math.floor(flexUnitWidth * flex) : size.width
+      let childConstraints: LayoutConstraints
       
-      const childSize = layoutElement(child, {
-        minWidth: childWidth,
-        maxWidth: childWidth,
-        minHeight: 0,
-        maxHeight: constraints.maxHeight,
-      }, { x: currentX, y: position.y })
+      if (flex > 0) {
+        // For flex items, set the width they should occupy
+        const flexWidth = Math.floor(flexUnitWidth * flex)
+        childConstraints = {
+          minWidth: flexWidth,
+          maxWidth: flexWidth,
+          minHeight: 0,
+          maxHeight: constraints.maxHeight,
+        }
+      } else {
+        // For non-flex items, use their measured size
+        childConstraints = {
+          minWidth: size.width,
+          maxWidth: size.width,
+          minHeight: 0,
+          maxHeight: constraints.maxHeight,
+        }
+      }
+      
+      const childSize = layoutElement(child, childConstraints, { x: currentX, y: position.y })
       
       currentX += childSize.width
       maxHeight = Math.max(maxHeight, childSize.height)
@@ -309,16 +358,54 @@ function layoutVertical(
     return { width: 0, height: 0 }
   }
   
+  // Calculate flex values
+  let totalFlex = 0
+  let totalFixedHeight = 0
+  const childSizes: LayoutSize[] = []
+  
+  // First pass: measure non-flex children
+  for (const child of children) {
+    if (isTextNode(child)) {
+      const size = measureText(child.text)
+      childSizes.push(size)
+      totalFixedHeight += size.height
+    } else {
+      const flex = child.props.flex || 0
+      if (flex > 0) {
+        totalFlex += flex
+        childSizes.push({ width: 0, height: 0 })
+      } else {
+        // Measure with unlimited height
+        const size = layoutElement(child, {
+          minWidth: 0,
+          maxWidth: constraints.maxWidth,
+          minHeight: 0,
+          maxHeight: Infinity,
+        }, position)
+        childSizes.push(size)
+        totalFixedHeight += size.height
+      }
+    }
+  }
+  
+  // Add gaps
+  totalFixedHeight += gap * (children.length - 1)
+  
+  // Calculate flex height
+  const availableHeight = Math.max(0, constraints.maxHeight - totalFixedHeight)
+  const flexUnitHeight = totalFlex > 0 ? availableHeight / totalFlex : 0
+  
+  // Second pass: layout children with final positions
   let currentY = position.y
   let maxWidth = 0
   
   for (let i = 0; i < children.length; i++) {
     const child = children[i]
+    const size = childSizes[i]
     
-    if (!child) continue
+    if (!child || !size) continue
     
     if (isTextNode(child)) {
-      const size = measureText(child.text)
       // Assign layout to text nodes
       child.layout = {
         x: position.x,
@@ -329,14 +416,29 @@ function layoutVertical(
       currentY += size.height
       maxWidth = Math.max(maxWidth, size.width)
     } else {
-      const remainingHeight = Math.max(0, constraints.maxHeight - (currentY - position.y))
+      const flex = child.props.flex || 0
+      let childConstraints: LayoutConstraints
       
-      const childSize = layoutElement(child, {
-        minWidth: 0,
-        maxWidth: constraints.maxWidth,
-        minHeight: 0,
-        maxHeight: remainingHeight,
-      }, { x: position.x, y: currentY })
+      if (flex > 0) {
+        // For flex items, set the height they should occupy
+        const flexHeight = Math.floor(flexUnitHeight * flex)
+        childConstraints = {
+          minWidth: 0,
+          maxWidth: constraints.maxWidth,
+          minHeight: flexHeight,
+          maxHeight: flexHeight,
+        }
+      } else {
+        // For non-flex items, use their measured size
+        childConstraints = {
+          minWidth: 0,
+          maxWidth: constraints.maxWidth,
+          minHeight: size.height,
+          maxHeight: size.height,
+        }
+      }
+      
+      const childSize = layoutElement(child, childConstraints, { x: position.x, y: currentY })
       
       currentY += childSize.height
       maxWidth = Math.max(maxWidth, childSize.width)
@@ -363,9 +465,81 @@ function layoutText(
   // Collect all text from children
   const text = collectText(element)
   
-  // For now, simple text measurement
-  // TODO: Handle wrapping, truncation, etc.
-  return measureText(text)
+  // Get text props
+  const props = element.props
+  const wrap = props.wrap || 'nowrap'
+  const maxWidth = constraints.maxWidth
+  
+  // Handle text wrapping/truncation
+  let processedText = text
+  
+  if (wrap === 'nowrap' || maxWidth === Infinity) {
+    processedText = text
+  } else if (wrap === 'truncate') {
+    // Truncate to single line
+    processedText = text.length > maxWidth ? text.substring(0, maxWidth - 3) + '...' : text
+  } else if (wrap === 'wrap') {
+    // Word wrap the text
+    processedText = wrapText(text, maxWidth)
+  }
+  
+  // Store the processed text on the element for rendering
+  ;(element as any)._processedText = processedText
+  
+  return measureText(processedText)
+}
+
+/**
+ * Wrap text to fit within maxWidth
+ */
+function wrapText(text: string, maxWidth: number): string {
+  if (maxWidth <= 0) return ''
+  
+  const lines: string[] = []
+  const inputLines = text.split('\n')
+  
+  for (const inputLine of inputLines) {
+    if (inputLine.length <= maxWidth) {
+      lines.push(inputLine)
+      continue
+    }
+    
+    // Word wrapping
+    const words = inputLine.split(' ')
+    let currentLine = ''
+    
+    for (const word of words) {
+      // If word itself is longer than maxWidth, break it
+      if (word.length > maxWidth) {
+        // Flush current line if any
+        if (currentLine) {
+          lines.push(currentLine)
+          currentLine = ''
+        }
+        
+        // Break long word
+        for (let i = 0; i < word.length; i += maxWidth) {
+          lines.push(word.substring(i, i + maxWidth))
+        }
+        continue
+      }
+      
+      // Check if adding word would exceed width
+      const testLine = currentLine ? currentLine + ' ' + word : word
+      if (testLine.length > maxWidth) {
+        // Push current line and start new one
+        if (currentLine) lines.push(currentLine)
+        currentLine = word
+      } else {
+        currentLine = testLine
+      }
+    }
+    
+    // Push remaining line
+    if (currentLine) lines.push(currentLine)
+  }
+  
+  return lines.join('\n')
 }
 
 /**
@@ -373,8 +547,8 @@ function layoutText(
  */
 function measureText(text: string): LayoutSize {
   const lines = text.split('\n')
-  const width = Math.max(...lines.map(line => line.length))
-  const height = lines.length
+  const width = lines.length > 0 ? Math.max(...lines.map(line => line.length)) : 0
+  const height = lines.length || 1
   
   return { width, height }
 }

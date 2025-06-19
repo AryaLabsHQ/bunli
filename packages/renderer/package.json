@@ -12,6 +12,10 @@
   "scripts": {
     "build": "bun run scripts/build.ts",
     "test": "bun test",
+    "test:watch": "bun test --watch",
+    "test:coverage": "bun test --coverage",
+    "test:snapshots": "bun test -u",
+    "test:performance": "bun test tests/performance",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {

@@ -458,19 +458,24 @@ export class TerminalRenderer {
     if (!element.layout) return
     
     const style = element.props.style as Style | undefined
-    const text = this.extractText(element)
     
-    // If no text found in props, check if this is a container with text node children
-    if (!text && element.children.length > 0) {
-      // For text elements, the actual text might be in child text nodes
-      const childText = element.children
-        .filter(isTextNode)
-        .map(node => node.text)
-        .join('')
-      if (childText) {
-        const actualText = childText
-        this.renderTextContent(actualText, element.layout, buffer, style, parentBounds)
-        return
+    // Use the processed text from layout phase if available
+    let text = (element as any)._processedText
+    
+    // Fallback to extracting text if no processed text
+    if (!text) {
+      text = this.extractText(element)
+      
+      // If no text found in props, check if this is a container with text node children
+      if (!text && element.children.length > 0) {
+        // For text elements, the actual text might be in child text nodes
+        const childText = element.children
+          .filter(isTextNode)
+          .map(node => node.text)
+          .join('')
+        if (childText) {
+          text = childText
+        }
       }
     }
     

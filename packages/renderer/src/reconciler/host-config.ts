@@ -227,6 +227,18 @@ export const terminalHostConfig: HostConfig<
         // Check if this prop affects style
         if (key === 'style') {
           needsStyle = true
+          
+          // Check if style changes affect layout
+          const oldStyle = oldProps.style || {}
+          const newStyle = newProps.style || {}
+          const layoutStyleProps = ['width', 'height', 'minWidth', 'maxWidth', 'minHeight', 'maxHeight']
+          
+          for (const styleProp of layoutStyleProps) {
+            if (oldStyle[styleProp] !== newStyle[styleProp]) {
+              needsLayout = true
+              break
+            }
+          }
         }
       }
     }

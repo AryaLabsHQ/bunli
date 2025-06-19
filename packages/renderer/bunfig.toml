@@ -1,0 +1,11 @@
+[test]
+# Test configuration for @bunli/renderer
+root = "./tests"
+preload = ["./tests/setup.ts"]
+coverage = true
+coverageThreshold = { global = { branches = 80, functions = 80, lines = 85, statements = 85 } }
+
+# Exclude performance tests from regular runs
+# Run them separately with: bun test:performance
+[test.exclude]
+patterns = ["**/performance/**"]

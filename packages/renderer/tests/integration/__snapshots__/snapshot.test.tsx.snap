@@ -1,0 +1,21 @@
+// Bun Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Visual Snapshots renders simple box with border 1`] = `"?25l"`;
+
+exports[`Visual Snapshots renders double border box 1`] = `"?25l"`;
+
+exports[`Visual Snapshots renders round border box 1`] = `"?25l"`;
+
+exports[`Visual Snapshots renders horizontal layout 1`] = `"?25l"`;
+
+exports[`Visual Snapshots renders vertical layout 1`] = `"?25l"`;
+
+exports[`Visual Snapshots renders nested layout 1`] = `"?25l"`;
+
+exports[`Visual Snapshots renders text alignment 1`] = `"?25l"`;
+
+exports[`Visual Snapshots renders with padding and margin 1`] = `"?25l"`;
+
+exports[`Visual Snapshots renders styled text 1`] = `"?25l"`;
+
+exports[`Visual Snapshots renders complex dashboard layout 1`] = `"?25l"`;
