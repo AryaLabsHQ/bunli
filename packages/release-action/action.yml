@@ -1,0 +1,61 @@
+name: 'Bunli Release'
+description: 'Automated multi-platform releases for Bunli CLIs'
+author: 'Bunli Team'
+
+branding:
+  icon: 'package'
+  color: 'purple'
+
+inputs:
+  version:
+    description: 'Bunli Release version to use'
+    default: 'latest'
+  
+  config:
+    description: 'Path to config file (.bunli-release.yaml)'
+    default: '.bunli-release.yaml'
+  
+  args:
+    description: 'Additional arguments to pass to bunli-release'
+    default: ''
+  
+  skip-build:
+    description: 'Skip building binaries (useful for matrix builds)'
+    default: 'false'
+  
+  github-token:
+    description: 'GitHub token for creating releases'
+    default: ${{ github.token }}
+    required: true
+  
+  npm-token:
+    description: 'NPM token for publishing packages'
+    required: false
+  
+  homebrew-token:
+    description: 'GitHub token for updating Homebrew tap'
+    required: false
+  
+  working-directory:
+    description: 'Working directory to run the action'
+    default: '.'
+
+outputs:
+  release-url:
+    description: 'URL of the created GitHub release'
+  
+  release-id:
+    description: 'ID of the created GitHub release'
+  
+  artifacts:
+    description: 'JSON array of uploaded artifacts'
+  
+  changelog:
+    description: 'Generated changelog content'
+  
+  version:
+    description: 'Version that was released'
+
+runs:
+  using: 'node22'
+  main: 'dist/index.js'
