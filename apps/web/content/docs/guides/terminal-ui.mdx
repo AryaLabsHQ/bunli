@@ -1,0 +1,584 @@
+---
+title: Terminal UI with React
+description: Build rich terminal interfaces using React components
+---
+
+# Terminal UI with React
+
+Bunli provides a powerful React-based terminal UI system that brings the familiar React component model to CLI applications. Build interactive dashboards, forms, and complex UIs with the same patterns you use for web development.
+
+## Overview
+
+The terminal UI system consists of three packages:
+
+- **[@bunli/renderer](/docs/packages/renderer)** - React reconciler for terminal rendering
+- **[@bunli/ui](/docs/packages/ui)** - Component library with 20+ UI components
+- **[@bunli/plugin-ui](/docs/packages/plugin-ui)** - Bunli integration for UI commands
+
+## Getting Started
+
+### Installation
+
+```bash
+bun add @bunli/plugin-ui @bunli/ui @bunli/renderer
+```
+
+### Basic Example
+
+```tsx
+import { createCLI } from '@bunli/core'
+import { uiPlugin } from '@bunli/plugin-ui'
+import { Box, Text } from '@bunli/renderer'
+
+const cli = await createCLI({
+  name: 'my-cli',
+  version: '1.0.0',
+  plugins: [uiPlugin], // Enable UI support
+  
+  commands: {
+    hello: {
+      description: 'Show a hello message',
+      handler: async ({ ui }) => {
+        await ui.render(
+          <Box padding={2} style={{ border: 'single' }}>
+            <Text style={{ color: 'cyan', bold: true }}>
+              Hello from React in the terminal! 👋
+            </Text>
+          </Box>
+        )
+        
+        await ui.waitForExit()
+      }
+    }
+  }
+})
+
+export default cli
+```
+
+## Building Interactive UIs
+
+### Form Example
+
+```tsx
+import React, { useState } from 'react'
+import { defineUICommand } from '@bunli/plugin-ui'
+import { Box, Text, Column } from '@bunli/renderer'
+import { Input, Button, Alert } from '@bunli/ui'
+import { z } from 'zod'
+import { option } from '@bunli/core'
+
+function LoginForm() {
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState<string>()
+  const [success, setSuccess] = useState(false)
+  
+  const handleSubmit = async () => {
+    // Validate
+    if (!username || !password) {
+      setError('All fields are required')
+      return
+    }
+    
+    // Simulate login
+    if (username === 'admin' && password === 'password') {
+      setSuccess(true)
+      setTimeout(() => process.exit(0), 2000)
+    } else {
+      setError('Invalid credentials')
+    }
+  }
+  
+  if (success) {
+    return (
+      <Box padding={2}>
+        <Alert type="success" title="Login Successful!">
+          Welcome back, {username}!
+        </Alert>
+      </Box>
+    )
+  }
+  
+  return (
+    <Box padding={2} width={50}>
+      <Text style={{ bold: true, marginBottom: 1 }}>
+        Login to Your Account
+      </Text>
+      
+      {error && (
+        <Alert type="error" title="Error" dismissible onDismiss={() => setError(undefined)}>
+          {error}
+        </Alert>
+      )}
+      
+      <Column gap={1}>
+        <Input
+          value={username}
+          onChange={setUsername}
+          placeholder="Username"
+          autoFocus
+        />
+        
+        <Input
+          value={password}
+          onChange={setPassword}
+          placeholder="Password"
+          type="password"
+          onSubmit={handleSubmit}
+        />
+        
+        <Button
+          variant="primary"
+          onClick={handleSubmit}
+          disabled={!username || !password}
+        >
+          Login
+        </Button>
+      </Column>
+      
+      <Text style={{ color: 'gray', marginTop: 1 }}>
+        Hint: Use admin/password
+      </Text>
+    </Box>
+  )
+}
+
+export const loginCommand = defineUICommand({
+  name: 'login',
+  description: 'Login to your account',
+  handler: async ({ ui }) => {
+    await ui.render(<LoginForm />)
+    await ui.waitForExit()
+  }
+})
+```
+
+### Dashboard Example
+
+```tsx
+import React, { useState, useEffect } from 'react'
+import { defineComponentCommand } from '@bunli/plugin-ui'
+import { Box, Text, Row, Column } from '@bunli/renderer'
+import { Table, ProgressBar, Tabs, List } from '@bunli/ui'
+
+function Dashboard({ projectName }) {
+  const [activeTab, setActiveTab] = useState('overview')
+  const [metrics, setMetrics] = useState({
+    cpu: 0,
+    memory: 0,
+    requests: 0
+  })
+  
+  // Simulate real-time updates
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setMetrics({
+        cpu: Math.random() * 100,
+        memory: Math.random() * 100,
+        requests: Math.floor(Math.random() * 1000)
+      })
+    }, 1000)
+    
+    return () => clearInterval(interval)
+  }, [])
+  
+  return (
+    <Box padding={2}>
+      <Text style={{ bold: true, fontSize: 'large', marginBottom: 1 }}>
+        {projectName} Dashboard
+      </Text>
+      
+      <Tabs
+        tabs={[
+          { id: 'overview', label: 'Overview' },
+          { id: 'metrics', label: 'Metrics' },
+          { id: 'logs', label: 'Logs' }
+        ]}
+        activeId={activeTab}
+        onChange={setActiveTab}
+      />
+      
+      <Box style={{ marginTop: 1 }} minHeight={20}>
+        {activeTab === 'overview' && (
+          <Row gap={2}>
+            <Column flex={1}>
+              <Box style={{ border: 'single', padding: 1 }}>
+                <Text style={{ bold: true }}>System Status</Text>
+                <Box style={{ marginTop: 1 }}>
+                  <Text>CPU Usage</Text>
+                  <ProgressBar value={metrics.cpu / 100} width={30} />
+                  <Text>Memory Usage</Text>
+                  <ProgressBar value={metrics.memory / 100} width={30} />
+                </Box>
+              </Box>
+            </Column>
+            
+            <Column flex={1}>
+              <Box style={{ border: 'single', padding: 1 }}>
+                <Text style={{ bold: true }}>Quick Stats</Text>
+                <Box style={{ marginTop: 1 }}>
+                  <Text>Total Requests: {metrics.requests}</Text>
+                  <Text>Active Users: {Math.floor(metrics.requests / 10)}</Text>
+                  <Text>Response Time: {Math.floor(metrics.cpu)}ms</Text>
+                </Box>
+              </Box>
+            </Column>
+          </Row>
+        )}
+        
+        {activeTab === 'metrics' && (
+          <Table
+            columns={[
+              { key: 'metric', label: 'Metric', width: 20 },
+              { key: 'value', label: 'Value', width: 15 },
+              { key: 'status', label: 'Status', width: 10 }
+            ]}
+            rows={[
+              { 
+                metric: 'CPU Usage', 
+                value: `${metrics.cpu.toFixed(1)}%`,
+                status: metrics.cpu > 80 ? '⚠️  High' : '✅ OK'
+              },
+              { 
+                metric: 'Memory Usage', 
+                value: `${metrics.memory.toFixed(1)}%`,
+                status: metrics.memory > 80 ? '⚠️  High' : '✅ OK'
+              },
+              { 
+                metric: 'Request Rate', 
+                value: `${metrics.requests}/min`,
+                status: '✅ OK'
+              }
+            ]}
+          />
+        )}
+        
+        {activeTab === 'logs' && (
+          <List
+            items={[
+              { id: '1', label: '[INFO] Server started on port 3000' },
+              { id: '2', label: '[INFO] Database connection established' },
+              { id: '3', label: '[WARN] High memory usage detected' },
+              { id: '4', label: '[INFO] Request from 192.168.1.100' },
+              { id: '5', label: '[ERROR] Failed to process request' }
+            ]}
+            maxHeight={15}
+          />
+        )}
+      </Box>
+      
+      <Box style={{ marginTop: 1 }}>
+        <Text style={{ color: 'gray' }}>
+          Press Tab to navigate • Ctrl+C to exit
+        </Text>
+      </Box>
+    </Box>
+  )
+}
+
+export const dashboardCommand = defineComponentCommand({
+  name: 'dashboard',
+  description: 'View project dashboard',
+  component: Dashboard,
+  options: {
+    project: option(
+      z.string().default('my-project'),
+      { description: 'Project name', short: 'p' }
+    )
+  }
+})
+```
+
+## Component Patterns
+
+### State Management
+
+Use React hooks for state management:
+
+```tsx
+function Counter() {
+  const [count, setCount] = useState(0)
+  
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCount(c => c + 1)
+    }, 1000)
+    
+    return () => clearInterval(timer)
+  }, [])
+  
+  return <Text>Count: {count}</Text>
+}
+```
+
+### Focus Management
+
+The UI system includes comprehensive focus management:
+
+```tsx
+import { useFocus } from '@bunli/ui'
+
+function FocusableBox({ children, onSelect }) {
+  const { isFocused, focusProps } = useFocus({
+    onKeyPress: (key) => {
+      if (key === 'enter' || key === 'space') {
+        onSelect()
+      }
+    }
+  })
+  
+  return (
+    <Box
+      {...focusProps}
+      style={{
+        border: isFocused ? 'bold' : 'single',
+        borderColor: isFocused ? 'cyan' : 'gray'
+      }}
+    >
+      {children}
+    </Box>
+  )
+}
+```
+
+### Keyboard Navigation
+
+Handle keyboard events globally or per-component:
+
+```tsx
+import { useKeyboardNavigation } from '@bunli/ui'
+
+function FileExplorer() {
+  const [selectedIndex, setSelectedIndex] = useState(0)
+  const files = ['file1.txt', 'file2.js', 'file3.md']
+  
+  useKeyboardNavigation({
+    'up': () => setSelectedIndex(i => Math.max(0, i - 1)),
+    'down': () => setSelectedIndex(i => Math.min(files.length - 1, i + 1)),
+    'enter': () => openFile(files[selectedIndex]),
+    'q': () => process.exit(0)
+  })
+  
+  return (
+    <Box>
+      {files.map((file, index) => (
+        <Text
+          key={file}
+          style={{
+            backgroundColor: index === selectedIndex ? 'blue' : undefined,
+            color: index === selectedIndex ? 'white' : undefined
+          }}
+        >
+          {index === selectedIndex ? '>' : ' '} {file}
+        </Text>
+      ))}
+    </Box>
+  )
+}
+```
+
+## Multi-Screen Applications
+
+Build complex applications with routing:
+
+```tsx
+import { defineRoutedCommand } from '@bunli/plugin-ui'
+import { Router, useRouter } from '@bunli/ui'
+
+// Screen components
+function HomeScreen() {
+  const router = useRouter()
+  
+  return (
+    <Box>
+      <Text>Welcome to the App!</Text>
+      <Button onClick={() => router.navigate('/settings')}>
+        Go to Settings
+      </Button>
+    </Box>
+  )
+}
+
+function SettingsScreen() {
+  const router = useRouter()
+  
+  return (
+    <Box>
+      <Text>Settings</Text>
+      <Button onClick={() => router.back()}>
+        Back
+      </Button>
+    </Box>
+  )
+}
+
+// Command definition
+export const appCommand = defineRoutedCommand({
+  name: 'app',
+  description: 'Multi-screen application',
+  routes: [
+    { path: '/', component: HomeScreen },
+    { path: '/settings', component: SettingsScreen }
+  ]
+})
+```
+
+## Performance Optimization
+
+The renderer uses differential updates for optimal performance:
+
+```tsx
+import { getRenderingMetrics } from '@bunli/renderer'
+
+function PerformanceMonitor() {
+  const [metrics, setMetrics] = useState(null)
+  
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setMetrics(getRenderingMetrics())
+    }, 100)
+    
+    return () => clearInterval(interval)
+  }, [])
+  
+  if (!metrics) return null
+  
+  return (
+    <Box style={{ position: 'absolute', right: 0, top: 0 }}>
+      <Text style={{ color: 'green' }}>
+        FPS: {(1000 / metrics.averageRenderTime).toFixed(0)}
+      </Text>
+      <Text style={{ color: 'cyan' }}>
+        Dirty: {(metrics.dirtyRegionStats.coverage * 100).toFixed(0)}%
+      </Text>
+    </Box>
+  )
+}
+```
+
+## Testing UI Commands
+
+Test your UI commands with mocked rendering:
+
+```tsx
+import { test, expect } from '@bunli/test'
+import { createTestCLI } from '@bunli/test'
+import { loginCommand } from './commands'
+
+test('login command renders form', async () => {
+  const cli = createTestCLI({
+    commands: { login: loginCommand }
+  })
+  
+  // Mock UI rendering
+  cli.mockUI((element) => {
+    // Verify the rendered component
+    expect(element.type.name).toBe('LoginForm')
+  })
+  
+  const result = await cli.run(['login'])
+  expect(result.exitCode).toBe(0)
+})
+```
+
+## Best Practices
+
+1. **Use React Patterns**: Leverage hooks, context, and composition
+2. **Handle Cleanup**: Always clean up intervals, listeners, etc.
+3. **Optimize Renders**: Use React.memo for expensive components
+4. **Test Interactivity**: Test keyboard navigation and focus
+5. **Provide Feedback**: Show loading states and errors
+6. **Design for Terminal**: Consider terminal constraints (no mouse, limited colors)
+
+## Common Patterns
+
+### Loading States
+
+```tsx
+function DataLoader() {
+  const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(true)
+  
+  useEffect(() => {
+    fetchData()
+      .then(setData)
+      .finally(() => setLoading(false))
+  }, [])
+  
+  if (loading) {
+    return <Spinner label="Loading data..." />
+  }
+  
+  return <DataDisplay data={data} />
+}
+```
+
+### Error Boundaries
+
+```tsx
+class ErrorBoundary extends React.Component {
+  state = { hasError: false, error: null }
+  
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error }
+  }
+  
+  render() {
+    if (this.state.hasError) {
+      return (
+        <Alert type="error" title="Something went wrong">
+          {this.state.error?.message}
+        </Alert>
+      )
+    }
+    
+    return this.props.children
+  }
+}
+```
+
+### Progressive Forms
+
+```tsx
+import { ProgressiveForm } from '@bunli/ui'
+
+function ProjectSetup() {
+  return (
+    <ProgressiveForm
+      fields={[
+        {
+          name: 'name',
+          type: 'text',
+          label: 'Project name',
+          validate: (val) => val.length > 0 || 'Required'
+        },
+        {
+          name: 'type',
+          type: 'select',
+          label: 'Project type',
+          options: ['web', 'api', 'cli']
+        },
+        {
+          name: 'framework',
+          type: 'select',
+          label: 'Framework',
+          when: (data) => data.type === 'web',
+          options: ['next', 'remix', 'astro']
+        }
+      ]}
+      onSubmit={async (data) => {
+        await createProject(data)
+        process.exit(0)
+      }}
+    />
+  )
+}
+```
+
+## Next Steps
+
+- Explore the [component library](/docs/packages/ui)
+- Learn about [performance optimization](/docs/packages/renderer#performance)
+- See [real-world examples](/docs/examples/interactive)
+- Read the [API reference](/docs/packages/plugin-ui)

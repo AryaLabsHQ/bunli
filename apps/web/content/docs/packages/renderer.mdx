@@ -1,0 +1,328 @@
+---
+title: "@bunli/renderer"
+description: "React reconciler for high-performance terminal rendering"
+---
+
+# @bunli/renderer
+
+The `@bunli/renderer` package provides a React reconciler implementation for terminal rendering with differential updates, achieving up to 150x performance improvements over traditional full-screen redraws.
+
+## Installation
+
+```bash
+bun add @bunli/renderer
+```
+
+## Overview
+
+This package implements a custom React renderer that outputs to the terminal instead of the DOM. It features:
+
+- **Differential Rendering**: Only updates changed regions of the terminal
+- **React Reconciler**: Full React component model with hooks and state management  
+- **Flexbox-like Layout**: Constraint-based layout system adapted for terminals
+- **Performance Tracking**: Built-in metrics for monitoring render performance
+- **Type Safety**: Full TypeScript support with proper component types
+
+## Basic Usage
+
+```tsx
+import React from 'react'
+import { createApp, Box, Text } from '@bunli/renderer'
+
+function App() {
+  return (
+    <Box padding={2} style={{ border: 'single' }}>
+      <Text style={{ color: 'cyan', bold: true }}>
+        Hello from Bunli Renderer!
+      </Text>
+    </Box>
+  )
+}
+
+const app = createApp(<App />)
+app.render()
+
+// Cleanup on exit
+process.on('SIGINT', () => {
+  app.unmount()
+  process.exit(0)
+})
+```
+
+## Core Components
+
+### Box
+
+The fundamental container component with layout properties:
+
+```tsx
+<Box
+  padding={2}
+  margin={1}
+  width={40}
+  height={10}
+  style={{
+    border: 'single',
+    borderColor: 'blue',
+    backgroundColor: '#1a1a1a'
+  }}
+>
+  {children}
+</Box>
+```
+
+**Props:**
+- `padding`: Spacing inside the box (number for all sides)
+- `margin`: Spacing outside the box (number for all sides)
+- `width`/`height`: Dimensions (number for characters, string for percentage)
+- `flex`: Flex grow factor for flexible layouts
+- `direction`: Layout direction ('horizontal' | 'vertical')
+- `gap`: Spacing between children
+- `align`: Cross-axis alignment
+- `justify`: Main-axis alignment
+- `style`: Visual styling properties (includes marginTop, marginBottom, paddingTop, etc.)
+
+### Text
+
+Text rendering component with style support:
+
+```tsx
+<Text 
+  style={{ 
+    color: 'green',
+    bold: true,
+    underline: true 
+  }}
+  wrap="truncate"
+>
+  Terminal text content
+</Text>
+```
+
+**Props:**
+- `wrap`: Text wrapping mode ('wrap' | 'nowrap' | 'truncate')
+- `align`: Text alignment ('left' | 'center' | 'right')
+- `style`: Text styling properties
+
+### Row & Column
+
+Convenience components for horizontal and vertical layouts:
+
+```tsx
+<Row gap={2}>
+  <Box flex={1}>Left</Box>
+  <Box flex={2}>Right (twice as wide)</Box>
+</Row>
+
+<Column gap={1}>
+  <Text>Top</Text>
+  <Text>Bottom</Text>
+</Column>
+```
+
+## Layout System
+
+The renderer implements a constraint-based layout system similar to Flutter or Yoga:
+
+```tsx
+<Box width="100%" height={20}>
+  <Row flex={1} gap={2}>
+    <Box flex={1} style={{ border: 'single' }}>
+      <Text>Flexible width</Text>
+    </Box>
+    <Box width={30}>
+      <Text>Fixed width</Text>
+    </Box>
+  </Row>
+</Box>
+```
+
+### Layout Properties
+
+- **Flex**: Distributes available space based on flex values
+- **Gap**: Adds spacing between flex children
+- **Padding**: `[top, right, bottom, left]` or shorthand values
+- **Margin**: Same as padding
+- **Constraints**: Min/max width and height
+
+## Styling
+
+The style system supports terminal-specific properties:
+
+```tsx
+const style = {
+  // Colors
+  color: 'cyan',              // Named colors
+  backgroundColor: '#0066cc',  // Hex colors
+  
+  // Text decoration
+  bold: true,
+  italic: true,
+  underline: true,
+  strikethrough: true,
+  dim: true,
+  inverse: true,
+  
+  // Borders
+  border: 'single',    // single, double, round, bold, classic
+  borderColor: 'blue',
+  
+  // Individual borders
+  borderTop: true,
+  borderBottom: 'double',
+  borderLeft: false,
+  borderRight: true,
+  
+  // Individual spacing (in style object)
+  marginTop: 2,
+  marginBottom: 2,
+  marginLeft: 1,
+  marginRight: 1,
+  paddingTop: 1,
+  paddingBottom: 1,
+  paddingLeft: 2,
+  paddingRight: 2,
+}
+```
+
+## Performance
+
+### Differential Rendering
+
+The renderer tracks "dirty regions" and only updates changed portions:
+
+```tsx
+import { getRenderingMetrics } from '@bunli/renderer'
+
+// After rendering...
+const metrics = getRenderingMetrics()
+console.log({
+  renderCount: metrics.renderCount,
+  lastRenderTime: metrics.lastRenderTime,
+  averageRenderTime: metrics.averageRenderTime,
+  dirtyRegionCoverage: metrics.dirtyRegionStats.coverage
+})
+```
+
+### Optimization Tips
+
+1. **Use keys** for dynamic lists to help the reconciler
+2. **Avoid unnecessary style objects** - create them outside render
+3. **Use fixed dimensions** when possible for better performance
+4. **Batch state updates** to reduce re-renders
+
+## Advanced Usage
+
+### Custom Rendering
+
+```tsx
+import { render, unmount } from '@bunli/renderer'
+
+// Direct render without app wrapper
+const container = render(<App />, process.stdout)
+
+// Update the rendered content
+render(<UpdatedApp />, process.stdout, container)
+
+// Cleanup
+unmount(container)
+```
+
+### Terminal Capabilities
+
+The renderer adapts to terminal capabilities:
+
+```tsx
+// The renderer automatically detects:
+// - Color support (16, 256, or true color)
+// - Terminal dimensions
+// - Unicode support
+
+// You can also manually check:
+const supportsColor = process.stdout.isTTY
+const { columns, rows } = process.stdout
+```
+
+## Limitations
+
+- **No scrolling**: Content is clipped to terminal bounds
+- **No mouse support**: Keyboard-only interaction
+- **No animations**: Beyond React state updates
+- **Character-based**: All units are in characters, not pixels
+
+## API Reference
+
+### Functions
+
+#### createApp(element)
+Creates a terminal app instance with render lifecycle management.
+
+```tsx
+const app = createApp(<App />)
+app.render()    // Start rendering
+app.unmount()   // Cleanup
+```
+
+#### render(element, stream?, container?)
+Low-level render function for direct control.
+
+#### unmount(container)
+Unmounts a rendered container.
+
+#### getRenderingMetrics()
+Returns performance metrics for the last render.
+
+### Types
+
+```tsx
+interface BoxProps {
+  children?: React.ReactNode
+  style?: Style
+  padding?: number | number[]
+  margin?: number | number[]
+  width?: number | string
+  height?: number | string
+  flex?: number
+  direction?: 'horizontal' | 'vertical'
+  gap?: number
+  align?: 'start' | 'center' | 'end' | 'stretch'
+  justify?: 'start' | 'center' | 'end' | 'between' | 'around' | 'evenly'
+  wrap?: boolean
+  overflow?: 'visible' | 'hidden' | 'scroll'
+}
+
+interface TextProps {
+  children?: React.ReactNode
+  style?: Style
+  wrap?: 'wrap' | 'nowrap' | 'truncate'
+  align?: 'left' | 'center' | 'right'
+}
+
+interface Style {
+  color?: string
+  backgroundColor?: string
+  bold?: boolean
+  italic?: boolean
+  underline?: boolean
+  strikethrough?: boolean
+  dim?: boolean
+  inverse?: boolean
+  border?: BorderStyle | boolean
+  borderColor?: string
+  // ... and more
+}
+```
+
+## Performance Benchmarks
+
+In typical scenarios with partial screen updates:
+
+- **Full screen redraw**: ~5-10ms
+- **Differential update**: ~0.05-0.5ms  
+- **Performance gain**: 10-150x depending on update size
+
+The renderer excels at:
+- Dashboards with updating values
+- Progress indicators
+- Form inputs with local updates
+- Any UI with localized changes

@@ -5,6 +5,7 @@
     "building-your-first-cli",
     "schema-validation",
     "interactive-prompts",
+    "terminal-ui",
     "testing",
     "distribution"
   ]

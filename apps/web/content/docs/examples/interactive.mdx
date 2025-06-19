@@ -498,8 +498,279 @@ export default defineCommand({
 5. **Allow Cancellation**: Let users exit gracefully at any point
 6. **Handle Errors**: Provide helpful error messages
 
+## React Terminal UI Example
+
+Build rich terminal interfaces using React components:
+
+```tsx
+// dashboard.tsx
+import React, { useState, useEffect } from 'react'
+import { createCLI } from '@bunli/core'
+import { uiPlugin, defineComponentCommand } from '@bunli/plugin-ui'
+import { Box, Text, Row, Column } from '@bunli/renderer'
+import { Table, ProgressBar, Tabs, Button, Alert } from '@bunli/ui'
+
+// Dashboard component
+function Dashboard() {
+  const [activeTab, setActiveTab] = useState('overview')
+  const [stats, setStats] = useState({
+    users: 1234,
+    revenue: 45678,
+    growth: 12.5
+  })
+  
+  // Simulate real-time updates
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setStats(prev => ({
+        users: prev.users + Math.floor(Math.random() * 10),
+        revenue: prev.revenue + Math.floor(Math.random() * 100),
+        growth: prev.growth + (Math.random() - 0.5)
+      }))
+    }, 2000)
+    
+    return () => clearInterval(interval)
+  }, [])
+  
+  return (
+    <Box padding={2}>
+      <Text style={{ bold: true, fontSize: 'large', marginBottom: 1 }}>
+        📊 Business Dashboard
+      </Text>
+      
+      <Tabs
+        tabs={[
+          { id: 'overview', label: 'Overview' },
+          { id: 'users', label: 'Users' },
+          { id: 'revenue', label: 'Revenue' }
+        ]}
+        activeId={activeTab}
+        onChange={setActiveTab}
+      />
+      
+      <Box style={{ marginTop: 2 }} minHeight={15}>
+        {activeTab === 'overview' && (
+          <Row gap={2}>
+            <Box flex={1} style={{ border: 'single', padding: 1 }}>
+              <Text style={{ bold: true, color: 'cyan' }}>Total Users</Text>
+              <Text style={{ fontSize: 'large' }}>{stats.users.toLocaleString()}</Text>
+              <Text style={{ color: 'green' }}>↑ {stats.growth.toFixed(1)}%</Text>
+            </Box>
+            
+            <Box flex={1} style={{ border: 'single', padding: 1 }}>
+              <Text style={{ bold: true, color: 'cyan' }}>Revenue</Text>
+              <Text style={{ fontSize: 'large' }}>${stats.revenue.toLocaleString()}</Text>
+              <ProgressBar value={stats.revenue / 100000} width={20} />
+            </Box>
+          </Row>
+        )}
+        
+        {activeTab === 'users' && (
+          <Table
+            columns={[
+              { key: 'name', label: 'Name', width: 20 },
+              { key: 'email', label: 'Email', width: 30 },
+              { key: 'status', label: 'Status', width: 15 }
+            ]}
+            rows={[
+              { name: 'John Doe', email: 'john@example.com', status: '🟢 Active' },
+              { name: 'Jane Smith', email: 'jane@example.com', status: '🟢 Active' },
+              { name: 'Bob Johnson', email: 'bob@example.com', status: '🔴 Inactive' }
+            ]}
+          />
+        )}
+        
+        {activeTab === 'revenue' && (
+          <Column gap={1}>
+            <Text style={{ bold: true }}>Monthly Revenue Trend</Text>
+            {['Jan', 'Feb', 'Mar', 'Apr', 'May'].map((month, i) => (
+              <Row key={month} gap={1}>
+                <Text style={{ width: 5 }}>{month}:</Text>
+                <ProgressBar 
+                  value={(i + 1) * 0.2} 
+                  width={30}
+                  color={i === 4 ? 'green' : 'blue'}
+                />
+              </Row>
+            ))}
+          </Column>
+        )}
+      </Box>
+      
+      <Box style={{ marginTop: 2 }}>
+        <Button variant="primary" onClick={() => process.exit(0)}>
+          Exit Dashboard
+        </Button>
+      </Box>
+    </Box>
+  )
+}
+
+// CLI setup
+const cli = createCLI({
+  name: 'my-app',
+  version: '1.0.0',
+  plugins: [uiPlugin]
+})
+
+cli.command(
+  defineComponentCommand({
+    name: 'dashboard',
+    description: 'View business dashboard',
+    component: Dashboard
+  })
+)
+
+await cli.run()
+```
+
+### Interactive Form with Validation
+
+```tsx
+// user-form.tsx
+import React, { useState } from 'react'
+import { defineComponentCommand } from '@bunli/plugin-ui'
+import { Box, Text, Column } from '@bunli/renderer'
+import { Input, Button, SelectList, CheckboxList, Alert, styles } from '@bunli/ui'
+
+function UserForm() {
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    role: 'user',
+    permissions: []
+  })
+  const [errors, setErrors] = useState<string[]>([])
+  const [submitted, setSubmitted] = useState(false)
+  
+  const validate = () => {
+    const newErrors = []
+    if (!formData.name) newErrors.push('Name is required')
+    if (!formData.email) newErrors.push('Email is required')
+    if (!formData.email.includes('@')) newErrors.push('Invalid email format')
+    setErrors(newErrors)
+    return newErrors.length === 0
+  }
+  
+  const handleSubmit = () => {
+    if (validate()) {
+      setSubmitted(true)
+      setTimeout(() => process.exit(0), 2000)
+    }
+  }
+  
+  if (submitted) {
+    return (
+      <Box padding={2}>
+        <Alert type="success" title="User Created!">
+          Successfully created user: {formData.name}
+        </Alert>
+      </Box>
+    )
+  }
+  
+  return (
+    <Box padding={2} width={60}>
+      <Text style={styles.title}>Create New User</Text>
+      
+      {errors.length > 0 && (
+        <Alert type="error" title="Please fix the following errors:">
+          {errors.map((error, i) => (
+            <Text key={i}>• {error}</Text>
+          ))}
+        </Alert>
+      )}
+      
+      <Column gap={2} style={{ marginTop: 2 }}>
+        <Box>
+          <Text style={{ marginBottom: 0.5 }}>Name:</Text>
+          <Input
+            value={formData.name}
+            onChange={(name) => setFormData({ ...formData, name })}
+            placeholder="Enter user name"
+            autoFocus
+          />
+        </Box>
+        
+        <Box>
+          <Text style={{ marginBottom: 0.5 }}>Email:</Text>
+          <Input
+            value={formData.email}
+            onChange={(email) => setFormData({ ...formData, email })}
+            placeholder="user@example.com"
+          />
+        </Box>
+        
+        <Box>
+          <Text style={{ marginBottom: 0.5 }}>Role:</Text>
+          <SelectList
+            items={[
+              { id: 'user', label: 'User' },
+              { id: 'admin', label: 'Administrator' },
+              { id: 'moderator', label: 'Moderator' }
+            ]}
+            selectedId={formData.role}
+            onSelect={(item) => setFormData({ ...formData, role: item.id })}
+          />
+        </Box>
+        
+        <Box>
+          <Text style={{ marginBottom: 0.5 }}>Permissions:</Text>
+          <CheckboxList
+            items={[
+              { id: 'read', label: 'Read Access' },
+              { id: 'write', label: 'Write Access' },
+              { id: 'delete', label: 'Delete Access' }
+            ]}
+            selectedIds={formData.permissions}
+            onToggle={(id, checked) => {
+              if (checked) {
+                setFormData({ 
+                  ...formData, 
+                  permissions: [...formData.permissions, id] 
+                })
+              } else {
+                setFormData({ 
+                  ...formData, 
+                  permissions: formData.permissions.filter(p => p !== id) 
+                })
+              }
+            }}
+          />
+        </Box>
+        
+        <Box style={{ marginTop: 1 }}>
+          <Button variant="primary" onClick={handleSubmit}>
+            Create User
+          </Button>
+        </Box>
+      </Column>
+    </Box>
+  )
+}
+
+export default defineComponentCommand({
+  name: 'create-user',
+  description: 'Create a new user interactively',
+  component: UserForm
+})
+```
+
+## Best Practices
+
+1. **Clear Visual Hierarchy**: Use colors and symbols to guide users
+2. **Provide Defaults**: Make it easy to proceed with sensible defaults
+3. **Validate Early**: Check input as soon as it's entered
+4. **Show Progress**: Keep users informed during long operations
+5. **Allow Cancellation**: Let users exit gracefully at any point
+6. **Handle Errors**: Provide helpful error messages
+7. **Use React Patterns**: Leverage hooks and component composition
+8. **Test Keyboard Navigation**: Ensure Tab/Shift+Tab work properly
+
 ## Next Steps
 
+- [Terminal UI Guide](/docs/guides/terminal-ui) - Deep dive into React UI
 - [Real-World Example](/docs/examples/real-world) - Complete production example
-- [Interactive Prompts Guide](/docs/guides/interactive-prompts) - Deep dive into prompts
-- [@bunli/utils](/docs/packages/utils) - Utility functions reference
+- [Interactive Prompts Guide](/docs/guides/interactive-prompts) - Traditional prompts
+- [@bunli/ui](/docs/packages/ui) - UI components reference
+- [@bunli/renderer](/docs/packages/renderer) - Renderer documentation

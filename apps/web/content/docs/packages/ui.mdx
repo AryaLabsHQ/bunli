@@ -1,0 +1,514 @@
+---
+title: "@bunli/ui"
+description: "Comprehensive terminal UI component library for React"
+---
+
+# @bunli/ui
+
+The `@bunli/ui` package provides a rich set of terminal UI components built on top of `@bunli/renderer`. It includes interactive components, form controls, data display components, and a complete focus management system.
+
+## Installation
+
+```bash
+bun add @bunli/ui @bunli/renderer
+```
+
+Note: `@bunli/renderer` is a peer dependency as it provides the base components (Box, Text) that UI components are built upon.
+
+## Overview
+
+This package features:
+
+- **20+ UI Components**: Buttons, inputs, lists, tables, tabs, alerts, and more
+- **Focus Management**: Complete keyboard navigation with Tab/Shift+Tab support
+- **Form Components**: Advanced form controls with validation
+- **Router System**: Multi-screen terminal applications
+- **Style Presets**: Common styles and utilities
+- **TypeScript First**: Full type safety for all components
+
+## Quick Start
+
+```tsx
+import React, { useState } from 'react'
+import { createApp, Box, Text } from '@bunli/renderer'
+import { Button, Input, Alert, styles } from '@bunli/ui'
+
+function App() {
+  const [name, setName] = useState('')
+  const [submitted, setSubmitted] = useState(false)
+
+  return (
+    <Box padding={2}>
+      <Text style={styles.title}>Welcome!</Text>
+      
+      <Input
+        value={name}
+        onChange={setName}
+        placeholder="Enter your name"
+        onSubmit={() => setSubmitted(true)}
+      />
+      
+      <Button
+        variant="primary"
+        onClick={() => setSubmitted(true)}
+        disabled={!name}
+      >
+        Submit
+      </Button>
+      
+      {submitted && (
+        <Alert type="success" title="Success!">
+          Welcome, {name}!
+        </Alert>
+      )}
+    </Box>
+  )
+}
+
+const app = createApp(<App />)
+app.render()
+```
+
+## Components
+
+### Interactive Components
+
+#### Button
+
+Keyboard-accessible button with variants:
+
+```tsx
+<Button 
+  variant="primary"  // 'primary' | 'secondary' | 'danger' | 'ghost'
+  size="medium"      // 'small' | 'medium' | 'large'
+  onClick={() => console.log('Clicked!')}
+  disabled={false}
+  autoFocus
+>
+  Click Me
+</Button>
+
+// Button group for related actions
+<ButtonGroup>
+  <Button>Save</Button>
+  <Button>Cancel</Button>
+</ButtonGroup>
+```
+
+#### Input
+
+Text input with full keyboard support:
+
+```tsx
+<Input
+  value={value}
+  onChange={setValue}
+  placeholder="Type here..."
+  type="text"        // 'text' | 'password' | 'number'
+  disabled={false}
+  autoFocus
+  onSubmit={(value) => console.log('Submitted:', value)}
+/>
+
+// Password input
+<TextInput
+  label="Password"
+  type="password"
+  value={password}
+  onChange={setPassword}
+  error={password.length < 8 ? 'Too short' : undefined}
+/>
+```
+
+#### List
+
+Selectable list with keyboard navigation:
+
+```tsx
+<List
+  items={[
+    { id: '1', label: 'Option 1', value: 'opt1' },
+    { id: '2', label: 'Option 2', value: 'opt2' },
+    { id: '3', label: 'Option 3', value: 'opt3' }
+  ]}
+  selectedId={selected}
+  onSelect={(item) => setSelected(item.id)}
+  maxHeight={10}
+/>
+
+// Multi-select variant
+<CheckboxList
+  items={items}
+  selectedIds={selectedIds}
+  onToggle={(id, checked) => {
+    if (checked) {
+      setSelectedIds([...selectedIds, id])
+    } else {
+      setSelectedIds(selectedIds.filter(i => i !== id))
+    }
+  }}
+/>
+```
+
+### Display Components
+
+#### Table
+
+Data table with column configuration:
+
+```tsx
+<Table
+  columns={[
+    { key: 'name', label: 'Name', width: 20 },
+    { key: 'status', label: 'Status', width: 10 },
+    { key: 'updated', label: 'Updated', align: 'right' }
+  ]}
+  rows={[
+    { name: 'Project A', status: 'Active', updated: '2 hrs ago' },
+    { name: 'Project B', status: 'Paused', updated: '1 day ago' }
+  ]}
+  maxHeight={15}
+/>
+```
+
+#### Tabs
+
+Tab navigation component:
+
+```tsx
+<Tabs
+  tabs={[
+    { id: 'overview', label: 'Overview' },
+    { id: 'details', label: 'Details' },
+    { id: 'settings', label: 'Settings' }
+  ]}
+  activeId={activeTab}
+  onChange={setActiveTab}
+/>
+```
+
+#### Alert
+
+Contextual feedback messages:
+
+```tsx
+<Alert 
+  type="success"      // 'info' | 'success' | 'warning' | 'error'
+  title="Success!"
+  dismissible
+  onDismiss={() => setShowAlert(false)}
+>
+  Your changes have been saved.
+</Alert>
+```
+
+### Progress Indicators
+
+#### ProgressBar
+
+Determinate progress indicator:
+
+```tsx
+<ProgressBar 
+  value={0.75}        // 0-1
+  width={40}
+  showPercentage
+  color="green"
+/>
+
+// Indeterminate progress
+<IndeterminateProgress width={40} />
+```
+
+#### Spinner
+
+Loading spinners with different styles:
+
+```tsx
+<Spinner />              // Default dots
+<LoadingSpinner />       // Animated loading text
+<ProgressSpinner         // With progress percentage
+  progress={0.45}
+  label="Downloading..."
+/>
+```
+
+### Form Components
+
+#### PromptInput
+
+Terminal-style input prompt:
+
+```tsx
+const name = await PromptInput({
+  message: 'What is your name?',
+  defaultValue: 'Anonymous',
+  validate: (value) => {
+    if (!value) return 'Name is required'
+    if (value.length < 2) return 'Too short'
+    return true
+  }
+})
+```
+
+#### PromptConfirm
+
+Yes/no confirmation prompt:
+
+```tsx
+const confirmed = await PromptConfirm({
+  message: 'Are you sure you want to continue?',
+  defaultValue: true
+})
+```
+
+#### ProgressiveForm
+
+Multi-step form with conditional fields:
+
+```tsx
+<ProgressiveForm
+  fields={[
+    {
+      name: 'projectType',
+      type: 'select',
+      label: 'Project type',
+      options: ['web', 'cli', 'library']
+    },
+    {
+      name: 'framework',
+      type: 'select',
+      label: 'Framework',
+      when: (data) => data.projectType === 'web',
+      options: ['react', 'vue', 'solid']
+    }
+  ]}
+  onSubmit={(data) => console.log('Form data:', data)}
+/>
+```
+
+## Focus Management
+
+The focus system provides complete keyboard navigation:
+
+```tsx
+import { useFocus, useFocusScope } from '@bunli/ui'
+
+function MyComponent() {
+  const { isFocused, focusProps } = useFocus({
+    autoFocus: true,
+    onFocus: () => console.log('Focused!'),
+    onBlur: () => console.log('Blurred!')
+  })
+
+  return (
+    <Box {...focusProps} style={{
+      border: isFocused ? 'bold' : 'single'
+    }}>
+      {isFocused ? 'Focused' : 'Not focused'}
+    </Box>
+  )
+}
+```
+
+### Keyboard Navigation
+
+- **Tab**: Move to next focusable element
+- **Shift+Tab**: Move to previous focusable element
+- **Arrow Keys**: Navigate within lists and menus
+- **Enter/Space**: Activate buttons and controls
+- **Escape**: Cancel operations
+
+### Focus Scoping
+
+Keep focus within a specific region:
+
+```tsx
+function Modal({ children, onClose }) {
+  const scope = useFocusScope({
+    contain: true,      // Trap focus within
+    restoreFocus: true  // Restore on unmount
+  })
+
+  return (
+    <Box ref={scope} style={{ border: 'double' }}>
+      {children}
+      <Button onClick={onClose}>Close</Button>
+    </Box>
+  )
+}
+```
+
+## Router
+
+Build multi-screen terminal applications:
+
+```tsx
+import { Router, useRouter, NavLink } from '@bunli/ui'
+
+const routes = [
+  { path: '/', component: Home },
+  { path: '/settings', component: Settings },
+  { path: '/about', component: About }
+]
+
+function App() {
+  return (
+    <Box>
+      <Row gap={2}>
+        <NavLink to="/">Home</NavLink>
+        <NavLink to="/settings">Settings</NavLink>
+        <NavLink to="/about">About</NavLink>
+      </Row>
+      
+      <Router routes={routes} />
+    </Box>
+  )
+}
+
+// Inside components
+function Settings() {
+  const router = useRouter()
+  
+  return (
+    <Box>
+      <Text>Settings Page</Text>
+      <Button onClick={() => router.navigate('/')}>
+        Back to Home
+      </Button>
+    </Box>
+  )
+}
+```
+
+## Style System
+
+Pre-defined styles and utilities:
+
+```tsx
+import { styles, mergeStyles } from '@bunli/ui'
+
+// Use preset styles
+<Text style={styles.title}>Title Text</Text>
+<Text style={styles.subtitle}>Subtitle</Text>
+<Text style={styles.dim}>Dimmed text</Text>
+<Text style={styles.error}>Error message</Text>
+<Text style={styles.success}>Success message</Text>
+
+// Merge multiple styles
+<Box style={mergeStyles(
+  styles.panel,
+  isFocused && styles.focused,
+  isError && styles.errorBorder
+)}>
+  Content
+</Box>
+```
+
+## Advanced Patterns
+
+### Controlled Components
+
+All interactive components support controlled mode:
+
+```tsx
+function Form() {
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    role: 'user'
+  })
+
+  return (
+    <>
+      <Input
+        value={formData.name}
+        onChange={(name) => setFormData({...formData, name})}
+      />
+      
+      <SelectList
+        items={roles}
+        selectedId={formData.role}
+        onSelect={(item) => setFormData({...formData, role: item.id})}
+      />
+    </>
+  )
+}
+```
+
+### Custom Keyboard Shortcuts
+
+```tsx
+import { useKeyboardNavigation } from '@bunli/ui'
+
+function CustomComponent() {
+  useKeyboardNavigation({
+    'ctrl+s': () => saveData(),
+    'ctrl+n': () => createNew(),
+    'escape': () => cancel()
+  })
+
+  return <Box>...</Box>
+}
+```
+
+### Accessible Forms
+
+```tsx
+function AccessibleForm() {
+  const [errors, setErrors] = useState<string[]>([])
+
+  return (
+    <Column gap={2}>
+      {errors.length > 0 && (
+        <Alert type="error" title="Please fix the following:">
+          {errors.map(error => (
+            <Text key={error}>• {error}</Text>
+          ))}
+        </Alert>
+      )}
+      
+      <Input
+        label="Email"
+        type="email"
+        error={errors.includes('email') ? 'Invalid email' : undefined}
+        required
+      />
+      
+      <Button type="submit" variant="primary">
+        Submit
+      </Button>
+    </Column>
+  )
+}
+```
+
+## Best Practices
+
+1. **Always provide keyboard navigation** for interactive elements
+2. **Use appropriate ARIA-like patterns** even in terminal UIs
+3. **Provide visual feedback** for focus states
+4. **Test with keyboard-only navigation**
+5. **Use semantic component variants** (primary, danger, etc.)
+6. **Handle loading and error states** appropriately
+7. **Keep forms simple** and break complex forms into steps
+
+## TypeScript Support
+
+All components are fully typed:
+
+```tsx
+import type { ButtonProps, InputProps, ListItem } from '@bunli/ui'
+
+// Custom component with UI props
+interface MyButtonProps extends ButtonProps {
+  icon?: string
+}
+
+// Typed list items
+const items: ListItem<User>[] = users.map(user => ({
+  id: user.id,
+  label: user.name,
+  value: user
+}))
+```

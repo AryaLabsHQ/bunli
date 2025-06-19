@@ -1,0 +1,514 @@
+---
+title: "@bunli/plugin-ui"
+description: "Bunli plugin for integrating React-based terminal UIs into CLI commands"
+---
+
+# @bunli/plugin-ui
+
+The `@bunli/plugin-ui` package provides seamless integration between Bunli CLI commands and React-based terminal UIs. It extends your commands with a UI context, enabling rich interactive experiences.
+
+## Installation
+
+```bash
+bun add @bunli/plugin-ui @bunli/ui @bunli/renderer
+```
+
+## Overview
+
+This plugin enables:
+
+- **UI Context Injection**: Adds UI rendering capabilities to any command
+- **Lifecycle Management**: Handles mounting, updating, and cleanup
+- **Helper Functions**: Utilities for common UI patterns
+- **Type Safety**: Full TypeScript support with proper type inference
+- **Signal Handling**: Graceful cleanup on process termination
+
+## Basic Usage
+
+### Setting up the Plugin
+
+```tsx
+import { createCLI } from '@bunli/core'
+import { uiPlugin } from '@bunli/plugin-ui'
+
+const cli = await createCLI({
+  name: 'my-cli',
+  version: '1.0.0',
+  plugins: [uiPlugin] // Add the UI plugin
+})
+
+// Your commands now have access to the UI context
+```
+
+### Using UI in Commands
+
+```tsx
+import { defineCommand } from '@bunli/core'
+import { Box, Text } from '@bunli/renderer'
+
+export const interactiveCommand = defineCommand({
+  name: 'interactive',
+  description: 'An interactive command',
+  
+  handler: async ({ ui }) => {
+    // Render a React component
+    await ui.render(
+      <Box padding={2}>
+        <Text>Hello from UI!</Text>
+      </Box>
+    )
+    
+    // Keep the UI running until user exits
+    await ui.waitForExit()
+  }
+})
+```
+
+## UI Context API
+
+When the plugin is active, all commands receive a `ui` object with these methods:
+
+### render(element)
+
+Renders a React element to the terminal:
+
+```tsx
+await ui.render(<MyComponent prop="value" />)
+```
+
+- Returns a Promise that resolves when the UI is mounted
+- Automatically cleans up any existing UI before rendering
+
+### unmount()
+
+Manually unmounts the current UI:
+
+```tsx
+ui.unmount()
+```
+
+### update(element)
+
+Updates the current UI with new props:
+
+```tsx
+// Initial render
+await ui.render(<Counter count={0} />)
+
+// Update later
+ui.update(<Counter count={1} />)
+```
+
+### waitForExit()
+
+Waits for the user to exit (Ctrl+C):
+
+```tsx
+await ui.waitForExit()
+```
+
+- Handles SIGINT and SIGTERM signals
+- Cleans up the UI before resolving
+
+### isActive()
+
+Checks if a UI is currently rendered:
+
+```tsx
+if (ui.isActive()) {
+  ui.unmount()
+}
+```
+
+## Helper Functions
+
+The plugin provides several helper functions for common patterns:
+
+### defineUICommand
+
+Define a command with direct UI access:
+
+```tsx
+import { defineUICommand } from '@bunli/plugin-ui'
+import { Box, Text } from '@bunli/renderer'
+import { Button, Input } from '@bunli/ui'
+import { z } from 'zod'
+import { option } from '@bunli/core'
+
+export const formCommand = defineUICommand({
+  name: 'form',
+  description: 'Interactive form example',
+  
+  options: {
+    title: option(
+      z.string().default('Form'),
+      { description: 'Form title' }
+    )
+  },
+  
+  handler: async ({ ui, flags }) => {
+    let name = ''
+    
+    await ui.render(
+      <Box padding={2}>
+        <Text>{flags.title}</Text>
+        <Input
+          value={name}
+          onChange={setName}
+          onSubmit={() => ui.unmount()}
+        />
+        <Button onClick={() => ui.unmount()}>
+          Submit
+        </Button>
+      </Box>
+    )
+    
+    await ui.waitForExit()
+  }
+})
+```
+
+### defineComponentCommand
+
+Create a command where the component IS the command:
+
+```tsx
+import { defineComponentCommand } from '@bunli/plugin-ui'
+import { Dashboard } from './components/Dashboard'
+
+export const dashboardCommand = defineComponentCommand({
+  name: 'dashboard',
+  description: 'Show project dashboard',
+  
+  // Component receives flags as props
+  component: Dashboard,
+  
+  // Optional: Fetch data before rendering
+  getData: async ({ flags }) => {
+    const stats = await fetchProjectStats(flags.project)
+    return { stats }
+  },
+  
+  options: {
+    project: option(
+      z.string().optional(),
+      { description: 'Project name' }
+    )
+  }
+})
+
+// Dashboard component
+function Dashboard({ project, stats }) {
+  return (
+    <Box padding={2}>
+      <Text>Project: {project || 'default'}</Text>
+      <Text>Stats: {JSON.stringify(stats)}</Text>
+    </Box>
+  )
+}
+```
+
+### defineRoutedCommand
+
+Create multi-screen applications with routing:
+
+```tsx
+import { defineRoutedCommand } from '@bunli/plugin-ui'
+import { MainLayout } from './layouts/Main'
+import { Home, Projects, Settings } from './screens'
+
+export const appCommand = defineRoutedCommand({
+  name: 'app',
+  description: 'Multi-screen application',
+  
+  // Optional layout wrapper
+  layout: MainLayout,
+  
+  // Define routes
+  routes: [
+    { 
+      path: '/', 
+      component: Home,
+      getData: async () => ({ user: await fetchUser() })
+    },
+    { 
+      path: '/projects', 
+      component: Projects,
+      getData: async () => ({ projects: await fetchProjects() })
+    },
+    { 
+      path: '/settings', 
+      component: Settings 
+    }
+  ]
+})
+
+// Layout component
+function MainLayout({ children }) {
+  return (
+    <Box>
+      <Box style={{ borderBottom: 'single' }}>
+        <Text>My App</Text>
+      </Box>
+      {children}
+    </Box>
+  )
+}
+```
+
+### withUI
+
+Enhance existing commands with UI capabilities:
+
+```tsx
+import { withUI } from '@bunli/plugin-ui'
+import { existingCommand } from './commands'
+
+export const enhancedCommand = withUI(
+  existingCommand,
+  async ({ ui }, runOriginal) => {
+    // Show loading UI
+    await ui.render(<LoadingScreen />)
+    
+    // Run original command
+    await runOriginal()
+    
+    // Show completion UI
+    await ui.render(<CompletionScreen />)
+    await ui.waitForExit()
+  }
+)
+```
+
+## Advanced Patterns
+
+### State Management
+
+Use React hooks for state management:
+
+```tsx
+function InteractiveApp() {
+  const [items, setItems] = useState<string[]>([])
+  const [input, setInput] = useState('')
+  
+  const addItem = () => {
+    setItems([...items, input])
+    setInput('')
+  }
+  
+  return (
+    <Box>
+      <Input
+        value={input}
+        onChange={setInput}
+        onSubmit={addItem}
+        placeholder="Add item..."
+      />
+      
+      <List
+        items={items.map((item, i) => ({
+          id: String(i),
+          label: item
+        }))}
+      />
+      
+      <Text>Total: {items.length}</Text>
+    </Box>
+  )
+}
+
+export const todoCommand = defineComponentCommand({
+  name: 'todo',
+  component: InteractiveApp
+})
+```
+
+### Async Operations
+
+Handle async operations with loading states:
+
+```tsx
+function AsyncComponent() {
+  const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  
+  useEffect(() => {
+    fetchData()
+      .then(setData)
+      .catch(setError)
+      .finally(() => setLoading(false))
+  }, [])
+  
+  if (loading) return <Spinner label="Loading..." />
+  if (error) return <Alert type="error">{error.message}</Alert>
+  
+  return <DataDisplay data={data} />
+}
+```
+
+### Progressive Enhancement
+
+Start with a simple command and add UI progressively:
+
+```tsx
+// Original command
+const basicList = defineCommand({
+  name: 'list',
+  handler: async () => {
+    const items = await fetchItems()
+    items.forEach(item => console.log(item))
+  }
+})
+
+// Enhanced with UI
+const interactiveList = withUI(basicList, async ({ ui }, runOriginal) => {
+  const items = await fetchItems()
+  
+  await ui.render(
+    <SelectList
+      items={items}
+      onSelect={(item) => {
+        console.log('Selected:', item)
+        ui.unmount()
+      }}
+    />
+  )
+  
+  await ui.waitForExit()
+})
+```
+
+### Error Handling
+
+Handle errors gracefully in UI commands:
+
+```tsx
+export const safeCommand = defineUICommand({
+  name: 'safe',
+  
+  handler: async ({ ui }) => {
+    try {
+      await ui.render(<App />)
+      await ui.waitForExit()
+    } catch (error) {
+      // Show error UI
+      await ui.render(
+        <Alert type="error" title="Error">
+          {error.message}
+        </Alert>
+      )
+      
+      // Wait a moment before exiting
+      await new Promise(resolve => setTimeout(resolve, 3000))
+    } finally {
+      ui.unmount()
+    }
+  }
+})
+```
+
+## Integration Examples
+
+### With Forms
+
+```tsx
+import { ProgressiveForm } from '@bunli/ui'
+
+export const wizardCommand = defineComponentCommand({
+  name: 'wizard',
+  component: SetupWizard
+})
+
+function SetupWizard() {
+  return (
+    <ProgressiveForm
+      fields={[
+        {
+          name: 'projectName',
+          type: 'text',
+          label: 'Project name',
+          validate: (val) => val.length > 0 || 'Required'
+        },
+        {
+          name: 'template',
+          type: 'select',
+          label: 'Template',
+          options: ['minimal', 'full', 'custom']
+        }
+      ]}
+      onSubmit={async (data) => {
+        await createProject(data)
+        process.exit(0)
+      }}
+    />
+  )
+}
+```
+
+### With Data Fetching
+
+```tsx
+export const dataCommand = defineComponentCommand({
+  name: 'data',
+  component: DataView,
+  
+  options: {
+    refresh: option(
+      z.number().default(5000),
+      { description: 'Refresh interval (ms)' }
+    )
+  },
+  
+  getData: async ({ flags }) => {
+    return {
+      initialData: await fetchData(),
+      refreshInterval: flags.refresh
+    }
+  }
+})
+
+function DataView({ initialData, refreshInterval }) {
+  const [data, setData] = useState(initialData)
+  
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      setData(await fetchData())
+    }, refreshInterval)
+    
+    return () => clearInterval(interval)
+  }, [refreshInterval])
+  
+  return <DataDisplay data={data} />
+}
+```
+
+## Best Practices
+
+1. **Always handle cleanup**: Use `ui.unmount()` or `waitForExit()`
+2. **Show loading states**: For async operations
+3. **Handle errors gracefully**: Show error UI instead of crashing
+4. **Provide keyboard shortcuts**: For common actions
+5. **Test with Ctrl+C**: Ensure proper cleanup on interrupt
+6. **Keep UI responsive**: Avoid blocking operations in render
+7. **Use TypeScript**: For better type inference and safety
+
+## TypeScript
+
+The plugin provides full TypeScript support:
+
+```tsx
+import type { UIHandlerArgs } from '@bunli/plugin-ui'
+
+// Your handler args are properly typed
+interface MyOptions {
+  name: string
+  verbose?: boolean
+}
+
+const handler = async (args: UIHandlerArgs<MyOptions>) => {
+  // args.ui is typed
+  // args.flags is typed as MyOptions
+  await args.ui.render(<App name={args.flags.name} />)
+}
+```
