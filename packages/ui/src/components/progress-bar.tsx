@@ -3,8 +3,8 @@
  */
 
 import React from 'react'
-import { Box, Text } from '../reconciler/components.js'
-import type { BoxProps } from '../reconciler/terminal-element.js'
+import { Box, Text } from '@bunli/renderer'
+import type { BoxProps } from '@bunli/renderer'
 
 export interface ProgressBarProps extends Omit<BoxProps, 'children'> {
   /**

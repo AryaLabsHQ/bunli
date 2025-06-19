@@ -3,11 +3,13 @@
   "compilerOptions": {
     "lib": ["DOM", "ESNext"],
     "noEmit": true,
-    "types": [],
+    "types": [
+      "bun-types"
+    ],
     "jsx": "react",
     "module": "ESNext",
     "target": "ESNext",
-    "moduleResolution": "bundler"
+    "moduleResolution": "bundler",
   },
   "include": ["./**/*.tsx"]
 }

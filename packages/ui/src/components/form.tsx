@@ -3,7 +3,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react'
-import { Box, Text, Column } from '../reconciler/components.js'
+import { Box, Text, Column } from '@bunli/renderer'
 import { PromptInput, PromptConfirm, PromptSelect } from './prompt.js'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 

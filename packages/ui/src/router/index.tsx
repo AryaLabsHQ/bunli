@@ -3,7 +3,7 @@
  */
 
 import React, { createContext, useContext, useState, useEffect } from 'react'
-import { Box, Text } from '../reconciler/components.js'
+import { Box, Text } from '@bunli/renderer'
 import { keyboardManager } from '../focus/keyboard-manager.js'
 
 export interface Route {

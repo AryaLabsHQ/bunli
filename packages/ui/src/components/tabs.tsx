@@ -3,8 +3,8 @@
  */
 
 import React, { useState, useEffect } from 'react'
-import { Box, Text, Row, Column } from '../reconciler/components.js'
-import type { BoxProps } from '../reconciler/terminal-element.js'
+import { Box, Text, Row, Column } from '@bunli/renderer'
+import type { BoxProps } from '@bunli/renderer'
 import { useFocus } from '../focus/use-focus.js'
 import { keyboardManager } from '../focus/keyboard-manager.js'
 

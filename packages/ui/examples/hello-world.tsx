@@ -10,7 +10,7 @@
  */
 
 import React, { useState, useEffect } from 'react'
-import { createApp, Box, Text } from '../src/index.js'
+import { createApp, Box, Text } from '@bunli/renderer'
 
 function HelloWorld() {
   const [count, setCount] = useState(0)
@@ -42,9 +42,9 @@ function HelloWorld() {
       </Text>
       
       {/* Box with border for visual separation */}
-      <Box marginTop={1} style={{ border: 'single', padding: 1 }}>
+      <Box margin={1} style={{ border: 'single', padding: 1 }}>
         <Text>Current time: {time}</Text>
-        <Box marginTop={1}>
+        <Box margin={1}>
           <Text style={{ color: 'green' }}>
             Counter: {count} (auto-increments every 2s)
           </Text>
@@ -52,7 +52,7 @@ function HelloWorld() {
       </Box>
       
       {/* Instructions */}
-      <Box marginTop={1}>
+      <Box margin={1}>
         <Text style={{ color: 'gray' }}>
           Press Ctrl+C to exit
         </Text>

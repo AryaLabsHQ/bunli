@@ -80,7 +80,7 @@ export function defineRoutedCommand<TOptions extends Options = Options, TStore =
     ...config,
     handler: async (args) => {
       const { ui } = args as UIHandlerArgs<InferOptions<TOptions>, TStore>
-      const { Router } = await import('../router/index.js')
+      const { Router } = await import('@bunli/ui')
       
       const Layout = config.layout || (({ children }) => <>{children}</>)
       

@@ -14,12 +14,8 @@
  */
 
 import React, { useState } from 'react'
+import { createApp, Box, Text, Row, Column } from '@bunli/renderer'
 import {
-  createApp,
-  Box,
-  Text,
-  Row,
-  Column,
   Button,
   ButtonGroup,
   Input,
@@ -35,7 +31,7 @@ import {
   Tabs,
   Alert,
   styles,
-} from '../src/index.js'
+} from '@bunli/ui'
 
 function ComponentShowcase() {
   // State for interactive components

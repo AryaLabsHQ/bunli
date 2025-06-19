@@ -12,19 +12,15 @@
  */
 
 import React, { useState } from 'react'
+import { createApp, Box, Text, Column, Row } from '@bunli/renderer'
 import {
-  createApp,
-  Box,
-  Text,
-  Column,
-  Row,
   Button,
   Input,
   SelectList,
   CheckboxList,
   Alert,
   styles,
-} from '../src/index.js'
+} from '@bunli/ui'
 
 interface FormData {
   name: string
@@ -103,7 +99,7 @@ function FormExample() {
       <Box padding={2}>
         <Alert type="success" title="Form Submitted Successfully!">
           <Text>Thank you for your submission.</Text>
-          <Box marginTop={1}>
+          <Box margin={1}>
             <Text style={{ bold: true }}>Submitted Data:</Text>
             <Text>Name: {formData.name}</Text>
             <Text>Email: {formData.email}</Text>
@@ -158,7 +154,7 @@ function FormExample() {
           <SelectList
             items={roles}
             selectedId={formData.role}
-            onSelect={(id) => setFormData({ ...formData, role: id })}
+            onSelect={(item) => setFormData({ ...formData, role: item.id })}
             maxHeight={5}
           />
         </Box>
@@ -168,8 +164,14 @@ function FormExample() {
           <Text style={{ marginBottom: 0.5 }}>Select your skills:</Text>
           <CheckboxList
             items={skills}
-            checkedIds={formData.skills}
-            onChange={(ids) => setFormData({ ...formData, skills: ids })}
+            selectedIds={formData.skills}
+            onToggle={(id, checked) => {
+              if (checked) {
+                setFormData({ ...formData, skills: [...formData.skills, id] })
+              } else {
+                setFormData({ ...formData, skills: formData.skills.filter(i => i !== id) })
+              }
+            }}
             maxHeight={6}
           />
         </Box>
@@ -178,13 +180,13 @@ function FormExample() {
         <Row gap={2}>
           <Button 
             variant="primary" 
-            onPress={handleSubmit}
+            onClick={handleSubmit}
           >
             Submit Form
           </Button>
           <Button 
             variant="secondary"
-            onPress={() => {
+            onClick={() => {
               setFormData({ name: '', email: '', role: '', skills: [] })
               setErrors([])
             }}

@@ -3,8 +3,8 @@
  */
 
 import React from 'react'
-import { Box, Text, Row } from '../reconciler/components.js'
-import type { BoxProps } from '../reconciler/terminal-element.js'
+import { Box, Text, Row } from '@bunli/renderer'
+import type { BoxProps } from '@bunli/renderer'
 
 export interface AlertProps extends Omit<BoxProps, 'children'> {
   /**

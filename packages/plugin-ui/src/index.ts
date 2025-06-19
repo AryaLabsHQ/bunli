@@ -3,7 +3,7 @@
  */
 
 import { createPlugin } from '@bunli/core/plugin'
-import { createApp, type TerminalApp } from '../reconciler/index.js'
+import { createApp, type TerminalApp } from '@bunli/renderer'
 import type { ReactElement } from 'react'
 
 export interface UIStore {
@@ -36,16 +36,11 @@ export interface UIContext {
    * Check if UI is currently active
    */
   isActive: () => boolean
-  
-  /**
-   * All UI components
-   */
-  components: typeof import('../index.js')
 }
 
 export const uiPlugin = createPlugin<UIStore>({
   name: '@bunli/plugin-ui',
-  version: '0.1.0',
+  version: '0.0.1',
   
   store: {
     activeApp: null,
@@ -106,10 +101,7 @@ export const uiPlugin = createPlugin<UIStore>({
       
       isActive() {
         return store.isInteractive && store.activeApp !== null
-      },
-      
-      // Re-export all components for convenience
-      components: require('../index.js')
+      }
     }
     
     // Extend command context with UI
@@ -125,6 +117,15 @@ export const uiPlugin = createPlugin<UIStore>({
     }
   }
 })
+
+// Export helpers
+export { 
+  defineUICommand, 
+  defineComponentCommand, 
+  defineRoutedCommand,
+  withUI 
+} from './helpers.js'
+export type { UIHandlerArgs, Route } from './helpers.js'
 
 // Type augmentation for commands
 declare module '@bunli/core' {

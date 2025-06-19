@@ -12,10 +12,11 @@
  * In a real Bunli application, this would be part of a command definition
  */
 
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { defineCommand, option } from '@bunli/core'
 import { z } from 'zod'
-import { createApp, Box, Text, useState, useEffect, styles } from '../src/index.js'
+import { createApp, Box, Text } from '@bunli/renderer'
+import { styles } from '@bunli/ui'
 import type { FC } from 'react'
 
 // Build status component
@@ -38,8 +39,10 @@ const BuildProgress: FC<{
     const timer = setInterval(() => {
       if (currentStep < steps.length) {
         const step = steps[currentStep]
-        setProgress(step.progress)
-        setStatus(step.status)
+        if (step) {
+          setProgress(step.progress)
+          setStatus(step.status)
+        }
         currentStep++
       } else {
         clearInterval(timer)
@@ -211,8 +214,8 @@ export default {
 if (import.meta.main) {
   const command = process.argv[2] || 'dashboard'
   if (command === 'build') {
-    buildCommand.handler({ flags: { watch: false }, positional: [], shell: {}, env: process.env, cwd: process.cwd() } as any)
+    buildCommand.handler?.({ flags: { watch: false }, positional: [], shell: {}, env: process.env, cwd: process.cwd() } as any)
   } else {
-    dashboardCommand.handler({ flags: {}, positional: [], shell: {}, env: process.env, cwd: process.cwd() } as any)
+    dashboardCommand.handler?.({ flags: {}, positional: [], shell: {}, env: process.env, cwd: process.cwd() } as any)
   }
 }

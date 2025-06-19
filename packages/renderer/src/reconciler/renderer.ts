@@ -7,8 +7,6 @@ import { terminalHostConfig } from './host-config.js'
 import { createTerminalContainer, type TerminalContainer } from './terminal-element.js'
 import { performLayout } from './layout.js'
 import { renderToTerminal } from './terminal-renderer.js'
-import { keyboardManager } from '../focus/keyboard-manager.js'
-import { focusManager } from '../focus/focus-manager.js'
 
 // Create the reconciler instance
 const reconciler = ReactReconciler(terminalHostConfig)
@@ -17,8 +15,8 @@ const reconciler = ReactReconciler(terminalHostConfig)
 if (typeof globalThis !== 'undefined' && (globalThis as any).__REACT_DEVTOOLS_GLOBAL_HOOK__) {
   reconciler.injectIntoDevTools({
     bundleType: 1, // 0 for prod, 1 for dev
-    version: '0.1.0',
-    rendererPackageName: '@bunli/ui',
+    version: '0.0.1',
+    rendererPackageName: '@bunli/renderer',
   })
 }
 
@@ -117,31 +115,11 @@ export function createApp(
   
   stream.on('resize', handleResize)
   
-  // Start keyboard manager for focus handling
-  keyboardManager.start()
-  
-  // Set up keyboard navigation
-  keyboardManager.bind('tab', (event) => {
-    if (event.shift) {
-      focusManager.focusPrevious()
-    } else {
-      focusManager.focusNext()
-    }
-    return true
-  })
-  
-  keyboardManager.bind('shift+tab', () => {
-    focusManager.focusPrevious()
-    return true
-  })
-  
   // Hide terminal cursor on start
   stream.write('\x1b[?25l')
   
   // Ensure cleanup on exit
   const cleanup = () => {
-    keyboardManager.stop()
-    focusManager.clear()
     unmount(container)
     // Show cursor before exit
     stream.write('\x1b[?25h')
@@ -159,8 +137,6 @@ export function createApp(
       stream.off('resize', handleResize)
       process.removeListener('SIGINT', cleanup)
       process.removeListener('SIGTERM', cleanup)
-      keyboardManager.stop()
-      focusManager.clear()
       unmount(container)
     },
     

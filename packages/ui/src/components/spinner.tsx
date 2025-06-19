@@ -3,8 +3,8 @@
  */
 
 import React, { useState, useEffect } from 'react'
-import { Text } from '../reconciler/components.js'
-import type { TextProps } from '../reconciler/terminal-element.js'
+import { Text } from '@bunli/renderer'
+import type { TextProps } from '@bunli/renderer'
 
 export interface SpinnerProps extends Omit<TextProps, 'children'> {
   /**

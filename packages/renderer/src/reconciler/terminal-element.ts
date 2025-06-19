@@ -7,6 +7,14 @@ import { DirtyRegionTracker } from './dirty-region-tracker.js'
 
 export type TerminalNodeType = 'element' | 'text'
 
+// Export additional types needed by index.ts
+export type Position = { x: number; y: number }
+export type ElementProps = Record<string, any>
+export type TextContent = string
+export type BoxContent = any[]
+export type TerminalTextElement = TerminalText
+export type TerminalBoxElement = TerminalElement
+
 export interface Bounds {
   x: number
   y: number

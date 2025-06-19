@@ -13,6 +13,11 @@ export const styles = {
     color: '#7D56F4',
     bold: true
   } satisfies Style,
+
+  subtitle: {
+    color: '#7D56F4',
+    bold: true
+  } satisfies Style,
   
   error: {
     color: 'red',

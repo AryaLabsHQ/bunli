@@ -5,6 +5,9 @@
 import React from 'react'
 import type { BoxProps, TextProps } from './terminal-element.js'
 
+// Re-export types
+export type { BoxProps, TextProps }
+
 // Declare intrinsic elements for TypeScript
 declare global {
   namespace JSX {

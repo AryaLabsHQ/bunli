@@ -10,8 +10,8 @@
  */
 
 import React, { useState, useEffect } from 'react'
-import { createApp, Box, Text, Row, Column, ProgressBar } from '../src/index.js'
-import { getRenderingMetrics } from '../src/reconciler/terminal-renderer.js'
+import { createApp, Box, Text, Row, Column, getRenderingMetrics } from '@bunli/renderer'
+import { ProgressBar } from '@bunli/ui'
 
 // Component that updates very frequently
 function RapidCounter({ label, interval = 50 }: { label: string; interval?: number }) {
@@ -48,7 +48,7 @@ function AnimatedProgress({ label, speed = 0.01 }: { label: string; speed?: numb
   }, [speed])
   
   return (
-    <Box marginBottom={1}>
+    <Box margin={1}>
       <Text>{label}</Text>
       <ProgressBar value={progress} width={30} />
     </Box>
@@ -98,7 +98,7 @@ function PerformanceDemo() {
   
   return (
     <Box padding={2}>
-      <Text style={{ fontSize: 'large', bold: true, marginBottom: 1 }}>
+      <Text style={{ bold: true, marginBottom: 1 }}>
         Bunli UI Performance Demo
       </Text>
       
@@ -120,7 +120,7 @@ function PerformanceDemo() {
         <Column flex={1}>
           <Box style={{ border: 'single', padding: 1, marginBottom: 1 }} width={30}>
             <Text style={{ bold: true }}>Rapid Counters</Text>
-            <Text style={{ color: 'gray', fontSize: 'small' }}>
+            <Text style={{ color: 'gray' }}>
               Updates every 50-200ms
             </Text>
             <RapidCounter label="Fast Counter" interval={50} />
@@ -143,7 +143,7 @@ function PerformanceDemo() {
         </Column>
       </Row>
       
-      <Box marginTop={1}>
+      <Box margin={1}>
         <Text style={{ color: 'gray' }}>
           Notice how only changing parts are re-rendered (high optimization rate)
         </Text>

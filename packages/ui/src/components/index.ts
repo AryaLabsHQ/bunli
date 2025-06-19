@@ -2,9 +2,6 @@
  * Component library exports
  */
 
-// Layout components
-export { Box, Text, Row, Column } from '../reconciler/components.js'
-
 // Interactive components
 export { Button, ButtonGroup } from './button.js'
 export type { ButtonProps, ButtonGroupProps } from './button.js'
