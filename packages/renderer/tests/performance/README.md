@@ -59,12 +59,10 @@ The renderer includes several optimizations:
 1. **Shallow style comparison** - 13x faster than JSON.stringify
 2. **Dirty region tracking** - Only re-renders changed areas
 3. **Differential rendering** - Minimal DOM updates
-4. **Zero-copy buffers** (optional) - Available via `renderWithBuffer()`
-5. **High-precision timing** - Uses Bun.nanoseconds() when available
+4. **High-precision timing** - Uses Bun.nanoseconds() when available
 
 ## Notes
 
 - Performance varies based on terminal size and complexity
 - React reconciliation dominates render time
-- Buffer renderer may be slower for small renders due to overhead
 - Real terminal I/O costs are not reflected in mock terminal tests

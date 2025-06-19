@@ -41,5 +41,3 @@ export { stylesEqual, styleAffectsLayout, styleAffectsRenderOnly, styleHash } fr
 // Cleanup utilities
 export { isCleanupSupported, getCleanupStats } from './reconciler/cleanup-registry.js'
 
-// Buffer renderer (for advanced usage)
-export { renderWithBuffer } from './reconciler/buffer-renderer.js'
