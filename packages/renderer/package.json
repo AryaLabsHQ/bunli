@@ -19,7 +19,6 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "ansi-styles": "^6.2.1",
     "react": "^19.1.0",
     "react-reconciler": "^0.32.0",
     "string-width": "^7.0.0",

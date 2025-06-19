@@ -2,7 +2,7 @@
  * ANSI escape code utilities for terminal styling
  */
 
-import ansiStyles from 'ansi-styles'
+import ansiStyles from './ansi-styles.js'
 import type { Style, Color } from '../types.js'
 
 /**
