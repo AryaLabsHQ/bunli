@@ -16,6 +16,7 @@ import {
   type TerminalText,
   type TerminalNode,
 } from './terminal-element.js'
+import { styleAffectsLayout } from '../utils/style-utils.js'
 
 // Type exports for the reconciler
 export type Type = string
@@ -228,16 +229,9 @@ export const terminalHostConfig: HostConfig<
         if (key === 'style') {
           needsStyle = true
           
-          // Check if style changes affect layout
-          const oldStyle = oldProps.style || {}
-          const newStyle = newProps.style || {}
-          const layoutStyleProps = ['width', 'height', 'minWidth', 'maxWidth', 'minHeight', 'maxHeight']
-          
-          for (const styleProp of layoutStyleProps) {
-            if (oldStyle[styleProp] !== newStyle[styleProp]) {
-              needsLayout = true
-              break
-            }
+          // Use optimized style comparison
+          if (styleAffectsLayout(oldProps.style, newProps.style)) {
+            needsLayout = true
           }
         }
       }

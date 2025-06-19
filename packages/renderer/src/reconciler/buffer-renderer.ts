@@ -1,6 +1,6 @@
 /**
- * Unified terminal renderer with differential updates
- * Combines correctness and performance optimization
+ * Zero-copy ANSI buffer renderer using Uint8Array
+ * This renderer uses pre-allocated buffers to avoid string concatenation overhead
  */
 
 import type { 
@@ -11,10 +11,172 @@ import type {
   Bounds,
 } from './terminal-element.js'
 import { isTextNode, isElementNode } from './terminal-element.js'
-import { applyStyle, getBorderChars } from '../core/ansi.js'
+import { getBorderChars } from '../core/ansi.js'
 import type { Style } from '../types.js'
-import { stylesEqual } from '../utils/style-utils.js'
-import { now } from '../utils/performance.js'
+
+// Pre-calculated ANSI escape sequences as byte arrays
+const ANSI_RESET = new Uint8Array([0x1b, 0x5b, 0x30, 0x6d]) // \x1b[0m
+const ANSI_CURSOR_HOME = new Uint8Array([0x1b, 0x5b, 0x48]) // \x1b[H
+const ANSI_CLEAR_LINE = new Uint8Array([0x1b, 0x5b, 0x32, 0x4b]) // \x1b[2K
+
+// Color codes map
+const COLOR_CODES: Record<string, number> = {
+  black: 30,
+  red: 31,
+  green: 32,
+  yellow: 33,
+  blue: 34,
+  magenta: 35,
+  cyan: 36,
+  white: 37,
+  gray: 90,
+  redBright: 91,
+  greenBright: 92,
+  yellowBright: 93,
+  blueBright: 94,
+  magentaBright: 95,
+  cyanBright: 96,
+  whiteBright: 97
+}
+
+const BG_COLOR_CODES: Record<string, number> = {
+  black: 40,
+  red: 41,
+  green: 42,
+  yellow: 43,
+  blue: 44,
+  magenta: 45,
+  cyan: 46,
+  white: 47,
+  gray: 100,
+  redBright: 101,
+  greenBright: 102,
+  yellowBright: 103,
+  blueBright: 104,
+  magentaBright: 105,
+  cyanBright: 106,
+  whiteBright: 107
+}
+
+/**
+ * Buffer writer that manages a growing byte buffer
+ */
+class BufferWriter {
+  private buffer: Uint8Array
+  private position = 0
+  private textEncoder = new TextEncoder()
+  
+  constructor(initialSize = 65536) { // 64KB initial
+    this.buffer = new Uint8Array(initialSize)
+  }
+  
+  /**
+   * Ensure buffer has enough space
+   */
+  private ensureCapacity(needed: number): void {
+    if (this.position + needed > this.buffer.length) {
+      // Double the buffer size
+      const newSize = Math.max(this.buffer.length * 2, this.position + needed)
+      const newBuffer = new Uint8Array(newSize)
+      newBuffer.set(this.buffer.subarray(0, this.position))
+      this.buffer = newBuffer
+    }
+  }
+  
+  /**
+   * Write raw bytes
+   */
+  writeBytes(bytes: Uint8Array): void {
+    this.ensureCapacity(bytes.length)
+    this.buffer.set(bytes, this.position)
+    this.position += bytes.length
+  }
+  
+  /**
+   * Write a string
+   */
+  writeString(str: string): void {
+    const bytes = this.textEncoder.encode(str)
+    this.writeBytes(bytes)
+  }
+  
+  /**
+   * Write a single byte
+   */
+  writeByte(byte: number): void {
+    this.ensureCapacity(1)
+    this.buffer[this.position++] = byte
+  }
+  
+  /**
+   * Write cursor position command
+   */
+  writeCursorPosition(row: number, col: number): void {
+    // \x1b[{row};{col}H
+    this.writeByte(0x1b)
+    this.writeByte(0x5b)
+    this.writeString(row.toString())
+    this.writeByte(0x3b)
+    this.writeString(col.toString())
+    this.writeByte(0x48)
+  }
+  
+  /**
+   * Write style ANSI codes
+   */
+  writeStyle(style: Style): void {
+    const codes: number[] = []
+    
+    if (style.bold) codes.push(1)
+    if (style.dim) codes.push(2)
+    if (style.italic) codes.push(3)
+    if (style.underline) codes.push(4)
+    if (style.inverse) codes.push(7)
+    if (style.strikethrough) codes.push(9)
+    
+    if (style.color && typeof style.color === 'string') {
+      const colorCode = COLOR_CODES[style.color]
+      if (colorCode !== undefined) {
+        codes.push(colorCode)
+      }
+    }
+    
+    if (style.backgroundColor && typeof style.backgroundColor === 'string') {
+      const bgCode = BG_COLOR_CODES[style.backgroundColor]
+      if (bgCode !== undefined) {
+        codes.push(bgCode)
+      }
+    }
+    
+    if (codes.length > 0) {
+      // \x1b[{codes}m
+      this.writeByte(0x1b)
+      this.writeByte(0x5b)
+      for (let i = 0; i < codes.length; i++) {
+        if (i > 0) this.writeByte(0x3b)
+        const code = codes[i]
+        if (code !== undefined) {
+          this.writeString(code.toString())
+        }
+      }
+      this.writeByte(0x6d)
+    }
+  }
+  
+  /**
+   * Get the final buffer
+   */
+  getBuffer(): Uint8Array {
+    return this.buffer.subarray(0, this.position)
+  }
+  
+  /**
+   * Reset the writer
+   */
+  reset(): void {
+    this.position = 0
+  }
+}
 
 // Cell represents a single character on the terminal
 interface Cell {
@@ -25,37 +187,17 @@ interface Cell {
 // Buffer is a 2D array of cells
 type Buffer = (Cell | null)[][]
 
-// Rendering metrics
-interface RenderMetrics {
-  renderCount: number
-  totalRenderTime: number
-  lastRenderTime: number
-  averageRenderTime: number
-  dirtyRegionStats: {
-    regionCount: number
-    coverage: number
-  }
-}
-
 /**
- * Unified renderer that handles both simple and optimized rendering
+ * Zero-copy buffer renderer
  */
-export class TerminalRenderer {
+export class BufferRenderer {
   private currentBuffer: Buffer
   private previousBuffer: Buffer | null = null
-  private metrics: RenderMetrics = {
-    renderCount: 0,
-    totalRenderTime: 0,
-    lastRenderTime: 0,
-    averageRenderTime: 0,
-    dirtyRegionStats: {
-      regionCount: 0,
-      coverage: 0
-    }
-  }
+  private writer: BufferWriter
   
   constructor(private container: TerminalContainer) {
     this.currentBuffer = this.createBuffer(container.width, container.height)
+    this.writer = new BufferWriter()
   }
   
   /**
@@ -73,7 +215,6 @@ export class TerminalRenderer {
    * Handle terminal resize
    */
   resize(width: number, height: number): void {
-    // Create new buffer with new dimensions
     const newBuffer = this.createBuffer(width, height)
     
     // Copy existing content that fits
@@ -95,18 +236,16 @@ export class TerminalRenderer {
     }
     
     this.currentBuffer = newBuffer
-    this.previousBuffer = null // Force full redraw
+    this.previousBuffer = null
     this.container.dirtyTracker.markFullRedraw()
   }
   
   /**
-   * Render the terminal tree with differential updates
+   * Render the terminal tree with zero-copy output
    */
-  render(): void {
-    const startTime = now()
-    
+  render(): Uint8Array {
     if (!this.container.root || !this.container.root.layout) {
-      return
+      return new Uint8Array(0)
     }
     
     // Clear current buffer
@@ -119,99 +258,76 @@ export class TerminalRenderer {
     const dirtyRegions = this.container.dirtyTracker.getDirtyRegions()
     const needsFullRedraw = this.container.dirtyTracker.needsFullRedraw()
     
+    // Reset writer
+    this.writer.reset()
+    
     // Generate differential update commands
-    const commands = this.generateDifferentialCommands(dirtyRegions, needsFullRedraw)
-    
-    // Write to terminal
-    if (commands.length > 0) {
-      this.container.stream.write(commands.join(''))
+    if (!this.previousBuffer || needsFullRedraw) {
+      this.generateFullScreenCommands()
+    } else if (dirtyRegions.length > 0) {
+      this.generateDirtyRegionCommands(dirtyRegions)
     }
-    
-    // Update metrics
-    const renderTime = now() - startTime
-    this.updateMetrics(renderTime, dirtyRegions)
     
     // Swap buffers
     this.previousBuffer = this.currentBuffer
     
     // Clear dirty regions
     this.container.dirtyTracker.clear()
-  }
-  
-  /**
-   * Generate ANSI commands for differential updates
-   */
-  private generateDifferentialCommands(dirtyRegions: Bounds[], needsFullRedraw: boolean): string[] {
-    const commands: string[] = []
     
-    // If no previous buffer or full redraw needed
-    if (!this.previousBuffer || needsFullRedraw) {
-      this.generateFullScreenCommands(commands)
-    } else if (dirtyRegions.length > 0) {
-      // Differential update - only render dirty regions
-      this.generateDirtyRegionCommands(commands, dirtyRegions)
-    }
-    
-    return commands
+    // Return the buffer
+    return this.writer.getBuffer()
   }
   
   /**
    * Generate commands for full screen render
    */
-  private generateFullScreenCommands(commands: string[]): void {
+  private generateFullScreenCommands(): void {
     // Move cursor to top
-    commands.push('\x1b[H')
+    this.writer.writeBytes(ANSI_CURSOR_HOME)
     
     for (let y = 0; y < this.container.height; y++) {
       const row = this.currentBuffer[y]
       if (!row) continue
       
-      // Move to line
-      commands.push(`\x1b[${y + 1};1H`)
-      // Clear line
-      commands.push('\x1b[2K')
+      // Move to line and clear
+      this.writer.writeCursorPosition(y + 1, 1)
+      this.writer.writeBytes(ANSI_CLEAR_LINE)
       
-      let lineContent = ''
       let lastStyle: Style | undefined
+      let hasContent = false
       let lastX = -1
       
       for (let x = 0; x < this.container.width; x++) {
         const cell = row[x]
         
         if (cell) {
-          // Add leading spaces if this is the first character and it's not at position 0
+          // Add leading spaces if needed
           if (lastX === -1 && x > 0) {
-            lineContent += ' '.repeat(x)
-          }
-          // Add spaces if there was a gap between characters
-          else if (lastX >= 0 && x > lastX + 1) {
-            lineContent += ' '.repeat(x - lastX - 1)
+            this.writer.writeString(' '.repeat(x))
+          } else if (lastX >= 0 && x > lastX + 1) {
+            this.writer.writeString(' '.repeat(x - lastX - 1))
           }
           
           // Apply style if changed
-          const styleChanged = !stylesEqual(cell.style, lastStyle)
-          if (styleChanged) {
+          if (!this.stylesEqual(cell.style, lastStyle)) {
             if (lastStyle) {
-              lineContent += '\x1b[0m' // Reset
+              this.writer.writeBytes(ANSI_RESET)
             }
             if (cell.style) {
-              lineContent += applyStyle('', cell.style)
+              this.writer.writeStyle(cell.style)
             }
             lastStyle = cell.style
           }
           
-          lineContent += cell.char
+          this.writer.writeString(cell.char)
           lastX = x
+          hasContent = true
         }
       }
       
-      // Reset style at end of line
-      if (lastStyle) {
-        lineContent += '\x1b[0m'
-      }
-      
-      if (lineContent.trim()) {
-        commands.push(lineContent)
+      // Reset style at end of line if needed
+      if (lastStyle && hasContent) {
+        this.writer.writeBytes(ANSI_RESET)
       }
     }
   }
@@ -219,7 +335,7 @@ export class TerminalRenderer {
   /**
    * Generate commands for dirty regions only
    */
-  private generateDirtyRegionCommands(commands: string[], regions: Bounds[]): void {
+  private generateDirtyRegionCommands(regions: Bounds[]): void {
     // Sort regions by y, then x for efficient cursor movement
     const sortedRegions = [...regions].sort((a, b) => {
       if (a.y !== b.y) return a.y - b.y
@@ -234,9 +350,7 @@ export class TerminalRenderer {
         const prevRow = this.previousBuffer?.[y]
         if (!row) continue
         
-        let needsMove = true
         let lineHasChanges = false
-        let lineContent = ''
         
         // Check if this line in the region has any changes
         for (let x = region.x; x < region.x + region.width && x < this.container.width; x++) {
@@ -244,7 +358,7 @@ export class TerminalRenderer {
           const prevCell = prevRow?.[x]
           
           if (cell?.char !== prevCell?.char || 
-              !stylesEqual(cell?.style, prevCell?.style)) {
+              !this.stylesEqual(cell?.style, prevCell?.style)) {
             lineHasChanges = true
             break
           }
@@ -252,18 +366,16 @@ export class TerminalRenderer {
         
         if (!lineHasChanges) continue
         
-        // Render the changed portion of the line
+        // Find the range of actual changes
         let firstChange = -1
         let lastChange = -1
         
-        // Find the range of actual changes - including areas that need clearing
         for (let x = region.x; x < region.x + region.width && x < this.container.width; x++) {
           const cell = row[x]
           const prevCell = prevRow?.[x]
           
-          // Check if content changed or if we need to clear previous content
           if (cell?.char !== prevCell?.char || 
-              !stylesEqual(cell?.style, prevCell?.style) ||
+              !this.stylesEqual(cell?.style, prevCell?.style) ||
               (!cell && prevCell)) {
             if (firstChange === -1) firstChange = x
             lastChange = x
@@ -273,7 +385,7 @@ export class TerminalRenderer {
         if (firstChange === -1) continue
         
         // Move cursor to first change
-        commands.push(`\x1b[${y + 1};${firstChange + 1}H`)
+        this.writer.writeCursorPosition(y + 1, firstChange + 1)
         
         // Render from first to last change
         for (let x = firstChange; x <= lastChange && x < this.container.width; x++) {
@@ -281,27 +393,24 @@ export class TerminalRenderer {
           
           if (cell && cell.char) {
             // Apply style if changed
-            const newStyle = cell.style
-            if (!stylesEqual(newStyle, currentStyle)) {
+            if (!this.stylesEqual(cell.style, currentStyle)) {
               if (currentStyle) {
-                commands.push('\x1b[0m')
+                this.writer.writeBytes(ANSI_RESET)
               }
-              if (newStyle) {
-                commands.push(applyStyle('', newStyle))
+              if (cell.style) {
+                this.writer.writeStyle(cell.style)
               }
-              currentStyle = newStyle
+              currentStyle = cell.style
             }
             
-            // Write character
-            commands.push(cell.char)
+            this.writer.writeString(cell.char)
           } else {
             // Reset style before writing space
             if (currentStyle) {
-              commands.push('\x1b[0m')
+              this.writer.writeBytes(ANSI_RESET)
               currentStyle = undefined
             }
-            // Write space for empty cells or to clear previous content
-            commands.push(' ')
+            this.writer.writeString(' ')
           }
         }
       }
@@ -309,8 +418,25 @@ export class TerminalRenderer {
     
     // Reset style
     if (currentStyle) {
-      commands.push('\x1b[0m')
+      this.writer.writeBytes(ANSI_RESET)
     }
+  }
+  
+  /**
+   * Fast style comparison
+   */
+  private stylesEqual(a?: Style, b?: Style): boolean {
+    if (a === b) return true
+    if (!a || !b) return false
+    
+    return a.bold === b.bold &&
+           a.dim === b.dim &&
+           a.italic === b.italic &&
+           a.underline === b.underline &&
+           a.inverse === b.inverse &&
+           a.strikethrough === b.strikethrough &&
+           a.color === b.color &&
+           a.backgroundColor === b.backgroundColor
   }
   
   /**
@@ -345,7 +471,6 @@ export class TerminalRenderer {
     
     // Clip to parent bounds if provided
     if (parentBounds) {
-      // Skip if completely outside parent
       if (x >= parentBounds.x + parentBounds.width || 
           y >= parentBounds.y + parentBounds.height ||
           x + width <= parentBounds.x ||
@@ -434,7 +559,7 @@ export class TerminalRenderer {
     if (element.elementType === 'text') {
       this.renderTextElement(element, buffer, parentBounds)
     } else {
-      // Calculate content bounds for children (inside padding and border)
+      // Calculate content bounds for children
       const contentBounds: Bounds = {
         x: x + (style?.border && style.border !== 'none' ? 1 : 0),
         y: y + (style?.border && style.border !== 'none' ? 1 : 0),
@@ -450,7 +575,7 @@ export class TerminalRenderer {
   }
   
   /**
-   * Render text element (extracts text from props.children)
+   * Render text element
    */
   private renderTextElement(
     element: TerminalElement, 
@@ -470,7 +595,6 @@ export class TerminalRenderer {
       
       // If no text found in props, check if this is a container with text node children
       if (!text && element.children.length > 0) {
-        // For text elements, the actual text might be in child text nodes
         const childText = element.children
           .filter(isTextNode)
           .map(node => node.text)
@@ -556,7 +680,7 @@ export class TerminalRenderer {
       }
     }
     
-    // Also collect from text node children (created by reconciler)
+    // Also collect from text node children
     for (const child of element.children) {
       if (isTextNode(child)) {
         parts.push(child.text)
@@ -614,52 +738,20 @@ export class TerminalRenderer {
       }
     }
   }
-  
-  /**
-   * Update performance metrics
-   */
-  private updateMetrics(renderTime: number, dirtyRegions: Bounds[]): void {
-    this.metrics.renderCount++
-    this.metrics.totalRenderTime += renderTime
-    this.metrics.lastRenderTime = renderTime
-    this.metrics.averageRenderTime = this.metrics.totalRenderTime / this.metrics.renderCount
-    
-    // Calculate dirty region coverage
-    let totalArea = 0
-    for (const region of dirtyRegions) {
-      totalArea += region.width * region.height
-    }
-    const screenArea = this.container.width * this.container.height
-    
-    this.metrics.dirtyRegionStats = {
-      regionCount: dirtyRegions.length,
-      coverage: screenArea > 0 ? totalArea / screenArea : 0
-    }
-  }
-  
-  /**
-   * Get rendering metrics
-   */
-  getMetrics(): RenderMetrics {
-    return { ...this.metrics }
-  }
 }
 
 // Keep a map of containers to their renderers
-const rendererMap = new WeakMap<TerminalContainer, TerminalRenderer>()
-
-// Store the last active container for metrics (temporary solution)
-let lastActiveContainer: TerminalContainer | undefined
+const rendererMap = new WeakMap<TerminalContainer, BufferRenderer>()
 
 /**
- * Render the terminal UI using differential updates
+ * Render using zero-copy buffer
  */
-export function renderToTerminal(container: TerminalContainer): void {
+export function renderWithBuffer(container: TerminalContainer): void {
   // Get or create renderer
   let renderer = rendererMap.get(container)
   
   if (!renderer) {
-    renderer = new TerminalRenderer(container)
+    renderer = new BufferRenderer(container)
     rendererMap.set(container, renderer)
   }
   
@@ -675,62 +767,18 @@ export function renderToTerminal(container: TerminalContainer): void {
     }
   }
   
-  // Render using differential updates
-  renderer.render()
+  // Get the buffer
+  const buffer = renderer.render()
   
-  // Store as last active container
-  lastActiveContainer = container
-}
-
-/**
- * Force a full redraw
- */
-export function forceFullRedraw(container: TerminalContainer): void {
-  container.dirtyTracker.markFullRedraw()
-  renderToTerminal(container)
-}
-
-/**
- * Get rendering metrics
- */
-export function getRenderingMetrics(container?: TerminalContainer): RenderMetrics {
-  // Use provided container or fall back to last active
-  const targetContainer = container || lastActiveContainer
-  
-  if (!targetContainer) {
-    return {
-      renderCount: 0,
-      totalRenderTime: 0,
-      lastRenderTime: 0,
-      averageRenderTime: 0,
-      dirtyRegionStats: {
-        regionCount: 0,
-        coverage: 0
-      }
-    }
-  }
-  
-  const renderer = rendererMap.get(targetContainer)
-  return renderer ? renderer.getMetrics() : {
-    renderCount: 0,
-    totalRenderTime: 0,
-    lastRenderTime: 0,
-    averageRenderTime: 0,
-    dirtyRegionStats: {
-      regionCount: 0,
-      coverage: 0
-    }
+  // Write to stream if we have output
+  if (buffer.length > 0) {
+    container.stream.write(buffer)
   }
 }
 
 /**
- * Helper function to collect text content
+ * Get buffer renderer for performance metrics
  */
-export function collectText(node: TerminalNode): string {
-  if (isTextNode(node)) {
-    return node.text
-  } else if (isElementNode(node) && node.children) {
-    return node.children.map(collectText).join('')
-  }
-  return ''
+export function getBufferRenderer(container: TerminalContainer): BufferRenderer | undefined {
+  return rendererMap.get(container)
 }

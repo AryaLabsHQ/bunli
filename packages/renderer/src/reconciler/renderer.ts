@@ -7,6 +7,7 @@ import { terminalHostConfig } from './host-config.js'
 import { createTerminalContainer, type TerminalContainer } from './terminal-element.js'
 import { performLayout } from './layout.js'
 import { renderToTerminal } from './terminal-renderer.js'
+import { registerForCleanup, setResizeHandler, manualCleanup, createCleanupWrapper } from './cleanup-registry.js'
 
 // Create the reconciler instance
 const reconciler = ReactReconciler(terminalHostConfig)
@@ -35,8 +36,10 @@ export function render(
   
   if (!container) {
     terminalContainer = createTerminalContainer()
+    registerForCleanup(terminalContainer)
   } else if ('write' in container) {
     terminalContainer = createTerminalContainer(container)
+    registerForCleanup(terminalContainer)
   } else {
     terminalContainer = container
   }
@@ -81,6 +84,9 @@ export function unmount(container: TerminalContainer): void {
         // Move cursor to top and clear screen
         container.stream.write('\x1b[H\x1b[2J')
       }
+      
+      // Manual cleanup
+      manualCleanup(container)
     })
   }
 }
@@ -99,6 +105,7 @@ export function createApp(
   stream: NodeJS.WriteStream = process.stdout
 ): TerminalApp {
   const container = createTerminalContainer(stream)
+  registerForCleanup(container)
   
   // Handle terminal resize
   const handleResize = () => {
@@ -114,6 +121,7 @@ export function createApp(
   }
   
   stream.on('resize', handleResize)
+  setResizeHandler(container, handleResize)
   
   // Hide terminal cursor on start
   stream.write('\x1b[?25l')
@@ -128,7 +136,7 @@ export function createApp(
   process.once('SIGINT', cleanup)
   process.once('SIGTERM', cleanup)
   
-  return {
+  const app = {
     render() {
       render(element, container)
     },
@@ -142,6 +150,9 @@ export function createApp(
     
     container,
   }
+  
+  // Return wrapped app with automatic cleanup
+  return createCleanupWrapper(app)
 }
 
 // Export reconciler for advanced usage

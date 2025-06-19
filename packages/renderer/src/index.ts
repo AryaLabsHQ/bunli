@@ -31,3 +31,15 @@ export type {
   Overflow,
   BorderStyle,
 } from './types.js'
+
+// Performance utilities
+export { now, nanoTime, measureTime, measureTimeAsync, MetricsTracker, FrameTracker } from './utils/performance.js'
+
+// Style utilities  
+export { stylesEqual, styleAffectsLayout, styleAffectsRenderOnly, styleHash } from './utils/style-utils.js'
+
+// Cleanup utilities
+export { isCleanupSupported, getCleanupStats } from './reconciler/cleanup-registry.js'
+
+// Buffer renderer (for advanced usage)
+export { renderWithBuffer } from './reconciler/buffer-renderer.js'
