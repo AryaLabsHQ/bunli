@@ -1,0 +1,28 @@
+{
+  "name": "@bunli/ui",
+  "version": "0.0.1",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "build": "bun run scripts/build.ts",
+    "test": "bun test",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "ansi-styles": "^6.2.1",
+    "react": "^19.1.0",
+    "react-reconciler": "^0.32.0",
+    "string-width": "^7.0.0",
+    "strip-ansi": "^7.1.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/react-reconciler": "^0.32.0",
+    "typescript": "^5.5.3"
+  }
+}
