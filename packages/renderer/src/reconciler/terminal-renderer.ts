@@ -16,6 +16,7 @@ import type { Style } from '../types.js'
 import { stylesEqual } from '../utils/style-utils.js'
 import { now } from '../utils/performance.js'
 import { styleToAnsi, wrapWithCursorControl, isGhosttyTerminal } from '../utils/style-diff.js'
+import { performanceTracker } from '../utils/performance-tracker.js'
 
 // Cell represents a single character on the terminal
 interface Cell {
@@ -106,6 +107,7 @@ export class TerminalRenderer {
    * Render the terminal tree with differential updates
    */
   render(): void {
+    performanceTracker.startFrame()
     const startTime = now()
     
     if (!this.container.root || !this.container.root.layout) {
@@ -141,6 +143,13 @@ export class TerminalRenderer {
     // Update metrics
     const renderTime = now() - startTime
     this.updateMetrics(renderTime, dirtyRegions)
+    
+    // Record performance metrics
+    performanceTracker.endFrame({
+      renderTime,
+      dirtyRegionCount: dirtyRegions.length,
+      dirtyRegionCoverage: this.metrics.dirtyRegionStats.coverage,
+    })
     
     // Swap buffers
     this.previousBuffer = this.currentBuffer
@@ -239,10 +248,10 @@ export class TerminalRenderer {
     
     // Render background if specified
     if (style?.backgroundColor) {
-      const bgStartX = style?.border ? x + 1 : x
-      const bgStartY = style?.border ? y + 1 : y
-      const bgWidth = style?.border ? Math.max(0, width - 2) : width
-      const bgHeight = style?.border ? Math.max(0, height - 2) : height
+      const bgStartX = Math.floor(style?.border ? x + 1 : x)
+      const bgStartY = Math.floor(style?.border ? y + 1 : y)
+      const bgWidth = Math.ceil(style?.border ? Math.max(0, width - 2) : width)
+      const bgHeight = Math.ceil(style?.border ? Math.max(0, height - 2) : height)
       
       for (let dy = 0; dy < bgHeight; dy++) {
         const lineY = bgStartY + dy
@@ -265,7 +274,7 @@ export class TerminalRenderer {
     
     // Render content based on element type
     if (element.elementType === 'text') {
-      this.renderTextElement(element, buffer, parentBounds)
+      this.renderTextElement(element, buffer)
     } else {
       // Calculate content bounds for children (inside padding and border)
       const contentBounds: Bounds = {
@@ -470,14 +479,17 @@ export class TerminalRenderer {
     }
     
     const lines = text.text.split('\n')
+    const startX = Math.floor(x)
+    const startY = Math.floor(y)
+    
     for (let i = 0; i < lines.length && i < height; i++) {
       const line = lines[i]
-      const lineY = y + i
+      const lineY = startY + i
       
       if (lineY >= 0 && lineY < buffer.length) {
         const lineLength = line?.length || 0
         for (let j = 0; j < lineLength && j < width; j++) {
-          const charX = x + j
+          const charX = startX + j
           const row = buffer[lineY]
           if (row && charX >= 0 && charX < row.length) {
             row[charX] = {
@@ -496,7 +508,7 @@ export class TerminalRenderer {
   private renderElement(
     element: TerminalElement, 
     buffer: Buffer,
-    parentBounds?: Bounds
+    _parentBounds?: Bounds
   ): void {
     if (!element.layout || element.props.hidden) {
       return
@@ -513,10 +525,10 @@ export class TerminalRenderer {
     
     // Render background if specified
     if (style?.backgroundColor) {
-      const bgStartX = style?.border ? x + 1 : x
-      const bgStartY = style?.border ? y + 1 : y
-      const bgWidth = style?.border ? Math.max(0, width - 2) : width
-      const bgHeight = style?.border ? Math.max(0, height - 2) : height
+      const bgStartX = Math.floor(style?.border ? x + 1 : x)
+      const bgStartY = Math.floor(style?.border ? y + 1 : y)
+      const bgWidth = Math.ceil(style?.border ? Math.max(0, width - 2) : width)
+      const bgHeight = Math.ceil(style?.border ? Math.max(0, height - 2) : height)
       
       for (let dy = 0; dy < bgHeight; dy++) {
         const lineY = bgStartY + dy
@@ -547,7 +559,7 @@ export class TerminalRenderer {
     
     // Render content based on element type
     if (element.elementType === 'text') {
-      this.renderTextElement(element, buffer, parentBounds)
+      this.renderTextElement(element, buffer)
     } else {
       // Calculate content bounds for children (inside padding and border)
       const contentBounds: Bounds = {
@@ -569,8 +581,7 @@ export class TerminalRenderer {
    */
   private renderTextElement(
     element: TerminalElement, 
-    buffer: Buffer,
-    parentBounds?: Bounds
+    buffer: Buffer
   ): void {
     if (!element.layout) return
     
@@ -598,7 +609,7 @@ export class TerminalRenderer {
     
     if (!text) return
     
-    this.renderTextContent(text, element.layout, buffer, style, parentBounds)
+    this.renderTextContent(text, element.layout, buffer, style)
   }
   
   /**
@@ -614,10 +625,13 @@ export class TerminalRenderer {
     let { x, y } = layout
     const { width, height } = layout
     
+    const startX = Math.floor(x)
+    const startY = Math.floor(y)
+    
     const lines = text.split('\n')
     for (let i = 0; i < lines.length && i < height; i++) {
       const line = lines[i]
-      const lineY = y + i
+      const lineY = startY + i
       
       // Skip if line is outside parent bounds
       if (parentBounds) {
@@ -629,7 +643,7 @@ export class TerminalRenderer {
       if (lineY >= 0 && lineY < buffer.length) {
         const lineLength = line?.length || 0
         for (let j = 0; j < lineLength && j < width; j++) {
-          const charX = x + j
+          const charX = startX + j
           
           // Skip if character is outside parent bounds
           if (parentBounds) {
@@ -690,7 +704,10 @@ export class TerminalRenderer {
     chars: any,
     style: Style
   ): void {
-    const { x, y, width, height } = bounds
+    const x = Math.floor(bounds.x)
+    const y = Math.floor(bounds.y)
+    const width = Math.ceil(bounds.width)
+    const height = Math.ceil(bounds.height)
     
     // Helper to set cell if in bounds
     const setCell = (cellX: number, cellY: number, char: string) => {

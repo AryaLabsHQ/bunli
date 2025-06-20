@@ -39,77 +39,102 @@ export class MockTerminal {
    * Parse ANSI escape sequences and update buffer
    */
   private parseANSI(output: string): void {
-    // Handle special sequences first
-    if (output.startsWith('\x1b[?25l')) {
-      // Hide cursor - ignore
-      return
-    }
-    if (output.startsWith('\x1b[?25h')) {
-      // Show cursor - ignore
-      return
-    }
+    // Process all escape sequences in the output
+    let remaining = output
     
-    // Handle sequences without escape character first
-    if (output.startsWith('[')) {
-      output = '\x1b' + output
-    }
-    
-    // Split by ANSI escape sequences
-    const parts = output.split(/\x1b\[/)
-    
-    for (let i = 0; i < parts.length; i++) {
-      if (i === 0 && parts[i]) {
-        // Regular text before first escape sequence
-        this.writeText(parts[i])
+    while (remaining) {
+      // Handle cursor hide/show sequences
+      if (remaining.startsWith('\x1b[?25l')) {
+        remaining = remaining.slice(6)
+        continue
+      }
+      if (remaining.startsWith('\x1b[?25h')) {
+        remaining = remaining.slice(6)
         continue
       }
       
-      const part = parts[i]
-      if (!part) continue
+      // Handle other escape sequences
+      const escIndex = remaining.indexOf('\x1b[')
+      if (escIndex === -1) {
+        // No more escape sequences, write remaining text
+        if (remaining) {
+          this.writeText(remaining)
+        }
+        break
+      }
       
-      // Parse escape sequence
-      const match = part.match(/^([0-9;]*)([A-Za-z])(.*)$/)
+      // Write text before escape sequence
+      if (escIndex > 0) {
+        this.writeText(remaining.slice(0, escIndex))
+        remaining = remaining.slice(escIndex)
+      }
+      
+      // Find end of escape sequence
+      const match = remaining.match(/^\x1b\[([^a-zA-Z]*)([a-zA-Z])/)
       if (!match) {
-        this.writeText(part)
+        // Invalid escape sequence, skip it
+        remaining = remaining.slice(2)
         continue
       }
       
-      const [, params, command, text] = match
-      
-      switch (command) {
-        case 'H': // Cursor position
-          const [row, col] = params.split(';').map(n => parseInt(n || '1', 10))
-          this.cursorY = row - 1
-          this.cursorX = col - 1
-          break
-          
-        case 'J': // Clear screen
-          if (params === '2') {
-            this.clear()
-          }
-          break
-          
-        case 'K': // Clear line
-          if (params === '' || params === '0' || params === '2') {
-            // Clear from cursor to end of line (or entire line if 2)
-            const startX = params === '2' ? 0 : this.cursorX
-            for (let x = startX; x < this.width; x++) {
-              if (this.cursorY < this.height) {
-                this.buffer[this.cursorY][x] = ' '
-              }
+      const [fullMatch, params, command] = match
+      this.handleEscapeSequence(params, command)
+      remaining = remaining.slice(fullMatch.length)
+    }
+  }
+  
+  /**
+   * Handle a single escape sequence
+   */
+  private handleEscapeSequence(params: string, command: string): void {
+    switch (command) {
+      case 'H': // Cursor position
+        const [row, col] = params.split(';').map(n => parseInt(n || '1', 10))
+        this.cursorY = row - 1
+        this.cursorX = col - 1
+        break
+        
+      case 'J': // Clear screen
+        if (params === '2') {
+          this.clear()
+        }
+        break
+        
+      case 'K': // Clear line
+        if (params === '' || params === '0' || params === '2') {
+          // Clear from cursor to end of line (or entire line if 2)
+          const startX = params === '2' ? 0 : this.cursorX
+          for (let x = startX; x < this.width; x++) {
+            if (this.cursorY < this.height && this.buffer[this.cursorY]) {
+              this.buffer[this.cursorY][x] = ' '
             }
           }
-          break
-          
-        case 'm': // Style/color
-          // For now, ignore styles
-          break
-      }
-      
-      // Write any text after the command
-      if (text) {
-        this.writeText(text)
-      }
+        }
+        break
+        
+      case 'm': // Style/color
+        // For now, ignore styles
+        break
+        
+      case 'A': // Cursor up
+        const upCount = parseInt(params || '1', 10)
+        this.cursorY = Math.max(0, this.cursorY - upCount)
+        break
+        
+      case 'B': // Cursor down
+        const downCount = parseInt(params || '1', 10)
+        this.cursorY = Math.min(this.height - 1, this.cursorY + downCount)
+        break
+        
+      case 'C': // Cursor forward
+        const rightCount = parseInt(params || '1', 10)
+        this.cursorX = Math.min(this.width - 1, this.cursorX + rightCount)
+        break
+        
+      case 'D': // Cursor back
+        const leftCount = parseInt(params || '1', 10)
+        this.cursorX = Math.max(0, this.cursorX - leftCount)
+        break
     }
   }
   

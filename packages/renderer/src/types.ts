@@ -64,6 +64,18 @@ export interface Style {
   top?: number
   bottom?: number
   justifyContent?: 'start' | 'center' | 'end' | 'between' | 'around' | 'evenly'
+  
+  // Grid layout properties
+  gridTemplateColumns?: string | number[] // e.g. '1fr 2fr 1fr' or [100, 200, 100]
+  gridTemplateRows?: string | number[] // e.g. 'auto 1fr auto' or [5, 10, 5]
+  gridGap?: number | [number, number] // gap between grid items
+  gridAutoFlow?: GridAutoFlow
+  gridColumn?: string | number // e.g. '1 / 3' or column index
+  gridRow?: string | number // e.g. '2 / 4' or row index
+  gridColumnSpan?: number // how many columns to span
+  gridRowSpan?: number // how many rows to span
+  alignSelf?: GridAlign // align within grid cell
+  justifySelf?: GridAlign // justify within grid cell
 }
 
 // Color can be a string (name/hex) or RGB values
@@ -85,8 +97,13 @@ export type JustifyContent = 'start' | 'center' | 'end' | 'between' | 'around' |
 export type AlignItems = 'start' | 'center' | 'end' | 'stretch'
 export type TextWrap = 'wrap' | 'nowrap' | 'truncate'
 export type Position = 'relative' | 'absolute'
-export type Display = 'flex' | 'block' | 'none'
+export type Display = 'flex' | 'block' | 'none' | 'grid'
 export type Overflow = 'visible' | 'hidden' | 'scroll'
+
+// Grid layout types
+export type GridAutoFlow = 'row' | 'column' | 'dense' | 'row dense' | 'column dense'
+export type GridAlign = 'start' | 'end' | 'center' | 'stretch'
+export type GridTemplate = string | number[] // Template for rows/columns
 
 // Text wrapping modes
 export type WrapMode = 

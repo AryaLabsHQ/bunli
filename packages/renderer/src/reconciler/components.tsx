@@ -16,6 +16,7 @@ declare global {
       'terminal-text': TextProps
       'terminal-row': BoxProps
       'terminal-column': BoxProps
+      'terminal-grid': BoxProps
     }
   }
 }
@@ -51,3 +52,16 @@ export const Column = React.forwardRef<any, Omit<BoxProps, 'direction'>>((props,
   return React.createElement('terminal-column', { ...props, direction: 'vertical', ref })
 })
 Column.displayName = 'Column'
+
+/**
+ * Grid component - CSS Grid-like layout
+ */
+export const Grid = React.forwardRef<any, BoxProps>((props, ref) => {
+  return React.createElement('terminal-grid', { 
+    ...props, 
+    display: 'grid',
+    style: { display: 'grid', ...props.style },
+    ref 
+  })
+})
+Grid.displayName = 'Grid'

@@ -17,6 +17,8 @@ import {
   type TerminalNode,
 } from './terminal-element.js'
 import { styleAffectsLayout } from '../utils/style-utils.js'
+import { commitLayout } from './commit-layout.js'
+import { renderToTerminal } from './terminal-renderer.js'
 
 // Type exports for the reconciler
 export type Type = string
@@ -285,11 +287,7 @@ export const terminalHostConfig: HostConfig<
 
   resetAfterCommit(container: Container): void {
     // This is where we actually render to the terminal
-    if (container.root) {
-      // Import at the top of the function to avoid circular dependency
-      const { commitLayout } = require('./commit-layout.js')
-      const { renderToTerminal } = require('./terminal-renderer.js')
-      
+    if (container.root) {      
       // Perform layout calculation
       commitLayout(container)
       

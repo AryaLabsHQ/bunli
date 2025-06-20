@@ -9,6 +9,9 @@ import { createTerminalContainer } from '../../src/reconciler/terminal-element.j
 import { MockTerminal } from './mock-terminal.js'
 import { registerApp } from '../setup.js'
 
+// Store the current container for helper functions
+let currentContainer: any = null
+
 export interface TestApp {
   app: TerminalApp
   terminal: MockTerminal
@@ -39,6 +42,9 @@ export function createTestApp(width = 80, height = 24): TestApp {
   
   // Create the container directly instead of using createApp
   const container = createTerminalContainer(mockStream)
+  
+  // Store current container reference
+  currentContainer = container
   
   // Hide cursor like createApp does
   mockStream.write('\x1b[?25l')
@@ -124,14 +130,50 @@ export async function renderToStringAsync(element: React.ReactElement, width = 8
   
   // Force layout calculation and rendering
   if (container && container.root) {
-    const { performLayout } = require('../../src/reconciler/layout.js')
+    const { commitLayout } = require('../../src/reconciler/commit-layout.js')
     const { renderToTerminal } = require('../../src/reconciler/terminal-renderer.js')
     
-    performLayout(container)
+    // Ensure root has layout before committing
+    if (!container.root.layout) {
+      container.root.layout = { x: 0, y: 0, width: container.width, height: container.height }
+    }
+    
+    commitLayout(container)
     renderToTerminal(container)
   }
   
   const output = terminal.getRenderedContent()
+  unmount()
+  
+  return output
+}
+
+/**
+ * Render a component to raw ANSI output
+ */
+export async function renderToAnsi(element: React.ReactElement, width = 80, height = 24): Promise<string> {
+  const { terminal, rerender, unmount, container } = createTestApp(width, height)
+  
+  rerender(element)
+  
+  // Wait for React to flush updates
+  await waitForRender()
+  
+  // Force layout calculation and rendering
+  if (container && container.root) {
+    const { commitLayout } = require('../../src/reconciler/commit-layout.js')
+    const { renderToTerminal } = require('../../src/reconciler/terminal-renderer.js')
+    
+    // Ensure root has layout before committing
+    if (!container.root.layout) {
+      container.root.layout = { x: 0, y: 0, width: container.width, height: container.height }
+    }
+    
+    commitLayout(container)
+    renderToTerminal(container)
+  }
+  
+  const output = terminal.getRawOutput()
   unmount()
   
   return output
@@ -164,10 +206,10 @@ export async function renderToSnapshot(element: React.ReactElement, width = 80, 
   
   // Force layout calculation and rendering
   if (container && container.root) {
-    const { performLayout } = require('../../src/reconciler/layout.js')
+    const { commitLayout } = require('../../src/reconciler/commit-layout.js')
     const { renderToTerminal } = require('../../src/reconciler/terminal-renderer.js')
     
-    performLayout(container)
+    commitLayout(container)
     renderToTerminal(container)
   }
   
@@ -191,4 +233,16 @@ export function createTestElement(props: any): any {
     layoutDirty: true,
     _fiber: null
   }
+}
+
+/**
+ * Get the rendered output from the test stream
+ */
+export function getRenderedOutput(): string {
+  if (!currentContainer || !currentContainer.stream) {
+    return ''
+  }
+  
+  const stream = currentContainer.stream as TestStream
+  return stream.getOutput ? stream.getOutput() : stream.output
 }

@@ -2,8 +2,19 @@
  * Efficient style diffing utilities for terminal rendering
  */
 
-import type { Style } from '../types.js'
+import type { Style, Color } from '../types.js'
 import ansiStyles from '../core/ansi-styles.js'
+
+/**
+ * Convert RGB object to hex string
+ */
+function rgbToHex(rgb: { r: number; g: number; b: number }): string {
+  const toHex = (n: number) => {
+    const hex = Math.round(Math.max(0, Math.min(255, n))).toString(16)
+    return hex.length === 1 ? '0' + hex : hex
+  }
+  return `${toHex(rgb.r)}${toHex(rgb.g)}${toHex(rgb.b)}`
+}
 
 /**
  * Generate ANSI escape sequences for style changes
@@ -76,13 +87,15 @@ function applyAllStyles(style: Style): string {
   
   // Foreground color
   if (style.color) {
-    const colorCode = getColorCode(style.color, false)
+    const colorStr = typeof style.color === 'string' ? style.color : `#${rgbToHex(style.color)}`
+    const colorCode = getColorCode(colorStr, false)
     if (colorCode) codes.push(colorCode)
   }
   
   // Background color
   if (style.backgroundColor) {
-    const bgCode = getColorCode(style.backgroundColor, true)
+    const bgStr = typeof style.backgroundColor === 'string' ? style.backgroundColor : `#${rgbToHex(style.backgroundColor)}`
+    const bgCode = getColorCode(bgStr, true)
     if (bgCode) codes.push(bgCode)
   }
   
@@ -122,9 +135,9 @@ function getColorCode(color: string, isBackground: boolean): string | null {
 function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
   return result ? {
-    r: parseInt(result[1], 16),
-    g: parseInt(result[2], 16),
-    b: parseInt(result[3], 16),
+    r: parseInt(result[1] || '0', 16),
+    g: parseInt(result[2] || '0', 16),
+    b: parseInt(result[3] || '0', 16),
   } : null
 }
 

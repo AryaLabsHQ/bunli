@@ -134,15 +134,29 @@ export function measureElement(
   const borderSpace = borderOffset * 2
   const shouldStretch = element.elementType === 'box' && props.width === undefined && !props.flex
   
-  const finalWidth = props.width !== undefined 
+  let finalWidth = props.width !== undefined 
     ? width 
     : shouldStretch
       ? width
       : Math.min(contentSize.width + pLeft + pRight + borderSpace, width)
     
-  const finalHeight = props.height !== undefined
+  let finalHeight = props.height !== undefined
     ? height
     : Math.min(contentSize.height + pTop + pBottom + borderSpace, height)
+  
+  // Apply min/max constraints
+  if (props.minWidth !== undefined) {
+    finalWidth = Math.max(finalWidth, props.minWidth)
+  }
+  if (props.maxWidth !== undefined) {
+    finalWidth = Math.min(finalWidth, props.maxWidth)
+  }
+  if (props.minHeight !== undefined) {
+    finalHeight = Math.max(finalHeight, props.minHeight)
+  }
+  if (props.maxHeight !== undefined) {
+    finalHeight = Math.min(finalHeight, props.maxHeight)
+  }
   
   const size: LayoutSize = {
     width: finalWidth + mLeft + mRight,

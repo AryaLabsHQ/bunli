@@ -3,7 +3,7 @@ export { render, unmount, createApp, getRenderingMetrics } from './reconciler/in
 export type { TerminalApp } from './reconciler/index.js'
 
 // Base components
-export { Box, Text, Row, Column } from './reconciler/components.js'
+export { Box, Text, Row, Column, Grid } from './reconciler/components.js'
 export type { BoxProps, TextProps } from './reconciler/components.js'
 
 // Terminal element types
@@ -30,6 +30,9 @@ export type {
   Display,
   Overflow,
   BorderStyle,
+  GridAutoFlow,
+  GridAlign,
+  GridTemplate,
 } from './types.js'
 
 // Performance utilities

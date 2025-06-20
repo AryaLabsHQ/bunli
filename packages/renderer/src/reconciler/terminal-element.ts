@@ -55,7 +55,14 @@ export interface BaseProps {
   margin?: number | [number, number] | [number, number, number, number]
   width?: number | string
   height?: number | string
+  minWidth?: number
+  maxWidth?: number
+  minHeight?: number
+  maxHeight?: number
   flex?: number
+  flexGrow?: number
+  flexShrink?: number
+  flexBasis?: number | string
   
   // Events (future)
   onClick?: () => void
@@ -72,6 +79,7 @@ export interface BoxProps extends BaseProps {
   justify?: 'start' | 'center' | 'end' | 'between' | 'around' | 'evenly'
   wrap?: boolean
   overflow?: 'visible' | 'hidden' | 'scroll'
+  display?: 'flex' | 'block' | 'none' | 'grid'
 }
 
 /**
