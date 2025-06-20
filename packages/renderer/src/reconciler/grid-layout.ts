@@ -12,6 +12,11 @@ import { isTextNode } from './terminal-element.js'
 import { measureElement, type LayoutConstraints } from './measure.js'
 import type { GridTemplate, GridAlign } from '../types.js'
 
+// Type guard for element nodes
+function isElement(node: TerminalNode): node is TerminalElement {
+  return node.type === 'element' && 'props' in node
+}
+
 export interface GridCell {
   element: TerminalNode
   column: number
@@ -44,7 +49,7 @@ export function parseGridTemplate(template: GridTemplate): GridTrack[] {
     
     const frMatch = part.match(/^(\d+(?:\.\d+)?)fr$/)
     if (frMatch) {
-      return { size: 0, isFixed: false, frValue: parseFloat(frMatch[1]) }
+      return { size: 0, isFixed: false, frValue: parseFloat(frMatch[1] || '1') }
     }
     
     const num = parseFloat(part)
@@ -68,6 +73,7 @@ export function calculateGridDimensions(
   
   for (const child of children) {
     if (isTextNode(child)) continue
+    if (!isElement(child)) continue
     
     const props = child.props as BoxProps
     const style = props.style as any
@@ -75,8 +81,8 @@ export function calculateGridDimensions(
     // Parse grid position
     const column = parseGridPosition(style?.gridColumn) || 1
     const row = parseGridPosition(style?.gridRow) || 1
-    const columnSpan = style?.gridColumnSpan || parseGridSpan(style?.gridColumn)
-    const rowSpan = style?.gridRowSpan || parseGridSpan(style?.gridRow)
+    const columnSpan = style?.gridColumnSpan || parseGridSpan(style?.gridColumn || undefined)
+    const rowSpan = style?.gridRowSpan || parseGridSpan(style?.gridRow || undefined)
     
     maxColumn = Math.max(maxColumn, column + columnSpan - 1)
     maxRow = Math.max(maxRow, row + rowSpan - 1)
@@ -103,7 +109,7 @@ function parseGridPosition(value: string | number | undefined): number {
   
   // Handle 'start / end' format
   const rangeMatch = value.match(/^(\d+)\s*\//)
-  if (rangeMatch) return parseInt(rangeMatch[1])
+  if (rangeMatch) return parseInt(rangeMatch[1] || '1')
   
   // Try direct number
   const num = parseInt(value)
@@ -118,13 +124,13 @@ function parseGridSpan(value: string | number | undefined): number {
   
   // Handle 'span X' format
   const spanMatch = value.toString().match(/span\s+(\d+)/)
-  if (spanMatch) return parseInt(spanMatch[1])
+  if (spanMatch) return parseInt(spanMatch[1] || '1')
   
   // Handle 'start / end' format  
   const rangeMatch = value.toString().match(/^(\d+)\s*\/\s*(\d+)/)
   if (rangeMatch) {
-    const start = parseInt(rangeMatch[1])
-    const end = parseInt(rangeMatch[2])
+    const start = parseInt(rangeMatch[1] || '1')
+    const end = parseInt(rangeMatch[2] || '1')
     return end - start
   }
   
@@ -168,14 +174,15 @@ export function autoPlaceGridItems(
   // First pass: place explicitly positioned items
   for (const child of children) {
     if (isTextNode(child)) continue
+    if (!isElement(child)) continue
     
     const props = child.props as BoxProps
     const style = props.style as any
     
     const explicitColumn = parseGridPosition(style?.gridColumn)
     const explicitRow = parseGridPosition(style?.gridRow)
-    const columnSpan = style?.gridColumnSpan || parseGridSpan(style?.gridColumn)
-    const rowSpan = style?.gridRowSpan || parseGridSpan(style?.gridRow)
+    const columnSpan = style?.gridColumnSpan || parseGridSpan(style?.gridColumn || undefined)
+    const rowSpan = style?.gridRowSpan || parseGridSpan(style?.gridRow || undefined)
     
     if (explicitColumn && explicitRow) {
       cells.push({
@@ -195,6 +202,7 @@ export function autoPlaceGridItems(
   
   for (const child of children) {
     if (isTextNode(child)) continue
+    if (!isElement(child)) continue
     
     const props = child.props as BoxProps
     const style = props.style as any
@@ -205,8 +213,8 @@ export function autoPlaceGridItems(
     // Skip if already placed
     if (explicitColumn && explicitRow) continue
     
-    const columnSpan = style?.gridColumnSpan || parseGridSpan(style?.gridColumn)
-    const rowSpan = style?.gridRowSpan || parseGridSpan(style?.gridRow)
+    const columnSpan = style?.gridColumnSpan || parseGridSpan(style?.gridColumn || undefined)
+    const rowSpan = style?.gridRowSpan || parseGridSpan(style?.gridRow || undefined)
     
     
     // Find next available position
@@ -287,7 +295,8 @@ export function calculateTrackSizes(
   
   // Calculate auto track sizes based on content
   for (let i = 0; i < trackCount; i++) {
-    if (!tracks[i].isFixed && !tracks[i].frValue) {
+    const track = tracks[i]
+    if (track && !track.isFixed && !track.frValue) {
       let maxSize = 0
       
       // Find all cells in this track
@@ -304,7 +313,7 @@ export function calculateTrackSizes(
             maxHeight: dimension === 'height' ? Infinity : constraints.maxHeight,
           }
           
-          const measured = measureElement(cell.element, elementConstraints)
+          const measured = isElement(cell.element) ? measureElement(cell.element, elementConstraints) : { width: 0, height: 0 }
           maxSize = Math.max(maxSize, dimension === 'width' ? measured.width : measured.height)
         }
       }
@@ -323,8 +332,9 @@ export function calculateTrackSizes(
     const frUnit = availableForTracks / totalFr
     
     for (let i = 0; i < trackCount; i++) {
-      if (tracks[i].frValue) {
-        sizes[i] = Math.floor(tracks[i].frValue! * frUnit)
+      const track = tracks[i]
+      if (track && track.frValue) {
+        sizes[i] = Math.floor(track.frValue * frUnit)
       }
     }
   }

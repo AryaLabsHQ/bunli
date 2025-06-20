@@ -351,7 +351,7 @@ function layoutFlexChildren(
       // Horizontal layout
       const baseWidth = size.flexBasis !== undefined ? size.flexBasis : size.width
       // size.width already includes margins from measure phase
-      childWidth = Math.max(0, baseWidth + spacePerItem[i] - mLeft - mRight)
+      childWidth = Math.max(0, baseWidth + (spacePerItem[i] || 0) - mLeft - mRight)
       childHeight = Math.min(size.height - mTop - mBottom, height)
       
       // Position child accounting for margin
@@ -373,7 +373,7 @@ function layoutFlexChildren(
       childWidth = Math.min(size.width - mLeft - mRight, width)
       const baseHeight = size.flexBasis !== undefined ? size.flexBasis : size.height
       // size.height already includes margins from measure phase
-      childHeight = Math.max(0, baseHeight + spacePerItem[i] - mTop - mBottom)
+      childHeight = Math.max(0, baseHeight + (spacePerItem[i] || 0) - mTop - mBottom)
       
       // Position child accounting for margin
       childY = mainPos + mTop
@@ -486,12 +486,12 @@ function layoutGridChildren(
   // Calculate cumulative positions
   const columnPositions = [0]
   for (let i = 0; i < columnSizes.length; i++) {
-    columnPositions.push(columnPositions[i] + columnSizes[i] + (i < columnSizes.length - 1 ? gapCol : 0))
+    columnPositions.push((columnPositions[i] || 0) + (columnSizes[i] || 0) + (i < columnSizes.length - 1 ? gapCol : 0))
   }
   
   const rowPositions = [0]
   for (let i = 0; i < rowSizes.length; i++) {
-    rowPositions.push(rowPositions[i] + rowSizes[i] + (i < rowSizes.length - 1 ? gapRow : 0))
+    rowPositions.push((rowPositions[i] || 0) + (rowSizes[i] || 0) + (i < rowSizes.length - 1 ? gapRow : 0))
   }
   
   // Position each cell
@@ -502,26 +502,26 @@ function layoutGridChildren(
       continue
     }
     
-    const cellX = x + columnPositions[cell.column]
-    const cellY = y + rowPositions[cell.row]
+    const cellX = x + (columnPositions[cell.column] || 0)
+    const cellY = y + (rowPositions[cell.row] || 0)
     
     // Calculate cell dimensions
     let cellWidth = 0
     for (let i = 0; i < cell.columnSpan && cell.column + i < columnSizes.length; i++) {
-      cellWidth += columnSizes[cell.column + i]
+      cellWidth += columnSizes[cell.column + i] || 0
       if (i > 0) cellWidth += gapCol
     }
     
     let cellHeight = 0
     for (let i = 0; i < cell.rowSpan && cell.row + i < rowSizes.length; i++) {
-      cellHeight += rowSizes[cell.row + i]
+      cellHeight += rowSizes[cell.row + i] || 0
       if (i > 0) cellHeight += gapRow
     }
     
     // For all grid children, commit their layout
     if (cell.element && 'elementType' in cell.element) {
       // For now, just place the element in the cell without alignment calculations
-      commitElementLayout(cell.element, cellX, cellY, cellWidth, cellHeight)
+      commitElementLayout(cell.element as TerminalElement, cellX, cellY, cellWidth, cellHeight)
     }
   }
 }
