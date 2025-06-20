@@ -5,8 +5,6 @@
 import ReactReconciler from 'react-reconciler'
 import { terminalHostConfig } from './host-config.js'
 import { createTerminalContainer, type TerminalContainer } from './terminal-element.js'
-import { performLayout } from './layout.js'
-import { renderToTerminal } from './terminal-renderer.js'
 import { registerForCleanup, setResizeHandler, manualCleanup, createCleanupWrapper } from './cleanup-registry.js'
 
 // Create the reconciler instance

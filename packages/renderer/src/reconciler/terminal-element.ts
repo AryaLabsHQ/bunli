@@ -104,6 +104,12 @@ export interface TerminalElement extends TerminalNode {
   // Track if content changed
   contentHash?: string
   previousContentHash?: string
+  
+  // Incremental layout optimization
+  needsMeasure: boolean
+  measureVersion: number
+  constraintsHash: number
+  intrinsicSize?: { width: number; height: number }
 }
 
 /**
@@ -149,6 +155,9 @@ export function createTerminalElement(
     parent: null,
     dirtyLayout: true,
     dirtyStyle: true,
+    needsMeasure: true,
+    measureVersion: 0,
+    constraintsHash: 0,
   }
 }
 

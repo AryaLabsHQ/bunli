@@ -11,10 +11,11 @@ import type {
   Bounds,
 } from './terminal-element.js'
 import { isTextNode, isElementNode } from './terminal-element.js'
-import { applyStyle, getBorderChars } from '../core/ansi.js'
+import { getBorderChars } from '../core/ansi.js'
 import type { Style } from '../types.js'
 import { stylesEqual } from '../utils/style-utils.js'
 import { now } from '../utils/performance.js'
+import { styleToAnsi, wrapWithCursorControl, isGhosttyTerminal } from '../utils/style-diff.js'
 
 // Cell represents a single character on the terminal
 interface Cell {
@@ -43,6 +44,8 @@ interface RenderMetrics {
 export class TerminalRenderer {
   private currentBuffer: Buffer
   private previousBuffer: Buffer | null = null
+  private bordersDrawn = new WeakSet<TerminalElement>()
+  private isGhostty = isGhosttyTerminal()
   private metrics: RenderMetrics = {
     renderCount: 0,
     totalRenderTime: 0,
@@ -112,8 +115,15 @@ export class TerminalRenderer {
     // Clear current buffer
     this.currentBuffer = this.createBuffer(this.container.width, this.container.height)
     
-    // Render tree into buffer
-    this.renderNode(this.container.root, this.currentBuffer)
+    // Clear borders drawn set for new frame
+    this.bordersDrawn = new WeakSet<TerminalElement>()
+    
+    // Two-pass rendering:
+    // Pass 1: Render borders only
+    this.renderBordersPass(this.container.root, this.currentBuffer)
+    
+    // Pass 2: Render content
+    this.renderContentPass(this.container.root, this.currentBuffer)
     
     // Get dirty regions from tracker
     const dirtyRegions = this.container.dirtyTracker.getDirtyRegions()
@@ -122,9 +132,10 @@ export class TerminalRenderer {
     // Generate differential update commands
     const commands = this.generateDifferentialCommands(dirtyRegions, needsFullRedraw)
     
-    // Write to terminal
+    // Write to terminal with optional cursor control for Ghostty
     if (commands.length > 0) {
-      this.container.stream.write(commands.join(''))
+      const output = wrapWithCursorControl(commands.join(''), this.isGhostty)
+      this.container.stream.write(output)
     }
     
     // Update metrics
@@ -153,6 +164,122 @@ export class TerminalRenderer {
     }
     
     return commands
+  }
+  
+  /**
+   * Pass 1: Render only borders
+   */
+  private renderBordersPass(
+    node: TerminalNode,
+    buffer: Buffer,
+    _parentBounds?: Bounds
+  ): void {
+    if (isTextNode(node)) {
+      return // Text nodes don't have borders
+    }
+    
+    if (!isElementNode(node) || !node.layout || node.props.hidden) {
+      return
+    }
+    
+    const element = node
+    const layout = element.layout!
+    const { x, y, width, height } = layout
+    const style = element.props.style as Style | undefined
+    
+    // Skip if completely outside viewport
+    if (x + width <= 0 || x >= this.container.width ||
+        y + height <= 0 || y >= this.container.height) {
+      return
+    }
+    
+    // Render border if specified and not already drawn
+    if (style?.border && style.border !== 'none' && !this.bordersDrawn.has(element)) {
+      const chars = getBorderChars(style.border)
+      if (chars) {
+        this.renderBorder(buffer, { x, y, width, height }, chars, style)
+        this.bordersDrawn.add(element)
+      }
+    }
+    
+    // Recurse into children
+    for (const child of element.children) {
+      this.renderBordersPass(child, buffer, element.layout)
+    }
+  }
+  
+  /**
+   * Pass 2: Render content (text, backgrounds)
+   */
+  private renderContentPass(
+    node: TerminalNode,
+    buffer: Buffer,
+    parentStyle?: Style,
+    parentBounds?: Bounds
+  ): void {
+    if (isTextNode(node)) {
+      this.renderText(node, buffer, parentStyle, parentBounds)
+      return
+    }
+    
+    if (!isElementNode(node) || !node.layout || node.props.hidden) {
+      return
+    }
+    
+    const element = node
+    const layout = element.layout!
+    const { x, y, width, height } = layout
+    const style = element.props.style as Style | undefined
+    
+    // Skip if completely outside viewport
+    if (x + width <= 0 || x >= this.container.width ||
+        y + height <= 0 || y >= this.container.height) {
+      return
+    }
+    
+    // Render background if specified
+    if (style?.backgroundColor) {
+      const bgStartX = style?.border ? x + 1 : x
+      const bgStartY = style?.border ? y + 1 : y
+      const bgWidth = style?.border ? Math.max(0, width - 2) : width
+      const bgHeight = style?.border ? Math.max(0, height - 2) : height
+      
+      for (let dy = 0; dy < bgHeight; dy++) {
+        const lineY = bgStartY + dy
+        if (lineY >= 0 && lineY < buffer.length) {
+          for (let dx = 0; dx < bgWidth; dx++) {
+            const charX = bgStartX + dx
+            const row = buffer[lineY]
+            if (row && charX >= 0 && charX < row.length) {
+              if (!row[charX]) {
+                row[charX] = {
+                  char: ' ',
+                  style: { backgroundColor: style.backgroundColor }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    // Render content based on element type
+    if (element.elementType === 'text') {
+      this.renderTextElement(element, buffer, parentBounds)
+    } else {
+      // Calculate content bounds for children (inside padding and border)
+      const contentBounds: Bounds = {
+        x: x + (style?.border && style.border !== 'none' ? 1 : 0),
+        y: y + (style?.border && style.border !== 'none' ? 1 : 0),
+        width: width - (style?.border && style.border !== 'none' ? 2 : 0),
+        height: height - (style?.border && style.border !== 'none' ? 2 : 0)
+      }
+      
+      // Render children with content bounds
+      for (const child of element.children) {
+        this.renderContentPass(child, buffer, style, contentBounds)
+      }
+    }
   }
   
   /**
@@ -188,15 +315,10 @@ export class TerminalRenderer {
             lineContent += ' '.repeat(x - lastX - 1)
           }
           
-          // Apply style if changed
-          const styleChanged = !stylesEqual(cell.style, lastStyle)
-          if (styleChanged) {
-            if (lastStyle) {
-              lineContent += '\x1b[0m' // Reset
-            }
-            if (cell.style) {
-              lineContent += applyStyle('', cell.style)
-            }
+          // Apply style if changed using diff
+          const styleAnsi = styleToAnsi(cell.style, lastStyle)
+          if (styleAnsi) {
+            lineContent += styleAnsi
             lastStyle = cell.style
           }
           
@@ -234,9 +356,7 @@ export class TerminalRenderer {
         const prevRow = this.previousBuffer?.[y]
         if (!row) continue
         
-        let needsMove = true
         let lineHasChanges = false
-        let lineContent = ''
         
         // Check if this line in the region has any changes
         for (let x = region.x; x < region.x + region.width && x < this.container.width; x++) {
@@ -280,16 +400,11 @@ export class TerminalRenderer {
           const cell = row[x]
           
           if (cell && cell.char) {
-            // Apply style if changed
-            const newStyle = cell.style
-            if (!stylesEqual(newStyle, currentStyle)) {
-              if (currentStyle) {
-                commands.push('\x1b[0m')
-              }
-              if (newStyle) {
-                commands.push(applyStyle('', newStyle))
-              }
-              currentStyle = newStyle
+            // Apply style if changed using diff
+            const styleAnsi = styleToAnsi(cell.style, currentStyle)
+            if (styleAnsi) {
+              commands.push(styleAnsi)
+              currentStyle = cell.style
             }
             
             // Write character

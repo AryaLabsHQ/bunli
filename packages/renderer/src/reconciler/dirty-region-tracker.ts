@@ -6,20 +6,21 @@
  */
 
 import type { Bounds } from '../types.js'
+import { DirtyTree } from '../utils/dirty-tree.js'
 
 /**
  * A region that needs to be redrawn
  */
 export interface DirtyRegion extends Bounds {
-  // Priority of this region (for future priority-based rendering)
   priority?: number
+  type?: 'content' | 'border'
 }
 
 /**
  * Tracks and optimizes dirty regions for efficient terminal updates
  */
 export class DirtyRegionTracker {
-  private regions: DirtyRegion[] = []
+  private tree = new DirtyTree()
   private fullRedraw = false
   
   constructor(
@@ -43,16 +44,8 @@ export class DirtyRegionTracker {
       return
     }
     
-    // Try to merge with existing regions
-    const merged = this.tryMergeRegion(clipped, priority)
-    if (!merged) {
-      this.regions.push({ ...clipped, priority })
-    }
-    
-    // Optimize regions if we have too many
-    if (this.regions.length > 10) {
-      this.optimizeRegions()
-    }
+    // Insert into spatial index
+    this.tree.insert(clipped, priority, 'content')
   }
   
   /**
@@ -60,7 +53,7 @@ export class DirtyRegionTracker {
    */
   markFullRedraw(): void {
     this.fullRedraw = true
-    this.regions = []
+    this.tree.clear()
   }
   
   /**
@@ -84,14 +77,25 @@ export class DirtyRegionTracker {
       }]
     }
     
-    return this.regions
+    // Get all dirty rectangles from the tree
+    const dirtyRects = this.tree.getAll()
+    
+    // Convert DirtyRect format to DirtyRegion format
+    return dirtyRects.map(rect => ({
+      x: rect.minX,
+      y: rect.minY,
+      width: rect.maxX - rect.minX,
+      height: rect.maxY - rect.minY,
+      priority: rect.priority || 0,
+      type: rect.type
+    }))
   }
   
   /**
    * Clear all dirty regions
    */
   clear(): void {
-    this.regions = []
+    this.tree.clear()
     this.fullRedraw = false
   }
   
@@ -111,11 +115,8 @@ export class DirtyRegionTracker {
   isPointDirty(x: number, y: number): boolean {
     if (this.fullRedraw) return true
     
-    return this.regions.some(region => 
-      x >= region.x &&
-      x < region.x + region.width &&
-      y >= region.y &&
-      y < region.y + region.height
+    return this.tree.getAllBounds().some(r =>
+      x >= r.x && x < r.x + r.width && y >= r.y && y < r.y + r.height
     )
   }
   
@@ -125,7 +126,7 @@ export class DirtyRegionTracker {
   intersectsAnyDirtyRegion(bounds: Bounds): boolean {
     if (this.fullRedraw) return true
     
-    return this.regions.some(region => this.intersects(region, bounds))
+    return this.tree.getAllBounds().some(r => this.intersects(r, bounds))
   }
   
   // Private methods
@@ -154,36 +155,6 @@ export class DirtyRegionTracker {
     return regionArea > terminalArea * 0.5
   }
   
-  private tryMergeRegion(bounds: Bounds, priority: number): boolean {
-    for (let i = 0; i < this.regions.length; i++) {
-      const region = this.regions[i]
-      
-      // Check if regions overlap or are adjacent
-      if (region && this.canMerge(region, bounds)) {
-        // Merge into existing region
-        this.regions[i] = this.merge(region, bounds, Math.max(region.priority || 0, priority))
-        return true
-      }
-    }
-    
-    return false
-  }
-  
-  private canMerge(a: Bounds, b: Bounds): boolean {
-    // Check if regions overlap
-    if (this.intersects(a, b)) return true
-    
-    // Check if regions are adjacent (within 1 cell)
-    const expanded = {
-      x: a.x - 1,
-      y: a.y - 1,
-      width: a.width + 2,
-      height: a.height + 2,
-    }
-    
-    return this.intersects(expanded, b)
-  }
-  
   private intersects(a: Bounds, b: Bounds): boolean {
     return !(
       a.x + a.width <= b.x ||
@@ -191,106 +162,5 @@ export class DirtyRegionTracker {
       a.y + a.height <= b.y ||
       b.y + b.height <= a.y
     )
-  }
-  
-  private merge(a: DirtyRegion, b: Bounds, priority: number): DirtyRegion {
-    const x = Math.min(a.x, b.x)
-    const y = Math.min(a.y, b.y)
-    const right = Math.max(a.x + a.width, b.x + b.width)
-    const bottom = Math.max(a.y + a.height, b.y + b.height)
-    
-    return {
-      x,
-      y,
-      width: right - x,
-      height: bottom - y,
-      priority,
-    }
-  }
-  
-  private optimizeRegions(): void {
-    // If we have too many small regions, try to merge them more aggressively
-    const optimized: DirtyRegion[] = []
-    const used = new Set<number>()
-    
-    for (let i = 0; i < this.regions.length; i++) {
-      if (used.has(i)) continue
-      
-      let current = this.regions[i]
-      used.add(i)
-      
-      // Try to merge with other regions
-      let merged = false
-      do {
-        merged = false
-        for (let j = i + 1; j < this.regions.length; j++) {
-          if (used.has(j)) continue
-          
-          // More aggressive merging - if merging doesn't increase area too much
-          const regionJ = this.regions[j]
-          if (!regionJ || !current) continue
-          const mergedRegion = this.merge(current, regionJ, 
-            Math.max(current.priority || 0, regionJ.priority || 0))
-          
-          const currentArea = current.width * current.height
-          const otherArea = regionJ.width * regionJ.height
-          const mergedArea = mergedRegion.width * mergedRegion.height
-          
-          // If merged area is not more than 20% larger than combined areas
-          if (mergedArea <= (currentArea + otherArea) * 1.2) {
-            current = mergedRegion
-            used.add(j)
-            merged = true
-          }
-        }
-      } while (merged)
-      
-      if (current) {
-        optimized.push(current)
-      }
-    }
-    
-    this.regions = optimized
-    
-    // If still too many regions, just do a full redraw
-    if (this.regions.length > 20) {
-      this.markFullRedraw()
-    }
-  }
-  
-  /**
-   * Get statistics about dirty regions (for debugging)
-   */
-  getStats(): {
-    regionCount: number
-    totalArea: number
-    terminalArea: number
-    coverage: number
-    isFullRedraw: boolean
-  } {
-    const terminalArea = this.terminalWidth * this.terminalHeight
-    
-    if (this.fullRedraw) {
-      return {
-        regionCount: 1,
-        totalArea: terminalArea,
-        terminalArea,
-        coverage: 1,
-        isFullRedraw: true,
-      }
-    }
-    
-    const totalArea = this.regions.reduce(
-      (sum, region) => sum + region.width * region.height,
-      0
-    )
-    
-    return {
-      regionCount: this.regions.length,
-      totalArea,
-      terminalArea,
-      coverage: totalArea / terminalArea,
-      isFullRedraw: false,
-    }
   }
 }

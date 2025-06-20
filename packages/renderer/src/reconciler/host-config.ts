@@ -111,13 +111,13 @@ export const terminalHostConfig: HostConfig<
   appendInitialChild(parent: Instance, child: Instance | TextInstance): void {
     child.parent = parent
     parent.children.push(child)
-    markLayoutDirty(parent)
+    parent.needsMeasure = true
   },
 
   appendChild(parent: Instance, child: Instance | TextInstance): void {
     child.parent = parent
     parent.children.push(child)
-    markLayoutDirty(parent)
+    parent.needsMeasure = true
   },
 
   appendChildToContainer(container: Container, child: Instance): void {
@@ -147,7 +147,7 @@ export const terminalHostConfig: HostConfig<
     } else {
       parent.children.push(child)
     }
-    markLayoutDirty(parent)
+    parent.needsMeasure = true
   },
 
   insertInContainerBefore(
@@ -164,7 +164,7 @@ export const terminalHostConfig: HostConfig<
     if (index >= 0) {
       parent.children.splice(index, 1)
       child.parent = null
-      markLayoutDirty(parent)
+      parent.needsMeasure = true
       
       // Mark the area where the child was as dirty
       if (!isTextNode(child) && child.layout) {
@@ -238,7 +238,7 @@ export const terminalHostConfig: HostConfig<
     }
     
     if (needsLayout) {
-      markLayoutDirty(instance)
+      instance.needsMeasure = true
     }
     
     if (needsStyle) {
@@ -263,7 +263,7 @@ export const terminalHostConfig: HostConfig<
     
     // Mark parent as needing layout
     if (textInstance.parent && !isTextNode(textInstance.parent)) {
-      markLayoutDirty(textInstance.parent)
+      textInstance.parent.needsMeasure = true
       
       // Mark region as dirty
       if (textInstance.parent.layout) {
@@ -287,11 +287,11 @@ export const terminalHostConfig: HostConfig<
     // This is where we actually render to the terminal
     if (container.root) {
       // Import at the top of the function to avoid circular dependency
-      const { performLayout } = require('./layout.js')
+      const { commitLayout } = require('./commit-layout.js')
       const { renderToTerminal } = require('./terminal-renderer.js')
       
       // Perform layout calculation
-      performLayout(container)
+      commitLayout(container)
       
       // Render to terminal using differential rendering
       renderToTerminal(container)
@@ -395,7 +395,7 @@ export const terminalHostConfig: HostConfig<
   // Content reset
   resetTextContent(_instance: Instance): void {
     _instance.children = []
-    markLayoutDirty(_instance)
+    _instance.needsMeasure = true
   },
 
   clearContainer(container: Container): void {
@@ -432,7 +432,7 @@ export const terminalHostConfig: HostConfig<
   hideInstance(instance: Instance): void {
     // TODO: Implement hiding (remove from layout)
     instance.props.hidden = true
-    markLayoutDirty(instance)
+    instance.needsMeasure = true
   },
 
   hideTextInstance(_textInstance: TextInstance): void {
@@ -441,7 +441,7 @@ export const terminalHostConfig: HostConfig<
 
   unhideInstance(instance: Instance): void {
     instance.props.hidden = false
-    markLayoutDirty(instance)
+    instance.needsMeasure = true
   },
 
   unhideTextInstance(_textInstance: TextInstance): void {
