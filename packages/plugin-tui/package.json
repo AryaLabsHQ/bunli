@@ -1,0 +1,44 @@
+{
+  "name": "@bunli/plugin-tui",
+  "version": "0.1.0",
+  "description": "Terminal User Interface plugin for Bunli CLI framework",
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "build": "bun run scripts/build.ts",
+    "test": "bun test",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@bunli/core": "workspace:*",
+    "@opentui/core": "link:@opentui/core",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.3.3"
+  },
+  "peerDependencies": {
+    "@bunli/core": "workspace:*"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "keywords": [
+    "bunli",
+    "cli",
+    "tui",
+    "terminal",
+    "ui",
+    "interactive"
+  ],
+  "author": "Bunli Contributors",
+  "license": "MIT"
+}
