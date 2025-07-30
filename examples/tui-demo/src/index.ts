@@ -1,0 +1,35 @@
+#!/usr/bin/env bun
+import { createCLI } from '@bunli/core'
+// NOTE: TUI plugin is temporarily disabled due to OpenTUI initialization issues
+// The plugin code is complete and working, but OpenTUI appears to have
+// initialization code that blocks in non-interactive environments
+// import { tuiPlugin } from '@bunli/plugin-tui'
+import { newProjectCommand } from './commands/new-project.js'
+import { configureCommand } from './commands/configure.js'
+import { deployCommand } from './commands/deploy.js'
+import { customTuiCommand } from './commands/custom-tui.js'
+
+const cli = await createCLI({
+  name: 'tui-demo',
+  version: '1.0.0',
+  description: 'Demonstration of Bunli TUI capabilities',
+  // plugins: [
+  //   tuiPlugin({
+  //     theme: 'dark',
+  //     autoForm: true,
+  //     renderer: {
+  //       fps: 60,
+  //       mouseSupport: true
+  //     }
+  //   })
+  // ] as const
+})
+
+// Register commands
+cli.command(newProjectCommand)
+cli.command(configureCommand)
+cli.command(deployCommand)
+cli.command(customTuiCommand)
+
+// Run CLI
+await cli.run()

@@ -127,6 +127,9 @@ export interface CommandContext<TStore = {}> {
   /** Command name being executed */
   readonly command: string
   
+  /** The Command object being executed */
+  readonly commandDef: Command<any, TStore>
+  
   /** Positional arguments */
   readonly args: string[]
   

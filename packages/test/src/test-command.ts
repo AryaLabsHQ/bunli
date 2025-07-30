@@ -346,7 +346,20 @@ export async function testCommand(
       prompt: mockPrompt,
       spinner: mockSpinner,
       shell: mockShell as any,
-      colors: mockColors
+      colors: mockColors,
+      terminal: {
+        width: 80,
+        height: 24,
+        isInteractive: false,
+        isCI: true,
+        supportsColor: false,
+        supportsMouse: false
+      },
+      runtime: {
+        startTime: Date.now(),
+        args: options.args || [],
+        command: command.name
+      }
     }
     
     // Execute command handler
