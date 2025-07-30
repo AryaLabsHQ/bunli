@@ -66,11 +66,21 @@ Options:
 - `--notify` - Email addresses to notify
 
 ### `custom` - Custom TUI demonstration
-Demonstrates custom TUI implementation capabilities (currently shows terminal info).
+Demonstrates Terminal User Interface capabilities with different demo modes.
 
 ```bash
-bun src/index.ts custom
+# Dashboard demo - shows menu navigation and layout
+bun src/index.ts custom --demo dashboard
+
+# Progress bar demo - animated progress indicators
+bun src/index.ts custom --demo progress
+
+# Form demo - interactive form concepts
+bun src/index.ts custom --demo form
 ```
+
+Options:
+- `--demo, -d` - Demo type (dashboard/progress/form)
 
 ## TUI Plugin Features
 
@@ -82,16 +92,26 @@ The `@bunli/plugin-tui` provides:
 - Theme customization
 - Mouse and keyboard event handling
 
-## Current Status
+## Implementation Details
 
-The TUI plugin is fully implemented but temporarily disabled in this demo due to OpenTUI initialization issues in non-interactive environments. The plugin code is complete and includes:
+The demo includes two TUI implementations:
 
-- Full TypeScript support with proper type definitions
-- Plugin lifecycle hooks (beforeCommand, afterCommand, onError)
-- OpenTUI renderer integration
-- Auto-form generation from command schemas
-- Interactive flag collection
-- Custom TUI mode support
+1. **Simple TUI** (currently active) - A custom implementation using ANSI escape codes that demonstrates:
+   - Box drawing with Unicode characters
+   - Text positioning and coloring
+   - Menu navigation (in interactive terminals)
+   - Progress bar animations
+   - Keyboard input handling
+
+2. **OpenTUI Plugin** (temporarily disabled) - The full plugin implementation that would provide:
+   - Full TypeScript support with proper type definitions
+   - Plugin lifecycle hooks (beforeCommand, afterCommand, onError)
+   - OpenTUI renderer integration
+   - Auto-form generation from command schemas
+   - Interactive flag collection
+   - Advanced component support
+
+The custom TUI command shows static previews in non-interactive environments and fully interactive demos when run in a proper terminal.
 
 ## Running the Demo
 
