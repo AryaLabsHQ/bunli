@@ -8,6 +8,7 @@
     "declaration": true,
     "emitDeclarationOnly": true,
     "skipLibCheck": true,
+    "skipDefaultLibCheck": true,
     "strict": false,
     "noImplicitOverride": false,
     "strictNullChecks": false,

@@ -5,8 +5,7 @@ export const customTuiCommand = defineCommand({
   description: 'Demonstrate custom TUI implementation',
   // For now, disable custom TUI until we can properly integrate OpenTUI components
   // This would normally use a custom TUI renderer
-  handler: async ({ terminal, flags }) => {
-    const { colors } = await import('@bunli/utils')
+  handler: async ({ terminal, colors }) => {
     
     console.log(colors.cyan('Custom TUI Demo'))
     console.log()

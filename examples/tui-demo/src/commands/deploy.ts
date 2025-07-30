@@ -42,8 +42,7 @@ export const deployCommand = defineCommand({
       { description: 'Email addresses to notify' }
     )
   },
-  handler: async ({ flags, positional }) => {
-    const { colors, spinner } = await import('@bunli/utils')
+  handler: async ({ flags, positional, colors, spinner }) => {
     
     const appName = positional[0] || 'my-app'
     
@@ -57,26 +56,26 @@ export const deployCommand = defineCommand({
     // Validation phase
     const validateSpinner = spinner('Validating deployment configuration...')
     await new Promise(resolve => setTimeout(resolve, 800))
-    validateSpinner.success('Configuration validated')
+    validateSpinner.succeed('Configuration validated')
     
     // Tests phase
     if (!flags.skipTests) {
       const testSpinner = spinner('Running tests...')
       await new Promise(resolve => setTimeout(resolve, 2000))
-      testSpinner.success('All tests passed')
+      testSpinner.succeed('All tests passed')
     }
     
     // Build phase
     if (!flags.skipBuild) {
       const buildSpinner = spinner('Building application...')
       await new Promise(resolve => setTimeout(resolve, 3000))
-      buildSpinner.success('Build completed')
+      buildSpinner.succeed('Build completed')
     }
     
     // Deploy phase
     const deploySpinner = spinner(`Deploying to ${flags.environment}...`)
     await new Promise(resolve => setTimeout(resolve, 2500))
-    deploySpinner.success('Deployment successful')
+    deploySpinner.succeed('Deployment successful')
     
     console.log()
     console.log(colors.green('✓ Deployment completed successfully!'))

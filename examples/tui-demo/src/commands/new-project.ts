@@ -38,8 +38,7 @@ export const newProjectCommand = defineCommand({
       { description: 'License type' }
     )
   },
-  handler: async ({ flags, terminal }) => {
-    const { colors, spinner } = await import('@bunli/utils')
+  handler: async ({ flags, terminal, colors, spinner }) => {
     
     console.log(colors.green('Creating new project...'))
     console.log()
@@ -59,18 +58,18 @@ export const newProjectCommand = defineCommand({
     
     // Simulate project creation
     await new Promise(resolve => setTimeout(resolve, 1500))
-    createSpinner.success('Project structure created')
+    createSpinner.succeed('Project structure created')
     
     if (flags.git) {
       const gitSpinner = spinner('Initializing git repository...')
       await new Promise(resolve => setTimeout(resolve, 800))
-      gitSpinner.success('Git repository initialized')
+      gitSpinner.succeed('Git repository initialized')
     }
     
     if (flags.installDeps) {
       const depsSpinner = spinner('Installing dependencies...')
       await new Promise(resolve => setTimeout(resolve, 2000))
-      depsSpinner.success('Dependencies installed')
+      depsSpinner.succeed('Dependencies installed')
     }
     
     console.log()

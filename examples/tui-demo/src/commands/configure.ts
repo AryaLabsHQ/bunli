@@ -38,8 +38,7 @@ export const configureCommand = defineCommand({
       { description: 'Enable features' }
     )
   },
-  handler: async ({ flags, runtime }) => {
-    const { colors } = await import('@bunli/utils')
+  handler: async ({ flags, runtime, colors }) => {
     
     console.log(colors.blue('Configuration saved successfully!'))
     console.log()
