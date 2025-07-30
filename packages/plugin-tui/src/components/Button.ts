@@ -26,12 +26,15 @@ export class Button extends BufferedElement {
     const width = options.width || options.text.length + 4
     
     super(options.id, {
-      width,
+      x: 0,
+      y: 0,
+      zIndex: 0,
+      width: width as any,
       height: 3,
       border: true,
       borderStyle: 'single',
       backgroundColor: 'transparent'
-    })
+    } as any)
     
     this.text = options.text
     this.variant = options.variant || 'secondary'

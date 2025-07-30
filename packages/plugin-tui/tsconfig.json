@@ -3,13 +3,16 @@
   "compilerOptions": {
     "rootDir": "./src",
     "outDir": "./dist",
+    "lib": ["ESNext", "DOM"],
     "types": ["bun-types"],
     "declaration": true,
     "emitDeclarationOnly": true,
     "skipLibCheck": true,
     "strict": false,
     "noImplicitOverride": false,
-    "strictNullChecks": false
+    "strictNullChecks": false,
+    "allowImportingTsExtensions": true,
+    "moduleResolution": "bundler"
   },
   "include": ["src/**/*"],
   "exclude": ["**/*.test.ts", "**/*.spec.ts"]

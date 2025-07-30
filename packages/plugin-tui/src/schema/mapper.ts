@@ -5,6 +5,7 @@ import { Input } from '../components/Input.js'
 import { Select } from '../components/Select.js'
 import { Checkbox } from '../components/Checkbox.js'
 import { NumberInput } from '../components/NumberInput.js'
+import { Component } from '../components/base/Component.js'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 
 export class SchemaUIMapper {
@@ -28,7 +29,7 @@ export class SchemaUIMapper {
     return form
   }
   
-  private async mapOptionToField(name: string, option: CLIOption): Promise<Renderable> {
+  private async mapOptionToField(name: string, option: CLIOption): Promise<Component> {
     const schema = option.schema
     const metadata = {
       id: name,

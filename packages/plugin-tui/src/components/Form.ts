@@ -77,13 +77,16 @@ export class Form extends ContainerElement {
     
     // Add button container at the bottom
     const buttonContainer = new ContainerElement('buttons', {
+      x: 0,
+      y: 0,
+      zIndex: 0,
       flexDirection: FlexDirection.Row,
-      justifyContent: 'flex-end',
+      justifyContent: 'flex-end' as any,
       height: 3,
       padding: { top: 1 },
       borderStyle: 'single',
       border: ['top']
-    })
+    } as any)
     
     buttonContainer.add(this.cancelButton)
     buttonContainer.add(this.submitButton)
@@ -136,7 +139,7 @@ export class Form extends ContainerElement {
     // Collect values
     const values: Record<string, any> = {}
     for (const field of this.fields) {
-      values[field.name] = field.getValue()
+      values[(field as any).name] = field.getValue()
     }
     
     // Resolve promise

@@ -13,7 +13,7 @@ export abstract class Component extends BufferedElement {
   // Theme colors
   protected errorColor: RGBA
   protected successColor: RGBA
-  protected focusedBorderColor: RGBA
+  protected declare focusedBorderColor: RGBA
   protected placeholderColor: RGBA
   
   constructor(options: ComponentOptions) {
