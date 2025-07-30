@@ -53,12 +53,8 @@ export interface TuiContext {
   args: string[]
 }
 
-// Extend Command type to support TUI configuration
-declare module '@bunli/core' {
-  interface Command {
-    tui?: TuiConfig | ((context: TuiContext) => Renderable | Promise<Renderable>)
-  }
-}
+// Note: The Command interface in @bunli/core already has the tui property
+// We don't need to extend it here
 
 export interface TuiConfig {
   // Custom UI component/view for this command

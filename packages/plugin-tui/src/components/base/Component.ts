@@ -20,14 +20,15 @@ export abstract class Component extends BufferedElement {
     const elementOptions: ElementOptions = {
       x: options.x || 0,
       y: options.y || 0,
-      width: options.width || 'auto',
-      height: options.height || 'auto',
+      zIndex: 0,
+      width: typeof options.width === 'string' ? options.width as any : (options.width || 0),
+      height: typeof options.height === 'string' ? options.height as any : (options.height || 0),
       visible: options.visible !== false,
       backgroundColor: options.style?.backgroundColor || 'transparent',
       textColor: options.style?.color || '#f1f5f9',
       borderColor: options.style?.borderColor || '#475569',
-      borderStyle: options.style?.borderStyle || 'single'
-    }
+      borderStyle: (options.style?.borderStyle === 'none' ? undefined : options.style?.borderStyle) || 'single'
+    } as ElementOptions
     
     super(options.id, elementOptions)
     

@@ -72,10 +72,10 @@ export class Button extends BufferedElement {
       // Lighten on focus
       const [r, g, b, a] = bgColor.buffer
       this.borderColor = RGBA.fromValues(
-        Math.min(1, r * 1.2),
-        Math.min(1, g * 1.2),
-        Math.min(1, b * 1.2),
-        a
+        Math.min(1, r! * 1.2),
+        Math.min(1, g! * 1.2),
+        Math.min(1, b! * 1.2),
+        a!
       )
     }
     

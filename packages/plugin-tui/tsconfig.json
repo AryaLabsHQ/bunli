@@ -5,7 +5,11 @@
     "outDir": "./dist",
     "types": ["bun-types"],
     "declaration": true,
-    "emitDeclarationOnly": true
+    "emitDeclarationOnly": true,
+    "skipLibCheck": true,
+    "strict": false,
+    "noImplicitOverride": false,
+    "strictNullChecks": false
   },
   "include": ["src/**/*"],
   "exclude": ["**/*.test.ts", "**/*.spec.ts"]

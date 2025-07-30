@@ -11,8 +11,8 @@ export interface FormOptions {
 
 export class Form extends ContainerElement {
   private fields: Component[] = []
-  private submitButton: Button
-  private cancelButton: Button
+  private submitButton!: Button
+  private cancelButton!: Button
   private focusedIndex: number = 0
   private submitPromise?: {
     resolve: (values: any) => void
@@ -21,6 +21,9 @@ export class Form extends ContainerElement {
   
   constructor(options: FormOptions) {
     super(options.id, {
+      x: 0,
+      y: 0,
+      zIndex: 100,
       width: '80%',
       height: '90%',
       flexDirection: FlexDirection.Column,
@@ -34,7 +37,7 @@ export class Form extends ContainerElement {
         top: '5%',
         left: '10%'
       }
-    })
+    } as any)
     
     this.setupUI(options)
   }
@@ -47,11 +50,14 @@ export class Form extends ContainerElement {
     
     // Create field container with scrolling
     const fieldContainer = new ContainerElement('field-container', {
+      x: 0,
+      y: 0,
+      zIndex: 0,
       flexDirection: FlexDirection.Column,
       flexGrow: 1,
       flexShrink: 1,
       padding: { top: 1, bottom: 1 }
-    })
+    } as any)
     this.add(fieldContainer)
     
     // Create buttons

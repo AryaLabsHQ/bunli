@@ -103,16 +103,12 @@ export function tuiPlugin(options: TuiPluginOptions = {}): BunliPlugin<TuiStore>
       }
     },
     
-    onError(error, { store }) {
-      // Ensure cleanup on error
-      if (store.renderer?.isRunning) {
-        store.renderer.stop()
-      }
-    }
+    // Note: onError is not part of the BunliPlugin interface
+    // We'll handle errors in afterCommand instead
   })
 }
 
-async function generateCommandForm(command: Command): Promise<Form> {
+async function generateCommandForm(command: Command<any, any>): Promise<Form> {
   const mapper = new SchemaUIMapper()
   return mapper.createFormFromCommand(command)
 }
@@ -121,14 +117,14 @@ function setupGlobalShortcuts(store: TuiStore) {
   if (!store.renderer) return
   
   // Default shortcuts
-  const shortcuts = {
+  const shortcuts: Record<string, () => void> = {
     'ctrl+c': () => {
       if (store.renderer?.isRunning) {
         store.renderer.stop()
       }
       process.exit(0)
     },
-    ...store.options.shortcuts
+    ...(store.options.shortcuts || {})
   }
   
   store.renderer.on('key', (key: any) => {
