@@ -20,7 +20,7 @@ export function tuiPlugin(options: TuiPluginOptions = {}): BunliPlugin<TuiStore>
       }
     },
     
-    async beforeCommand({ store, flags, command, args }) {
+    async beforeCommand({ store, flags, commandDef, args }) {
       // Check if TUI should be activated
       const shouldUseTui = flags.interactive || flags.tui
       
@@ -43,15 +43,15 @@ export function tuiPlugin(options: TuiPluginOptions = {}): BunliPlugin<TuiStore>
       applyTheme(store.renderer, theme)
       
       // Check if command has custom TUI
-      if (command.tui && typeof command.tui === 'function') {
+      if (commandDef.tui && typeof commandDef.tui === 'function') {
         // Use custom TUI
-        const customUI = await command.tui({ store, command, args })
+        const customUI = await commandDef.tui({ store, command: commandDef, args })
         store.activeView = customUI
         store.renderer.add(customUI)
         store.renderer.start()
-      } else if (store.options.autoForm !== false && command.options && Object.keys(command.options).length > 0) {
+      } else if (store.options.autoForm !== false && commandDef.options && Object.keys(commandDef.options).length > 0) {
         // Generate form from command schema
-        const form = await generateCommandForm(command)
+        const form = await generateCommandForm(commandDef)
         store.activeView = form
         store.renderer.add(form)
         

@@ -62,6 +62,7 @@ export class CommandContext<TStore = {}> implements ICommandContext<TStore> {
   
   constructor(
     public readonly command: string,
+    public readonly commandDef: any,
     public readonly args: string[],
     public readonly flags: Record<string, any>,
     public readonly env: EnvironmentInfo,

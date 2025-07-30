@@ -1,0 +1,19 @@
+{
+  "name": "bunli-tui-demo",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Example demonstrating Bunli TUI capabilities",
+  "scripts": {
+    "start": "bun src/index.ts",
+    "dev": "bun --watch src/index.ts"
+  },
+  "dependencies": {
+    "@bunli/core": "workspace:*",
+    "@bunli/plugin-tui": "workspace:*",
+    "@bunli/utils": "workspace:*",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  }
+}

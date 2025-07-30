@@ -3,7 +3,9 @@
   "compilerOptions": {
     "rootDir": "./src",
     "outDir": "./dist",
-    "types": ["bun-types"]
+    "types": ["bun-types"],
+    "declaration": true,
+    "emitDeclarationOnly": true
   },
   "include": ["src/**/*"],
   "exclude": ["**/*.test.ts", "**/*.spec.ts"]

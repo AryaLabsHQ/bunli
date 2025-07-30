@@ -1,8 +1,9 @@
-import type { CLI, Command, BunliConfig, CommandManifest, CommandLoader, ResolvedConfig, CLIOption } from './types.js'
+import type { CLI, Command, BunliConfig, CommandManifest, CommandLoader, ResolvedConfig, CLIOption, TerminalInfo, RuntimeInfo } from './types.js'
 import { parseArgs } from './parser.js'
 import { SchemaError, getDotPath } from '@standard-schema/utils'
 import { PluginManager } from './plugin/manager.js'
 import type { CommandContext, BunliPlugin, MergeStores } from './plugin/types.js'
+import { GLOBAL_FLAGS, type GlobalFlags } from './global-flags.js'
 
 export async function createCLI<TPlugins extends readonly BunliPlugin[] = []>(
   config: BunliConfig & { 
@@ -17,6 +18,26 @@ export async function createCLI<TPlugins extends readonly BunliPlugin[] = []>(
     : { ...config, commands: undefined }
   
   const commands = new Map<string, Command<any, TStore>>()
+  
+  // Helper to get terminal information
+  function getTerminalInfo(): TerminalInfo {
+    const isInteractive = process.stdout.isTTY || false
+    const isCI = !!(process.env.CI || 
+      process.env.CONTINUOUS_INTEGRATION ||
+      process.env.GITHUB_ACTIONS ||
+      process.env.GITLAB_CI ||
+      process.env.CIRCLECI ||
+      process.env.TRAVIS)
+    
+    return {
+      width: process.stdout.columns || 80,
+      height: process.stdout.rows || 24,
+      isInteractive,
+      isCI,
+      supportsColor: isInteractive && !isCI && process.env.TERM !== 'dumb',
+      supportsMouse: isInteractive && !isCI && process.env.TERM_PROGRAM !== 'Apple_Terminal'
+    }
+  }
   const pluginManager = new PluginManager()
   
   // Load plugins if configured
@@ -203,6 +224,12 @@ export async function createCLI<TPlugins extends readonly BunliPlugin[] = []>(
         return
       }
       
+      // Handle version flag
+      if (argv.includes('--version') || argv.includes('-v')) {
+        console.log(`${fullConfig.name} v${fullConfig.version}`)
+        return
+      }
+      
       // Handle help flags
       if (argv.includes('--help') || argv.includes('-h')) {
         const helpIndex = Math.max(argv.indexOf('--help'), argv.indexOf('-h'))
@@ -240,16 +267,37 @@ export async function createCLI<TPlugins extends readonly BunliPlugin[] = []>(
         let context: CommandContext<TStore> | undefined
         
         try {
-          const parsed = await parseArgs(remainingArgs, command.options || {})
+          // Merge global flags with command options
+          const mergedOptions = {
+            ...GLOBAL_FLAGS,
+            ...(command.options || {})
+          }
+          
+          const parsed = await parseArgs(remainingArgs, mergedOptions)
           const { prompt, spinner, colors } = await import('@bunli/utils')
           
           // Run beforeCommand hooks if plugins are loaded
           if ('plugins' in fullConfig && fullConfig.plugins) {
             context = await pluginManager.runBeforeCommand(
               command.name,
+              command,
               parsed.positional,
               parsed.flags as any
             )
+          }
+          
+          // Check if we should enable TUI mode
+          const globalFlags = parsed.flags as GlobalFlags & Record<string, unknown>
+          if ((globalFlags.interactive || globalFlags.tui)) {
+            // TUI mode will be handled by the plugin-tui if loaded
+            // We just need to ensure the flags are passed through
+          }
+          
+          // Create runtime info
+          const runtimeInfo: RuntimeInfo = {
+            startTime: Date.now(),
+            args: remainingArgs,
+            command: command.name
           }
           
           const result = await command.handler({
@@ -261,6 +309,8 @@ export async function createCLI<TPlugins extends readonly BunliPlugin[] = []>(
             prompt,
             spinner,
             colors,
+            terminal: getTerminalInfo(),
+            runtime: runtimeInfo,
             // Add context if plugins are loaded
             ...(context ? { context } : {})
           })

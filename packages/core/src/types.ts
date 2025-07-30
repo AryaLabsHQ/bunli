@@ -36,6 +36,34 @@ export interface Command<TOptions extends Options = Options, TStore = {}> {
   options?: TOptions
   commands?: Command<any, TStore>[]  // Allow any options type for subcommands
   alias?: string | string[]
+  // TUI configuration
+  tui?: TuiConfig | TuiRenderer<TOptions, TStore>
+}
+
+// TUI configuration for commands
+export interface TuiConfig {
+  // Custom UI component/view for this command
+  component?: string | (() => any)
+  // Disable auto-form generation
+  disableAutoForm?: boolean
+  // Custom key handlers
+  keyHandlers?: KeyHandler[]
+}
+
+export interface KeyHandler {
+  key: string
+  handler: (event: KeyboardEvent) => void | boolean
+}
+
+// Function that returns a custom TUI for the command
+export type TuiRenderer<TOptions extends Options = Options, TStore = {}> = (
+  context: TuiContext<TOptions, TStore>
+) => any | Promise<any>
+
+export interface TuiContext<TOptions extends Options = Options, TStore = {}> {
+  command: Command<TOptions, TStore>
+  args: string[]
+  store?: TStore
 }
 
 // Type helper to extract output types from StandardSchemaV1
@@ -65,6 +93,25 @@ export interface HandlerArgs<TFlags = Record<string, unknown>, TStore = {}> {
   colors: typeof import('@bunli/utils').colors
   // Plugin context (if plugins are loaded)
   context?: import('./plugin/types.js').CommandContext<TStore>
+  // Terminal information
+  terminal: TerminalInfo
+  // Runtime information
+  runtime: RuntimeInfo
+}
+
+export interface TerminalInfo {
+  width: number
+  height: number
+  isInteractive: boolean
+  isCI: boolean
+  supportsColor: boolean
+  supportsMouse: boolean
+}
+
+export interface RuntimeInfo {
+  startTime: number
+  args: string[]
+  command: string
 }
 
 // CLI option with metadata - generic to preserve schema type
