@@ -1,6 +1,6 @@
 # Bunli TUI Demo
 
-This example demonstrates the Terminal User Interface capabilities of Bunli CLI framework with the `@bunli/plugin-tui` package.
+This example demonstrates the Terminal User Interface capabilities of Bunli CLI framework with the `@bunli/tui` package.
 
 ## Overview
 
@@ -84,7 +84,7 @@ Options:
 
 ## TUI Plugin Features
 
-The `@bunli/plugin-tui` provides:
+The `@bunli/tui` provides:
 - Auto-generated forms from Zod schemas
 - Interactive mode for missing flags
 - Custom TUI component support

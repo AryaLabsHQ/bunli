@@ -10,11 +10,15 @@
   },
   "dependencies": {
     "@bunli/core": "workspace:*",
-    "@bunli/plugin-tui": "workspace:*",
+    "@bunli/tui": "workspace:*",
     "@bunli/utils": "workspace:*",
+    "@opentui/core": "^0.1.27",
+    "@opentui/react": "^0.1.27",
+    "react": "^19.2.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@types/react": "^19.2.2",
     "@types/bun": "latest"
   }
 }
