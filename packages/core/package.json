@@ -63,6 +63,7 @@
   "dependencies": {
     "@bunli/utils": "workspace:*",
     "@standard-schema/spec": "^1.0.0",
-    "@standard-schema/utils": "^0.3.0"
+    "@standard-schema/utils": "^0.3.0",
+    "zod": "^4.1.12"
   }
 }

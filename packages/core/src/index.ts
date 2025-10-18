@@ -7,6 +7,8 @@ export type {
   Command,
   Handler,
   HandlerArgs,
+  RenderArgs,
+  RenderFunction,
   Options,
   CLIOption,
   BunliConfig,
@@ -14,8 +16,18 @@ export type {
   CommandLoader,
   StandardSchemaV1,
   PluginConfig,
-  ResolvedConfig
+  ResolvedConfig,
+  TerminalInfo,
+  RuntimeInfo,
+  RenderResult
 } from './types.js'
+
+// Export global flags
+export { GLOBAL_FLAGS } from './global-flags.js'
+export type { GlobalFlags } from './global-flags.js'
+
+// Export TUI registry
+export { registerTuiRenderer, clearTuiRenderer, getTuiRenderer } from './tui/registry.js'
 
 // Note: Plugin system is exported via subpath export
 // Usage: import { PluginManager, createPlugin } from '@bunli/core/plugin'

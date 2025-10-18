@@ -2,6 +2,22 @@ import type { StandardSchemaV1 } from '@standard-schema/spec'
 
 export type { StandardSchemaV1 }
 
+export type RenderResult = unknown
+
+export interface TuiRenderOptions {
+  exitOnCtrlC?: boolean
+  targetFps?: number
+  enableMouseMovement?: boolean
+  [key: string]: unknown
+}
+
+export interface RenderArgs<TFlags = Record<string, unknown>, TStore = {}> extends HandlerArgs<TFlags, TStore> {
+  command: Command<any, TStore>
+  rendererOptions?: TuiRenderOptions
+}
+
+export type RenderFunction<TFlags = Record<string, unknown>, TStore = {}> = (args: RenderArgs<TFlags, TStore>) => RenderResult
+
 // Core Bunli types
 /**
  * CLI instance with plugin type information
@@ -29,14 +45,23 @@ export interface CLI<TStore = {}> {
 }
 
 // generic Command type that carries options type information
-export interface Command<TOptions extends Options = Options, TStore = {}> {
+interface BaseCommand<TOptions extends Options = Options, TStore = {}> {
   name: string
   description: string
-  handler?: Handler<InferOptions<TOptions>, TStore>
   options?: TOptions
-  commands?: Command<any, TStore>[]  // Allow any options type for subcommands
+  commands?: Command<any, TStore>[]
   alias?: string | string[]
+  handler?: Handler<InferOptions<TOptions>, TStore>
+  render?: RenderFunction<InferOptions<TOptions>, TStore>
 }
+
+export type Command<TOptions extends Options = Options, TStore = {}> =
+  | (BaseCommand<TOptions, TStore> & { handler: Handler<InferOptions<TOptions>, TStore> })
+  | (BaseCommand<TOptions, TStore> & { render: RenderFunction<InferOptions<TOptions>, TStore> })
+  | (BaseCommand<TOptions, TStore> & {
+      handler: Handler<InferOptions<TOptions>, TStore>
+      render: RenderFunction<InferOptions<TOptions>, TStore>
+    })
 
 // Type helper to extract output types from StandardSchemaV1
 type InferSchema<T> = T extends StandardSchemaV1<any, infer Out>
@@ -65,6 +90,25 @@ export interface HandlerArgs<TFlags = Record<string, unknown>, TStore = {}> {
   colors: typeof import('@bunli/utils').colors
   // Plugin context (if plugins are loaded)
   context?: import('./plugin/types.js').CommandContext<TStore>
+  // Terminal information
+  terminal: TerminalInfo
+  // Runtime information
+  runtime: RuntimeInfo
+}
+
+export interface TerminalInfo {
+  width: number
+  height: number
+  isInteractive: boolean
+  isCI: boolean
+  supportsColor: boolean
+  supportsMouse: boolean
+}
+
+export interface RuntimeInfo {
+  startTime: number
+  args: string[]
+  command: string
 }
 
 // CLI option with metadata - generic to preserve schema type
@@ -86,11 +130,9 @@ export type CommandLoader = () => Promise<{ default: Command<any> }>
 
 // Define command helper with proper type inference
 export function defineCommand<TOptions extends Options = Options, TStore = {}>(
-  command: Omit<Command<TOptions, TStore>, 'handler'> & {
-    handler?: (args: HandlerArgs<InferOptions<TOptions>, TStore>) => void | Promise<void>
-  }
+  command: Command<TOptions, TStore>
 ): Command<TOptions, TStore> {
-  return command as Command<TOptions, TStore>
+  return command
 }
 
 // Config types

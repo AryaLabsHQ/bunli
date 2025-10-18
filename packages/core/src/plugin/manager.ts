@@ -129,6 +129,7 @@ export class PluginManager {
    */
   async runBeforeCommand(
     command: string,
+    commandDef: any,
     args: string[],
     flags: Record<string, any>
   ): Promise<CommandContext<any>> {
@@ -137,6 +138,7 @@ export class PluginManager {
     
     const context = new CommandContext(
       command,
+      commandDef,
       args,
       flags,
       createEnvironmentInfo(),
