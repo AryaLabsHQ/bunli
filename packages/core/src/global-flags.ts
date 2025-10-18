@@ -14,6 +14,10 @@ export const GLOBAL_FLAGS = {
     schema: z.boolean().default(false),
     description: 'Force TUI mode (same as --interactive)'
   },
+  'no-tui': {
+    schema: z.boolean().default(false),
+    description: 'Disable TUI mode, use CLI handler instead'
+  },
   help: {
     schema: z.boolean().default(false),
     short: 'h',
@@ -29,6 +33,7 @@ export const GLOBAL_FLAGS = {
 export type GlobalFlags = {
   interactive: boolean
   tui: boolean
+  'no-tui': boolean
   help: boolean
   version: boolean
 }

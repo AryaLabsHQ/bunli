@@ -4,6 +4,7 @@ import { SchemaError, getDotPath } from '@standard-schema/utils'
 import { PluginManager } from './plugin/manager.js'
 import type { CommandContext, BunliPlugin, MergeStores } from './plugin/types.js'
 import { GLOBAL_FLAGS, type GlobalFlags } from './global-flags.js'
+import { getTuiRenderer } from './tui/registry.js'
 
 export async function createCLI<TPlugins extends readonly BunliPlugin[] = []>(
   config: BunliConfig & { 
@@ -49,6 +50,7 @@ export async function createCLI<TPlugins extends readonly BunliPlugin[] = []>(
     fullConfig = updatedConfig as BunliConfig
     
     // Register plugin commands
+    // @ts-expect-error - Plugin commands may have {} store type
     pluginCommands.forEach(cmd => registerCommand(cmd))
   }
   
@@ -149,6 +151,32 @@ export async function createCLI<TPlugins extends readonly BunliPlugin[] = []>(
     }
   }
   
+  function shouldUseRender(
+    command: Command<any, TStore>,
+    flags: GlobalFlags & Record<string, unknown>,
+    terminal: TerminalInfo
+  ): boolean {
+    if (!command.render) return false
+
+    // Explicit flags take precedence
+    if ((flags as Record<string, unknown>)['no-tui']) return false
+    if ((flags as Record<string, unknown>)['tui'] || (flags as Record<string, unknown>)['interactive']) return true
+
+    // Fallback to terminal detection
+    return terminal.isInteractive && !terminal.isCI
+  }
+
+  function ensureRenderAvailable(command: Command<any, TStore>) {
+    if (!command.render) {
+      throw new Error(`Command ${command.name} does not support TUI rendering.`)
+    }
+    if (!getTuiRenderer()) {
+      throw new Error(
+        `TUI renderer not registered. Import '@bunli/tui/register' or call registerTuiRenderer before running commands with render.`
+      )
+    }
+  }
+  
   
   // Auto-load commands from config if specified
   async function loadFromConfig() {
@@ -175,6 +203,7 @@ export async function createCLI<TPlugins extends readonly BunliPlugin[] = []>(
       
       if (typeof obj === 'function') {
         const { default: command } = await obj()
+        // @ts-expect-error - Loaded commands may have different store types
         return [command]
       }
       
@@ -182,12 +211,14 @@ export async function createCLI<TPlugins extends readonly BunliPlugin[] = []>(
         if (typeof value === 'function') {
           // It's a command loader
           const { default: command } = await value()
+          // @ts-expect-error - Loaded commands may have different store types
           commands.push(command)
         } else {
           // It's a nested manifest - create a parent command with subcommands
           const subCommands = await loadFromManifest(value, [...path, key])
           if (subCommands.length > 0) {
             // Create a parent command that contains the subcommands
+            // @ts-expect-error - Parent commands with only subcommands don't need handler/render
             const parentCommand: Command<any, TStore> = {
               name: key,
               description: `${key} commands`,
@@ -258,12 +289,12 @@ export async function createCLI<TPlugins extends readonly BunliPlugin[] = []>(
       }
       
       // If command has subcommands but no handler, show help
-      if (!command.handler && command.commands) {
+      if (!command.handler && !command.render && command.commands) {
         showHelp(command, argv.slice(0, argv.length - remainingArgs.length - 1))
         return
       }
       
-      if (command.handler) {
+      if (command.handler || command.render) {
         let context: CommandContext<TStore> | undefined
         
         try {
@@ -288,10 +319,6 @@ export async function createCLI<TPlugins extends readonly BunliPlugin[] = []>(
           
           // Check if we should enable TUI mode
           const globalFlags = parsed.flags as GlobalFlags & Record<string, unknown>
-          if ((globalFlags.interactive || globalFlags.tui)) {
-            // TUI mode will be handled by the plugin-tui if loaded
-            // We just need to ensure the flags are passed through
-          }
           
           // Create runtime info
           const runtimeInfo: RuntimeInfo = {
@@ -300,20 +327,48 @@ export async function createCLI<TPlugins extends readonly BunliPlugin[] = []>(
             command: command.name
           }
           
-          const result = await command.handler({
-            flags: parsed.flags as any, // Type-safe after validation
-            positional: parsed.positional,
-            shell: Bun.$,
-            env: process.env,
-            cwd: process.cwd(),
-            prompt,
-            spinner,
-            colors,
-            terminal: getTerminalInfo(),
-            runtime: runtimeInfo,
-            // Add context if plugins are loaded
-            ...(context ? { context } : {})
-          })
+          const terminalInfo = getTerminalInfo()
+          const shouldRender = shouldUseRender(command, globalFlags, terminalInfo)
+
+          let result: unknown
+
+          if (shouldRender) {
+            ensureRenderAvailable(command)
+
+            result = await getTuiRenderer()?.({
+              flags: parsed.flags as any,
+              positional: parsed.positional,
+              shell: Bun.$,
+              env: process.env,
+              cwd: process.cwd(),
+              prompt,
+              spinner,
+              colors,
+              terminal: terminalInfo,
+              runtime: runtimeInfo,
+              command,
+              ...(context ? { context } : {})
+            })
+          } else {
+            if (!command.handler) {
+              throw new Error('Command does not provide a handler for non-TUI execution')
+            }
+
+            // @ts-ignore - type inference between handler stores is noisy
+            await command.handler({
+              flags: parsed.flags as any,
+              positional: parsed.positional,
+              shell: Bun.$,
+              env: process.env,
+              cwd: process.cwd(),
+              prompt,
+              spinner,
+              colors,
+              terminal: terminalInfo,
+              runtime: runtimeInfo,
+              ...(context ? { context } : {})
+            })
+          }
           
           // Run afterCommand hooks if plugins are loaded
           if ('plugins' in fullConfig && fullConfig.plugins && context) {
