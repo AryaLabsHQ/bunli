@@ -151,17 +151,37 @@ export interface BunliConfig {
   
   commands?: {
     manifest?: string
-    discover?: string
+    directory?: string
   }
   build?: {
-    entry?: string
+    entry?: string | string[]
     outdir?: string
     targets?: string[]
     compress?: boolean
+    minify?: boolean
+    external?: string[]
+    sourcemap?: boolean
   }
   dev?: {
     watch?: boolean
     inspect?: boolean
+    port?: number
+  }
+  test?: {
+    pattern?: string | string[]
+    coverage?: boolean
+    watch?: boolean
+  }
+  workspace?: {
+    packages?: string[]
+    shared?: any
+    versionStrategy?: 'fixed' | 'independent'
+  }
+  release?: {
+    npm?: boolean
+    github?: boolean
+    tagFormat?: string
+    conventionalCommits?: boolean
   }
   plugins?: PluginConfig[]
 }

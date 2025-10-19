@@ -63,6 +63,9 @@ export async function createCLI<TPlugins extends readonly BunliPlugin[] = []>(
     commands: fullConfig.commands || {},
     build: fullConfig.build || {},
     dev: fullConfig.dev || {},
+    test: fullConfig.test || {},
+    workspace: fullConfig.workspace || {},
+    release: fullConfig.release || {},
     plugins: fullConfig.plugins || []
   }
   
