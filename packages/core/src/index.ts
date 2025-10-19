@@ -31,3 +31,27 @@ export { registerTuiRenderer, clearTuiRenderer, getTuiRenderer } from './tui/reg
 
 // Note: Plugin system is exported via subpath export
 // Usage: import { PluginManager, createPlugin } from '@bunli/core/plugin'
+
+// Export type utilities
+export type {
+  UnionToIntersection,
+  Constrain,
+  PickRequired,
+  PickOptional,
+  ExtractPrimitives,
+  ExtractObjects,
+  PartialMergeAll,
+  MergeAllObjects,
+  MergeAll,
+  NoInfer,
+  IsAny,
+  PickAsRequired,
+  WithoutEmpty,
+  Expand,
+  DeepPartial,
+  MakeDifferenceOptional,
+  IsUnion,
+  IsNonEmptyObject,
+  Assign,
+  IntersectAssign
+} from './utils/type-helpers.js'

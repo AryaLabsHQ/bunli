@@ -140,6 +140,15 @@ export interface BunliConfig {
   name: string
   version: string
   description?: string
+  
+  // Codegen configuration
+  codegen?: {
+    enabled?: boolean
+    commandsDir?: string
+    output?: string
+    watch?: boolean
+  }
+  
   commands?: {
     manifest?: string
     discover?: string
