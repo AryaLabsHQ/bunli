@@ -11,7 +11,7 @@
     "dev": "bun run src/index.ts",
     "build": "bunli build",
     "test": "bun test",
-    "type-check": "tsc --noEmit"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@bunli/core": "latest"

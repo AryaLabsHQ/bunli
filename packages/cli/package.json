@@ -43,7 +43,7 @@
     "build:standalone": "bun run scripts/build.ts --compile",
     "build:binaries": "bun run scripts/release-binaries.ts",
     "test": "bun test",
-    "type-check": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
     "prepublishOnly": "bun run build"
   },
   "dependencies": {

@@ -32,7 +32,7 @@ bun run build
 bun test
 
 # Type check
-bun run type-check
+bun run typecheck
 ```
 
 ## Creating a New Package
@@ -62,7 +62,7 @@ bun run release
 - `dev` - Run all packages in development mode
 - `build` - Build all packages
 - `test` - Run all tests
-- `type-check` - Type check all packages
+- `typecheck` - Type check all packages
 - `lint` - Lint all packages
 - `clean` - Clean all build artifacts
 - `changeset` - Create a new changeset

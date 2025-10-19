@@ -13,7 +13,7 @@
     "build": "bunli build",
     "test": "bun test",
     "test:watch": "bun test --watch",
-    "type-check": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
     "lint": "tsc --noEmit",
     "prepare": "bun run build"
   },

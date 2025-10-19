@@ -43,7 +43,7 @@
     "dev": "bun run src/cli.ts",
     "build": "bun scripts/build.ts && bun run tsc",
     "test": "bun test",
-    "type-check": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
     "prepublishOnly": "bun run build"
   },
   "dependencies": {

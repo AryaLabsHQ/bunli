@@ -129,7 +129,7 @@ bun src/index.ts deploy my-app --environment production
 
 ```bash
 # Type check
-bun run type-check
+bun run typecheck
 
 # Run in watch mode
 bun run dev

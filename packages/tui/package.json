@@ -13,7 +13,7 @@
   "scripts": {
     "build": "bun run scripts/build.ts",
     "test": "bun test",
-    "type-check": "tsc --noEmit"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@bunli/core": "workspace:*",

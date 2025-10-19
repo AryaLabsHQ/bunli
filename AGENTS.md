@@ -30,7 +30,7 @@ bun run release  # Release packages
 ```bash
 bun run build      # Build package and generate types
 bun test           # Run package tests
-bun run type-check # Type check without emitting
+bun run typecheck # Type check without emitting
 ```
 
 ### Running Single Tests

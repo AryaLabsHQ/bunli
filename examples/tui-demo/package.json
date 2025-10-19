@@ -5,7 +5,7 @@
   "description": "Example demonstrating Bunli TUI capabilities",
   "scripts": {
     "start": "bun src/index.ts",
-    "type-check": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
     "dev": "bun --watch src/index.ts"
   },
   "dependencies": {
