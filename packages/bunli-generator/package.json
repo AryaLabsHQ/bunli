@@ -1,0 +1,22 @@
+{
+  "name": "@bunli/generator",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./plugin": "./src/plugin.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@babel/parser": "^7.23.0",
+    "@babel/traverse": "^7.23.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/babel__parser": "^7.1.0",
+    "@types/babel__traverse": "^7.20.0"
+  }
+}
