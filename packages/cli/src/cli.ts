@@ -15,6 +15,7 @@ const config = await loadConfig()
 await cli.load({
   dev: () => import('./commands/dev.js') as any,
   build: () => import('./commands/build.js') as any,
+  generate: () => import('./commands/generate.js') as any,
   test: () => import('./commands/test.js') as any,
   release: () => import('./commands/release.js') as any,
   init: () => import('./commands/init.js') as any

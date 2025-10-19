@@ -28,7 +28,14 @@ export const bunliConfigSchema = z.object({
     inspect: z.boolean().optional(),
     port: z.number().optional()
   }).optional(),
-  
+
+  codegen: z.object({
+    enabled: z.boolean().optional(),
+    commandsDir: z.string().optional(),
+    output: z.string().optional(),
+    watch: z.boolean().optional()
+  }).optional(),
+
   test: z.object({
     pattern: z.string().or(z.array(z.string())).optional(),
     coverage: z.boolean().optional(),

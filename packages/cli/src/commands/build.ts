@@ -1,4 +1,6 @@
 import { defineCommand, option } from '@bunli/core'
+import { Generator } from '@bunli/generator'
+import { bunliCodegenPlugin } from '@bunli/generator/plugin'
 import { z } from 'zod'
 import { loadConfig } from '../config.js'
 import { findEntry } from '../utils/find-entry.js'
@@ -54,7 +56,26 @@ export default defineCommand({
   handler: async ({ flags, spinner, colors }) => {
     const config = await loadConfig()
     
-    // Determine entry point
+    // 1. Run codegen before build if enabled
+    if (config.codegen?.enabled !== false) {
+      const spin = spinner('Generating types...')
+      try {
+        const generator = new Generator({
+          commandsDir: config.codegen?.commandsDir || 'commands',
+          outputFile: config.codegen?.output || './commands.gen.ts',
+          config
+        })
+        await generator.run()
+        spin.succeed('Types generated')
+      } catch (error) {
+        spin.fail('Failed to generate types')
+        const message = error instanceof Error ? error.message : String(error)
+        console.error(colors.red(message))
+        return
+      }
+    }
+    
+    // 2. Determine entry point
     const entry = flags.entry || config.build?.entry || await findEntry()
     if (!entry) {
       console.error(colors.red('No entry file found. Please specify with --entry or in bunli.config.ts'))
@@ -169,7 +190,15 @@ export default defineCommand({
           format: 'esm' as const,
           minify: flags.minify ?? config.build?.minify ?? true,
           sourcemap: flags.sourcemap ?? config.build?.sourcemap ?? false,
-          external: config.build?.external || []
+          external: config.build?.external || [],
+          // Add codegen plugin for automatic type generation
+          plugins: config.codegen?.enabled !== false ? [
+            bunliCodegenPlugin({
+              commandsDir: config.codegen?.commandsDir || 'commands',
+              outputFile: config.codegen?.output || './commands.gen.ts',
+              config
+            })
+          ] : []
         }
         
         const result = await Bun.build(buildOptions)

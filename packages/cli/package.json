@@ -48,8 +48,8 @@
   },
   "dependencies": {
     "@bunli/core": "workspace:*",
+    "@bunli/generator": "workspace:*",
     "@bunli/utils": "workspace:*",
-    "glob": "^11.0.0",
     "zod": "^3.24.1"
   },
   "devDependencies": {
