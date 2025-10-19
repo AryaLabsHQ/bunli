@@ -1,10 +1,18 @@
 import { defineCommand, option } from '@bunli/core'
 import { z } from 'zod'
 
-// Command with subcommands (no handler)
+// Command with subcommands
 export default defineCommand({
   name: 'config',
   description: 'Manage configuration',
+  handler: async ({ colors }) => {
+    // Show help when no subcommand is provided
+    console.log(colors.bold('Configuration Management'))
+    console.log(colors.dim('Available subcommands:'))
+    console.log('  get    - Get a config value')
+    console.log('  set    - Set a config value')
+    console.log('  list   - List all config values')
+  },
   commands: [
     // Inline subcommand
     defineCommand({

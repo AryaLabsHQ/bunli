@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "bunli dev",
     "build": "bunli build",
-    "test": "bunli test"
+    "test": "bunli test",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "bunli": "workspace:*",

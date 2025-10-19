@@ -33,7 +33,7 @@ const greetCommand = defineCommand({
 })
 
 // Create and run the CLI
-const cli = createCLI({
+const cli = await createCLI({
   name: 'greet',
   version: '1.0.0',
   description: 'A minimal Bunli CLI example'

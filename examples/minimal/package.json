@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "bunli dev",
     "build": "bunli build",
+    "typecheck": "tsc --noEmit",
     "cli": "bun cli.ts"
   },
   "dependencies": {

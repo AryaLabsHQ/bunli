@@ -2,7 +2,7 @@
 import { createCLI } from '@bunli/core'
 import commands from './commands'
 
-const cli = createCLI({
+const cli = await createCLI({
   name: 'myapp',
   version: '1.0.0',
   description: 'Example showing command structure and organization'
