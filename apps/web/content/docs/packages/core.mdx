@@ -574,6 +574,79 @@ defineCommand({
 
 Learn more in the [Plugin Documentation](/docs/core-concepts/plugins).
 
+## Type Utilities
+
+Bunli exports advanced TypeScript type utilities for complex type manipulation, especially useful when working with generated types:
+
+```typescript
+import { 
+  UnionToIntersection, 
+  MergeAll, 
+  Expand,
+  DeepPartial,
+  Constrain,
+  NonEmptyArray,
+  IsNever,
+  IsAny,
+  IsUnknown
+} from '@bunli/core'
+```
+
+### Key Utilities
+
+**UnionToIntersection** - Convert union types to intersection types:
+```typescript
+type Example = UnionToIntersection<{ a: string } | { b: number }>
+// Result: { a: string } & { b: number }
+```
+
+**MergeAll** - Merge multiple object types:
+```typescript
+type Example = MergeAll<[{ a: string }, { b: number }, { c: boolean }]>
+// Result: { a: string; b: number; c: boolean }
+```
+
+**Expand** - Expand complex types for better IntelliSense:
+```typescript
+type Example = Expand<{ nested: { deep: { value: string } } }>
+// Shows full type structure in IDE
+```
+
+**DeepPartial** - Make all properties optional recursively:
+```typescript
+type Example = DeepPartial<{ user: { name: string; age: number } }>
+// Result: { user?: { name?: string; age?: number } }
+```
+
+**Constrain** - Constrain types with fallback:
+```typescript
+type Example = Constrain<string, 'a' | 'b' | 'c', 'a'>
+// Result: 'a' | 'b' | 'c' (or 'a' if string doesn't match)
+```
+
+### Usage with Generated Types
+
+These utilities work particularly well with generated command types:
+
+```typescript
+import { getCommandApi, listCommands } from './commands.gen'
+import { UnionToIntersection, MergeAll } from '@bunli/core'
+
+// Get all command options as a union
+type AllCommandOptions = UnionToIntersection<
+  ReturnType<typeof getCommandApi>[keyof CommandRegistry]['options']
+>
+
+// Merge all command metadata
+type AllCommands = MergeAll<
+  Array<{ name: string; description: string }>
+>
+```
+
+<Callout type="tip">
+  These utilities are especially powerful when combined with generated types for creating CLI wrappers, documentation generators, and command analytics tools.
+</Callout>
+
 ## API Reference
 
 See the [API Reference](/docs/api/create-cli) for detailed documentation of all exports.

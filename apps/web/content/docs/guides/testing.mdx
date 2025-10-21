@@ -650,6 +650,84 @@ test('multiple plugins interaction', async () => {
 })
 ```
 
+## Testing with Generated Types
+
+When using type generation, you can test the generated types themselves:
+
+```typescript
+// test/generated-types.test.ts
+import { test, expect } from 'bun:test'
+import { getCommandApi, listCommands, hasCommand } from '../commands.gen'
+
+test('generated types are valid', () => {
+  const commands = listCommands()
+  expect(commands.length).toBeGreaterThan(0)
+  
+  // Test specific command
+  const greetApi = getCommandApi('greet')
+  expect(greetApi.description).toBe('A friendly greeting')
+  expect(greetApi.options).toHaveProperty('name')
+})
+
+test('command discovery works', () => {
+  const commands = listCommands()
+  const commandNames = commands.map(c => c.name)
+  
+  expect(commandNames).toContain('greet')
+  expect(hasCommand('greet')).toBe(true)
+  expect(hasCommand('nonexistent')).toBe(false)
+})
+
+test('command options are properly typed', () => {
+  const greetApi = getCommandApi('greet')
+  
+  // Test option structure
+  expect(greetApi.options.name.type).toBe('string')
+  expect(greetApi.options.name.required).toBe(true)
+  expect(greetApi.options.excited.type).toBe('boolean')
+  expect(greetApi.options.excited.default).toBe(false)
+})
+```
+
+### Testing CLI Wrappers
+
+Test CLI wrappers that use generated types:
+
+```typescript
+// test/cli-wrapper.test.ts
+import { test, expect } from 'bun:test'
+import { DevToolsCLI } from '../src/cli-wrapper'
+import { getCommandApi } from '../commands.gen'
+
+test('CLI wrapper validates commands', async () => {
+  const cli = new DevToolsCLI()
+  
+  // Test valid command
+  await expect(cli.executeCommand('greet', { name: 'Alice' }))
+    .resolves.not.toThrow()
+  
+  // Test invalid command
+  await expect(cli.executeCommand('nonexistent', {}))
+    .rejects.toThrow('Unknown command: nonexistent')
+  
+  // Test invalid options
+  await expect(cli.executeCommand('greet', { name: 123 }))
+    .rejects.toThrow('Option name must be a string')
+})
+
+test('command discovery works', () => {
+  const cli = new DevToolsCLI()
+  const commands = cli.getAvailableCommands()
+  
+  expect(commands).toHaveLength(2)
+  expect(commands[0]).toMatchObject({
+    name: 'greet',
+    description: 'A friendly greeting',
+    options: ['name', 'excited']
+  })
+})
+```
+
 ## Best Practices
 
 1. **Test User Scenarios**: Focus on how users interact with your CLI
@@ -659,6 +737,8 @@ test('multiple plugins interaction', async () => {
 5. **Keep Tests Fast**: Mock slow operations
 6. **Test Output Format**: Users depend on consistent output
 7. **Test Plugin Integration**: Ensure plugins work with your commands
+8. **Test Generated Types**: Verify type generation works correctly
+9. **Test CLI Wrappers**: Ensure type-safe wrappers function properly
 
 ## Debugging Tests
 
@@ -685,6 +765,7 @@ test('debugging example', async () => {
 
 ## Next Steps
 
+- [Type Generation Guide](/docs/guides/type-generation) - Learn about code generation
 - [Distribution](/docs/guides/distribution) - Package and distribute your CLI
 - [@bunli/test API](/docs/packages/test) - Complete testing API reference
 - [Examples](/docs/examples) - See tests in real projects

@@ -15,12 +15,15 @@ Build production-ready, type-safe CLIs with strong type inference, validation, a
 Bunli is a complete ecosystem for building command-line interfaces with Bun. It combines a minimal, type-safe framework with powerful tooling for development, testing, building, and distribution.
 
 <Cards>
-  <Card title="Type-Safe" description="Full TypeScript support with automatic type inference">
+  <Card title="Type-Safe" description="Full TypeScript support with automatic type inference and code generation">
     ```ts
     // Types flow automatically
     handler: async ({ flags }) => {
       // flags is fully typed
     }
+    
+    // Generated types for advanced patterns
+    import { getCommandApi } from './commands.gen'
     ```
   </Card>
   <Card title="Zero Dependencies" description="Pure implementation with no external dependencies">
@@ -132,8 +135,9 @@ options: {
 Everything you need to build production CLIs:
 
 - **create-bunli** - Project scaffolding
-- **bunli dev** - Hot reload development
+- **bunli dev** - Hot reload development with type generation
 - **bunli build** - Multi-platform builds
+- **bunli generate** - Generate TypeScript definitions from commands
 - **bunli test** - Testing utilities
 - **bunli release** - Automated distribution
 
