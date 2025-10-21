@@ -1,30 +1,52 @@
 import { parse } from '@babel/parser'
-import traverse from '@babel/traverse'
-import { join, relative, extname } from 'node:path'
+const traverse = require('@babel/traverse').default
+import path from 'node:path'
 import type { CommandMetadata, OptionMetadata } from './types.js'
 
 // Utility functions
 function getCommandName(filePath: string, commandsDir: string): string {
-  const relativePath = filePath.replace(commandsDir + '/', '')
+  const dir = commandsDir.replace(/^\.\/?/, '')
+  const relativePath = filePath.replace(dir + '/', '')
   const withoutExt = relativePath.replace(/\.[^.]+$/, '')
   
-  // Handle index files as parent commands
   if (withoutExt.endsWith('/index')) {
-    return withoutExt.slice(0, -6) // Remove '/index'
+    return withoutExt.slice(0, -6)
   }
   
   return withoutExt
 }
 
-function getExportPath(filePath: string, commandsDir: string): string {
-  const relativePath = filePath.replace(commandsDir + '/', '')
+function toAbsolute(target: string): string {
+  return path.isAbsolute(target) ? target : path.join(process.cwd(), target)
+}
+
+function getImportPath(filePath: string, outputFile: string): string {
+  const commandAbsolute = toAbsolute(filePath)
+  const outputAbsolute = toAbsolute(outputFile)
+  const relativePath = path.relative(path.dirname(outputAbsolute), commandAbsolute)
+  const normalized = relativePath.replace(/\\/g, '/')
+  if (normalized.startsWith('../') || normalized.startsWith('./')) {
+    return normalized
+  }
+  return `./${normalized}`
+}
+
+function getExportPath(filePath: string, commandsDir: string, outputFile: string): string {
+  const commandsRoot = toAbsolute(commandsDir)
+  const commandAbsolute = toAbsolute(filePath)
+  const relativePath = path.relative(commandsRoot, commandAbsolute).replace(/\\/g, '/')
   const withoutExt = relativePath.replace(/\.[^.]+$/, '')
-  return `./commands/${withoutExt}`
+
+  const cleanedCommandsDir = commandsDir.replace(/^\.\/?/, '')
+  const base = cleanedCommandsDir ? `../${cleanedCommandsDir}` : '..'
+  const result = `${base}/${withoutExt}`
+  return result.startsWith('./') ? result.slice(2) : result
 }
 
 export async function parseCommand(
   filePath: string,
-  commandsDir: string
+  commandsDir: string,
+  outputFile: string
 ): Promise<CommandMetadata | null> {
   try {
     // Use Bun's native file reading
@@ -35,10 +57,11 @@ export async function parseCommand(
     const transpiler = new Bun.Transpiler({ loader: 'tsx' })
     const scanResult = transpiler.scan(content)
     
-    // Check if this file exports a command (look for defineCommand in exports)
+    // Check if this file exports a command (look for Command in exports or defineCommand usage)
     const hasCommandExport = scanResult.exports.some(exp => 
-      exp.includes('defineCommand') || exp === 'default'
+      exp.includes('Command') || exp === 'default'
     )
+    
     
     if (!hasCommandExport) {
       return null
@@ -53,7 +76,7 @@ export async function parseCommand(
     let commandMetadata: CommandMetadata | null = null
 
     traverse(ast, {
-      CallExpression(path) {
+      CallExpression(path: any) {
         // Look for defineCommand calls
         if (
           path.node.callee.type === 'Identifier' &&
@@ -64,7 +87,22 @@ export async function parseCommand(
             commandMetadata = extractCommandMetadata(
               args[0],
               filePath,
-              commandsDir
+              commandsDir,
+              outputFile
+            )
+          }
+        } else if (
+          path.node.callee.type === 'MemberExpression' &&
+          path.node.callee.property.type === 'Identifier' &&
+          path.node.callee.property.name === 'defineCommand'
+        ) {
+          const args = path.node.arguments
+          if (args.length > 0 && args[0]?.type === 'ObjectExpression') {
+            commandMetadata = extractCommandMetadata(
+              args[0],
+              filePath,
+              commandsDir,
+              outputFile
             )
           }
         }
@@ -74,6 +112,10 @@ export async function parseCommand(
     return commandMetadata
   } catch (error) {
     console.warn(`Warning: Could not parse command file: ${filePath}`)
+    console.warn(`Error:`, error)
+    if (error instanceof Error) {
+      console.warn(`Stack:`, error.stack)
+    }
     return null
   }
 }
@@ -81,13 +123,15 @@ export async function parseCommand(
 function extractCommandMetadata(
   objectExpression: any,
   filePath: string,
-  commandsDir: string
+  commandsDir: string,
+  outputFile: string
 ): CommandMetadata {
   const metadata: CommandMetadata = {
     name: '',
     description: '',
     filePath,
-    exportPath: getExportPath(filePath, commandsDir)
+    importPath: getImportPath(filePath, outputFile),
+    exportPath: getExportPath(filePath, commandsDir, outputFile)
   }
 
   // Extract properties from the object expression
@@ -98,9 +142,7 @@ function extractCommandMetadata(
 
       switch (key) {
         case 'name':
-          if (value.type === 'StringLiteral') {
-            metadata.name = value.value
-          }
+          metadata.name = extractNameValue(value) ?? ''
           break
 
         case 'description':
@@ -125,21 +167,24 @@ function extractCommandMetadata(
           }
           break
 
+        case 'handler':
+          metadata.hasHandler = true
+          break
+
+        case 'render':
+          metadata.hasRender = true
+          break
+
         case 'commands':
-          if (value.type === 'ArrayExpression') {
-            // Handle nested commands (for now, just store the structure)
-            // This would need more complex parsing for full support
-            metadata.commands = []
-          }
+          metadata.commands = extractNestedCommands(value, filePath, commandsDir, outputFile)
           break
       }
     }
   }
 
-  // If no name was found, derive it from the file path
-  if (!metadata.name) {
-    metadata.name = getCommandName(filePath, commandsDir)
-  }
+  // Always use the file path as the source of truth for command names
+  // This ensures nested commands like 'docker/clean' are properly named
+  metadata.name = getCommandName(filePath, commandsDir)
 
   return metadata
 }
@@ -163,12 +208,19 @@ function extractOptions(objectExpression: any): Record<string, OptionMetadata> {
           const schema = args[0]
           const metadata = args[1]?.type === 'ObjectExpression' ? args[1] : null
 
+          const { type } = inferSchemaType(schema)
+          const defaultInfo = inferDefault(schema)
+
           options[optionName] = {
-            type: inferSchemaType(schema),
+            type,
             required: inferRequired(schema),
-            default: inferDefault(schema),
+            hasDefault: defaultInfo.hasDefault,
+            default: defaultInfo.value,
             description: extractDescription(metadata),
-            short: extractShort(metadata)
+            short: extractShort(metadata),
+            // NEW: Enhanced schema information
+            schema: extractSchemaDefinition(schema),
+            validator: generateValidator(schema)
           }
         }
       }
@@ -176,40 +228,6 @@ function extractOptions(objectExpression: any): Record<string, OptionMetadata> {
   }
 
   return options
-}
-
-function inferSchemaType(schema: any): string {
-  // Try to infer the type from the schema
-  if (schema.type === 'CallExpression') {
-    const callee = schema.callee
-    if (callee.type === 'MemberExpression') {
-      // Handle cases like z.string(), z.number(), etc.
-      if (callee.object.type === 'Identifier' && callee.object.name === 'z') {
-        if (callee.property.type === 'Identifier') {
-          return callee.property.name
-        }
-      }
-    } else if (callee.type === 'Identifier') {
-      // Handle cases like string(), number(), etc. (Valibot style)
-      return callee.name
-    }
-  }
-
-  return 'unknown'
-}
-
-function inferRequired(schema: any): boolean {
-  // Check if the schema has .optional() or similar
-  if (schema.type === 'CallExpression') {
-    const callee = schema.callee
-    if (callee.type === 'MemberExpression') {
-      if (callee.property.type === 'Identifier') {
-        return callee.property.name !== 'optional'
-      }
-    }
-  }
-
-  return true
 }
 
 function inferDefault(schema: any): any {
@@ -221,14 +239,20 @@ function inferDefault(schema: any): any {
         if (callee.property.name === 'default') {
           const args = schema.arguments
           if (args.length > 0) {
-            return extractLiteralValue(args[0])
+            return { hasDefault: true, value: extractLiteralValue(args[0]) }
+          }
+        }
+        if (callee.property.name === 'catch') {
+          const args = schema.arguments
+          if (args.length > 0) {
+            return { hasDefault: true, value: extractLiteralValue(args[0]) }
           }
         }
       }
     }
   }
 
-  return undefined
+  return { hasDefault: false, value: undefined }
 }
 
 function extractDescription(metadata: any): string | undefined {
@@ -279,3 +303,139 @@ function extractLiteralValue(node: any): any {
       return undefined
   }
 }
+
+function extractNameValue(node: any): string | undefined {
+  if (!node) return undefined
+  if (node.type === 'StringLiteral') return node.value
+  if (node.type === 'TemplateLiteral' && node.quasis.length === 1) {
+    return node.quasis[0]?.value?.cooked
+  }
+  if (node.type === 'Identifier' && typeof node.name === 'string') {
+    return node.name
+  }
+  return undefined
+}
+
+function inferSchemaType(schema: any): { type: string } {
+  if (!schema) return { type: 'unknown' }
+
+  switch (schema.type) {
+    case 'Identifier':
+      return { type: schema.name }
+    case 'StringLiteral':
+      return { type: schema.value }
+    case 'CallExpression':
+      return inferSchemaType(schema.callee)
+    case 'MemberExpression': {
+      const object = inferSchemaType(schema.object).type
+      const property = schema.property?.name
+      if (object && property) {
+        return { type: `${object}.${property}` }
+      }
+      return { type: object || 'unknown' }
+    }
+    default:
+      return { type: 'unknown' }
+  }
+}
+
+function extractNestedCommands(value: any, parentFile: string, commandsDir: string, outputFile: string): CommandMetadata[] | undefined {
+  if (value.type !== 'ArrayExpression') return undefined
+  const nested: CommandMetadata[] = []
+  for (const element of value.elements) {
+    if (element?.type === 'ObjectExpression') {
+      const nestedMetadata = extractCommandMetadata(element, parentFile, commandsDir, outputFile)
+      if (nestedMetadata.name) nested.push(nestedMetadata)
+    }
+  }
+  return nested.length ? nested : undefined
+}
+
+function inferRequired(schema: any): boolean {
+  // Check if the schema has .optional() or similar
+  if (schema.type === 'CallExpression') {
+    const callee = schema.callee
+    if (callee.type === 'MemberExpression') {
+      if (callee.property.type === 'Identifier') {
+        return callee.property.name !== 'optional'
+      }
+    }
+  }
+
+  return true
+}
+
+/**
+ * Extract detailed schema definition for runtime introspection
+ */
+function extractSchemaDefinition(schema: any): any {
+  if (!schema) return null
+
+  switch (schema.type) {
+    case 'CallExpression':
+      const callee = schema.callee
+      if (callee.type === 'MemberExpression') {
+        return {
+          type: 'zod',
+          method: callee.property?.name || 'unknown',
+          args: schema.arguments?.map((arg: any) => extractSchemaDefinition(arg)) || []
+        }
+      }
+      return {
+        type: 'zod',
+        method: callee.name || 'unknown',
+        args: schema.arguments?.map((arg: any) => extractSchemaDefinition(arg)) || []
+      }
+    
+    case 'MemberExpression':
+      return {
+        type: 'zod',
+        object: extractSchemaDefinition(schema.object),
+        property: schema.property?.name || 'unknown'
+      }
+    
+    case 'Identifier':
+      return {
+        type: 'zod',
+        name: schema.name
+      }
+    
+    case 'StringLiteral':
+      return {
+        type: 'literal',
+        value: schema.value
+      }
+    
+    default:
+      return {
+        type: 'unknown',
+        raw: schema
+      }
+  }
+}
+
+/**
+ * Generate a runtime validator function for the schema
+ */
+function generateValidator(schema: any): string {
+  if (!schema) return '() => true'
+  
+  // Generate a simple validator based on the schema type
+  const { type } = inferSchemaType(schema)
+  
+  switch (type) {
+    case 'string':
+      return '(val) => typeof val === "string"'
+    case 'number':
+      return '(val) => typeof val === "number"'
+    case 'boolean':
+      return '(val) => typeof val === "boolean"'
+    case 'array':
+      return '(val) => Array.isArray(val)'
+    case 'object':
+      return '(val) => typeof val === "object" && val !== null'
+    default:
+      return '(val) => true'
+  }
+}
+

@@ -30,6 +30,15 @@ export class Generator {
       
       // 4. Write to output file
       await this.writeTypes(typesContent)
+
+      // 5. Emit a simple report alongside the types for diagnostics
+      const report = {
+        commandsParsed: commands.length,
+        filesScanned: commandFiles.length,
+        skipped: commandFiles.filter(f => !commands.some(c => c.filePath === f)),
+        names: commands.map(c => c.name).sort()
+      }
+      await this.writeReport(report)
       
       console.log(`✓ Generated types for ${commands.length} commands`)
     } catch (error) {
@@ -52,9 +61,13 @@ export class Generator {
     const commands: CommandMetadata[] = []
 
     for (const file of files) {
-      const command = await parseCommand(file, this.config.commandsDir)
+      console.log(`Parsing file: ${file}`)
+      const command = await parseCommand(file, this.config.commandsDir, this.config.outputFile)
       if (command) {
+        console.log(`✅ Successfully parsed: ${command.name}`)
         commands.push(command)
+      } else {
+        console.log(`❌ Failed to parse: ${file}`)
       }
     }
 
@@ -71,6 +84,14 @@ export class Generator {
 
     // Use Bun's native file writing
     await Bun.write(this.config.outputFile, content)
+  }
+
+  /**
+   * Write generation report next to the output file
+   */
+  private async writeReport(report: any): Promise<void> {
+    const reportPath = this.config.outputFile.replace(/\.ts$/, '.report.json')
+    await Bun.write(reportPath, JSON.stringify(report, null, 2))
   }
 
   /**
