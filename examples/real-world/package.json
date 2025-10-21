@@ -6,6 +6,7 @@
     "dev": "bunli dev",
     "build": "bunli build",
     "test": "bunli test",
+    "generate": "bunli generate",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "generate": "bunli generate",
     "build": "bunli build",
     "dev": "bunli dev",
     "typecheck": "tsc --noEmit",

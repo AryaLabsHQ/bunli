@@ -3,10 +3,14 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "generate": "bunli generate",
+    "dev": "bunli dev",
+    "build": "bunli build",
     "typecheck": "tsc --noEmit",
     "cli": "bun cli.ts"
   },
   "dependencies": {
+    "bunli": "workspace:*",
     "@bunli/core": "workspace:*",
     "@bunli/utils": "workspace:*",
     "@bunli/plugin-config": "workspace:*",

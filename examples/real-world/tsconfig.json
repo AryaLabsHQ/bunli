@@ -2,13 +2,19 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "rootDir": "./",
+    "moduleResolution": "bundler",
     "outDir": "./dist",
+    "skipLibCheck": true,
     "declaration": true,
     "declarationMap": true,
     "emitDeclarationOnly": true,
-    "declarationDir": "./dist"
+    "declarationDir": "./dist",
+    "paths": {
+      "~commands/*": ["./.bunli/commands.gen.ts"]
+    }
   },
   "include": [
+    ".bunli/**/*.ts",
     "**/*.ts",
     "**/*.tsx"
   ],

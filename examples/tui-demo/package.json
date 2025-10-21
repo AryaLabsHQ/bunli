@@ -5,10 +5,13 @@
   "description": "Example demonstrating Bunli TUI capabilities",
   "scripts": {
     "start": "bun src/index.ts",
+    "generate": "bunli generate",
+    "build": "bunli build",
     "typecheck": "tsc --noEmit",
     "dev": "bun --watch src/index.ts"
   },
   "dependencies": {
+    "bunli": "workspace:*",
     "@bunli/core": "workspace:*",
     "@bunli/tui": "workspace:*",
     "@bunli/utils": "workspace:*",
