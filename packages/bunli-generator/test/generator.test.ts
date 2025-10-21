@@ -86,8 +86,8 @@ export default defineCommand({
       }
     ]
 
-    const types = buildTypes(mockCommands)
-    expect(types).toContain('export interface CommandRegistry')
+    const types = buildTypes(mockCommands as any)
+    expect(types).toContain('const modules = {')
     expect(types).toContain("'test-command'")
     expect(types).toContain('declare module \'@bunli/core\'')
   })
@@ -126,10 +126,11 @@ export default defineCommand({
 
     // Check that output file was created
     const output = await Bun.file(outputFile).text()
-    expect(output).toContain('export interface CommandRegistry')
+    expect(output).toContain('const modules = {')
     expect(output).toContain("'test-command'")
     expect(output).toContain('name: \'test-command\'')
     expect(output).toContain('description: \'A test command\'')
+    expect(output).toContain('export const generated =')
 
     // Cleanup
     await rm(testDir, { recursive: true, force: true })
