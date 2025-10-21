@@ -50,3 +50,37 @@ bun run build
 2. **Direct schemas**: For simple cases, you can use schemas directly (like `name`)
 3. **Option helper**: Use `option()` when you need CLI metadata like short flags or descriptions
 4. **Type safety**: Full TypeScript inference from schemas - no manual type annotations needed
+
+## Type Generation
+
+This example includes type generation for enhanced developer experience. The generator creates TypeScript definitions from your commands:
+
+```typescript
+// Generated in commands.gen.ts
+import { getCommandApi, listCommands } from './commands.gen'
+
+// Get command metadata
+const commands = listCommands()
+console.log(commands) // [{ name: 'greet', description: 'Greet someone' }]
+
+// Type-safe command access
+const greetApi = getCommandApi('greet')
+console.log(greetApi.options) // { name: {...}, excited: {...} }
+```
+
+The generated types provide:
+- **CommandRegistry interface** with all command metadata
+- **Helper functions** for type-safe command discovery
+- **Autocomplete** for command names and options
+- **IntelliSense** for command descriptions and types
+
+## Project Structure
+
+```
+minimal/
+├── cli.ts              # CLI entry point
+├── commands.gen.ts     # Generated types (auto-created)
+├── bunli.config.ts     # Configuration with codegen enabled
+├── package.json
+└── README.md
+```

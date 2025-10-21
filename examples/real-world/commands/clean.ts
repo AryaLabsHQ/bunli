@@ -2,7 +2,7 @@ import { defineCommand, option } from '@bunli/core'
 import { z } from 'zod'
 
 export default defineCommand({
-  name: 'clean',
+  name: 'clean' as const,
   description: 'Clean project artifacts and dependencies',
   options: {
     deps: option(

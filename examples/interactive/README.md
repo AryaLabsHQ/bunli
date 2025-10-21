@@ -27,6 +27,7 @@ bun run build
 - Colored output
 - Hot reload development
 - Production builds
+- Type generation for interactive commands
 
 ## Commands
 
@@ -184,6 +185,42 @@ export default defineConfig({
 })
 ```
 
+## Type Generation for Interactive Commands
+
+This example includes type generation that works seamlessly with interactive workflows:
+
+```typescript
+// Generated in commands.gen.ts
+import { getCommandApi, listCommands } from './commands.gen'
+
+// Get command metadata for dynamic prompts
+const commands = listCommands()
+const setupApi = getCommandApi('setup')
+
+// Use command options for dynamic prompt generation
+const availablePresets = Object.keys(setupApi.options.preset?.choices || {})
+const projectTypes = Object.keys(setupApi.options.type?.choices || {})
+
+// Type-safe command execution
+async function runInteractiveCommand(commandName: string, options: any) {
+  const command = getCommandApi(commandName)
+  
+  // Validate options against command schema
+  for (const [key, value] of Object.entries(options)) {
+    if (command.options[key]) {
+      // Type-safe option validation
+      console.log(`Setting ${key}: ${value}`)
+    }
+  }
+}
+```
+
+The generated types enable:
+- **Dynamic prompt generation** from command metadata
+- **Type-safe option validation** in interactive flows
+- **Command discovery** for building wizards
+- **IntelliSense** for command-specific options
+
 ## Best Practices
 
 1. **Validation**: Always validate user input
@@ -192,3 +229,4 @@ export default defineConfig({
 4. **Errors**: Handle errors gracefully
 5. **Colors**: Use colors to enhance readability
 6. **Confirmations**: Ask for confirmation on destructive actions
+7. **Type Safety**: Use generated types for dynamic interactions

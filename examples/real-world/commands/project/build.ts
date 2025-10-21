@@ -2,7 +2,7 @@ import { defineCommand, option } from '@bunli/core'
 import { z } from 'zod'
 
 export default defineCommand({
-  name: 'build',
+  name: 'build' as const,
   description: 'Build project for production',
   alias: 'b',
   options: {

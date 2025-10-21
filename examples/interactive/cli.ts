@@ -5,7 +5,6 @@ const cli = await createCLI({
   name: 'interactive',
   version: '1.0.0',
   description: 'Interactive CLI examples with prompts and progress'
-  // generated is automatically enabled
 })
 
 await cli.load({

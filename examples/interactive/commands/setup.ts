@@ -3,7 +3,7 @@ import { z } from 'zod'
 
 // Interactive setup wizard
 export default defineCommand({
-  name: 'setup',
+  name: 'setup' as const,
   description: 'Interactive project setup wizard',
   options: {
     // Optional preset to skip some prompts

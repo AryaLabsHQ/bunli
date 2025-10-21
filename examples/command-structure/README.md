@@ -9,6 +9,7 @@ This example demonstrates how to organize commands in a Bunli CLI application.
 - Command aliases (single and multiple)
 - Inline subcommands
 - Command groups
+- Generated types for nested command structure
 
 ## Structure
 
@@ -18,10 +19,11 @@ commands/
 ├── init.ts          # Top-level command with single alias
 ├── deploy.ts        # Top-level command with multiple aliases  
 ├── config.ts        # Command group with inline subcommands
-└── db/              # Nested commands
-    ├── migrate.ts
-    ├── seed.ts
-    └── backup.ts
+├── db/              # Nested commands
+│   ├── migrate.ts
+│   ├── seed.ts
+│   └── backup.ts
+└── commands.gen.ts  # Generated types (auto-created)
 ```
 
 ## Usage Examples
@@ -86,3 +88,36 @@ bun cli.ts db migrate --help
 # Command group help
 bun cli.ts config --help
 ```
+
+## Generated Types for Nested Commands
+
+This example includes type generation that handles nested command structures:
+
+```typescript
+// Generated in commands.gen.ts
+import { getCommandApi, listCommands } from './commands.gen'
+
+// Get all command names (including nested)
+const commands = listCommands()
+console.log(commands)
+// [
+//   { name: 'init', description: 'Initialize a project' },
+//   { name: 'deploy', description: 'Deploy the application' },
+//   { name: 'config', description: 'Configuration commands' },
+//   { name: 'db', description: 'Database commands' }
+// ]
+
+// Type-safe access to nested commands
+const dbApi = getCommandApi('db')
+console.log(dbApi.options) // Nested command options
+
+// Access specific nested command
+const migrateApi = getCommandApi('db.migrate')
+console.log(migrateApi.options) // { direction: {...}, steps: {...} }
+```
+
+The generated types provide:
+- **Nested CommandRegistry** with full command hierarchy
+- **Type-safe command discovery** for complex structures
+- **Autocomplete** for nested command paths
+- **IntelliSense** for command groups and subcommands

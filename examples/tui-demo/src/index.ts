@@ -7,7 +7,6 @@ const cli = await createCLI({
   name: 'tui-demo',
   version: '1.0.0',
   description: 'Demonstration of Bunli TUI with React'
-  // generated is automatically enabled
 })
 
 // Register TUI renderer to enable render() functions

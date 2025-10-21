@@ -25,6 +25,7 @@ bun run build
 - Error messages customization
 - Development with hot reload
 - Production builds
+- Generated types preserve schema information
 
 ## Commands
 
@@ -123,3 +124,59 @@ bunli build --targets darwin-arm64,linux-x64
 # Test the built executable
 ./dist/cli basic -u test_user -a 30
 ```
+
+## Generated Types and Schema Validation
+
+This example includes type generation that preserves all schema information:
+
+```typescript
+// Generated in commands.gen.ts
+import { getCommandApi, listCommands } from './commands.gen'
+
+// Get command with full schema information
+const basicApi = getCommandApi('basic')
+console.log(basicApi.options)
+// {
+//   username: {
+//     type: 'string',
+//     required: true,
+//     description: 'Username (3-20 characters)',
+//     minLength: 3,
+//     maxLength: 20,
+//     pattern: '^[a-zA-Z0-9_]+$'
+//   },
+//   age: {
+//     type: 'number',
+//     required: true,
+//     description: 'Age (18-120)',
+//     min: 18,
+//     max: 120
+//   }
+// }
+
+// Type-safe schema extraction
+function extractValidationRules(commandName: string) {
+  const command = getCommandApi(commandName)
+  const rules = {}
+  
+  for (const [optionName, option] of Object.entries(command.options)) {
+    rules[optionName] = {
+      type: option.type,
+      required: option.required,
+      constraints: {
+        min: option.min,
+        max: option.max,
+        pattern: option.pattern
+      }
+    }
+  }
+  
+  return rules
+}
+```
+
+The generated types provide:
+- **Complete schema information** including validation rules
+- **Type-safe option access** with full metadata
+- **Schema extraction** for documentation generation
+- **Validation rule discovery** for dynamic validation

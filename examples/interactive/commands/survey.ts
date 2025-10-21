@@ -3,7 +3,7 @@ import { z } from 'zod'
 
 // Survey demonstrating various prompt types
 export default defineCommand({
-  name: 'survey',
+  name: 'survey' as const,
   description: 'Interactive survey example',
   options: {
     // No CLI options - fully interactive

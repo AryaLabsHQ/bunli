@@ -3,7 +3,7 @@ import { z } from 'zod'
 
 // Deploy with progress indicators
 export default defineCommand({
-  name: 'deploy',
+  name: 'deploy' as const,
   description: 'Deploy with detailed progress',
   options: {
     environment: option(

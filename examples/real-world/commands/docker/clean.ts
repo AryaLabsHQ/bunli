@@ -144,7 +144,7 @@ export default defineCommand({
         }
       } catch (error) {
         spin.fail(`Failed to clean ${action.name}`)
-        console.error(colors.red(error))
+        console.error(colors.red(String(error)))
       }
     }
     

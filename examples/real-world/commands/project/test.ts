@@ -103,9 +103,9 @@ export default defineCommand({
     console.log(colors.dim('\n━'.repeat(40)))
     
     if (totalPassed === totalTests) {
-      console.log(colors.bold.green(`✓ All tests passed!`))
+      console.log(colors.green(`✓ All tests passed!`))
     } else {
-      console.log(colors.bold.red(`✗ ${totalTests - totalPassed} tests failed`))
+      console.log(colors.red(`✗ ${totalTests - totalPassed} tests failed`))
     }
     
     console.log(`Tests: ${colors.green(`${totalPassed} passed`)}, ${totalTests} total`)

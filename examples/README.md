@@ -9,6 +9,7 @@ The simplest possible Bunli CLI with a single command. Great starting point to u
 - Basic command definition
 - Simple flag handling
 - Minimal configuration
+- Type generation for enhanced DX
 
 ### schema-validation
 Examples showcasing Bunli's schema-driven validation using Standard Schema compatible libraries.
@@ -16,6 +17,7 @@ Examples showcasing Bunli's schema-driven validation using Standard Schema compa
 - Integration with Zod, Valibot, and other validation libraries
 - Custom validation rules and error messages
 - Coercion and transformation
+- Generated types preserve schema information
 
 ### command-structure
 Demonstrates how to organize multi-command CLIs with proper structure.
@@ -23,6 +25,7 @@ Demonstrates how to organize multi-command CLIs with proper structure.
 - Nested commands (e.g., `git branch`, `git commit`)
 - Command aliases
 - Modular command organization
+- Generated types for nested command structure
 
 ### interactive
 Shows how to build interactive CLI experiences using Bunli's prompt utilities.
@@ -30,6 +33,7 @@ Shows how to build interactive CLI experiences using Bunli's prompt utilities.
 - Multi-step processes with validation
 - Various prompt types (text, select, multiselect, confirm)
 - Dynamic prompts based on previous answers
+- Type-safe command metadata for dynamic prompts
 
 ### real-world
 A complete, production-ready CLI application demonstrating best practices.
@@ -39,6 +43,7 @@ A complete, production-ready CLI application demonstrating best practices.
 - Progress indicators and spinners
 - Error handling and recovery
 - Build configuration for distribution
+- Generated types for 12+ commands with CLI wrappers
 
 ## Getting Started
 
@@ -66,8 +71,10 @@ bun cli.ts
 
 All examples include:
 - `bunli.config.ts` - Configuration for building and development
+- `commands.gen.ts` - Generated TypeScript definitions (auto-created)
 - Development scripts using `bunli dev` for hot reload
 - Build scripts using `bunli build` for production
+- Type generation for enhanced developer experience
 
 ## Progression Path
 

@@ -2,7 +2,7 @@ import { defineCommand, option } from '@bunli/core'
 import { z } from 'zod'
 
 export default defineCommand({
-  name: 'sync',
+  name: 'sync' as const,
   description: 'Sync local branch with remote',
   options: {
     branch: option(
@@ -63,7 +63,7 @@ export default defineCommand({
       fetchSpin.succeed('Fetched latest changes')
     } catch (error) {
       fetchSpin.fail('Failed to fetch changes')
-      console.error(colors.red(error))
+      console.error(colors.red(String(error)))
       process.exit(1)
     }
     

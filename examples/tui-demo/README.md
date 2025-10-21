@@ -10,6 +10,7 @@ The demo showcases:
 - Terminal capability detection
 - Spinner animations for long-running operations
 - Command configuration with various input types
+- Type generation for TUI commands
 
 ## Commands
 
@@ -81,6 +82,56 @@ bun src/index.ts custom --demo form
 
 Options:
 - `--demo, -d` - Demo type (dashboard/progress/form)
+
+## Type Generation for TUI Commands
+
+This example includes type generation that works seamlessly with TUI commands:
+
+```typescript
+// Generated in commands.gen.ts
+import { getCommandApi, listCommands } from './commands.gen'
+
+// Get TUI command metadata
+const commands = listCommands()
+const newApi = getCommandApi('new')
+const deployApi = getCommandApi('deploy')
+
+// Type-safe TUI component props
+interface TUIComponentProps {
+  command: string
+  options: Record<string, any>
+  schema: any
+}
+
+function createTUIForm(commandName: string): TUIComponentProps {
+  const command = getCommandApi(commandName as any)
+  
+  return {
+    command: commandName,
+    options: command.options,
+    schema: {
+      // Convert command options to TUI schema
+      fields: Object.entries(command.options).map(([name, option]) => ({
+        name,
+        type: option.type,
+        required: option.required,
+        description: option.description,
+        default: option.default
+      }))
+    }
+  }
+}
+
+// Use with OpenTUI
+const formProps = createTUIForm('new')
+console.log(formProps.schema.fields) // TUI form fields
+```
+
+The generated types provide:
+- **TUI component props** with full type safety
+- **Command metadata** for form generation
+- **Type-safe option access** for TUI components
+- **IntelliSense** for TUI-specific functionality
 
 ## TUI Plugin Features
 

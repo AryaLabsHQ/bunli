@@ -45,8 +45,8 @@ export default defineCommand({
       await new Promise(resolve => setTimeout(resolve, 1500))
       
       // Simulated version check
-      const currentVersion = '2.1.0'
-      const latestVersion = '2.2.0'
+      const currentVersion: string = '2.1.0'
+      const latestVersion: string = '2.2.0'
       
       if (currentVersion !== latestVersion) {
         spin.succeed(`Update available: ${colors.red(currentVersion)} → ${colors.green(latestVersion)}`)
@@ -133,11 +133,10 @@ export default defineCommand({
         console.log()
         const selections = await prompt.multiselect(
           'Select packages to update:',
-          outdated.map(pkg => ({
+          { options: outdated.map(pkg => ({
             label: `${pkg.name} (${pkg.current} → ${flags.major ? pkg.latest : pkg.wanted})`,
             value: pkg.name
-          })),
-          { hint: 'Space to select, Enter to confirm' }
+          })) }
         )
         
         if (selections.length === 0) {

@@ -76,7 +76,7 @@ export default defineCommand({
       if (commit) {
         const message = await prompt.text('Commit message:', {
           placeholder: 'Update changes',
-          validate: (value) => value.length > 0 || 'Message is required'
+          validate: (value: string) => value.length > 0 || 'Message is required'
         })
         
         await shell`git add -A`

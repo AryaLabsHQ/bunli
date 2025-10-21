@@ -8,6 +8,7 @@ This example demonstrates the Bunli plugin system with both built-in and custom 
 - **AI Agent Detection Plugin**: Detects if running in an AI coding assistant
 - **Custom Timing Plugin**: Adds timing information to commands
 - **Plugin Context**: Access injected data in command handlers
+- **Type Generation with Plugins**: Generated types include plugin context
 
 ## Usage
 
@@ -90,6 +91,39 @@ const myPlugin: BunliPlugin<MyPluginStore> = {
 }
 ```
 
+## Type Generation with Plugins
+
+This example includes type generation that works seamlessly with plugins:
+
+```typescript
+// Generated in commands.gen.ts
+import { getCommandApi, listCommands } from './commands.gen'
+
+// Generated types include plugin context
+interface CommandContext<TStore> {
+  store: TStore
+  // Plugin-specific context is included
+}
+
+// Access plugin store in commands
+const infoApi = getCommandApi('info')
+console.log(infoApi.plugins) // Available plugin data
+
+// Type-safe plugin store access
+function usePluginData(context: CommandContext<any>) {
+  // Access plugin store with full type safety
+  const timingData = context.store.timing
+  const configData = context.store.config
+  const aiData = context.store.aiAgent
+}
+```
+
+The generated types provide:
+- **Plugin context types** with full type safety
+- **Store access** for all registered plugins
+- **Type-safe plugin data** in command handlers
+- **IntelliSense** for plugin-specific functionality
+
 ## Plugin Development Tips
 
 1. **Use TypeScript**: Plugins are fully typed with compile-time type safety
@@ -97,6 +131,7 @@ const myPlugin: BunliPlugin<MyPluginStore> = {
 3. **Handle Errors**: Use try/catch in hooks to prevent breaking the CLI
 4. **Document Store**: Tell users what data your plugin provides in the store
 5. **Use createPlugin**: The factory function provides better ergonomics
+6. **Type Generation**: Generated types include your plugin's context
 
 ## Built-in Plugins
 

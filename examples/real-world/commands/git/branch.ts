@@ -79,8 +79,7 @@ export default defineCommand({
     if (flags.delete) {
       const selected = await prompt.multiselect(
         'Select branches to delete:',
-        choices.filter(c => c.value !== currentBranch),
-        { hint: 'Space to select, Enter to confirm' }
+        { options: choices.filter(c => c.value !== currentBranch) }
       )
       
       if (selected.length === 0) {
@@ -110,8 +109,7 @@ export default defineCommand({
       // Switch branch
       const selected = await prompt.select(
         'Select branch to switch to:',
-        choices,
-        { hint: 'Use arrow keys' }
+        { options: choices, hint: 'Use arrow keys' }
       )
       
       if (selected === currentBranch) {
