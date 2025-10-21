@@ -9,7 +9,6 @@ export default defineConfig({
     manifest: './commands/index.ts'
   },
   
-  // Codegen is automatically enabled with sensible defaults
   plugins: [],
   build: {
     entry: './cli.ts',

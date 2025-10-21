@@ -1,20 +1,11 @@
 #!/usr/bin/env bun
 import { createCLI } from '@bunli/core'
+import config from './bunli.config'
 
 const cli = await createCLI({
-  name: 'validate',
-  version: '1.0.0',
-  description: 'Schema validation examples'
+  ...config,
+  plugins: [] as const
 })
 
-// Load commands from the commands directory
-await cli.load({
-  basic: () => import('./commands/basic'),
-  validation: () => import('./commands/validation'),
-  transform: () => import('./commands/transform'),
-  errors: () => import('./commands/errors'),
-  interactive: () => import('./commands/interactive'),
-  batch: () => import('./commands/batch')
-})
-
+await cli.init()
 await cli.run()

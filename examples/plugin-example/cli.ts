@@ -43,7 +43,6 @@ const cli = await createCLI({
   name: 'plugin-example',
   version: '1.0.0',
   description: 'Example CLI demonstrating the plugin system',
-  // generated is automatically enabled
   
   plugins: [
     // Load config from multiple sources

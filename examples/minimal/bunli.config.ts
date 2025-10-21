@@ -5,7 +5,6 @@ export default defineConfig({
   version: '1.0.0',
   description: 'Minimal Bunli CLI example',
   
-  // Codegen is automatically enabled with sensible defaults
   plugins: [],
   build: {
     entry: './cli.ts',

@@ -426,6 +426,7 @@ export async function testCLI(
       name: 'test-cli',
       version: '1.0.0',
       description: 'Test CLI'
+      // generated is automatically enabled
     })
     
     setupCLI(cli)

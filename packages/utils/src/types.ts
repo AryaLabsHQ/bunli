@@ -5,6 +5,8 @@ export interface PromptOptions {
   default?: string
   validate?: (input: string) => boolean | string
   schema?: StandardSchemaV1  // Optional schema for validation
+  placeholder?: string
+  multiline?: boolean
 }
 
 export interface ConfirmOptions {
@@ -21,6 +23,11 @@ export interface SelectOptions<T = string> {
   options: SelectOption<T>[]
   default?: T
   hint?: string
+}
+
+export interface MultiSelectOptions<T = string> extends SelectOptions<T> {
+  min?: number
+  max?: number
 }
 
 // Spinner types
@@ -91,6 +98,8 @@ export interface BunliUtils {
     confirm(message: string, options?: ConfirmOptions): Promise<boolean>
     select<T = string>(message: string, options: SelectOptions<T>): Promise<T>
     password<T = string>(message: string, options?: PromptOptions): Promise<T>
+    text(message: string, options?: PromptOptions): Promise<string>
+    multiselect<T = string>(message: string, options: MultiSelectOptions<T>): Promise<T[]>
   }
   spinner: (options?: SpinnerOptions | string) => Spinner
   colors: Colors

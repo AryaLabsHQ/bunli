@@ -6,7 +6,7 @@
     "declaration": true,
     "emitDeclarationOnly": true,
     "types": [
-      "bun-types"
+      "bun"
     ]
   },
   "include": ["./src/**/*"],

@@ -2,10 +2,11 @@
 import { createCLI } from '@bunli/core'
 import config from './bunli.config'
 
-const cli = createCLI(config)
+const cli = await createCLI({
+  ...config,
+  plugins: [] as const
+  // generated is automatically enabled
+})
 
-// Initialize (loads commands from config)
 await cli.init()
-
-// Run
 await cli.run()

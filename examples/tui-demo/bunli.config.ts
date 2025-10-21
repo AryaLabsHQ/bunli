@@ -5,7 +5,6 @@ export default defineConfig({
   version: '0.1.0',
   description: 'Example demonstrating Bunli TUI capabilities',
   
-  // Codegen is automatically enabled with sensible defaults
   commands: {
     directory: 'src/commands'
   },

@@ -5,7 +5,6 @@ export default defineConfig({
   version: '1.0.0',
   description: 'Example demonstrating schema validation with Zod',
   
-  // Codegen is automatically enabled with sensible defaults
   plugins: [],
   build: {
     entry: './cli.ts',
