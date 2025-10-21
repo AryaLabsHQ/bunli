@@ -574,6 +574,43 @@ task add --help
 #   -d, --due <date>         Due date (YYYY-MM-DD)
 ```
 
+## Generated Types for Command Structure
+
+This example includes type generation that handles nested command structures:
+
+```typescript
+// Generated in .bunli/commands.gen.ts
+import { getCommandApi, listCommands } from './commands.gen'
+
+// Get all command names (including nested)
+const commands = listCommands()
+console.log(commands)
+// [
+//   { name: 'add', description: 'Add a new task' },
+//   { name: 'list', description: 'List all tasks' },
+//   { name: 'complete', description: 'Mark tasks as completed' },
+//   { name: 'project', description: 'Manage projects' }
+// ]
+
+// Type-safe access to nested commands
+const projectApi = getCommandApi('project')
+console.log(projectApi.options) // Nested command options
+
+// Access specific nested command
+const createApi = getCommandApi('project.create')
+console.log(createApi.options) // { name: {...}, description: {...}, color: {...} }
+```
+
+The generated types provide:
+- **Nested CommandRegistry** with full command hierarchy
+- **Type-safe command discovery** for complex structures
+- **Autocomplete** for nested command paths
+- **IntelliSense** for command groups and subcommands
+
+<Callout type="tip">
+  Generated types work seamlessly with nested command structures, providing full type safety for complex CLI hierarchies.
+</Callout>
+
 ## Key Features Demonstrated
 
 1. **Command Organization**: Logical grouping of related commands
@@ -583,9 +620,11 @@ task add --help
 5. **Subcommands**: Nested command structure for complex CLIs
 6. **Shared Code**: Database module used across commands
 7. **Auto-discovery**: Commands automatically found and loaded
+8. **Type Generation**: Full TypeScript definitions for nested commands
 
 ## Next Steps
 
+- [Type Generation Guide](/docs/guides/type-generation) - Learn about code generation
 - [Interactive Example](/docs/examples/interactive) - Rich interactive features
 - [Testing Guide](/docs/guides/testing) - Test multi-command CLIs
 - [Command Documentation](/docs/core-concepts/commands) - Deep dive into commands

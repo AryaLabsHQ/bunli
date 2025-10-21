@@ -434,6 +434,52 @@ export default defineCommand({
 })
 ```
 
+## Generated Types and Schema Validation
+
+When using type generation, your schema validation information is preserved in the generated types:
+
+```typescript
+// Generated in .bunli/commands.gen.ts
+import { getCommandApi, listCommands } from './commands.gen'
+
+// Get command with full schema information
+const userApi = getCommandApi('create-user')
+console.log(userApi.options)
+// {
+//   username: {
+//     type: 'string',
+//     required: true,
+//     description: 'Username (3-20 characters)',
+//     minLength: 3,
+//     maxLength: 20,
+//     pattern: '^[a-zA-Z0-9_]+$'
+//   },
+//   email: {
+//     type: 'string',
+//     required: true,
+//     description: 'Email address',
+//     format: 'email'
+//   },
+//   age: {
+//     type: 'number',
+//     required: true,
+//     description: 'Age (18-120)',
+//     min: 18,
+//     max: 120
+//   }
+// }
+```
+
+This enables:
+- **Schema extraction** for documentation generation
+- **Validation rule discovery** for dynamic validation
+- **Type-safe option access** with full metadata
+- **Runtime validation** using generated schema information
+
+<Callout type="tip">
+  Generated types preserve all schema validation information, making it available for documentation generation and dynamic validation systems.
+</Callout>
+
 ## Best Practices
 
 1. **Always Use Coercion**: For CLI inputs, use `z.coerce` variants
@@ -441,6 +487,7 @@ export default defineCommand({
 3. **Set Sensible Defaults**: Use `.default()` for optional configs
 4. **Validate Early**: Catch errors before processing begins
 5. **Type Everything**: Let TypeScript infer from your schemas
+6. **Use Generated Types**: Leverage schema information in generated types
 
 ## Testing Validation
 
@@ -464,6 +511,7 @@ test('validates port number', async () => {
 
 ## Next Steps
 
+- [Type Generation Guide](/docs/guides/type-generation) - Learn about code generation
 - [Interactive Prompts](/docs/guides/interactive-prompts) - Validate user input interactively
 - [Testing](/docs/guides/testing) - Test your validation logic
 - [API Reference](/docs/api/option) - Complete option API

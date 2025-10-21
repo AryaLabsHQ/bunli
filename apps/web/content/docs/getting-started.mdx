@@ -55,6 +55,8 @@ my-cli/
 ├── src/
 │   ├── index.ts       # CLI entry point
 │   └── commands/      # Command definitions
+├── .bunli/
+│   └── commands.gen.ts # Generated types (auto-created)
 ├── bunli.config.ts    # Configuration
 ├── package.json
 ├── tsconfig.json
@@ -261,8 +263,9 @@ import { defineConfig } from 'bunli'
 
 export default defineConfig({
   name: 'my-cli',
+  version: '1.0.0',
   commands: {
-    dir: './src/commands'
+    directory: './src/commands'
   }
 })
 ```
@@ -276,6 +279,7 @@ Now that you have a working CLI:
 - Learn about [Commands](/docs/core-concepts/commands) - The building blocks of your CLI
 - Explore [Type Inference](/docs/core-concepts/type-inference) - Leverage TypeScript's power
 - Add [Validation](/docs/core-concepts/validation) - Ensure correct input
+- Generate [Type Definitions](/docs/guides/type-generation) - Enhanced developer experience
 - Write [Tests](/docs/packages/test) - Keep your CLI reliable
 - [Build & Distribute](/docs/guides/distribution) - Share your CLI with the world
 

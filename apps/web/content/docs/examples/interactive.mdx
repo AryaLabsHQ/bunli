@@ -489,6 +489,46 @@ export default defineCommand({
 })
 ```
 
+## Type-Safe Interactive Commands
+
+This example includes type generation that works seamlessly with interactive workflows:
+
+```typescript
+// Generated in .bunli/commands.gen.ts
+import { getCommandApi, listCommands } from './commands.gen'
+
+// Get command metadata for dynamic prompts
+const commands = listCommands()
+const setupApi = getCommandApi('setup')
+
+// Use command options for dynamic prompt generation
+const availablePresets = Object.keys(setupApi.options.preset?.choices || {})
+const projectTypes = Object.keys(setupApi.options.type?.choices || {})
+
+// Type-safe command execution
+async function runInteractiveCommand(commandName: string, options: any) {
+  const command = getCommandApi(commandName as any)
+  
+  // Validate options against command schema
+  for (const [key, value] of Object.entries(options)) {
+    if (command.options[key]) {
+      // Type-safe option validation
+      console.log(`Setting ${key}: ${value}`)
+    }
+  }
+}
+```
+
+The generated types enable:
+- **Dynamic prompt generation** from command metadata
+- **Type-safe option validation** in interactive flows
+- **Command discovery** for building wizards
+- **IntelliSense** for command-specific options
+
+<Callout type="tip">
+  Generated types work perfectly with interactive commands, providing type safety for dynamic prompt generation and option validation.
+</Callout>
+
 ## Best Practices
 
 1. **Clear Visual Hierarchy**: Use colors and symbols to guide users
@@ -497,9 +537,11 @@ export default defineCommand({
 4. **Show Progress**: Keep users informed during long operations
 5. **Allow Cancellation**: Let users exit gracefully at any point
 6. **Handle Errors**: Provide helpful error messages
+7. **Type Safety**: Use generated types for dynamic interactions
 
 ## Next Steps
 
+- [Type Generation Guide](/docs/guides/type-generation) - Learn about code generation
 - [Real-World Example](/docs/examples/real-world) - Complete production example
 - [Interactive Prompts Guide](/docs/guides/interactive-prompts) - Deep dive into prompts
 - [@bunli/utils](/docs/packages/utils) - Utility functions reference

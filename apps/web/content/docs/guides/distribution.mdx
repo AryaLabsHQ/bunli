@@ -147,6 +147,32 @@ export default defineConfig({
 })
 ```
 
+### Generated Files in Distribution
+
+When using type generation, the generated `.bunli/commands.gen.ts` file is automatically included in your build:
+
+```typescript
+// bunli.config.ts
+export default defineConfig({
+  name: 'my-cli',
+  version: '1.0.0',
+  build: {
+    entry: './src/index.ts',
+    outdir: './dist'
+  }
+})
+```
+
+The generated types are:
+- **Included in builds** - Automatically bundled with your CLI
+- **Type-safe at runtime** - Full TypeScript definitions available
+- **Optimized for production** - Minified and tree-shaken
+- **Cross-platform compatible** - Works on all target platforms
+
+<Callout type="info">
+  Generated type files are automatically included in your distribution builds. No additional configuration needed.
+</Callout>
+
 ### Code Signing (macOS)
 
 Sign your macOS executables:

@@ -128,6 +128,30 @@ export default defineConfig({
 })
 ```
 
+### Type Generation
+
+Type generation is **automatically enabled** in all Bunli projects for enhanced developer experience:
+
+```typescript
+export default defineConfig({
+  name: 'my-cli',
+  version: '1.0.0',
+})
+```
+
+**Default Behavior:**
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| **Auto-Generation** | `true` | Always enabled |
+| **Commands Directory** | `./commands` | Where to find command files |
+| **Output File** | `./.bunli/commands.gen.ts` | Generated types location |
+| **Watch Mode** | `true` in dev | Regenerate on file changes |
+
+<Callout type="info">
+  Type generation is automatically integrated with `bunli dev` and `bunli build` commands. Learn more in the [Type Generation Guide](/docs/guides/type-generation).
+</Callout>
+
 ### Test Configuration
 
 ```typescript
