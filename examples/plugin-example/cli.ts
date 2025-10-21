@@ -1,9 +1,9 @@
 #!/usr/bin/env bun
 
-import { createCLI, defineCommand } from '@bunli/core'
+import { createCLI, defineCommand, type CLI } from '@bunli/core'
 import { createPlugin, type BunliPlugin } from '@bunli/core/plugin'
 import { configMergerPlugin } from '@bunli/plugin-config'
-import { aiAgentPlugin } from '@bunli/plugin-ai-detect'
+import { aiAgentPlugin, type AIDetectStore } from '@bunli/plugin-ai-detect'
 
 interface TimingStore {
   startTime: number | null
@@ -22,15 +22,17 @@ const timingPlugin = createPlugin<TimingStore>({
   
   beforeCommand(context) {
     const startTime = Date.now()
-    context.store.startTime = startTime  // Type-safe!
+    // Using type-safe store access methods
+    context.setStoreValue('startTime', startTime)
     console.log(`⏱️  Command started at ${new Date(startTime).toLocaleTimeString()}`)
   },
   
   afterCommand(context) {
     // TypeScript knows startTime is number | null
-    if (context.store.startTime) {
-      const duration = Date.now() - context.store.startTime
-      context.store.duration = duration
+    const startTime = context.getStoreValue('startTime')
+    if (startTime) {
+      const duration = Date.now() - startTime
+      context.setStoreValue('duration', duration)
       console.log(`⏱️  Command completed in ${duration}ms`)
     }
   }
@@ -41,6 +43,7 @@ const cli = await createCLI({
   name: 'plugin-example',
   version: '1.0.0',
   description: 'Example CLI demonstrating the plugin system',
+  // generated is automatically enabled
   
   plugins: [
     // Load config from multiple sources
@@ -56,7 +59,7 @@ const cli = await createCLI({
     
     // Custom timing plugin
     timingPlugin
-  ] as const  // Use 'as const' for better type inference
+  ] as const satisfies readonly BunliPlugin[]
 })
 
 // Add a command that uses plugin context

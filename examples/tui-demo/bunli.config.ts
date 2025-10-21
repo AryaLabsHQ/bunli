@@ -1,16 +1,20 @@
 import { defineConfig } from '@bunli/core'
 
 export default defineConfig({
-  name: 'interactive-cli',
-  version: '1.0.0',
-  description: 'Example showing interactive prompts and user input',
+  name: 'bunli-tui-demo',
+  version: '0.1.0',
+  description: 'Example demonstrating Bunli TUI capabilities',
   
   // Codegen is automatically enabled with sensible defaults
+  commands: {
+    directory: 'src/commands'
+  },
   plugins: [],
+  
   build: {
-    entry: './cli.ts',
-    outdir: './dist',
-    targets: ['native'], // Build for current platform by default
+    entry: 'src/index.ts',
+    outdir: 'dist',
+    targets: ['bun'],
     compress: false,
     minify: false,
     sourcemap: true
