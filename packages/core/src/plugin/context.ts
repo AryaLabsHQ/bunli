@@ -70,6 +70,29 @@ export class CommandContext<TStore = {}> implements ICommandContext<TStore> {
   ) {
     this.store = initialStore
   }
+  
+  /**
+   * Type-safe store value access
+   * Provides compile-time type checking for store properties
+   */
+  getStoreValue<K extends keyof TStore>(key: K): TStore[K] {
+    return this.store[key]
+  }
+  
+  /**
+   * Type-safe store value update
+   * Provides compile-time type checking for store property updates
+   */
+  setStoreValue<K extends keyof TStore>(key: K, value: TStore[K]): void {
+    (this.store as any)[key] = value
+  }
+  
+  /**
+   * Check if a store property exists
+   */
+  hasStoreValue<K extends keyof TStore>(key: K): boolean {
+    return key in (this.store as object)
+  }
 }
 
 /**

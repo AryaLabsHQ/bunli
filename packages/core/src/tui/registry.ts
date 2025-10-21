@@ -7,12 +7,14 @@ import type { RenderArgs } from '../types.js'
 
 let renderer: ((args: RenderArgs<any, any>) => Promise<unknown> | unknown) | null = null
 
-export function registerTuiRenderer(fn: (args: RenderArgs<any, any>) => Promise<unknown> | unknown) {
-  renderer = fn
+export function registerTuiRenderer<TFlags = Record<string, unknown>, TStore = {}>(
+  fn: (args: RenderArgs<TFlags, TStore>) => Promise<unknown> | unknown
+) {
+  renderer = fn as (args: RenderArgs<any, any>) => Promise<unknown> | unknown
 }
 
-export function getTuiRenderer() {
-  return renderer
+export function getTuiRenderer<TFlags = Record<string, unknown>, TStore = {}>() {
+  return renderer as ((args: RenderArgs<TFlags, TStore>) => Promise<unknown> | unknown) | null
 }
 
 export function clearTuiRenderer() {

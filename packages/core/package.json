@@ -17,6 +17,10 @@
     "./utils": {
       "types": "./dist/utils/index.d.ts",
       "import": "./src/utils/index.ts"
+    },
+    "./generated": {
+      "types": "./dist/generated.d.ts",
+      "import": "./src/generated.ts"
     }
   },
   "files": [

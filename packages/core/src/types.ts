@@ -42,24 +42,40 @@ export interface CLI<TStore = {}> {
    * Run the CLI with given arguments
    */
   run(argv?: string[]): Promise<void>
+  
+  /**
+   * Execute a command programmatically
+   * 
+   * With generated types, provides full type safety for command names and options
+   */
+  execute(commandName: string, args?: string[]): Promise<void>
+  execute<T extends keyof RegisteredCommands>(
+    commandName: T,
+    options: CommandOptions<T>
+  ): Promise<void>
+  execute<T extends keyof RegisteredCommands>(
+    commandName: T,
+    args: string[],
+    options: CommandOptions<T>
+  ): Promise<void>
 }
 
 // generic Command type that carries options type information
-interface BaseCommand<TOptions extends Options = Options, TStore = {}> {
-  name: string
+interface BaseCommand<TOptions extends Options = Options, TStore = {}, TName extends string = string> {
+  name: TName
   description: string
   options?: TOptions
-  commands?: Command<any, TStore>[]
+  commands?: Command<any, TStore, any>[]
   alias?: string | string[]
-  handler?: Handler<InferOptions<TOptions>, TStore>
+  handler?: Handler<InferOptions<TOptions>, TStore, TName>
   render?: RenderFunction<InferOptions<TOptions>, TStore>
 }
 
-export type Command<TOptions extends Options = Options, TStore = {}> =
-  | (BaseCommand<TOptions, TStore> & { handler: Handler<InferOptions<TOptions>, TStore> })
-  | (BaseCommand<TOptions, TStore> & { render: RenderFunction<InferOptions<TOptions>, TStore> })
-  | (BaseCommand<TOptions, TStore> & {
-      handler: Handler<InferOptions<TOptions>, TStore>
+export type Command<TOptions extends Options = Options, TStore = {}, TName extends string = string> =
+  | (BaseCommand<TOptions, TStore, TName> & { handler: Handler<InferOptions<TOptions>, TStore, TName> })
+  | (BaseCommand<TOptions, TStore, TName> & { render: RenderFunction<InferOptions<TOptions>, TStore> })
+  | (BaseCommand<TOptions, TStore, TName> & {
+      handler: Handler<InferOptions<TOptions>, TStore, TName>
       render: RenderFunction<InferOptions<TOptions>, TStore>
     })
 
@@ -75,11 +91,14 @@ type InferOptions<T extends Options> = {
 }
 
 // generic Handler type that accepts inferred flags type
-export type Handler<TFlags = Record<string, unknown>, TStore = {}> = (args: HandlerArgs<TFlags, TStore>) => void | Promise<void>
+export type Handler<TFlags = Record<string, unknown>, TStore = {}, TCommandName extends string = string> = (args: HandlerArgs<TFlags, TStore, TCommandName>) => void | Promise<void>
 
 // generic HandlerArgs that accepts flags type
-export interface HandlerArgs<TFlags = Record<string, unknown>, TStore = {}> {
-  flags: TFlags
+export interface HandlerArgs<TFlags = Record<string, unknown>, TStore = {}, TCommandName extends string = string> {
+  // ✨ Automatic type inference based on command name ✨
+  flags: TCommandName extends keyof RegisteredCommands
+    ? CommandOptions<TCommandName>
+    : TFlags
   positional: string[]
   shell: typeof Bun.$
   env: typeof process.env
@@ -129,74 +148,94 @@ export type CommandManifest = {
 export type CommandLoader = () => Promise<{ default: Command<any> }>
 
 // Define command helper with proper type inference
-export function defineCommand<TOptions extends Options = Options, TStore = {}>(
-  command: Command<TOptions, TStore>
-): Command<TOptions, TStore> {
+export function defineCommand<TOptions extends Options = Options, TStore = {}, TName extends string = string>(
+  command: Command<TOptions, TStore> & { name: TName }
+): Command<TOptions, TStore> & { name: TName } {
   return command
 }
 
-// Config types
-export interface BunliConfig {
-  name: string
-  version: string
-  description?: string
-  
-  // Codegen configuration
-  codegen?: {
-    enabled?: boolean
-    commandsDir?: string
-    output?: string
-    watch?: boolean
-  }
-  
-  commands?: {
-    manifest?: string
-    directory?: string
-  }
-  build?: {
-    entry?: string | string[]
-    outdir?: string
-    targets?: string[]
-    compress?: boolean
-    minify?: boolean
-    external?: string[]
-    sourcemap?: boolean
-  }
-  dev?: {
-    watch?: boolean
-    inspect?: boolean
-    port?: number
-  }
-  test?: {
-    pattern?: string | string[]
-    coverage?: boolean
-    watch?: boolean
-  }
-  workspace?: {
-    packages?: string[]
-    shared?: any
-    versionStrategy?: 'fixed' | 'independent'
-  }
-  release?: {
-    npm?: boolean
-    github?: boolean
-    tagFormat?: string
-    conventionalCommits?: boolean
-  }
-  plugins?: PluginConfig[]
-}
+// Import configuration types from schema
+import type { BunliConfig } from './config.js'
+export type { BunliConfig } from './config.js'
+export { bunliConfigSchema } from './config.js'
+export type {
+  GeneratedStore,
+  GeneratedCommandMeta,
+  GeneratedOptionMeta,
+  GeneratedExecutor
+} from './generated.js'
 
 // Plugin configuration type (imported from plugin/types)
 export type PluginConfig = import('./plugin/types.js').PluginConfig
 
+/**
+ * Interface for registered commands (augmented by generated types)
+ * This will be populated by commands.gen.ts via module augmentation
+ * 
+ * @example
+ * // In commands.gen.ts:
+ * declare module '@bunli/core' {
+ *   interface RegisteredCommands extends CommandsByName {}
+ * }
+ */
+export interface RegisteredCommands {}
+
+/**
+ * Get command options type from registered commands
+ * Uses Standard Schema's InferOutput to extract types from schemas
+ */
+export type CommandOptions<T extends keyof RegisteredCommands> = 
+  RegisteredCommands[T] extends Command<infer TOptions, any, any>
+    ? InferOptions<TOptions>
+    : never
+
+export type CommandFlags<TCommand extends Command<any, any, any>> =
+  TCommand extends Command<infer TOptions, any, any>
+    ? InferOptions<TOptions>
+    : never
+
+/**
+ * Get all registered command names
+ */
+export type RegisteredCommandNames = keyof RegisteredCommands
+
 // Resolved config after all plugins have run
-export interface ResolvedConfig extends Required<BunliConfig> {
-  // All optional fields are now required with defaults
+// Codegen is handled internally and not part of the resolved config
+export type ResolvedConfig = Required<Omit<BunliConfig, 'build' | 'dev' | 'test' | 'workspace' | 'release'>> & {
+  build: NonNullable<BunliConfig['build']>
+  dev: NonNullable<BunliConfig['dev']>
+  test: NonNullable<BunliConfig['test']>
+  workspace: NonNullable<BunliConfig['workspace']>
+  release: NonNullable<BunliConfig['release']>
 }
 
-export function defineConfig(config: BunliConfig): BunliConfig {
-  return config
+/**
+ * Rich validation error with context information
+ */
+export class BunliValidationError extends Error {
+  constructor(
+    message: string,
+    public readonly context: {
+      option: string
+      value: unknown
+      command: string
+      expectedType: string
+      hint?: string
+    }
+  ) {
+    super(message)
+    this.name = 'BunliValidationError'
+  }
+  
+  override toString(): string {
+    return `${this.name}: Invalid option '${this.context.option}' for command '${this.context.command}'
+    
+Expected: ${this.context.expectedType}
+Received: ${typeof this.context.value} (${JSON.stringify(this.context.value)})
+${this.context.hint ? `\nHint: ${this.context.hint}` : ''}`
+  }
 }
+
 
 // Helper to create a CLI option with metadata
 export function option<S extends StandardSchemaV1>(

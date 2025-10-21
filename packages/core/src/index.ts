@@ -1,6 +1,17 @@
 // Note: createCLI is now async and returns Promise<CLI>
 export { createCLI } from './cli.js'
-export { defineCommand, defineConfig, option } from './types.js'
+export { defineCommand, option } from './types.js'
+export { defineConfig, bunliConfigSchema, type BunliConfig } from './config.js'
+export {
+  createGeneratedHelpers,
+  registerGeneratedStore,
+  getGeneratedStores,
+  clearGeneratedStores,
+  type GeneratedStore,
+  type GeneratedCommandMeta,
+  type GeneratedOptionMeta,
+  type GeneratedExecutor
+} from './generated.js'
 export { SchemaError } from '@standard-schema/utils'
 export type {
   CLI,
@@ -11,7 +22,6 @@ export type {
   RenderFunction,
   Options,
   CLIOption,
-  BunliConfig,
   CommandManifest,
   CommandLoader,
   StandardSchemaV1,
@@ -19,7 +29,9 @@ export type {
   ResolvedConfig,
   TerminalInfo,
   RuntimeInfo,
-  RenderResult
+  RenderResult,
+  RegisteredCommands,
+  CommandOptions
 } from './types.js'
 
 // Export global flags
@@ -31,6 +43,15 @@ export { registerTuiRenderer, clearTuiRenderer, getTuiRenderer } from './tui/reg
 
 // Note: Plugin system is exported via subpath export
 // Usage: import { PluginManager, createPlugin } from '@bunli/core/plugin'
+
+// Export validation utilities
+export {
+  validateValue,
+  validateValues,
+  isValueOfType,
+  createValidator,
+  createBatchValidator
+} from './validation.js'
 
 // Export type utilities
 export type {
