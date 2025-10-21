@@ -1,5 +1,6 @@
 // Re-export config utilities for use in bunli.config.ts files
-export { defineConfig, loadConfig, type BunliConfig } from './config.js'
+export { loadConfig } from './config.js'
+export { defineConfig, type BunliConfig } from '@bunli/core'
 
 // Re-export utilities
 export { findEntry } from './utils/find-entry.js'

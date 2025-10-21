@@ -3,16 +3,17 @@ import { Generator } from '@bunli/generator'
 import { z } from 'zod'
 import { join } from 'node:path'
 import { isCommandFile } from '@bunli/generator'
+import { loadConfig } from '../config.js'
 
 export default defineCommand({
   name: 'generate',
   description: 'Generate command type definitions',
   alias: 'gen',
   options: {
-    commandsDir: option(z.string().default('commands'), {
+    commandsDir: option(z.string().optional(), {
       description: 'Commands directory'
     }),
-    output: option(z.string().default('./commands.gen.ts'), {
+    output: option(z.string().default('./.bunli/commands.gen.ts'), {
       short: 'o',
       description: 'Output file'
     }),
@@ -23,9 +24,16 @@ export default defineCommand({
   },
   
   async handler({ flags, colors, spinner }) {
+    // Load config to get default values
+    const config = await loadConfig()
+    
+    const finalCommandsDir = flags.commandsDir || config.commands?.directory || 'commands'
+    const finalOutputFile = flags.output || './.bunli/commands.gen.ts'
+    
     const generator = new Generator({
-      commandsDir: flags.commandsDir,
-      outputFile: flags.output
+      commandsDir: finalCommandsDir,
+      outputFile: finalOutputFile,
+      config
     })
     
     // Initial generation
@@ -41,7 +49,7 @@ export default defineCommand({
     }
     
     if (flags.watch) {
-      console.log(colors.cyan(`\n👀 Watching ${flags.commandsDir}...\n`))
+      console.log(colors.cyan(`\n👀 Watching ${finalCommandsDir}...\n`))
       
       // Use Bun's native file watching with fs.promises.watch
       const { watch } = await import('node:fs/promises')
@@ -57,7 +65,7 @@ export default defineCommand({
       })
       
       try {
-        const watcher = watch(flags.commandsDir, { 
+        const watcher = watch(finalCommandsDir, { 
           recursive: true,
           signal 
         })
@@ -71,7 +79,7 @@ export default defineCommand({
           try {
             await generator.run({
               type: event.eventType === 'rename' ? 'delete' : 'update',
-              path: join(flags.commandsDir, event.filename)
+              path: join(finalCommandsDir, event.filename)
             })
             spin.succeed('Updated')
           } catch (error) {
