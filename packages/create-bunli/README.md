@@ -21,6 +21,7 @@ create-bunli my-cli
 - 🧪 **Testing included** - Comes with @bunli/test for CLI testing
 - 🎨 **Best practices** - Follows Bunli conventions and patterns
 - 🌐 **Flexible sources** - Use bundled templates or any GitHub repository
+- ⚡ **Type generation** - All templates include codegen for enhanced developer experience
 
 ## Usage
 
@@ -204,6 +205,18 @@ Templates can include a `template.json` manifest:
   ]
 }
 ```
+
+### Type Generation
+
+All templates include type generation configuration for enhanced developer experience:
+
+This provides:
+- **Autocomplete** for command names and options
+- **Type safety** at compile time
+- **IntelliSense** for command metadata
+- **CLI wrappers** for programmatic execution
+
+Learn more in the [Type Generation Guide](/docs/guides/type-generation).
 
 ### Template Variables
 

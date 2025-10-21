@@ -20,7 +20,6 @@ async function run() {
     name: 'create-bunli',
     version: '0.1.0',
     description: 'Scaffold new Bunli CLI projects'
-    // generated is automatically enabled
   })
   
   cli.command(defineCommand({

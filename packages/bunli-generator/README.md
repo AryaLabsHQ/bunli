@@ -119,12 +119,6 @@ import { defineConfig } from '@bunli/core'
 export default defineConfig({
   name: 'my-cli',
   version: '1.0.0',
-  
-  codegen: {
-    enabled: true,
-    commandsDir: './commands',
-    output: './commands.gen.ts'
-  }
 })
 ```
 

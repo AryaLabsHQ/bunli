@@ -230,14 +230,6 @@ export default defineConfig({
   name: 'my-cli',
   version: '1.0.0',
   
-  // Enable code generation for enhanced DX
-  codegen: {
-    enabled: true,
-    commandsDir: './commands',
-    output: './commands.gen.ts',
-    watch: true
-  },
-  
   build: {
     entry: './src/cli.ts',
     outdir: './dist',
