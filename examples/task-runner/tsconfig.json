@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": false,
+    "skipLibCheck": true,
+    "paths": {
+      "~commands/*": ["./.bunli/commands.gen.ts"]
+    }
+  },
+  "include": [
+    ".bunli/**/*.ts",
+    "**/*.ts"
+  ]
+}
