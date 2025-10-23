@@ -26,7 +26,7 @@ export interface CLI<TStore = {}> {
   /**
    * Register a command
    */
-  command(command: Command<any, TStore>): void
+  command<TCommandStore = any>(command: Command<any, TCommandStore>): void
   
   /**
    * Load commands from a manifest
@@ -108,7 +108,7 @@ export interface HandlerArgs<TFlags = Record<string, unknown>, TStore = {}, TCom
   spinner: typeof import('@bunli/utils').spinner
   colors: typeof import('@bunli/utils').colors
   // Plugin context (if plugins are loaded)
-  context?: import('./plugin/types.js').CommandContext<TStore>
+  context?: import('./plugin/types.js').CommandContext<any>
   // Terminal information
   terminal: TerminalInfo
   // Runtime information

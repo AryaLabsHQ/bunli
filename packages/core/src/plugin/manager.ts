@@ -23,9 +23,9 @@ export interface PluginSetupResult {
   middlewares: Middleware[]
 }
 
-export class PluginManager {
+export class PluginManager<TStore = {}> {
   private plugins: BunliPlugin[] = []
-  private combinedStore: any = {}
+  private combinedStore: TStore = {} as TStore
   private loader = new PluginLoader()
   private logger = createLogger('plugin-manager')
   
@@ -62,7 +62,7 @@ export class PluginManager {
         return { ...acc, ...plugin.store }
       }
       return acc
-    }, {})
+    }, {} as any) as TStore
     
     this.logger.info(`Loaded ${this.plugins.length} plugins`)
   }
@@ -73,7 +73,7 @@ export class PluginManager {
   async runSetup(config: Partial<BunliConfig>): Promise<PluginSetupResult> {
     const context = new PluginContext(
       config,
-      this.combinedStore,
+      new Map(Object.entries(this.combinedStore as any)),
       createLogger('plugins'),
       {
         cwd: process.cwd(),
@@ -132,7 +132,7 @@ export class PluginManager {
     commandDef: any,
     args: string[],
     flags: Record<string, any>
-  ): Promise<CommandContext<any>> {
+  ): Promise<CommandContext<TStore>> {
     // Create a mutable copy of the combined store for this command
     const commandStore = { ...this.combinedStore }
     
@@ -150,7 +150,7 @@ export class PluginManager {
       if (plugin.beforeCommand) {
         this.logger.debug(`Running beforeCommand for plugin: ${plugin.name}`)
         try {
-          await plugin.beforeCommand(context)
+          await plugin.beforeCommand(context as any)
         } catch (error: any) {
           throw new Error(`Plugin ${plugin.name} beforeCommand failed: ${error.message}`)
         }
@@ -164,7 +164,7 @@ export class PluginManager {
    * Run afterCommand hooks
    */
   async runAfterCommand(
-    context: CommandContext,
+    context: CommandContext<TStore>,
     result: CommandResult
   ): Promise<void> {
     const fullContext = Object.assign(context, result)
@@ -174,7 +174,7 @@ export class PluginManager {
       if (plugin.afterCommand) {
         this.logger.debug(`Running afterCommand for plugin: ${plugin.name}`)
         try {
-          await plugin.afterCommand(fullContext)
+          await plugin.afterCommand(fullContext as any)
         } catch (error: any) {
           // Log error but don't fail - command already executed
           this.logger.error(`Plugin ${plugin.name} afterCommand error: ${error.message}`)

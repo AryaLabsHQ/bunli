@@ -25,10 +25,14 @@ function getImportPath(filePath: string, outputFile: string): string {
   const outputAbsolute = toAbsolute(outputFile)
   const relativePath = path.relative(path.dirname(outputAbsolute), commandAbsolute)
   const normalized = relativePath.replace(/\\/g, '/')
-  if (normalized.startsWith('../') || normalized.startsWith('./')) {
-    return normalized
+  
+  // Convert .ts extension to .js for ESM imports
+  const withJsExt = normalized.replace(/\.ts$/, '.js')
+  
+  if (withJsExt.startsWith('../') || withJsExt.startsWith('./')) {
+    return withJsExt
   }
-  return `./${normalized}`
+  return `./${withJsExt}`
 }
 
 function getExportPath(filePath: string, commandsDir: string, outputFile: string): string {

@@ -4,7 +4,7 @@ import { parseArgs } from './parser.js'
 import { SchemaError, getDotPath } from '@standard-schema/utils'
 import { PluginManager } from './plugin/manager.js'
 import type { BunliPlugin, MergeStores, PluginConfig } from './plugin/types.js'
-import { CommandContext } from './plugin/context.js'
+import { CommandContext, createEnvironmentInfo } from './plugin/context.js'
 import { GLOBAL_FLAGS, type GlobalFlags } from './global-flags.js'
 import { getTuiRenderer } from './tui/registry.js'
 import { loadGeneratedStores } from './generated.js'
@@ -42,7 +42,7 @@ export async function createCLI<
     console.warn(`[bunli] Could not load generated types from ${generatedPath}:`, error)
   }
   
-  const commands = new Map<string, Command<any, TStore>>()
+  const commands = new Map<string, Command<any, any>>()
   
   // Helper to get terminal information
   function getTerminalInfo(): TerminalInfo {
@@ -63,7 +63,7 @@ export async function createCLI<
       supportsMouse: isInteractive && !isCI && process.env.TERM_PROGRAM !== 'Apple_Terminal'
     }
   }
-  const pluginManager = new PluginManager()
+  const pluginManager = new PluginManager<TStore>()
   
   // Load plugins if configured
   if (config.plugins) {
@@ -75,7 +75,6 @@ export async function createCLI<
     fullConfig = bunliConfigStrictSchema.parse(updatedConfig)
     
     // Register plugin commands
-    // @ts-expect-error - Plugin commands may have {} store type
     pluginCommands.forEach(cmd => registerCommand(cmd))
   }
   
@@ -118,7 +117,7 @@ export async function createCLI<
   }
   
   // Helper to register a command and its aliases
-  function registerCommand(cmd: Command<any, TStore>, path: string[] = []) {
+  function registerCommand(cmd: Command<any, any>, path: string[] = []) {
     const fullName = [...path, cmd.name].join(' ')
     commands.set(fullName, cmd)
     
@@ -140,7 +139,7 @@ export async function createCLI<
   }
   
   // Helper to find command by path
-  function findCommand(args: string[]): { command: Command<any, TStore> | undefined; remainingArgs: string[] } {
+  function findCommand(args: string[]): { command: Command<any, any> | undefined; remainingArgs: string[] } {
     // Try to find the deepest matching command
     for (let i = args.length; i > 0; i--) {
       const cmdPath = args.slice(0, i).join(' ')
@@ -199,7 +198,7 @@ export async function createCLI<
   }
   
   function shouldUseRender(
-    command: Command<any, TStore>,
+    command: Command<any, any>,
     flags: GlobalFlags & Record<string, unknown>,
     terminal: TerminalInfo
   ): boolean {
@@ -213,7 +212,7 @@ export async function createCLI<
     return terminal.isInteractive && !terminal.isCI
   }
 
-  function ensureRenderAvailable(command: Command<any, TStore>) {
+  function ensureRenderAvailable(command: Command<any, any>) {
     if (!command.render) {
       throw new Error(`Command ${command.name} does not support TUI rendering.`)
     }
@@ -245,12 +244,11 @@ export async function createCLI<
   
   // Helper function to load commands from manifest
   async function loadCommandsFromManifest(manifest: CommandManifest) {
-    async function loadFromManifest(obj: CommandManifest | CommandLoader, path: string[] = []): Promise<Command<any, TStore>[]> {
-      const commands: Command<any, TStore>[] = []
+    async function loadFromManifest(obj: CommandManifest | CommandLoader, path: string[] = []): Promise<Command<any, any>[]> {
+      const commands: Command<any, any>[] = []
       
       if (typeof obj === 'function') {
         const { default: command } = await obj()
-        // @ts-expect-error - Loaded commands may have different store types
         return [command]
       }
       
@@ -258,7 +256,6 @@ export async function createCLI<
         if (typeof value === 'function') {
           // It's a command loader
           const { default: command } = await value()
-          // @ts-expect-error - Loaded commands may have different store types
           commands.push(command)
         } else {
           // It's a nested manifest - create a parent command with subcommands
@@ -284,11 +281,11 @@ export async function createCLI<
   }
   
   async function runCommandInternal(
-    command: Command<any, TStore>,
+    command: Command<any, any>,
     argv: string[],
     providedFlags?: Record<string, unknown>
   ) {
-    let context: CommandContext<TStore> | undefined
+    let context: CommandContext<any> | undefined
     try {
       const mergedOptions = { ...GLOBAL_FLAGS, ...(command.options || {}) }
       const parsed = providedFlags
@@ -359,36 +356,16 @@ export async function createCLI<
         })
       }
 
-      if ('plugins' in fullConfig && fullConfig.plugins) {
+      if ('plugins' in fullConfig && fullConfig.plugins && context) {
         await pluginManager.runAfterCommand(
-          context || new CommandContext(
-            command.name,
-            command,
-            providedFlags ? [] : argv,
-            resultParsed.flags,
-            {
-              ...process.env,
-              isCI: !!(process.env.CI || process.env.CONTINUOUS_INTEGRATION || process.env.GITHUB_ACTIONS || process.env.GITLAB_CI || process.env.CIRCLECI || process.env.TRAVIS)
-            },
-            {} as TStore
-          ),
+          context,
           { exitCode: 0 }
         )
       }
     } catch (error) {
-      if ('plugins' in fullConfig && fullConfig.plugins) {
+      if ('plugins' in fullConfig && fullConfig.plugins && context) {
         await pluginManager.runAfterCommand(
-          context || new CommandContext(
-            command.name,
-            command,
-            providedFlags ? [] : argv,
-            {},
-            {
-              ...process.env,
-              isCI: !!(process.env.CI || process.env.CONTINUOUS_INTEGRATION || process.env.GITHUB_ACTIONS || process.env.GITLAB_CI || process.env.CIRCLECI || process.env.TRAVIS)
-            },
-            {} as TStore
-          ),
+          context,
           { exitCode: 1 }
         )
       }
@@ -422,7 +399,7 @@ export async function createCLI<
   }
 
   const api: CLI<MergeStores<TPlugins>> = {
-    command(cmd: Command<any, TStore>) {
+    command<TCommandStore = any>(cmd: Command<any, TCommandStore>) {
       registerCommand(cmd)
     },
     
@@ -544,40 +521,25 @@ export async function createCLI<
         const terminalInfo = getTerminalInfo()
         
         if (command.handler) {
-          await command.handler({
-            flags: parsed.flags,
-            positional: [],
-            shell: Bun.$,
-            env: process.env,
-            cwd: process.cwd(),
-            prompt,
-            spinner,
-            colors,
-            terminal: terminalInfo,
-            runtime: runtimeInfo,
-            ...(context ? { context } : {})
-          })
+        await command.handler({
+          flags: parsed.flags,
+          positional: [],
+          shell: Bun.$,
+          env: process.env,
+          cwd: process.cwd(),
+          prompt,
+          spinner,
+          colors,
+          terminal: terminalInfo,
+          runtime: runtimeInfo,
+          ...(context ? { context } : {})
+        })
         }
         
         // Run afterCommand hooks if plugins are loaded
-        if ('plugins' in fullConfig && fullConfig.plugins) {
+        if ('plugins' in fullConfig && fullConfig.plugins && context) {
           await pluginManager.runAfterCommand(
-            context || new CommandContext(
-              command.name,
-              command,
-              [],
-              parsed.flags,
-              {
-                ...process.env,
-                isCI: !!(process.env.CI || 
-                  process.env.CONTINUOUS_INTEGRATION ||
-                  process.env.GITHUB_ACTIONS ||
-                  process.env.GITLAB_CI ||
-                  process.env.CIRCLECI ||
-                  process.env.TRAVIS)
-              },
-              {} as TStore
-            ),
+            context,
             { exitCode: 0 }
           )
         }
