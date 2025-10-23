@@ -6,6 +6,9 @@ export default defineConfig({
   description: 'Task automation CLI with validation and interactivity',
   
   plugins: [],
+  commands: {
+    directory: './commands'
+  },
   build: {
     entry: './cli.ts',
     outdir: './dist',
