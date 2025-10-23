@@ -47,6 +47,32 @@ bun test -t "test name"         # Run tests matching pattern
 - Use `.js` extensions for all local imports (ESM requirement)
 - Use named exports, avoid default exports
 
+### Project Structure
+All Bunli projects must follow this structure for reliable type generation:
+
+```
+my-cli/
+├── cli.ts              # Main CLI entry point
+├── commands/           # Command definitions (REQUIRED)
+│   ├── command1.ts     # Individual command files
+│   └── command2.ts     # Each command as default export
+├── .bunli/            # Generated files (auto-created)
+│   └── commands.gen.ts # Generated TypeScript types
+├── bunli.config.ts     # Bunli configuration
+├── package.json        # Project dependencies
+└── tsconfig.json       # TypeScript configuration
+```
+
+**Required Configuration**: All `bunli.config.ts` files must include:
+```typescript
+export default defineConfig({
+  // ... other config
+  commands: {
+    directory: './commands'
+  }
+})
+```
+
 ### Command Definition Pattern
 Commands in Bunli use a type-safe builder pattern:
 
@@ -112,10 +138,14 @@ Each package uses explicit exports in package.json:
 ## Common Tasks
 
 ### Adding a New Command
-1. Create command file in appropriate package
+1. Create command file in `commands/` directory (e.g., `commands/my-command.ts`)
 2. Use `defineCommand` from @bunli/core
-3. Export from package index
-4. Add tests using @bunli/test utilities
+3. Export as default export
+4. Import and register in `cli.ts`
+5. Run `bun run generate` to update types
+6. Add tests using @bunli/test utilities
+
+**Note**: All Bunli projects must use a `commands/` directory structure for reliable type generation.
 
 ### Creating a New Package
 1. Create directory under `packages/`
