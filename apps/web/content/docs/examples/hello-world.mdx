@@ -1,0 +1,192 @@
+---
+title: Hello World CLI
+description: The simplest possible CLI with Bunli
+---
+
+# Hello World CLI Example
+
+The absolute minimum code needed to create a working CLI with Bunli. Perfect starting point to understand the basics.
+
+## Complete Example
+
+```typescript
+// cli.ts
+#!/usr/bin/env bun
+import { createCLI, defineCommand, option } from '@bunli/core'
+import { z } from 'zod'
+
+const cli = await createCLI({
+  name: 'hello-world',
+  version: '1.0.0',
+  description: 'Hello World - Simplest possible Bunli CLI'
+})
+
+cli.command(defineCommand({
+  name: 'greet',
+  description: 'Say hello to someone',
+  options: {
+    name: option(
+      z.string().default('World'),
+      { 
+        description: 'Name to greet',
+        short: 'n'
+      }
+    )
+  },
+  handler: async ({ flags, colors }) => {
+    console.log(colors.green(`Hello, ${flags.name}!`))
+  }
+}))
+
+await cli.run()
+```
+
+That's it! This creates a working CLI with:
+- `greet` command with a `--name` option
+- `--help` flag showing usage information
+- `--version` flag showing the version
+- Proper error handling for unknown commands
+- Type generation for enhanced developer experience
+
+## Running the CLI
+
+```bash
+# Navigate to the example
+cd examples/hello-world
+
+# Install dependencies
+bun install
+
+# Run in development mode
+bun run dev
+
+# Or run directly
+bun cli.ts greet --name Alice
+# Output: Hello, Alice!
+
+bun cli.ts greet
+# Output: Hello, World!
+
+bun cli.ts --help
+# Shows help with the greet command
+```
+
+## Project Structure
+
+```
+hello-world/
+├── cli.ts              # Main CLI file
+├── bunli.config.ts     # Build configuration
+├── package.json        # Dependencies and scripts
+├── tsconfig.json       # TypeScript configuration
+└── README.md          # Example documentation
+```
+
+## Key Features Demonstrated
+
+### 1. Basic Command Definition
+```typescript
+defineCommand({
+  name: 'greet',
+  description: 'Say hello to someone',
+  handler: async ({ flags, colors }) => {
+    console.log(colors.green(`Hello, ${flags.name}!`))
+  }
+})
+```
+
+### 2. Type-Safe Options
+```typescript
+options: {
+  name: option(
+    z.string().default('World'),
+    { 
+      description: 'Name to greet',
+      short: 'n'
+    }
+  )
+}
+```
+
+### 3. Built-in Utilities
+- `colors` - Colored console output
+- `flags` - Type-safe access to command options
+- `spinner` - Progress indicators
+- `prompt` - Interactive prompts
+
+## Type Generation
+
+This example includes automatic type generation for enhanced developer experience:
+
+```typescript
+// Generated in .bunli/commands.gen.ts
+import { getCommandApi, listCommands } from './.bunli/commands.gen'
+
+// Get command metadata
+const commands = listCommands()
+console.log(commands) // [{ name: 'greet', description: 'Say hello to someone' }]
+
+// Type-safe command access
+const greetApi = getCommandApi('greet')
+console.log(greetApi.options) // { name: {...} }
+```
+
+The generated types provide:
+- **CommandRegistry interface** with all command metadata
+- **Helper functions** for type-safe command discovery
+- **Autocomplete** for command names and options
+- **IntelliSense** for command descriptions and types
+
+## Building for Distribution
+
+```bash
+# Build for production
+bun run build
+
+# Run the built executable
+bun run start
+
+# Or run directly
+bun cli.ts
+```
+
+The build process:
+1. Generates TypeScript definitions
+2. Compiles to optimized JavaScript
+3. Creates standalone executable (optional)
+
+## Package.json Setup
+
+```json
+{
+  "name": "@bunli-examples/hello-world",
+  "version": "0.0.1",
+  "description": "Hello World - Simplest possible Bunli CLI",
+  "type": "module",
+  "scripts": {
+    "dev": "bun run cli.ts",
+    "build": "bunli build",
+    "start": "bun run dist/cli.js"
+  },
+  "dependencies": {
+    "@bunli/core": "workspace:*",
+    "zod": "^3.22.4"
+  }
+}
+```
+
+## Key Takeaways
+
+1. **Minimal Setup**: Just a few lines to get started
+2. **Automatic Features**: Help, version, and error handling built-in
+3. **Type Safety**: Full TypeScript support out of the box
+4. **Zero Config**: Works without any configuration files
+5. **Production Ready**: Can be compiled to standalone binary
+6. **Type Generation**: Enhanced developer experience with generated types
+
+## Next Steps
+
+- **[Task Runner Example](/docs/examples/task-runner)** - Learn validation and interactivity
+- **[Type Generation Guide](/docs/guides/type-generation)** - Learn about code generation
+- **[Getting Started Guide](/docs/getting-started)** - Step-by-step tutorial
+- **[API Reference](/docs/api)** - Complete API documentation

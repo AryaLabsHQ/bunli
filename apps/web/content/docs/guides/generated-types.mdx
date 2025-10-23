@@ -132,14 +132,17 @@ The generated `.bunli/commands.gen.ts` file contains:
 export interface GeneratedCommandMeta {
   name: string
   description: string
-  options: Record<string, OptionMeta>
+  alias?: string | readonly string[]
+  options?: Record<string, GeneratedOptionMeta>
+  commands?: GeneratedCommandMeta[]
+  path: string
 }
 
 // Runtime helpers
-export function listCommands(): string[]
-export function getCommandApi(name: string): GeneratedCommandMeta | undefined
-export function getTypedFlags<T extends string>(name: T): CommandOptions<T>
-export function validateCommand(name: string, flags: any): ValidationResult
+export function listCommands(): GeneratedNames[]
+export function getCommandApi<Name extends GeneratedNames>(name: Name): GeneratedCommandMeta
+export function getTypedFlags<Name extends GeneratedNames>(name: Name): CommandOptions<Name>
+export function validateCommand<Name extends GeneratedNames>(name: Name, flags: Record<string, unknown>): ValidationResult
 
 // Auto-registration (side effect)
 export default cli
@@ -153,8 +156,8 @@ export default cli
 # Generate types manually
 bunli generate
 
-# Check if types are up to date
-bunli generate --check
+# Generate with watch mode
+bunli generate --watch
 ```
 
 ### View Generated Metadata

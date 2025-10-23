@@ -21,7 +21,7 @@ Bunli's code generation system creates TypeScript definitions from your CLI comm
 Type generation is **automatically enabled** in all Bunli projects. No configuration needed!
 
 ```typescript
-import { defineConfig } from 'bunli'
+import { defineConfig } from '@bunli/core'
 
 export default defineConfig({
   name: 'my-cli',
@@ -44,56 +44,45 @@ bunli generate
 
 The generator creates a comprehensive TypeScript API from your commands:
 
-### CommandRegistry Interface
+### GeneratedCLI Interface
 
 ```typescript
-interface CommandRegistry {
-  // Command metadata
-  'greet': {
-    name: 'greet'
-    description: 'Greet someone'
-    alias?: string[]
-    options: {
-      name: {
-        type: 'string'
-        required: true
-        description: 'Name to greet'
-        short?: string
-      }
-      excited: {
-        type: 'boolean'
-        required: false
-        default: false
-        description: 'Add excitement'
-        short?: string
-      }
-    }
-  }
-  // ... more commands
+interface GeneratedCLI {
+  register(cli?: CLI<any>): GeneratedCLI
+  list(): Array<{
+    name: GeneratedNames
+    command: Command<any>
+    metadata: GeneratedCommandMeta
+  }>
+  get<Name extends GeneratedNames>(name: Name): Command<any>
+  getMetadata<Name extends GeneratedNames>(name: Name): GeneratedCommandMeta
+  getFlags<Name extends GeneratedNames>(name: Name): CommandOptions<Name>
+  getFlagsMeta<Name extends GeneratedNames>(name: Name): Record<string, GeneratedOptionMeta>
+  withCLI(cli: CLI<any>): { execute(name: string, options: unknown): Promise<void> }
 }
 ```
 
 ### Helper Functions
 
 ```typescript
-// Get command API by name
-function getCommandApi<T extends keyof CommandRegistry>(name: T): CommandRegistry[T]
+// Get command metadata by name
+function getCommandApi<Name extends GeneratedNames>(name: Name): GeneratedCommandMeta
 
 // Get all command names
-function getCommandNames(): (keyof CommandRegistry)[]
-
-// Check if command exists
-function hasCommand(name: string): name is keyof CommandRegistry
-
-// Get command by alias
-function getCommandByAlias(alias: string): keyof CommandRegistry | undefined
+function getCommandNames(): GeneratedNames[]
 
 // List all commands with metadata
-function listCommands(): Array<{
-  name: keyof CommandRegistry
-  description: string
-  alias?: string[]
-}>
+function listCommands(): GeneratedNames[]
+
+// Get typed flags for a command
+function getTypedFlags<Name extends GeneratedNames>(name: Name): CommandOptions<Name>
+
+// Validate command arguments
+function validateCommand<Name extends GeneratedNames>(name: Name, flags: Record<string, unknown>): ValidationResult
+
+// Find commands by name or description
+function findCommandByName<Name extends GeneratedNames>(name: Name): CommandInfo
+function findCommandsByDescription(searchTerm: string): CommandInfo[]
 ```
 
 ## IDE Integration Features
@@ -103,7 +92,7 @@ function listCommands(): Array<{
 Generated types provide rich IDE support:
 
 ```typescript
-import { getCommandApi, getCommandNames } from './commands.gen'
+import { getCommandApi, getCommandNames } from './.bunli/commands.gen'
 
 // Full autocomplete for command names
 const commandNames = getCommandNames() // 'greet' | 'deploy' | 'test' | ...
@@ -129,14 +118,12 @@ const validCommand = getCommandApi('greet') // ✅
 const name = validCommand.options.name.type // 'string'
 ```
 
-## Real-World Use Cases
+## Use Cases
 
 ### CLI Wrappers
 
-Create type-safe wrappers around your CLI:
-
 ```typescript
-import { getCommandApi, listCommands } from './commands.gen'
+import { getCommandApi, listCommands } from './.bunli/commands.gen'
 
 class CLIManager {
   async executeCommand(commandName: string, options: Record<string, any>) {
@@ -144,103 +131,38 @@ class CLIManager {
     
     // Type-safe option validation
     for (const [key, value] of Object.entries(options)) {
-      const option = command.options[key]
-      if (!option) {
-        throw new Error(`Unknown option: ${key}`)
-      }
+      const option = command.options?.[key]
+      if (!option) throw new Error(`Unknown option: ${key}`)
       
-      // Validate type
       if (option.type === 'string' && typeof value !== 'string') {
         throw new Error(`Option ${key} must be a string`)
       }
     }
-    
-    // Execute command...
-  }
-  
-  getAvailableCommands() {
-    return listCommands().map(cmd => ({
-      name: cmd.name,
-      description: cmd.description,
-      options: Object.keys(getCommandApi(cmd.name).options)
-    }))
   }
 }
 ```
 
 ### Documentation Generation
 
-Generate documentation from command metadata:
-
 ```typescript
-import { listCommands, getCommandApi } from './commands.gen'
+import { listCommands, getCommandApi } from './.bunli/commands.gen'
 
-function generateMarkdownDocs() {
+function generateDocs() {
   const commands = listCommands()
-  
   let docs = '# CLI Documentation\n\n'
   
   for (const cmd of commands) {
-    const api = getCommandApi(cmd.name)
+    const api = getCommandApi(cmd)
+    docs += `## ${cmd}\n${api.description}\n\n`
     
-    docs += `## ${cmd.name}\n\n`
-    docs += `${cmd.description}\n\n`
-    
-    if (cmd.alias?.length) {
-      docs += `**Aliases:** ${cmd.alias.join(', ')}\n\n`
-    }
-    
-    docs += '### Options\n\n'
-    for (const [name, option] of Object.entries(api.options)) {
-      docs += `- \`--${name}\` (${option.type})`
-      if (option.required) docs += ' **Required**'
-      if (option.default !== undefined) docs += ` - Default: ${option.default}`
-      docs += `\n  ${option.description}\n`
-    }
-    
-    docs += '\n'
-  }
-  
-  return docs
-}
-```
-
-### Command Analytics
-
-Track command usage with type safety:
-
-```typescript
-import { getCommandNames, getCommandApi } from './commands.gen'
-
-class CommandAnalytics {
-  private usage: Map<string, number> = new Map()
-  
-  trackCommand(commandName: string, options: Record<string, any>) {
-    // Validate command exists
-    if (!getCommandNames().includes(commandName as any)) {
-      throw new Error(`Unknown command: ${commandName}`)
-    }
-    
-    // Track usage
-    const current = this.usage.get(commandName) || 0
-    this.usage.set(commandName, current + 1)
-    
-    // Log option usage
-    const command = getCommandApi(commandName as any)
-    for (const optionName of Object.keys(options)) {
-      if (command.options[optionName]) {
-        console.log(`Used option: ${optionName}`)
+    if (api.options) {
+      docs += '### Options\n'
+      for (const [name, option] of Object.entries(api.options)) {
+        docs += `- \`--${name}\` (${option.type}) ${option.description}\n`
       }
     }
   }
-  
-  getUsageStats() {
-    return Array.from(this.usage.entries()).map(([cmd, count]) => ({
-      command: cmd,
-      count,
-      description: getCommandApi(cmd as any).description
-    }))
-  }
+  return docs
 }
 ```
 
@@ -307,58 +229,29 @@ bunli generate --watch
 
 ## Advanced Features
 
-### Custom Type Utilities
-
-The generator works with Bunli's advanced type utilities:
+### Type Utilities
 
 ```typescript
-import { 
-  UnionToIntersection, 
-  MergeAll, 
-  Expand,
-  DeepPartial 
-} from '@bunli/core'
+import { UnionToIntersection, MergeAll, Expand } from '@bunli/core'
 
 // Use with generated types
 type AllCommandOptions = UnionToIntersection<
   CommandRegistry[keyof CommandRegistry]['options']
 >
-
-type ExpandedCommand = Expand<CommandRegistry['greet']>
 ```
 
-### Plugin Integration
-
-Generated types include plugin context:
-
-```typescript
-// With plugins enabled
-interface CommandContext<TStore> {
-  store: TStore
-  // Plugin-specific context
-}
-
-// Generated types include plugin information
-const command = getCommandApi('deploy')
-// command.plugins includes available plugin data
-```
-
-### Build System Integration
-
-The generator integrates with Bun's build system:
+### Build Integration
 
 ```typescript
 // bunli.config.ts
+import { defineConfig } from '@bunli/core'
+
 export default defineConfig({
   name: 'my-cli',
   version: '1.0.0',
-  // Types are generated before build
   build: {
     entry: './src/cli.ts',
-    // Build process includes type generation
-    plugins: [
-      // Bunli's codegen plugin is automatically included
-    ]
+    outdir: './dist'
   }
 })
 ```
@@ -366,7 +259,7 @@ export default defineConfig({
 ## Best Practices
 
 <Callout type="tip">
-  **Import Generated Types**: Always import generated types in your application code for full type safety.
+  **Import Generated Types**: Always import generated types for full type safety.
 </Callout>
 
 ### File Organization
@@ -375,91 +268,35 @@ export default defineConfig({
 src/
 ├── commands/
 │   ├── greet.ts
-│   ├── deploy.ts
-│   └── index.ts
-├── types/
+│   └── deploy.ts
+├── .bunli/
 │   └── commands.gen.ts  # Generated file
 ├── cli.ts
 └── bunli.config.ts
 ```
 
-### Git Integration
-
-Add generated files to `.gitignore`:
-
-```gitignore
-# Generated files
-*.gen.ts
-.bunli/commands.gen.ts
-```
-
 ### Development Workflow
 
-<Steps>
-
-### 1. Enable in Development
-
-```typescript
-// bunli.config.ts
-export default defineConfig({
-  name: 'my-cli',
-  version: '1.0.0',
-  // Watch mode is enabled in development
-})
-```
-
-### 2. Use Generated Types
-
-```typescript
-// src/wrapper.ts
-import { getCommandApi, listCommands } from './commands.gen'
-
-// Type-safe command execution
-```
-
-### 3. Build for Production
-
-```bash
-# Types are generated automatically
-bunli build
-```
-
-</Steps>
+1. **Configure**: Set up `bunli.config.ts`
+2. **Generate**: Run `bunli generate` or `bunli dev`
+3. **Use**: Import generated types in your code
+4. **Build**: Run `bunli build` (types generated automatically)
 
 ## Troubleshooting
 
-### Common Issues
-
 **Types not updating:**
-- Ensure `bunli generate --watch` is running
-- Check that command files are in the correct directory
-- Verify `commandsDir` configuration
+- Run `bunli generate --watch` for development
+- Check command files are in the correct directory
 
 **Import errors:**
-- Make sure generated file exists
-- Check import paths are correct
-- Verify TypeScript configuration
+- Ensure generated file exists at `./.bunli/commands.gen.ts`
+- Verify TypeScript configuration includes `.bunli/**/*.ts`
 
 **Missing command metadata:**
 - Ensure commands use `defineCommand`
-- Check that commands are properly exported
-- Verify command structure follows Bunli patterns
-
-### Debug Mode
-
-Enable debug logging:
-
-```bash
-# Verbose generation output
-bunli generate --verbose
-
-# Check what files are being scanned
-bunli generate --debug
-```
+- Check commands are properly exported
 
 ## Type-Safe Command Execution
-
-With generated types, you can execute commands programmatically with full type safety:
 
 ```typescript
 import { createCLI } from '@bunli/core'
@@ -477,50 +314,13 @@ await cli.execute('deploy', {
   env: 'invalid',  // ❌ Error: Type '"invalid"' is not assignable
   dryRun: 'yes'    // ❌ Error: Type 'string' is not assignable to type 'boolean'
 })
-
-// ❌ Type error for non-existent command
-await cli.execute('nonexistent', {}) // ❌ Error: Argument of type '"nonexistent"' is not assignable
-
-// ✅ String args still work
-await cli.execute('deploy', ['--env', 'production', '--dry-run'])
-```
-
-## Automatic Type Inference in Handlers
-
-Handlers are automatically typed based on command names when using `as const`:
-
-```typescript
-export default defineCommand({
-  name: 'deploy' as const, // ← REQUIRED: 'as const' enables type inference
-  description: 'Deploy the application',
-  options: {
-    env: option(z.enum(['dev', 'staging', 'prod']), {
-      description: 'Environment to deploy to'
-    }),
-    dryRun: option(z.boolean().default(false), {
-      description: 'Run without making changes'
-    })
-  },
-  
-  // ✨ NO TYPE ANNOTATION NEEDED! ✨
-  // flags is automatically typed as { env: 'dev' | 'staging' | 'prod', dryRun: boolean }
-  handler: async ({ flags }) => {
-    console.log(`Deploying to ${flags.env}`) // ← Full autocomplete!
-    if (flags.dryRun) {
-      console.log('Dry run mode')
-    }
-  }
-})
 ```
 
 ## Requirements
 
-To use Bunli's type generation, you need:
-
 1. **`as const` Required** - Command names MUST use `as const` for type inference
 2. **Generated File Required** - `.bunli/commands.gen.ts` must be in `tsconfig.json`
-3. **Type Generation Required** - Codegen must be enabled
-4. **No Manual Annotations** - Handler type annotations are automatic
+3. **No Manual Annotations** - Handler type annotations are automatic
 
 ## See Also
 

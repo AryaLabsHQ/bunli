@@ -76,8 +76,8 @@ Scans directories for command files:
 ```typescript
 import { CommandScanner } from '@bunli/generator'
 
-const scanner = new CommandScanner('./commands')
-const files = await scanner.scan()
+const scanner = new CommandScanner()
+const files = await scanner.scanCommands('./commands')
 
 console.log(files) // ['greet.ts', 'deploy.ts', 'test.ts']
 ```
@@ -89,13 +89,16 @@ Parse individual command files:
 ```typescript
 import { parseCommand } from '@bunli/generator'
 
-const commandData = await parseCommand('./commands/greet.ts')
+const commandData = await parseCommand('./commands/greet.ts', './commands', './.bunli/commands.gen.ts')
 console.log(commandData)
 // {
 //   name: 'greet',
 //   description: 'Greet someone',
 //   options: { ... },
-//   alias: ['hello']
+//   alias: ['hello'],
+//   filePath: './commands/greet.ts',
+//   importPath: '../commands/greet',
+//   exportPath: 'greet'
 // }
 ```
 
@@ -168,51 +171,48 @@ bunli generate --watch
 
 The generator creates a comprehensive TypeScript API:
 
-### CommandRegistry Interface
+### GeneratedCLI Interface
 
 ```typescript
-interface CommandRegistry {
-  [commandName: string]: {
-    name: string
-    description: string
-    alias?: string[]
-    options: {
-      [optionName: string]: {
-        type: 'string' | 'number' | 'boolean' | 'array' | 'object'
-        required: boolean
-        default?: any
-        description: string
-        short?: string
-      }
-    }
-  }
+interface GeneratedCLI {
+  register(cli?: CLI<any>): GeneratedCLI
+  list(): Array<{
+    name: GeneratedNames
+    command: Command<any>
+    metadata: GeneratedCommandMeta
+  }>
+  get<Name extends GeneratedNames>(name: Name): Command<any>
+  getMetadata<Name extends GeneratedNames>(name: Name): GeneratedCommandMeta
+  getFlags<Name extends GeneratedNames>(name: Name): CommandOptions<Name>
+  getFlagsMeta<Name extends GeneratedNames>(name: Name): Record<string, GeneratedOptionMeta>
+  withCLI(cli: CLI<any>): { execute(name: string, options: unknown): Promise<void> }
 }
 ```
 
 ### Helper Functions
 
 ```typescript
-// Get command API by name
-function getCommandApi<T extends keyof CommandRegistry>(name: T): CommandRegistry[T]
+// Get command metadata by name
+function getCommandApi<Name extends GeneratedNames>(name: Name): GeneratedCommandMeta
 
 // Get all command names
-function getCommandNames(): (keyof CommandRegistry)[]
-
-// Check if command exists
-function hasCommand(name: string): name is keyof CommandRegistry
-
-// Get command by alias
-function getCommandByAlias(alias: string): keyof CommandRegistry | undefined
+function getCommandNames(): GeneratedNames[]
 
 // List all commands with metadata
-function listCommands(): Array<{
-  name: keyof CommandRegistry
-  description: string
-  alias?: string[]
-}>
+function listCommands(): GeneratedNames[]
+
+// Get typed flags for a command
+function getTypedFlags<Name extends GeneratedNames>(name: Name): CommandOptions<Name>
+
+// Validate command arguments
+function validateCommand<Name extends GeneratedNames>(name: Name, flags: Record<string, unknown>): ValidationResult
+
+// Find commands by name or description
+function findCommandByName<Name extends GeneratedNames>(name: Name): CommandInfo
+function findCommandsByDescription(searchTerm: string): CommandInfo[]
 ```
 
-## Usage Patterns
+## Usage
 
 ### Basic Generation
 
@@ -229,39 +229,18 @@ await generator.run()
 
 ### Watch Mode
 
-```typescript
-const generator = new Generator({
-  commandsDir: './commands',
-  outputFile: './.bunli/commands.gen.ts',
-  watch: true
-})
+Watch mode is handled by the CLI command:
 
-// Watch for changes and regenerate automatically
-await generator.run()
+```bash
+bunli generate --watch
 ```
 
-### Custom File Patterns
-
-```typescript
-const generator = new Generator({
-  commandsDir: './src/commands',
-  outputFile: './.bunli/commands.gen.ts',
-  include: ['**/*.command.ts', '**/*.cmd.ts'],
-  exclude: ['**/*.test.*', '**/*.spec.*', '**/index.ts']
-})
-```
-
-## Performance Characteristics
+## Performance
 
 - **Scanning**: ~10ms for 50 command files
 - **Parsing**: ~5ms per command file
 - **Generation**: ~2ms for 20 commands
 - **Watch Mode**: <1ms incremental updates
-- **Memory Usage**: ~2MB for 100 commands
-
-<Callout type="tip">
-  Performance scales linearly with the number of command files. For CLIs with 100+ commands, consider using command manifests for lazy loading.
-</Callout>
 
 ## API Reference
 
@@ -288,9 +267,7 @@ class Generator {
 interface GeneratorOptions {
   commandsDir: string
   outputFile: string
-  watch?: boolean
-  include?: string[]
-  exclude?: string[]
+  config?: any
 }
 ```
 
@@ -303,31 +280,42 @@ interface RunOptions {
 }
 ```
 
-### CommandData
+### CommandMetadata
 
 ```typescript
-interface CommandData {
+interface CommandMetadata {
   name: string
   description: string
-  alias?: string[]
-  options: Record<string, OptionData>
+  alias?: string | string[]
+  options?: Record<string, OptionMetadata>
+  commands?: CommandMetadata[]
+  filePath: string
+  importPath: string
+  exportPath: string
+  hasHandler?: boolean
+  hasRender?: boolean
 }
 
-interface OptionData {
-  type: 'string' | 'number' | 'boolean' | 'array' | 'object'
+interface OptionMetadata {
+  type: string
   required: boolean
+  hasDefault: boolean
   default?: any
-  description: string
+  description?: string
   short?: string
+  schema?: any
+  validator?: string
 }
 ```
 
-## Integration Examples
+## Integration
 
 ### With Bunli CLI
 
 ```typescript
 // bunli.config.ts
+import { defineConfig } from '@bunli/core'
+
 export default defineConfig({
   name: 'my-cli',
   version: '1.0.0',
@@ -337,7 +325,6 @@ export default defineConfig({
 ### With Custom Build Script
 
 ```typescript
-// build.ts
 import { Generator } from '@bunli/generator'
 
 const generator = new Generator({
@@ -346,65 +333,21 @@ const generator = new Generator({
 })
 
 await generator.run()
-console.log('Types generated successfully')
-```
-
-### With File Watching
-
-```typescript
-import { watch } from 'node:fs/promises'
-import { Generator } from '@bunli/generator'
-
-const generator = new Generator({
-  commandsDir: './commands',
-  outputFile: './.bunli/commands.gen.ts'
-})
-
-// Initial generation
-await generator.run()
-
-// Watch for changes
-const watcher = watch('./commands', { recursive: true })
-for await (const event of watcher) {
-  if (event.eventType === 'change') {
-    await generator.run({
-      type: 'update',
-      path: event.filename
-    })
-  }
-}
 ```
 
 ## Troubleshooting
 
-### Common Issues
-
 **Generation fails:**
 - Check that command files use `defineCommand`
 - Verify TypeScript syntax is correct
-- Ensure commands are properly exported
 
 **Types not updating:**
-- Make sure watch mode is enabled
+- Use `bunli generate --watch` for development
 - Check file paths are correct
-- Verify no syntax errors in command files
 
 **Import errors:**
-- Ensure generated file exists
-- Check import paths are correct
+- Ensure generated file exists at `./.bunli/commands.gen.ts`
 - Verify TypeScript configuration
-
-### Debug Mode
-
-Enable verbose logging:
-
-```typescript
-const generator = new Generator({
-  commandsDir: './commands',
-  outputFile: './.bunli/commands.gen.ts',
-  verbose: true // Enable debug output
-})
-```
 
 ## See Also
 
