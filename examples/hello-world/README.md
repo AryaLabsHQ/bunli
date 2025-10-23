@@ -61,6 +61,9 @@ const greetCommand = defineCommand({
 ## Development
 
 ```bash
+# Generate types (creates .bunli/commands.gen.ts)
+bun run generate
+
 # Start development with hot reload
 bun run dev greet --name Developer
 
@@ -70,6 +73,16 @@ bun run build
 # Run the built executable
 ./dist/cli greet --name "Production User" --loud
 ```
+
+### Adding New Commands
+
+To add a new command:
+
+1. Create a new file in `commands/` (e.g., `commands/help.ts`)
+2. Define the command using `defineCommand`
+3. Export it as default
+4. Import and register it in `cli.ts`
+5. Run `bun run generate` to update types
 
 ## Next Steps
 
@@ -84,6 +97,10 @@ Ready for more? Try the **[task-runner](../task-runner/README.md)** example to l
 ```
 hello-world/
 ├── cli.ts              # CLI entry point
+├── commands/           # Command definitions
+│   └── greet.ts        # Greet command
+├── .bunli/            # Generated files (auto-created)
+│   └── commands.gen.ts # Generated TypeScript types
 ├── bunli.config.ts     # Configuration
 ├── package.json        # Dependencies
 └── README.md          # This file

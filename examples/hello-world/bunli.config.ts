@@ -6,6 +6,9 @@ export default defineConfig({
   description: 'Hello World - Simplest possible Bunli CLI',
   
   plugins: [],
+  commands: {
+    directory: './commands'
+  },
   build: {
     entry: './cli.ts',
     outdir: './dist',
