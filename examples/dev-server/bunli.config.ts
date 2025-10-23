@@ -11,10 +11,10 @@ export default defineConfig({
   build: {
     entry: 'cli.ts',
     outdir: 'dist',
-    targets: ['node16', 'bun'],
-    compress: true,
-    minify: true,
-    sourcemap: false
+    targets: ['native'],
+    compress: false,
+    minify: false,
+    sourcemap: true
   },
   dev: {
     watch: true,

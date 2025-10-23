@@ -12,6 +12,9 @@
     "dev": {
       "persistent": true,
       "cache": false
+    },
+    "generate": {
+      "outputs": [".bunli/**"]
     }
   }
 }
