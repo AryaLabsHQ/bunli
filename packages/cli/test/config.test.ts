@@ -1,5 +1,6 @@
 import { test, expect } from 'bun:test'
-import { loadConfig, defineConfig, bunliConfigSchema } from '../src/config'
+import { loadConfig } from '../src/config'
+import { defineConfig, bunliConfigSchema } from '@bunli/core'
 import { writeFileSync, unlinkSync, existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -48,9 +49,15 @@ test('bunliConfigSchema - handles partial build config', () => {
   expect(result.build?.outdir).toBeUndefined()
 })
 
-test('loadConfig - returns empty config when no file found', async () => {
+test('loadConfig - returns default config when no file found', async () => {
   const config = await loadConfig('/tmp/nonexistent')
-  expect(config).toEqual({})
+  expect(config).toEqual({
+    build: {},
+    dev: {},
+    test: {},
+    workspace: {},
+    release: {}
+  })
 })
 
 test('loadConfig - loads config from file', async () => {

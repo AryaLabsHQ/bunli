@@ -2,9 +2,9 @@
   "title": "Examples",
   "pages": [
     "index",
-    "minimal",
-    "multi-command",
-    "interactive",
-    "real-world"
+    "hello-world",
+    "task-runner",
+    "git-tool",
+    "dev-server"
   ]
 }

@@ -1,62 +1,48 @@
-import { z } from 'zod'
+import { bunliConfigSchema, type BunliConfig } from '@bunli/core'
 import path from 'node:path'
 import { existsSync } from 'node:fs'
 
-// Bunli configuration schema
-export const bunliConfigSchema = z.object({
-  name: z.string().optional(),
-  version: z.string().optional(),
-  description: z.string().optional(),
-  
-  commands: z.object({
-    manifest: z.string().optional(),
-    directory: z.string().optional()
-  }).optional(),
-  
-  build: z.object({
-    entry: z.string().or(z.array(z.string())).optional(),
-    outdir: z.string().optional(),
-    targets: z.array(z.string()).optional(),
-    compress: z.boolean().optional(),
-    external: z.array(z.string()).optional(),
-    minify: z.boolean().optional(),
-    sourcemap: z.boolean().optional()
-  }).optional(),
-  
-  dev: z.object({
-    watch: z.boolean().optional(),
-    inspect: z.boolean().optional(),
-    port: z.number().optional()
-  }).optional(),
-
-  codegen: z.object({
-    enabled: z.boolean().optional(),
-    commandsDir: z.string().optional(),
-    output: z.string().optional(),
-    watch: z.boolean().optional()
-  }).optional(),
-
-  test: z.object({
-    pattern: z.string().or(z.array(z.string())).optional(),
-    coverage: z.boolean().optional(),
-    watch: z.boolean().optional()
-  }).optional(),
-  
-  release: z.object({
-    npm: z.boolean().optional(),
-    github: z.boolean().optional(),
-    tagFormat: z.string().optional(),
-    conventionalCommits: z.boolean().optional()
-  }).optional(),
-  
-  workspace: z.object({
-    packages: z.array(z.string()).optional(),
-    shared: z.any().optional(),
-    versionStrategy: z.enum(['fixed', 'independent']).optional()
-  }).optional()
-})
-
-export type BunliConfig = z.infer<typeof bunliConfigSchema>
+// Type for loaded config with defaults applied
+export type LoadedConfig = {
+  name?: string
+  version?: string
+  description?: string
+  commands?: {
+    manifest?: string
+    directory?: string
+  }
+  build: {
+    entry?: string | string[]
+    outdir?: string
+    targets?: string[]
+    compress?: boolean
+    minify?: boolean
+    external?: string[]
+    sourcemap?: boolean
+  }
+  dev: {
+    watch?: boolean
+    inspect?: boolean
+    port?: number
+  }
+  test: {
+    pattern?: string | string[]
+    coverage?: boolean
+    watch?: boolean
+  }
+  workspace: {
+    packages?: string[]
+    shared?: any
+    versionStrategy?: 'fixed' | 'independent'
+  }
+  release: {
+    npm?: boolean
+    github?: boolean
+    tagFormat?: string
+    conventionalCommits?: boolean
+  }
+  plugins?: any[]
+}
 
 // Config file names to search for
 const CONFIG_NAMES = [
@@ -65,15 +51,46 @@ const CONFIG_NAMES = [
   'bunli.config.mjs'
 ]
 
-export async function loadConfig(cwd = process.cwd()): Promise<BunliConfig> {
+export async function loadConfig(cwd = process.cwd()): Promise<LoadedConfig> {
   // Look for config file
   for (const configName of CONFIG_NAMES) {
     const configPath = path.join(cwd, configName)
     if (existsSync(configPath)) {
       try {
         const module = await import(configPath)
-        const config = module.default || module
-        return bunliConfigSchema.parse(config)
+        const config = bunliConfigSchema.parse(module.default || module)
+        return {
+          ...config,
+          build: {
+            targets: ['native'],
+            compress: false,
+            minify: false,
+            sourcemap: true,
+            ...config.build
+          },
+          dev: {
+            watch: true,
+            inspect: false,
+            ...config.dev
+          },
+          test: {
+            pattern: ['**/*.test.ts', '**/*.spec.ts'],
+            coverage: false,
+            watch: false,
+            ...config.test
+          },
+          workspace: {
+            versionStrategy: 'fixed',
+            ...config.workspace
+          },
+          release: {
+            npm: true,
+            github: false,
+            tagFormat: 'v{{version}}',
+            conventionalCommits: true,
+            ...config.release
+          }
+        }
       } catch (error) {
         console.error(`Error loading config from ${configPath}:`, error)
         throw error
@@ -81,10 +98,31 @@ export async function loadConfig(cwd = process.cwd()): Promise<BunliConfig> {
     }
   }
   
-  // Return default config if no file found
-  return {}
-}
-
-export function defineConfig(config: BunliConfig): BunliConfig {
-  return config
+  // Return default config if no file found (codegen is non-configurable)
+  return {
+    build: {
+      targets: ['native'],
+      compress: false,
+      minify: false,
+      sourcemap: true
+    },
+    dev: {
+      watch: true,
+      inspect: false
+    },
+    test: {
+      pattern: ['**/*.test.ts', '**/*.spec.ts'],
+      coverage: false,
+      watch: false
+    },
+    workspace: {
+      versionStrategy: 'fixed'
+    },
+    release: {
+      npm: true,
+      github: false,
+      tagFormat: 'v{{version}}',
+      conventionalCommits: true
+    }
+  }
 }

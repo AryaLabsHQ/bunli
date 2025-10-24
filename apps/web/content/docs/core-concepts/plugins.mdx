@@ -457,8 +457,46 @@ const envPlugin = createPlugin<EnvStore>({
 })
 ```
 
+## Generated Types and Plugins
+
+When using type generation, plugin context is included in the generated types:
+
+```typescript
+// Generated in .bunli/commands.gen.ts
+import { getCommandApi, listCommands } from './commands.gen'
+
+// Generated types include plugin context
+interface CommandContext<TStore> {
+  store: TStore
+  // Plugin-specific context is included
+}
+
+// Access plugin store in commands
+const infoApi = getCommandApi('info')
+console.log(infoApi.plugins) // Available plugin data
+
+// Type-safe plugin store access
+function usePluginData(context: CommandContext<any>) {
+  // Access plugin store with full type safety
+  const timingData = context.store.timing
+  const configData = context.store.config
+  const aiData = context.store.aiAgent
+}
+```
+
+This enables:
+- **Plugin context types** with full type safety
+- **Store access** for all registered plugins
+- **Type-safe plugin data** in command handlers
+- **IntelliSense** for plugin-specific functionality
+
+<Callout type="tip">
+  Generated types work seamlessly with plugins, providing type safety for plugin store access and context usage.
+</Callout>
+
 ## Next Steps
 
+- [Type Generation Guide](/docs/guides/type-generation) - Learn about code generation
 - Explore the [Plugin API Reference](/docs/api/plugins) for detailed API documentation
 - Check out [Built-in Plugins](/docs/packages/plugins) for ready-to-use plugins
 - Learn about [Testing Plugins](/docs/guides/testing#testing-plugins) in your CLI

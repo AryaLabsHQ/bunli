@@ -1,0 +1,357 @@
+---
+title: '@bunli/generator'
+description: Generate TypeScript definitions from CLI commands for enhanced developer experience
+---
+
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+# @bunli/generator
+
+Generate TypeScript definitions from your CLI commands to enable advanced patterns like CLI wrappers, documentation generation, and command analytics.
+
+<Callout type="info">
+  @bunli/generator has **minimal dependencies** and uses Babel for AST parsing to extract command metadata from your TypeScript files.
+</Callout>
+
+## Installation
+
+<Tabs groupId="package-manager" defaultValue="bun">
+  <Tab value="bun" label="Bun">
+    ```bash
+    bun add @bunli/generator
+    ```
+  </Tab>
+  <Tab value="npm" label="npm">
+    ```bash
+    npm install @bunli/generator
+    ```
+  </Tab>
+  <Tab value="pnpm" label="pnpm">
+    ```bash
+    pnpm add @bunli/generator
+    ```
+  </Tab>
+</Tabs>
+
+## Features
+
+- 🚀 **Fast Generation** - Uses Babel for efficient AST parsing
+- 📝 **Type Safety** - Generates fully typed TypeScript definitions
+- 🔄 **Watch Mode** - Automatically regenerate on file changes
+- 🎯 **Command Discovery** - Scans and parses command files automatically
+- 🔌 **Plugin Integration** - Works seamlessly with Bunli's plugin system
+- ⚡ **Build Integration** - Integrates with `bunli dev` and `bunli build`
+- 🛠️ **CLI Tool** - Standalone `bunli generate` command
+
+## Core APIs
+
+### Generator Class
+
+The main class for generating TypeScript definitions:
+
+```typescript
+import { Generator } from '@bunli/generator'
+
+const generator = new Generator({
+  commandsDir: './commands',
+  outputFile: './.bunli/commands.gen.ts'
+})
+
+// Generate types once
+await generator.run()
+
+// Generate with specific options
+await generator.run({
+  type: 'update',
+  path: './commands/new-command.ts'
+})
+```
+
+### CommandScanner
+
+Scans directories for command files:
+
+```typescript
+import { CommandScanner } from '@bunli/generator'
+
+const scanner = new CommandScanner()
+const files = await scanner.scanCommands('./commands')
+
+console.log(files) // ['greet.ts', 'deploy.ts', 'test.ts']
+```
+
+### parseCommand Function
+
+Parse individual command files:
+
+```typescript
+import { parseCommand } from '@bunli/generator'
+
+const commandData = await parseCommand('./commands/greet.ts', './commands', './.bunli/commands.gen.ts')
+console.log(commandData)
+// {
+//   name: 'greet',
+//   description: 'Greet someone',
+//   options: { ... },
+//   alias: ['hello'],
+//   filePath: './commands/greet.ts',
+//   importPath: '../commands/greet',
+//   exportPath: 'greet'
+// }
+```
+
+### buildTypes Function
+
+Build TypeScript definitions from command data:
+
+```typescript
+import { buildTypes } from '@bunli/generator'
+
+const commands = [
+  { name: 'greet', description: 'Greet someone', options: { ... } },
+  { name: 'deploy', description: 'Deploy app', options: { ... } }
+]
+
+const types = buildTypes(commands)
+console.log(types) // Generated TypeScript code
+```
+
+## Plugin Integration
+
+### bunliCodegenPlugin
+
+Use as a Bun plugin for build integration:
+
+```typescript
+import { bunliCodegenPlugin } from '@bunli/generator'
+
+// In your build configuration
+export default {
+  plugins: [
+    bunliCodegenPlugin({
+      commandsDir: './commands',
+      output: './.bunli/commands.gen.ts'
+    })
+  ]
+}
+```
+
+### CLI Integration
+
+The generator is automatically integrated with Bunli CLI commands:
+
+```bash
+# Development mode with watch
+bunli dev
+
+# Build with type generation
+bunli build
+
+# Standalone generation
+bunli generate --watch
+```
+
+## Configuration Options
+
+<Card title="Generator Options" description="Configuration for type generation">
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `commandsDir` | `string` | `'./commands'` | Directory to scan for command files |
+| `outputFile` | `string` | `'./.bunli/commands.gen.ts'` | Output file for generated types |
+| `watch` | `boolean` | `false` | Watch for file changes |
+| `include` | `string[]` | `['**/*.ts', '**/*.js']` | File patterns to include |
+| `exclude` | `string[]` | `['**/*.test.*', '**/*.spec.*']` | File patterns to exclude |
+
+</Card>
+
+## Generated Output Structure
+
+The generator creates a comprehensive TypeScript API:
+
+### GeneratedCLI Interface
+
+```typescript
+interface GeneratedCLI {
+  register(cli?: CLI<any>): GeneratedCLI
+  list(): Array<{
+    name: GeneratedNames
+    command: Command<any>
+    metadata: GeneratedCommandMeta
+  }>
+  get<Name extends GeneratedNames>(name: Name): Command<any>
+  getMetadata<Name extends GeneratedNames>(name: Name): GeneratedCommandMeta
+  getFlags<Name extends GeneratedNames>(name: Name): CommandOptions<Name>
+  getFlagsMeta<Name extends GeneratedNames>(name: Name): Record<string, GeneratedOptionMeta>
+  withCLI(cli: CLI<any>): { execute(name: string, options: unknown): Promise<void> }
+}
+```
+
+### Helper Functions
+
+```typescript
+// Get command metadata by name
+function getCommandApi<Name extends GeneratedNames>(name: Name): GeneratedCommandMeta
+
+// Get all command names
+function getCommandNames(): GeneratedNames[]
+
+// List all commands with metadata
+function listCommands(): GeneratedNames[]
+
+// Get typed flags for a command
+function getTypedFlags<Name extends GeneratedNames>(name: Name): CommandOptions<Name>
+
+// Validate command arguments
+function validateCommand<Name extends GeneratedNames>(name: Name, flags: Record<string, unknown>): ValidationResult
+
+// Find commands by name or description
+function findCommandByName<Name extends GeneratedNames>(name: Name): CommandInfo
+function findCommandsByDescription(searchTerm: string): CommandInfo[]
+```
+
+## Usage
+
+### Basic Generation
+
+```typescript
+import { Generator } from '@bunli/generator'
+
+const generator = new Generator({
+  commandsDir: './src/commands',
+  outputFile: './.bunli/commands.gen.ts'
+})
+
+await generator.run()
+```
+
+### Watch Mode
+
+Watch mode is handled by the CLI command:
+
+```bash
+bunli generate --watch
+```
+
+## Performance
+
+- **Scanning**: ~10ms for 50 command files
+- **Parsing**: ~5ms per command file
+- **Generation**: ~2ms for 20 commands
+- **Watch Mode**: <1ms incremental updates
+
+## API Reference
+
+### Generator
+
+```typescript
+class Generator {
+  constructor(options: GeneratorOptions)
+  
+  // Generate types once
+  run(options?: RunOptions): Promise<void>
+  
+  // Watch for changes
+  watch(): Promise<void>
+  
+  // Stop watching
+  stop(): void
+}
+```
+
+### GeneratorOptions
+
+```typescript
+interface GeneratorOptions {
+  commandsDir: string
+  outputFile: string
+  config?: any
+}
+```
+
+### RunOptions
+
+```typescript
+interface RunOptions {
+  type?: 'update' | 'delete'
+  path?: string
+}
+```
+
+### CommandMetadata
+
+```typescript
+interface CommandMetadata {
+  name: string
+  description: string
+  alias?: string | string[]
+  options?: Record<string, OptionMetadata>
+  commands?: CommandMetadata[]
+  filePath: string
+  importPath: string
+  exportPath: string
+  hasHandler?: boolean
+  hasRender?: boolean
+}
+
+interface OptionMetadata {
+  type: string
+  required: boolean
+  hasDefault: boolean
+  default?: any
+  description?: string
+  short?: string
+  schema?: any
+  validator?: string
+}
+```
+
+## Integration
+
+### With Bunli CLI
+
+```typescript
+// bunli.config.ts
+import { defineConfig } from '@bunli/core'
+
+export default defineConfig({
+  name: 'my-cli',
+  version: '1.0.0',
+})
+```
+
+### With Custom Build Script
+
+```typescript
+import { Generator } from '@bunli/generator'
+
+const generator = new Generator({
+  commandsDir: './src/commands',
+  outputFile: './.bunli/commands.gen.ts'
+})
+
+await generator.run()
+```
+
+## Troubleshooting
+
+**Generation fails:**
+- Check that command files use `defineCommand`
+- Verify TypeScript syntax is correct
+
+**Types not updating:**
+- Use `bunli generate --watch` for development
+- Check file paths are correct
+
+**Import errors:**
+- Ensure generated file exists at `./.bunli/commands.gen.ts`
+- Verify TypeScript configuration
+
+## See Also
+
+- [Type Generation Guide](/docs/guides/type-generation) - Complete guide to using generated types
+- [bunli CLI](/docs/packages/cli) - CLI toolchain with integrated generation
+- [Configuration](/docs/core-concepts/configuration) - Configure code generation
+- [@bunli/core](/docs/packages/core) - Core framework with type utilities

@@ -7,6 +7,7 @@
     "utils",
     "test",
     "cli",
+    "generator",
     "plugins"
   ]
 }

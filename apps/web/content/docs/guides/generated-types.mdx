@@ -1,0 +1,270 @@
+---
+title: "Generated Types & Auto-Loading"
+description: "Learn how Bunli's generated types work and how to use them effectively"
+---
+
+# Generated Types & Auto-Loading
+
+Bunli automatically generates TypeScript types and runtime helpers for your CLI commands, providing full type safety and zero-configuration setup.
+
+## How It Works
+
+When you run any Bunli command, the framework automatically:
+
+1. **Scans** your command files for `defineCommand` calls
+2. **Generates** type definitions and runtime metadata
+3. **Auto-loads** the generated types into your CLI
+4. **Provides** type-safe helpers for command introspection
+
+## Auto-Loading Configuration
+
+### Default Behavior
+
+By default, Bunli auto-loads generated types from `./.bunli/commands.gen.ts`:
+
+```typescript
+// cli.ts
+import { createCLI } from '@bunli/core'
+
+const cli = await createCLI({
+  name: 'my-cli',
+  version: '1.0.0',
+})
+```
+
+### Default Location
+
+Generated types are always created at `./.bunli/commands.gen.ts`:
+
+```typescript
+const cli = await createCLI({
+  name: 'my-cli',
+  version: '1.0.0'
+})
+```
+
+## Generated Helpers
+
+The generated file provides several type-safe helpers:
+
+### Command Listing
+
+```typescript
+import { listCommands } from './.bunli/commands.gen'
+
+// Get all available commands
+const commands = listCommands()
+console.log(commands) // ['build', 'dev', 'test', ...]
+```
+
+### Command Metadata
+
+```typescript
+import { getCommandApi } from './.bunli/commands.gen'
+
+// Get metadata for a specific command
+const buildMeta = getCommandApi('build')
+console.log(buildMeta.description) // "Build the project"
+console.log(buildMeta.options)     // { outdir: {...}, watch: {...} }
+```
+
+### Type-Safe Flag Access
+
+```typescript
+import { getTypedFlags } from './.bunli/commands.gen'
+
+// Get typed flags for a command
+const flags = getTypedFlags('build')
+// flags.outdir is typed as string | undefined
+// flags.watch is typed as boolean | undefined
+```
+
+### Runtime Validation
+
+```typescript
+import { validateCommand } from './.bunli/commands.gen'
+
+// Validate command arguments at runtime
+const result = validateCommand('build', { outdir: 'dist', watch: true })
+if (result.success) {
+  console.log('Valid arguments:', result.data)
+} else {
+  console.error('Validation errors:', result.errors)
+}
+```
+
+## IDE Auto-Import Support
+
+Bunli provides TypeScript path mapping for better IDE support:
+
+### tsconfig.json Setup
+
+```json
+{
+  "compilerOptions": {
+    "paths": {
+      "~commands/*": ["./.bunli/commands.gen.ts"]
+    }
+  },
+  "include": [
+    ".bunli/**/*.ts",
+    "**/*.ts"
+  ]
+}
+```
+
+### Auto-Import Usage
+
+With the path mapping configured, you can use:
+
+```typescript
+// These will show up in IDE auto-complete
+import { listCommands } from '~commands/helpers'
+import { getCommandApi } from '~commands/api'
+```
+
+## Generated File Structure
+
+The generated `.bunli/commands.gen.ts` file contains:
+
+```typescript
+// Type definitions
+export interface GeneratedCommandMeta {
+  name: string
+  description: string
+  alias?: string | readonly string[]
+  options?: Record<string, GeneratedOptionMeta>
+  commands?: GeneratedCommandMeta[]
+  path: string
+}
+
+// Runtime helpers
+export function listCommands(): GeneratedNames[]
+export function getCommandApi<Name extends GeneratedNames>(name: Name): GeneratedCommandMeta
+export function getTypedFlags<Name extends GeneratedNames>(name: Name): CommandOptions<Name>
+export function validateCommand<Name extends GeneratedNames>(name: Name, flags: Record<string, unknown>): ValidationResult
+
+// Auto-registration (side effect)
+export default cli
+```
+
+## Debugging Generated Types
+
+### Check Generation Status
+
+```bash
+# Generate types manually
+bunli generate
+
+# Generate with watch mode
+bunli generate --watch
+```
+
+### View Generated Metadata
+
+```typescript
+import { getCommandApi } from './.bunli/commands.gen'
+
+// Inspect command metadata
+const meta = getCommandApi('your-command')
+console.log(JSON.stringify(meta, null, 2))
+```
+
+### TypeScript Errors
+
+If you see TypeScript errors related to generated types:
+
+1. **Regenerate types**: `bunli generate`
+2. **Check tsconfig includes**: Ensure `.bunli/**/*.ts` is included
+3. **Verify auto-loading**: No configuration needed
+
+## Best Practices
+
+### 1. Commit Generated Files
+
+Add generated files to version control:
+
+```gitignore
+# .gitignore
+.bunli/
+!commands.gen.ts
+```
+
+### 2. Use Type-Safe Helpers
+
+Prefer generated helpers over manual type assertions:
+
+```typescript
+// ✅ Good - type-safe
+const flags = getTypedFlags('build')
+const outdir = flags.outdir // string | undefined
+
+// ❌ Avoid - manual type assertion
+const flags = {} as any
+```
+
+### 3. Leverage Auto-Loading
+
+Use auto-loading to reduce boilerplate:
+
+```typescript
+// ✅ Good - auto-loading
+const cli = await createCLI({
+  name: 'my-cli',
+  version: '1.0.0'
+})
+
+// ❌ Avoid - manual imports
+import './.bunli/commands.gen.js'
+const cli = await createCLI({ name: 'my-cli' })
+```
+
+### 4. IDE Integration
+
+Configure your IDE for the best experience:
+
+- **VS Code**: Install TypeScript extension
+- **WebStorm**: Enable TypeScript service
+- **Path mapping**: Use `~commands/*` for auto-imports
+
+## Auto-Loading
+
+Generated types are automatically loaded when you create a CLI:
+
+```typescript
+import { createCLI } from '@bunli/core'
+
+const cli = await createCLI({
+  name: 'my-cli',
+  version: '1.0.0'
+})
+```
+
+No manual imports or configuration needed!
+
+## Troubleshooting
+
+### Common Issues
+
+**Generated types not loading**:
+- Verify the generated file exists at `./.bunli/commands.gen.ts`
+- Run `bunli generate` to create the file
+- Ensure the file is properly formatted
+
+**TypeScript errors**:
+- Run `bunli generate` to regenerate types
+- Check tsconfig includes `.bunli/**/*.ts`
+- Restart TypeScript service in your IDE
+
+**Runtime errors**:
+- Verify command files are properly exported
+- Check that `defineCommand` is used correctly
+- Ensure all dependencies are installed
+
+### Getting Help
+
+If you encounter issues:
+
+1. Check the [troubleshooting guide](/docs/troubleshooting)
+2. Review the [examples](/docs/examples) for working patterns
+3. Open an issue on [GitHub](https://github.com/AryaLabsHQ/bunli/issues)

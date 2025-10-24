@@ -93,6 +93,7 @@ export class CommandScanner {
         imp.path.includes('defineCommand')
       )
       
+      
       // Check for defineCommand usage in the content
       const hasDefineCommand = content.includes('defineCommand(')
       

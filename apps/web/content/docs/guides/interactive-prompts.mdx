@@ -496,6 +496,46 @@ export default defineCommand({
 })
 ```
 
+## Type-Safe Interactive Prompts
+
+When using type generation, you can create type-safe interactive prompts that leverage command metadata:
+
+```typescript
+// Generated in .bunli/commands.gen.ts
+import { getCommandApi, listCommands } from './commands.gen'
+
+// Get command metadata for dynamic prompts
+const commands = listCommands()
+const setupApi = getCommandApi('setup')
+
+// Use command options for dynamic prompt generation
+const availablePresets = Object.keys(setupApi.options.preset?.choices || {})
+const projectTypes = Object.keys(setupApi.options.type?.choices || {})
+
+// Type-safe interactive command execution
+async function runInteractiveCommand(commandName: string, options: any) {
+  const command = getCommandApi(commandName as any)
+  
+  // Validate options against command schema
+  for (const [key, value] of Object.entries(options)) {
+    if (command.options[key]) {
+      // Type-safe option validation
+      console.log(`Setting ${key}: ${value}`)
+    }
+  }
+}
+```
+
+This enables:
+- **Dynamic prompt generation** from command metadata
+- **Type-safe option validation** in interactive flows
+- **Command discovery** for building wizards
+- **IntelliSense** for command-specific options
+
+<Callout type="tip">
+  Generated types work perfectly with interactive commands, providing type safety for dynamic prompt generation and option validation.
+</Callout>
+
 ## Testing Interactive Commands
 
 ```typescript
@@ -522,6 +562,7 @@ test('interactive setup', async () => {
 
 ## Next Steps
 
+- [Type Generation Guide](/docs/guides/type-generation) - Learn about code generation
 - [Testing](/docs/guides/testing) - Test interactive commands
 - [Building Your First CLI](/docs/guides/building-your-first-cli) - Complete example
 - [@bunli/utils](/docs/packages/utils) - Utility functions reference

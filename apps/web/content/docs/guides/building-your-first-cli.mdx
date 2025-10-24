@@ -34,10 +34,11 @@ Your new project has this structure:
 
 ```
 todo-cli/
-├── src/
-│   ├── index.ts          # CLI entry point
-│   └── commands/         # Command definitions
-│       └── hello.ts      # Example command
+├── cli.ts                # CLI entry point
+├── commands/             # Command definitions (REQUIRED)
+│   └── hello.ts          # Example command
+├── .bunli/              # Generated files (auto-created)
+│   └── commands.gen.ts   # Generated TypeScript types
 ├── package.json
 ├── tsconfig.json
 ├── bunli.config.ts       # Bunli configuration
@@ -323,18 +324,64 @@ handler: async ({ flags, colors, context }) => {
 }
 ```
 
-## Configuration
+## Type Generation
 
-Customize your CLI behavior with `bunli.config.ts`:
+Enable type generation for enhanced developer experience:
 
 ```typescript
-import { defineConfig } from 'bunli'
+// bunli.config.ts
+import { defineConfig } from '@bunli/core'
 
 export default defineConfig({
   name: 'todo',
   commands: {
     directory: './src/commands'
   },
+  
+  
+  build: {
+    entry: './src/index.ts',
+    outdir: './dist',
+    compile: true,
+    targets: ['darwin-arm64', 'linux-x64', 'windows-x64']
+  }
+})
+```
+
+Now you can use generated types for advanced patterns:
+
+```typescript
+// Use generated types
+import { getCommandApi, listCommands } from './.bunli/commands.gen'
+
+// Get command metadata
+const commands = listCommands()
+console.log(commands) // [{ name: 'add', description: 'Add a new todo item' }]
+
+// Type-safe command access
+const addApi = getCommandApi('add')
+console.log(addApi.options) // { task: {...}, priority: {...}, due: {...} }
+```
+
+<Callout type="tip">
+  Type generation provides autocomplete, type safety, and enables advanced patterns like CLI wrappers and documentation generation.
+</Callout>
+
+## Configuration
+
+Customize your CLI behavior with `bunli.config.ts`:
+
+```typescript
+import { defineConfig } from '@bunli/core'
+
+export default defineConfig({
+  name: 'todo',
+  version: '1.0.0',
+  commands: {
+    directory: './src/commands'
+  },
+  
+  
   build: {
     entry: './src/index.ts',
     outdir: './dist',
@@ -367,6 +414,7 @@ When you're ready to share your CLI:
 
 You've built a functional CLI! Here's what to explore next:
 
+- [Type Generation Guide](/docs/guides/type-generation) - Learn about code generation
 - [Schema Validation](/docs/guides/schema-validation) - Advanced validation
 - [Interactive Prompts](/docs/guides/interactive-prompts) - Rich user interactions
 - [Testing](/docs/guides/testing) - Comprehensive testing strategies

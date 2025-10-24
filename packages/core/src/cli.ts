@@ -1,24 +1,48 @@
 import type { CLI, Command, BunliConfig, CommandManifest, CommandLoader, ResolvedConfig, CLIOption, TerminalInfo, RuntimeInfo } from './types.js'
+import { bunliConfigStrictSchema } from './config.js'
 import { parseArgs } from './parser.js'
 import { SchemaError, getDotPath } from '@standard-schema/utils'
 import { PluginManager } from './plugin/manager.js'
-import type { CommandContext, BunliPlugin, MergeStores } from './plugin/types.js'
+import type { BunliPlugin, MergeStores, PluginConfig } from './plugin/types.js'
+import { CommandContext, createEnvironmentInfo } from './plugin/context.js'
 import { GLOBAL_FLAGS, type GlobalFlags } from './global-flags.js'
 import { getTuiRenderer } from './tui/registry.js'
+import { loadGeneratedStores } from './generated.js'
 
-export async function createCLI<TPlugins extends readonly BunliPlugin[] = []>(
-  config: BunliConfig & { 
+export async function createCLI<
+  TPlugins extends readonly BunliPlugin[] = []
+>(
+  config: Omit<BunliConfig, 'plugins' | 'generated'> & { 
     plugins?: TPlugins 
+    generated?: string | boolean  // Optional, defaults to true
   }
 ): Promise<CLI<MergeStores<TPlugins>>> {
   type TStore = MergeStores<TPlugins>
   
   // Normalize config - support both simple and full config
-  let fullConfig: BunliConfig = 'commands' in config
-    ? config as BunliConfig 
-    : { ...config, commands: undefined }
+  // Validate and coerce to strict at runtime to ensure required fields
+  const parsed = bunliConfigStrictSchema.safeParse(config)
+  if (!parsed.success) {
+    throw new Error('[bunli] Invalid config: ' + JSON.stringify(parsed.error.format()))
+  }
+  let fullConfig = parsed.data
   
-  const commands = new Map<string, Command<any, TStore>>()
+  // Auto-load generated types (always enabled)
+  const generatedPath = './.bunli/commands.gen.ts'  // Standard location
+  
+  try {
+    // Resolve path relative to current working directory
+    const resolvedPath = generatedPath.startsWith('./') 
+      ? new URL(generatedPath, `file://${process.cwd()}/`).href
+      : generatedPath
+    
+    await import(resolvedPath)
+    // Side-effect import automatically registers via registerGeneratedStore
+  } catch (error) {
+    console.warn(`[bunli] Could not load generated types from ${generatedPath}:`, error)
+  }
+  
+  const commands = new Map<string, Command<any, any>>()
   
   // Helper to get terminal information
   function getTerminalInfo(): TerminalInfo {
@@ -39,18 +63,18 @@ export async function createCLI<TPlugins extends readonly BunliPlugin[] = []>(
       supportsMouse: isInteractive && !isCI && process.env.TERM_PROGRAM !== 'Apple_Terminal'
     }
   }
-  const pluginManager = new PluginManager()
+  const pluginManager = new PluginManager<TStore>()
   
   // Load plugins if configured
-  if ('plugins' in fullConfig && fullConfig.plugins) {
-    await pluginManager.loadPlugins(fullConfig.plugins)
+  if (config.plugins) {
+    await pluginManager.loadPlugins(config.plugins as any as PluginConfig[])
     
     // Run setup hooks - this may modify config
     const { config: updatedConfig, commands: pluginCommands, middlewares } = await pluginManager.runSetup(fullConfig)
-    fullConfig = updatedConfig as BunliConfig
+    // Re-validate after plugins potentially modified config
+    fullConfig = bunliConfigStrictSchema.parse(updatedConfig)
     
     // Register plugin commands
-    // @ts-expect-error - Plugin commands may have {} store type
     pluginCommands.forEach(cmd => registerCommand(cmd))
   }
   
@@ -59,13 +83,31 @@ export async function createCLI<TPlugins extends readonly BunliPlugin[] = []>(
     name: fullConfig.name,
     version: fullConfig.version,
     description: fullConfig.description || '',
-    codegen: fullConfig.codegen || {},
     commands: fullConfig.commands || {},
-    build: fullConfig.build || {},
-    dev: fullConfig.dev || {},
-    test: fullConfig.test || {},
-    workspace: fullConfig.workspace || {},
-    release: fullConfig.release || {},
+    build: fullConfig.build || {
+      targets: ['native'],
+      compress: false,
+      minify: false,
+      sourcemap: true
+    },
+    dev: fullConfig.dev || {
+      watch: true,
+      inspect: false
+    },
+    test: fullConfig.test || {
+      pattern: ['**/*.test.ts', '**/*.spec.ts'],
+      coverage: false,
+      watch: false
+    },
+    workspace: fullConfig.workspace || {
+      versionStrategy: 'fixed'
+    },
+    release: fullConfig.release || {
+      npm: true,
+      github: false,
+      tagFormat: 'v{{version}}',
+      conventionalCommits: true
+    },
     plugins: fullConfig.plugins || []
   }
   
@@ -75,7 +117,7 @@ export async function createCLI<TPlugins extends readonly BunliPlugin[] = []>(
   }
   
   // Helper to register a command and its aliases
-  function registerCommand(cmd: Command<any, TStore>, path: string[] = []) {
+  function registerCommand(cmd: Command<any, any>, path: string[] = []) {
     const fullName = [...path, cmd.name].join(' ')
     commands.set(fullName, cmd)
     
@@ -97,7 +139,7 @@ export async function createCLI<TPlugins extends readonly BunliPlugin[] = []>(
   }
   
   // Helper to find command by path
-  function findCommand(args: string[]): { command: Command<any, TStore> | undefined; remainingArgs: string[] } {
+  function findCommand(args: string[]): { command: Command<any, any> | undefined; remainingArgs: string[] } {
     // Try to find the deepest matching command
     for (let i = args.length; i > 0; i--) {
       const cmdPath = args.slice(0, i).join(' ')
@@ -156,7 +198,7 @@ export async function createCLI<TPlugins extends readonly BunliPlugin[] = []>(
   }
   
   function shouldUseRender(
-    command: Command<any, TStore>,
+    command: Command<any, any>,
     flags: GlobalFlags & Record<string, unknown>,
     terminal: TerminalInfo
   ): boolean {
@@ -170,7 +212,7 @@ export async function createCLI<TPlugins extends readonly BunliPlugin[] = []>(
     return terminal.isInteractive && !terminal.isCI
   }
 
-  function ensureRenderAvailable(command: Command<any, TStore>) {
+  function ensureRenderAvailable(command: Command<any, any>) {
     if (!command.render) {
       throw new Error(`Command ${command.name} does not support TUI rendering.`)
     }
@@ -202,12 +244,11 @@ export async function createCLI<TPlugins extends readonly BunliPlugin[] = []>(
   
   // Helper function to load commands from manifest
   async function loadCommandsFromManifest(manifest: CommandManifest) {
-    async function loadFromManifest(obj: CommandManifest | CommandLoader, path: string[] = []): Promise<Command<any, TStore>[]> {
-      const commands: Command<any, TStore>[] = []
+    async function loadFromManifest(obj: CommandManifest | CommandLoader, path: string[] = []): Promise<Command<any, any>[]> {
+      const commands: Command<any, any>[] = []
       
       if (typeof obj === 'function') {
         const { default: command } = await obj()
-        // @ts-expect-error - Loaded commands may have different store types
         return [command]
       }
       
@@ -215,7 +256,6 @@ export async function createCLI<TPlugins extends readonly BunliPlugin[] = []>(
         if (typeof value === 'function') {
           // It's a command loader
           const { default: command } = await value()
-          // @ts-expect-error - Loaded commands may have different store types
           commands.push(command)
         } else {
           // It's a nested manifest - create a parent command with subcommands
@@ -240,8 +280,126 @@ export async function createCLI<TPlugins extends readonly BunliPlugin[] = []>(
     loadedCommands.forEach(cmd => registerCommand(cmd))
   }
   
-  return {
-    command(cmd: Command<any, TStore>) {
+  async function runCommandInternal(
+    command: Command<any, any>,
+    argv: string[],
+    providedFlags?: Record<string, unknown>
+  ) {
+    let context: CommandContext<any> | undefined
+    try {
+      const mergedOptions = { ...GLOBAL_FLAGS, ...(command.options || {}) }
+      const parsed = providedFlags
+        ? (() => {
+            // Parse with empty args for defaults, then overlay provided flags
+            // This keeps behavior consistent with execute(options)
+            return parseArgs([], mergedOptions, command.name).then((p) => (Object.assign(p.flags, providedFlags), p))
+          })()
+        : parseArgs(argv, mergedOptions, command.name)
+      const resultParsed = await parsed
+      const { prompt, spinner, colors } = await import('@bunli/utils')
+
+      if ('plugins' in fullConfig && fullConfig.plugins) {
+        context = await pluginManager.runBeforeCommand(
+          command.name,
+          command,
+          providedFlags ? [] : resultParsed.positional,
+          resultParsed.flags
+        )
+      }
+
+      const terminalInfo = getTerminalInfo()
+      const globalFlags = resultParsed.flags as GlobalFlags & Record<string, unknown>
+      const runtimeInfo: RuntimeInfo = {
+        startTime: Date.now(),
+        args: providedFlags ? [] : argv,
+        command: command.name
+      }
+
+      let render = false
+      if (command.render) {
+        if ((globalFlags as Record<string, unknown>)['no-tui']) render = false
+        else if ((globalFlags as Record<string, unknown>)['tui'] || (globalFlags as Record<string, unknown>)['interactive']) render = true
+        else render = terminalInfo.isInteractive && !terminalInfo.isCI
+      }
+
+      let result: unknown
+      if (render) {
+        ensureRenderAvailable(command)
+        result = await getTuiRenderer<Record<string, unknown>, TStore>()?.({
+          command,
+          flags: resultParsed.flags,
+          positional: resultParsed.positional,
+          shell: Bun.$,
+          env: process.env,
+          cwd: process.cwd(),
+          prompt,
+          spinner,
+          colors,
+          terminal: terminalInfo,
+          runtime: runtimeInfo,
+          ...(context ? { context } : {})
+        })
+      } else {
+        if (!command.handler) throw new Error('Command does not provide a handler for non-TUI execution')
+        await command.handler({
+          flags: resultParsed.flags,
+          positional: resultParsed.positional,
+          shell: Bun.$,
+          env: process.env,
+          cwd: process.cwd(),
+          prompt,
+          spinner,
+          colors,
+          terminal: terminalInfo,
+          runtime: runtimeInfo,
+          ...(context ? { context } : {})
+        })
+      }
+
+      if ('plugins' in fullConfig && fullConfig.plugins && context) {
+        await pluginManager.runAfterCommand(
+          context,
+          { exitCode: 0 }
+        )
+      }
+    } catch (error) {
+      if ('plugins' in fullConfig && fullConfig.plugins && context) {
+        await pluginManager.runAfterCommand(
+          context,
+          { exitCode: 1 }
+        )
+      }
+
+      const { colors } = await import('@bunli/utils')
+      if (error instanceof SchemaError) {
+        console.error(colors.red('Validation Error:'))
+        const generalErrors: string[] = []
+        const fieldErrors: Record<string, string[]> = {}
+        for (const issue of error.issues) {
+          const path = getDotPath(issue)
+          if (path) {
+            if (!fieldErrors[path]) fieldErrors[path] = []
+            fieldErrors[path].push(issue.message)
+          } else {
+            generalErrors.push(issue.message)
+          }
+        }
+        for (const [field, messages] of Object.entries(fieldErrors)) {
+          console.error(colors.dim(`  ${field}:`))
+          for (const message of messages) console.error(colors.dim(`    • ${message}`))
+        }
+        for (const message of generalErrors) console.error(colors.dim(`  • ${message}`))
+        process.exit(1)
+      } else if (error instanceof Error) {
+        console.error(colors.red(`Error: ${error.message}`))
+        process.exit(1)
+      }
+      throw error
+    }
+  }
+
+  const api: CLI<MergeStores<TPlugins>> = {
+    command<TCommandStore = any>(cmd: Command<any, TCommandStore>) {
       registerCommand(cmd)
     },
     
@@ -299,137 +457,110 @@ export async function createCLI<TPlugins extends readonly BunliPlugin[] = []>(
       }
       
       if (command.handler || command.render) {
-        let context: CommandContext<TStore> | undefined
+        await runCommandInternal(command, remainingArgs)
+      }
+    },
+    
+    async execute(commandName: string, argsOrOptions?: string[] | Record<string, any>, options?: Record<string, any>) {
+      // Parse command name to handle nested commands (git/sync -> git sync)
+      const commandPath = commandName.replace(/\//g, ' ').split(' ')
+      const { command, remainingArgs } = findCommand(commandPath)
+      if (!command) {
+        throw new Error(`Command '${commandName}' not found`)
+      }
+      
+      // Handle different overload patterns
+      let finalArgs: string[] = []
+      let finalOptions: Record<string, any> = {}
+      
+      if (argsOrOptions && !Array.isArray(argsOrOptions)) {
+        // Pattern: execute(commandName, options)
+        finalOptions = argsOrOptions as Record<string, any>
+      } else if (Array.isArray(argsOrOptions) && options) {
+        // Pattern: execute(commandName, args, options)
+        finalArgs = argsOrOptions
+        finalOptions = options
+      } else if (Array.isArray(argsOrOptions)) {
+        // Pattern: execute(commandName, args)
+        finalArgs = argsOrOptions
+      }
+      
+      // If options object provided, use directly as flags
+      if (Object.keys(finalOptions).length > 0) {
         
-        try {
-          // Merge global flags with command options
-          const mergedOptions = {
-            ...GLOBAL_FLAGS,
-            ...(command.options || {})
-          }
-          
-          const parsed = await parseArgs(remainingArgs, mergedOptions)
-          const { prompt, spinner, colors } = await import('@bunli/utils')
-          
-          // Run beforeCommand hooks if plugins are loaded
-          if ('plugins' in fullConfig && fullConfig.plugins) {
-            context = await pluginManager.runBeforeCommand(
-              command.name,
-              command,
-              parsed.positional,
-              parsed.flags as any
-            )
-          }
-          
-          // Check if we should enable TUI mode
-          const globalFlags = parsed.flags as GlobalFlags & Record<string, unknown>
-          
-          // Create runtime info
-          const runtimeInfo: RuntimeInfo = {
-            startTime: Date.now(),
-            args: remainingArgs,
-            command: command.name
-          }
-          
-          const terminalInfo = getTerminalInfo()
-          const shouldRender = shouldUseRender(command, globalFlags, terminalInfo)
-
-          let result: unknown
-
-          if (shouldRender) {
-            ensureRenderAvailable(command)
-
-            result = await getTuiRenderer()?.({
-              flags: parsed.flags as any,
-              positional: parsed.positional,
-              shell: Bun.$,
-              env: process.env,
-              cwd: process.cwd(),
-              prompt,
-              spinner,
-              colors,
-              terminal: terminalInfo,
-              runtime: runtimeInfo,
-              command,
-              ...(context ? { context } : {})
-            })
-          } else {
-            if (!command.handler) {
-              throw new Error('Command does not provide a handler for non-TUI execution')
-            }
-
-            // @ts-ignore - type inference between handler stores is noisy
-            await command.handler({
-              flags: parsed.flags as any,
-              positional: parsed.positional,
-              shell: Bun.$,
-              env: process.env,
-              cwd: process.cwd(),
-              prompt,
-              spinner,
-              colors,
-              terminal: terminalInfo,
-              runtime: runtimeInfo,
-              ...(context ? { context } : {})
-            })
-          }
-          
-          // Run afterCommand hooks if plugins are loaded
-          if ('plugins' in fullConfig && fullConfig.plugins && context) {
-            await pluginManager.runAfterCommand(context as any, {
-              result,
-              exitCode: 0
-            })
-          }
-        } catch (error) {
-          // Run afterCommand hooks even on error
-          if ('plugins' in fullConfig && fullConfig.plugins && context) {
-            await pluginManager.runAfterCommand(context as any, {
-              error: error as Error,
-              exitCode: 1
-            })
-          }
-          
-          const { colors } = await import('@bunli/utils')
-          
-          if (error instanceof SchemaError) {
-            console.error(colors.red('Validation errors:'))
-            
-            const fieldErrors: Record<string, string[]> = {}
-            const generalErrors: string[] = []
-            
-            for (const issue of error.issues) {
-              const dotPath = getDotPath(issue)
-              if (dotPath) {
-                // Group by field for cleaner output
-                fieldErrors[dotPath] ??= []
-                fieldErrors[dotPath].push(issue.message)
-              } else {
-                generalErrors.push(issue.message)
-              }
-            }
-            
-            // Display field-specific errors
-            for (const [field, messages] of Object.entries(fieldErrors)) {
-              console.error(colors.yellow(`  --${field}:`))
-              for (const message of messages) {
-                console.error(colors.dim(`    • ${message}`))
-              }
-            }
-            
-            // Display general errors
-            for (const message of generalErrors) {
-              console.error(colors.dim(`  • ${message}`))
-            }
-            
-            process.exit(1)
-          } else if (error instanceof Error) {
-            console.error(colors.red(`Error: ${error.message}`))
-            process.exit(1)
-          }
-          throw error
+        // Merge global flags with command options
+        const mergedOptions = {
+          ...GLOBAL_FLAGS,
+          ...(command.options || {})
         }
+        
+        // Parse with empty args to get defaults, then merge options
+        const parsed = await parseArgs([], mergedOptions, command.name)
+        Object.assign(parsed.flags, finalOptions)
+        
+        const { prompt, spinner, colors } = await import('@bunli/utils')
+        
+        // Run beforeCommand hooks if plugins are loaded
+        let context: CommandContext<TStore> | undefined
+        if ('plugins' in fullConfig && fullConfig.plugins) {
+          context = await pluginManager.runBeforeCommand(
+            command.name,
+            command,
+            [],
+            parsed.flags
+          )
+        }
+        
+        // Create runtime info
+        const runtimeInfo: RuntimeInfo = {
+          startTime: Date.now(),
+          args: [],
+          command: command.name
+        }
+        
+        const terminalInfo = getTerminalInfo()
+        
+        if (command.handler) {
+        await command.handler({
+          flags: parsed.flags,
+          positional: [],
+          shell: Bun.$,
+          env: process.env,
+          cwd: process.cwd(),
+          prompt,
+          spinner,
+          colors,
+          terminal: terminalInfo,
+          runtime: runtimeInfo,
+          ...(context ? { context } : {})
+        })
+        }
+        
+        // Run afterCommand hooks if plugins are loaded
+        if ('plugins' in fullConfig && fullConfig.plugins && context) {
+          await pluginManager.runAfterCommand(
+            context,
+            { exitCode: 0 }
+          )
+        }
+        return
+      }
+      
+      // Parse string args normally
+      const args = finalArgs.length > 0 ? finalArgs : (argsOrOptions as string[] | undefined) || []
+      // Use the already found command and remaining args
+      const foundCommand = command
+      const finalArgsToUse = [...remainingArgs, ...args]
+      
+      // Execute the command using the same logic as the run method
+      if (foundCommand.handler || foundCommand.render) {
+        await runCommandInternal(foundCommand, finalArgsToUse)
       }
     }
   }
+
+  // Auto-register any generated command stores with this CLI instance
+  loadGeneratedStores(api)
+
+  return api
 }

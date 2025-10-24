@@ -1,0 +1,332 @@
+---
+title: Git Tool CLI
+description: Git workflow helper with command organization and external tool integration
+---
+
+# Git Tool CLI Example
+
+A Git workflow helper demonstrating command organization, external tool integration, and nested command structure. Shows how to build CLIs that work with existing tools.
+
+## Overview
+
+This example demonstrates advanced CLI patterns:
+
+- **Nested command structure** with clear organization
+- **Command aliases** for common operations
+- **External tool integration** with git commands
+- **Shell command execution** with proper error handling
+- **Colored output** for status and feedback
+- **Command organization** patterns for scalability
+
+## Commands
+
+### `branch` - Branch Management
+```bash
+bun run cli.ts branch create feature/new-feature
+bun run cli.ts branch switch main
+bun run cli.ts branch list
+bun run cli.ts branch delete feature/old-feature
+```
+
+Branch management with git integration:
+- Create new branches with validation
+- Switch between branches safely
+- List branches with status
+- Delete branches with confirmation
+
+### `pr` - Pull Request Management
+```bash
+bun run cli.ts pr create --title "Add new feature" --draft
+bun run cli.ts pr list --status open
+bun run cli.ts pr merge 123 --squash
+```
+
+Pull request workflow automation:
+- Create PRs with templates
+- List PRs with filtering
+- Merge PRs with options
+- Integration with GitHub/GitLab
+
+### `sync` - Repository Synchronization
+```bash
+bun run cli.ts sync --remote origin --branch main
+bun run cli.ts sync --pull --push --rebase
+```
+
+Sync with remote repositories:
+- Pull latest changes
+- Push local commits
+- Rebase on upstream
+- Handle merge conflicts
+
+### `status` - Enhanced Git Status
+```bash
+bun run cli.ts status --porcelain
+bun run cli.ts status --staged --unstaged
+```
+
+Enhanced git status with additional information:
+- Staged and unstaged changes
+- Branch information
+- Remote tracking status
+- Commit statistics
+
+## Key Features Demonstrated
+
+### 1. Nested Command Structure
+```typescript
+import { defineCommand } from '@bunli/core'
+
+export const branchCommand = defineCommand({
+  name: 'branch',
+  description: 'Manage git branches',
+  commands: [
+    defineCommand({
+      name: 'create',
+      description: 'Create a new branch',
+      handler: async ({ positional, shell, colors }) => {
+        const branchName = positional[0]
+        if (!branchName) {
+          console.error(colors.red('Branch name required'))
+          process.exit(1)
+        }
+        
+        await shell.run(`git checkout -b ${branchName}`)
+        console.log(colors.green(`Created branch: ${branchName}`))
+      }
+    }),
+    defineCommand({
+      name: 'switch',
+      description: 'Switch to a branch',
+      handler: async ({ positional, shell, colors }) => {
+        const branchName = positional[0]
+        await shell.run(`git checkout ${branchName}`)
+        console.log(colors.green(`Switched to: ${branchName}`))
+      }
+    })
+  ]
+})
+```
+
+### 2. External Tool Integration
+```typescript
+import { shell } from '@bunli/core'
+
+handler: async ({ shell, colors, spinner }) => {
+  spinner.start('Fetching latest changes...')
+  
+  try {
+    // Pull latest changes
+    await shell.run('git pull origin main')
+    
+    // Push local commits
+    await shell.run('git push origin main')
+    
+    spinner.succeed('Repository synchronized')
+  } catch (error) {
+    spinner.fail('Sync failed')
+    console.error(colors.red(error.message))
+    process.exit(1)
+  }
+}
+```
+
+### 3. Command Aliases
+```typescript
+export const prCommand = defineCommand({
+  name: 'pr',
+  alias: 'pull-request',
+  description: 'Manage pull requests',
+  commands: [
+    defineCommand({
+      name: 'create',
+      alias: 'new',
+      description: 'Create a new pull request',
+      // ... implementation
+    })
+  ]
+})
+```
+
+### 4. Colored Output and Status
+```typescript
+import { colors } from '@bunli/core'
+
+handler: async ({ shell, colors }) => {
+  // Get git status
+  const status = await shell.run('git status --porcelain')
+  const lines = status.stdout.split('\n').filter(Boolean)
+  
+  if (lines.length === 0) {
+    console.log(colors.green('✓ Working directory clean'))
+    return
+  }
+  
+  console.log(colors.cyan('Changes:'))
+  lines.forEach(line => {
+    const status = line.substring(0, 2)
+    const file = line.substring(3)
+    
+    if (status.includes('M')) {
+      console.log(colors.yellow(`  M ${file}`))
+    } else if (status.includes('A')) {
+      console.log(colors.green(`  A ${file}`))
+    } else if (status.includes('D')) {
+      console.log(colors.red(`  D ${file}`))
+    }
+  })
+}
+```
+
+## Project Structure
+
+```
+git-tool/
+├── cli.ts              # Main CLI file
+├── commands/
+│   ├── branch.ts       # Branch management commands
+│   ├── pr.ts          # Pull request commands
+│   ├── sync.ts        # Repository synchronization
+│   └── status.ts      # Enhanced git status
+├── bunli.config.ts     # Build configuration
+├── package.json        # Dependencies and scripts
+└── README.md          # Example documentation
+```
+
+## Running the Example
+
+```bash
+# Navigate to the example
+cd examples/git-tool
+
+# Install dependencies
+bun install
+
+# Run in development mode
+bun run dev
+
+# Try the commands
+bun run cli.ts branch --help
+bun run cli.ts branch create feature/test
+bun run cli.ts status
+bun run cli.ts sync --pull --push
+```
+
+## Command Organization Patterns
+
+### 1. Hierarchical Commands
+```typescript
+// Main command with subcommands
+export const branchCommand = defineCommand({
+  name: 'branch',
+  description: 'Manage git branches',
+  commands: [
+    createBranchCommand,
+    switchBranchCommand,
+    listBranchesCommand,
+    deleteBranchCommand
+  ]
+})
+```
+
+### 2. Shared Utilities
+```typescript
+// utils/git.ts
+export async function getCurrentBranch(): Promise<string> {
+  const result = await shell.run('git branch --show-current')
+  return result.stdout.trim()
+}
+
+export async function isGitRepository(): Promise<boolean> {
+  try {
+    await shell.run('git rev-parse --git-dir')
+    return true
+  } catch {
+    return false
+  }
+}
+```
+
+### 3. Error Handling
+```typescript
+handler: async ({ shell, colors, spinner }) => {
+  try {
+    spinner.start('Creating branch...')
+    await shell.run(`git checkout -b ${branchName}`)
+    spinner.succeed(`Created branch: ${branchName}`)
+  } catch (error) {
+    spinner.fail('Failed to create branch')
+    
+    if (error.message.includes('already exists')) {
+      console.error(colors.yellow('Branch already exists'))
+    } else {
+      console.error(colors.red(error.message))
+    }
+    
+    process.exit(1)
+  }
+}
+```
+
+## External Tool Integration
+
+### 1. Shell Command Execution
+```typescript
+import { shell } from '@bunli/core'
+
+// Simple command execution
+const result = await shell.run('git status')
+console.log(result.stdout)
+
+// Command with options
+const result = await shell.run('git log --oneline -10')
+const commits = result.stdout.split('\n').filter(Boolean)
+
+// Error handling
+try {
+  await shell.run('git push origin main')
+} catch (error) {
+  if (error.message.includes('rejected')) {
+    console.error('Push rejected - need to pull first')
+  }
+}
+```
+
+### 2. Command Validation
+```typescript
+handler: async ({ shell, colors }) => {
+  // Check if git is available
+  try {
+    await shell.run('git --version')
+  } catch {
+    console.error(colors.red('Git is not installed or not in PATH'))
+    process.exit(1)
+  }
+  
+  // Check if we're in a git repository
+  try {
+    await shell.run('git rev-parse --git-dir')
+  } catch {
+    console.error(colors.red('Not in a git repository'))
+    process.exit(1)
+  }
+  
+  // Continue with git operations
+}
+```
+
+## Key Takeaways
+
+1. **Command Organization**: Hierarchical structure for complex CLIs
+2. **External Integration**: Working with existing tools and commands
+3. **Error Handling**: Graceful handling of external command failures
+4. **User Experience**: Colored output and clear feedback
+5. **Scalability**: Patterns that work for large CLI applications
+6. **Real-world Patterns**: Practical patterns for tool integration
+
+## Next Steps
+
+- **[Dev Server Example](/docs/examples/dev-server)** - Learn plugin system
+- **[Command Organization Guide](/docs/guides/command-organization)** - Advanced patterns
+- **[External Tool Integration](/docs/guides/external-tools)** - Working with other tools
+- **[Shell Integration Guide](/docs/guides/shell-integration)** - Command execution patterns

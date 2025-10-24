@@ -7,7 +7,15 @@ export { PluginManager } from './manager.js'
 export { PluginContext, CommandContext, createEnvironmentInfo } from './context.js'
 
 // Plugin development utilities
-export { createPlugin } from './create.js'
+export { createPlugin, createTestPlugin, composePlugins } from './create.js'
+
+// Plugin testing utilities
+export { 
+  createMockPluginContext, 
+  createMockCommandContext, 
+  testPluginHooks, 
+  assertPluginBehavior 
+} from './testing.js'
 
 // Re-export for convenience
 export type { 

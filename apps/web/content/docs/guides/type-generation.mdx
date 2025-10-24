@@ -1,0 +1,330 @@
+---
+title: Type Generation
+description: Generate TypeScript definitions from your CLI commands for enhanced developer experience
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+import { Steps } from 'fumadocs-ui/components/steps';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+# Type Generation
+
+Bunli's code generation system creates TypeScript definitions from your CLI commands, providing compile-time type safety, autocomplete, and enhanced developer experience.
+
+<Callout type="info">
+  Type generation works alongside Bunli's runtime type inference to provide both compile-time and runtime type safety for your CLI applications.
+</Callout>
+
+## Quick Start
+
+Type generation is **automatically enabled** in all Bunli projects. No configuration needed!
+
+```typescript
+import { defineConfig } from '@bunli/core'
+
+export default defineConfig({
+  name: 'my-cli',
+  version: '1.0.0',
+})
+```
+
+Types are generated automatically when you run any Bunli command:
+
+```bash
+# Types generated automatically
+bunli dev
+bunli build
+
+# Or generate manually
+bunli generate
+```
+
+## Generated API Overview
+
+The generator creates a comprehensive TypeScript API from your commands:
+
+### GeneratedCLI Interface
+
+```typescript
+interface GeneratedCLI {
+  register(cli?: CLI<any>): GeneratedCLI
+  list(): Array<{
+    name: GeneratedNames
+    command: Command<any>
+    metadata: GeneratedCommandMeta
+  }>
+  get<Name extends GeneratedNames>(name: Name): Command<any>
+  getMetadata<Name extends GeneratedNames>(name: Name): GeneratedCommandMeta
+  getFlags<Name extends GeneratedNames>(name: Name): CommandOptions<Name>
+  getFlagsMeta<Name extends GeneratedNames>(name: Name): Record<string, GeneratedOptionMeta>
+  withCLI(cli: CLI<any>): { execute(name: string, options: unknown): Promise<void> }
+}
+```
+
+### Helper Functions
+
+```typescript
+// Get command metadata by name
+function getCommandApi<Name extends GeneratedNames>(name: Name): GeneratedCommandMeta
+
+// Get all command names
+function getCommandNames(): GeneratedNames[]
+
+// List all commands with metadata
+function listCommands(): GeneratedNames[]
+
+// Get typed flags for a command
+function getTypedFlags<Name extends GeneratedNames>(name: Name): CommandOptions<Name>
+
+// Validate command arguments
+function validateCommand<Name extends GeneratedNames>(name: Name, flags: Record<string, unknown>): ValidationResult
+
+// Find commands by name or description
+function findCommandByName<Name extends GeneratedNames>(name: Name): CommandInfo
+function findCommandsByDescription(searchTerm: string): CommandInfo[]
+```
+
+## IDE Integration Features
+
+### Autocomplete and IntelliSense
+
+Generated types provide rich IDE support:
+
+```typescript
+import { getCommandApi, getCommandNames } from './.bunli/commands.gen'
+
+// Full autocomplete for command names
+const commandNames = getCommandNames() // 'greet' | 'deploy' | 'test' | ...
+
+// Type-safe command access
+const greetApi = getCommandApi('greet')
+// greetApi.options.name.type is 'string'
+// greetApi.options.excited.default is false
+
+// IntelliSense shows all available options
+const options = greetApi.options
+// options.name, options.excited with full type information
+```
+
+### Type Safety at Compile Time
+
+```typescript
+// This will cause a TypeScript error
+const invalidCommand = getCommandApi('nonexistent') // ❌
+
+// This is type-safe
+const validCommand = getCommandApi('greet') // ✅
+const name = validCommand.options.name.type // 'string'
+```
+
+## Use Cases
+
+### CLI Wrappers
+
+```typescript
+import { getCommandApi, listCommands } from './.bunli/commands.gen'
+
+class CLIManager {
+  async executeCommand(commandName: string, options: Record<string, any>) {
+    const command = getCommandApi(commandName as any)
+    
+    // Type-safe option validation
+    for (const [key, value] of Object.entries(options)) {
+      const option = command.options?.[key]
+      if (!option) throw new Error(`Unknown option: ${key}`)
+      
+      if (option.type === 'string' && typeof value !== 'string') {
+        throw new Error(`Option ${key} must be a string`)
+      }
+    }
+  }
+}
+```
+
+### Documentation Generation
+
+```typescript
+import { listCommands, getCommandApi } from './.bunli/commands.gen'
+
+function generateDocs() {
+  const commands = listCommands()
+  let docs = '# CLI Documentation\n\n'
+  
+  for (const cmd of commands) {
+    const api = getCommandApi(cmd)
+    docs += `## ${cmd}\n${api.description}\n\n`
+    
+    if (api.options) {
+      docs += '### Options\n'
+      for (const [name, option] of Object.entries(api.options)) {
+        docs += `- \`--${name}\` (${option.type}) ${option.description}\n`
+      }
+    }
+  }
+  return docs
+}
+```
+
+## Default Behavior
+
+Type generation uses these sensible defaults:
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| **Commands Directory** | `./commands` | Where to find command files |
+| **Output File** | `./.bunli/commands.gen.ts` | Generated types location |
+| **Auto-Generation** | `true` | Always enabled |
+| **Watch Mode** | `true` in dev | Regenerate on file changes |
+
+### Custom Commands Directory
+
+If your commands are in a different location:
+
+```typescript
+export default defineConfig({
+  name: 'my-cli',
+  version: '1.0.0',
+  
+  commands: {
+    directory: './src/commands' // Custom commands location
+  }
+})
+```
+
+## Integration with CLI Commands
+
+### Development Mode
+
+Type generation is automatically integrated with `bunli dev`:
+
+```bash
+# Start development with automatic type generation
+bunli dev
+
+# Type generation runs automatically when commands change
+```
+
+### Build Process
+
+Types are generated before building:
+
+```bash
+# Build includes type generation
+bunli build
+
+# Types are generated automatically before compilation
+```
+
+### Manual Generation
+
+Generate types manually when needed:
+
+```bash
+# Generate types once
+bunli generate
+
+# Generate and watch for changes
+bunli generate --watch
+
+## Advanced Features
+
+### Type Utilities
+
+```typescript
+import { UnionToIntersection, MergeAll, Expand } from '@bunli/core'
+
+// Use with generated types
+type AllCommandOptions = UnionToIntersection<
+  CommandRegistry[keyof CommandRegistry]['options']
+>
+```
+
+### Build Integration
+
+```typescript
+// bunli.config.ts
+import { defineConfig } from '@bunli/core'
+
+export default defineConfig({
+  name: 'my-cli',
+  version: '1.0.0',
+  build: {
+    entry: './src/cli.ts',
+    outdir: './dist'
+  }
+})
+```
+
+## Best Practices
+
+<Callout type="tip">
+  **Import Generated Types**: Always import generated types for full type safety.
+</Callout>
+
+### File Organization
+
+```
+src/
+├── commands/
+│   ├── greet.ts
+│   └── deploy.ts
+├── .bunli/
+│   └── commands.gen.ts  # Generated file
+├── cli.ts
+└── bunli.config.ts
+```
+
+### Development Workflow
+
+1. **Configure**: Set up `bunli.config.ts`
+2. **Generate**: Run `bunli generate` or `bunli dev`
+3. **Use**: Import generated types in your code
+4. **Build**: Run `bunli build` (types generated automatically)
+
+## Troubleshooting
+
+**Types not updating:**
+- Run `bunli generate --watch` for development
+- Check command files are in the correct directory
+
+**Import errors:**
+- Ensure generated file exists at `./.bunli/commands.gen.ts`
+- Verify TypeScript configuration includes `.bunli/**/*.ts`
+
+**Missing command metadata:**
+- Ensure commands use `defineCommand`
+- Check commands are properly exported
+
+## Type-Safe Command Execution
+
+```typescript
+import { createCLI } from '@bunli/core'
+
+const cli = await createCLI(config)
+
+// ✅ Fully type-safe execution!
+await cli.execute('deploy', {
+  env: 'production', // ← Autocomplete: 'dev' | 'staging' | 'prod'
+  dryRun: true       // ← Type: boolean
+})
+
+// ❌ Type errors for invalid options
+await cli.execute('deploy', {
+  env: 'invalid',  // ❌ Error: Type '"invalid"' is not assignable
+  dryRun: 'yes'    // ❌ Error: Type 'string' is not assignable to type 'boolean'
+})
+```
+
+## Requirements
+
+1. **`as const` Required** - Command names MUST use `as const` for type inference
+2. **Generated File Required** - `.bunli/commands.gen.ts` must be in `tsconfig.json`
+3. **No Manual Annotations** - Handler type annotations are automatic
+
+## See Also
+
+- [Type Inference](/docs/core-concepts/type-inference) - Runtime type inference
+- [Configuration](/docs/core-concepts/configuration) - CLI configuration options
+- [@bunli/generator](/docs/packages/generator) - Generator package documentation
+- [bunli CLI](/docs/packages/cli) - CLI toolchain commands

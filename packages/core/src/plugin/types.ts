@@ -37,14 +37,20 @@ export interface BunliPlugin<TStore = {}> {
   /**
    * Before command hook - Called before command execution
    * Can inject context and validate
+   * Uses generic constraints to preserve store type information
    */
-  beforeCommand?(context: CommandContext<TStore>): void | Promise<void>
+  beforeCommand?(
+    context: CommandContext<any>
+  ): void | Promise<void>
   
   /**
    * After command hook - Called after command execution
    * Receives result or error from command
+   * Uses generic constraints to preserve store type information
    */
-  afterCommand?(context: CommandContext<TStore> & CommandResult): void | Promise<void>
+  afterCommand?(
+    context: CommandContext<any> & CommandResult
+  ): void | Promise<void>
 }
 
 /**
@@ -141,6 +147,18 @@ export interface CommandContext<TStore = {}> {
   
   /** Type-safe context store */
   readonly store: TStore
+  
+  /** Type-safe store value access */
+  getStoreValue<K extends keyof TStore>(key: K): TStore[K]
+  getStoreValue(key: string | number | symbol): any
+  
+  /** Type-safe store value update */
+  setStoreValue<K extends keyof TStore>(key: K, value: TStore[K]): void
+  setStoreValue(key: string | number | symbol, value: any): void
+  
+  /** Check if a store property exists */
+  hasStoreValue<K extends keyof TStore>(key: K): boolean
+  hasStoreValue(key: string | number | symbol): boolean
 }
 
 /**
@@ -182,7 +200,4 @@ declare module '@bunli/core' {
     // Plugins can extend command context
   }
   
-  interface BunliConfig {
-    // Plugins can extend config
-  }
 }

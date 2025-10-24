@@ -391,3 +391,43 @@ const apiKey = await prompt.password('API Key:', {
 <Callout type="tip">
   All utilities respect NO_COLOR and CI environment variables, automatically adjusting their behavior for different environments.
 </Callout>
+
+## Type Utilities for Generated Types
+
+When working with generated types from `@bunli/generator`, you can use advanced type utilities from `@bunli/core` for complex type manipulation:
+
+```typescript
+import { 
+  UnionToIntersection, 
+  MergeAll, 
+  Expand,
+  DeepPartial,
+  Constrain
+} from '@bunli/core'
+import { getCommandApi, listCommands } from './commands.gen'
+
+// Get all command options as a union
+type AllCommandOptions = UnionToIntersection<
+  ReturnType<typeof getCommandApi>[keyof CommandRegistry]['options']
+>
+
+// Merge all command metadata
+type AllCommands = MergeAll<
+  Array<{ name: string; description: string }>
+>
+
+// Expand complex types for better IntelliSense
+type ExpandedCommand = Expand<typeof getCommandApi<'deploy'>>
+
+// Make all properties optional recursively
+type PartialCommand = DeepPartial<typeof getCommandApi<'build'>>
+
+// Constrain types with fallback
+type SafeCommandName = Constrain<string, keyof CommandRegistry, 'help'>
+```
+
+These utilities are especially powerful when combined with generated types for creating CLI wrappers, documentation generators, and command analytics tools.
+
+<Callout type="info">
+  Type utilities are exported from `@bunli/core`, not `@bunli/utils`. They're designed to work with generated types for advanced type manipulation patterns.
+</Callout>

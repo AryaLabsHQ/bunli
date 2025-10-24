@@ -1,0 +1,272 @@
+---
+title: Task Runner CLI
+description: Task automation CLI with validation and interactivity
+---
+
+# Task Runner CLI Example
+
+A practical task automation CLI showcasing validation and interactivity patterns. Demonstrates real-world patterns for build, test, deploy, and setup workflows.
+
+## Overview
+
+This example consolidates validation and interactive patterns into a cohesive task automation tool:
+
+- **Schema validation** with Zod for type-safe options
+- **Interactive prompts** and confirmations for user input
+- **Progress indicators** and spinners for long-running tasks
+- **Conditional flows** based on command options
+- **Error handling** and user feedback
+
+## Commands
+
+### `build` - Build Project
+```bash
+bun run cli.ts build --target production --minify --sourcemap
+```
+
+Builds the project with validation and transformation:
+- Target selection (development/production)
+- Minification and source map generation
+- Progress tracking with spinners
+- Validation of build configuration
+
+### `test` - Run Tests
+```bash
+bun run cli.ts test --filter unit --coverage --watch
+```
+
+Runs tests with filtering and coverage:
+- Test filtering by type (unit, integration, e2e)
+- Coverage reporting
+- Watch mode for development
+- Complex validation patterns
+
+### `deploy` - Deploy Application
+```bash
+bun run cli.ts deploy --env production --confirm
+```
+
+Deploys with interactive confirmation:
+- Environment selection
+- Interactive confirmation prompts
+- Deployment validation
+- Rollback options
+
+### `setup` - Interactive Setup
+```bash
+bun run cli.ts setup
+```
+
+Interactive setup wizard:
+- Multi-step configuration
+- Dynamic prompts based on previous answers
+- Validation of user input
+- Configuration file generation
+
+## Key Features Demonstrated
+
+### 1. Schema Validation
+```typescript
+import { defineCommand, option } from '@bunli/core'
+import { z } from 'zod'
+
+export const buildCommand = defineCommand({
+  name: 'build',
+  options: {
+    target: option(
+      z.enum(['development', 'production']).default('production'),
+      { description: 'Build target' }
+    ),
+    minify: option(
+      z.boolean().default(true),
+      { description: 'Minify output', short: 'm' }
+    ),
+    sourcemap: option(
+      z.boolean().default(false),
+      { description: 'Generate source maps', short: 's' }
+    )
+  },
+  handler: async ({ flags, spinner, colors }) => {
+    // Type-safe access to validated options
+    const { target, minify, sourcemap } = flags
+    // ... implementation
+  }
+})
+```
+
+### 2. Interactive Prompts
+```typescript
+import { prompt } from '@bunli/core'
+
+// Text input
+const name = await prompt.text('Project name?')
+
+// Selection
+const framework = await prompt.select('Framework?', [
+  'React', 'Vue', 'Svelte', 'Solid'
+])
+
+// Confirmation
+const confirmed = await prompt.confirm('Deploy to production?')
+
+// Multi-select
+const features = await prompt.multiselect('Features?', [
+  'TypeScript', 'ESLint', 'Prettier', 'Testing'
+])
+```
+
+### 3. Progress Indicators
+```typescript
+import { spinner } from '@bunli/core'
+
+spinner.start('Building project...')
+
+// Simulate build steps
+const steps = ['Compiling', 'Bundling', 'Optimizing', 'Writing']
+for (const step of steps) {
+  spinner.text = step
+  await new Promise(resolve => setTimeout(resolve, 500))
+}
+
+spinner.succeed('Build completed!')
+```
+
+### 4. Conditional Flows
+```typescript
+handler: async ({ flags, prompt, colors }) => {
+  if (flags.env === 'production') {
+    const confirmed = await prompt.confirm(
+      colors.red('⚠️  Deploy to production? This cannot be undone!')
+    )
+    
+    if (!confirmed) {
+      console.log(colors.yellow('Deployment cancelled'))
+      return
+    }
+  }
+  
+  // Continue with deployment
+}
+```
+
+## Project Structure
+
+```
+task-runner/
+├── cli.ts              # Main CLI file
+├── commands/
+│   ├── build.ts        # Build command with validation
+│   ├── test.ts         # Test command with filtering
+│   ├── deploy.ts       # Deploy command with prompts
+│   └── setup.ts        # Interactive setup wizard
+├── bunli.config.ts     # Build configuration
+├── package.json        # Dependencies and scripts
+└── README.md          # Example documentation
+```
+
+## Running the Example
+
+```bash
+# Navigate to the example
+cd examples/task-runner
+
+# Install dependencies
+bun install
+
+# Run in development mode
+bun run dev
+
+# Try the commands
+bun run cli.ts build --help
+bun run cli.ts test --filter unit --coverage
+bun run cli.ts deploy --env staging
+bun run cli.ts setup
+```
+
+## Validation Patterns
+
+### Complex Option Validation
+```typescript
+options: {
+  filter: option(
+    z.enum(['unit', 'integration', 'e2e']).array().optional(),
+    { description: 'Test types to run' }
+  ),
+  coverage: option(
+    z.boolean().default(false),
+    { description: 'Generate coverage report' }
+  ),
+  threshold: option(
+    z.number().min(0).max(100).default(80),
+    { description: 'Coverage threshold percentage' }
+  )
+}
+```
+
+### Runtime Validation
+```typescript
+handler: async ({ flags, colors }) => {
+  // Validate test files exist
+  const testFiles = await glob('**/*.test.ts')
+  if (testFiles.length === 0) {
+    console.error(colors.red('No test files found'))
+    process.exit(1)
+  }
+  
+  // Validate coverage threshold
+  if (flags.coverage && flags.threshold < 50) {
+    console.warn(colors.yellow('Low coverage threshold'))
+  }
+}
+```
+
+## Interactive Patterns
+
+### Multi-step Setup
+```typescript
+handler: async ({ prompt, colors }) => {
+  console.log(colors.cyan('Welcome to the setup wizard!'))
+  
+  // Step 1: Project details
+  const name = await prompt.text('Project name?')
+  const description = await prompt.text('Description?')
+  
+  // Step 2: Framework selection
+  const framework = await prompt.select('Framework?', [
+    'React', 'Vue', 'Svelte', 'Solid'
+  ])
+  
+  // Step 3: Features
+  const features = await prompt.multiselect('Features?', [
+    'TypeScript', 'ESLint', 'Prettier', 'Testing'
+  ])
+  
+  // Step 4: Confirmation
+  console.log(colors.cyan('\nConfiguration:'))
+  console.log(`Name: ${name}`)
+  console.log(`Framework: ${framework}`)
+  console.log(`Features: ${features.join(', ')}`)
+  
+  const confirmed = await prompt.confirm('Create project?')
+  if (confirmed) {
+    // Create project files
+    spinner.succeed('Project created successfully!')
+  }
+}
+```
+
+## Key Takeaways
+
+1. **Schema Validation**: Type-safe options with runtime validation
+2. **Interactive UX**: User-friendly prompts and confirmations
+3. **Progress Feedback**: Spinners and progress indicators
+4. **Conditional Logic**: Smart flows based on user input
+5. **Error Handling**: Graceful error handling and user feedback
+6. **Real-world Patterns**: Practical patterns for task automation
+
+## Next Steps
+
+- **[Git Tool Example](/docs/examples/git-tool)** - Learn command organization
+- **[Dev Server Example](/docs/examples/dev-server)** - Learn plugin system
+- **[Schema Validation Guide](/docs/guides/schema-validation)** - Deep dive into validation
+- **[Interactive Prompts Guide](/docs/guides/interactive-prompts)** - Advanced prompt patterns

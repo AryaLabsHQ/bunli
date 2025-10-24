@@ -50,7 +50,7 @@ export interface AIDetectPluginOptions {
   verbose?: boolean
 }
 
-interface AIDetectStore {
+export interface AIDetectStore {
   isAIAgent: boolean
   aiAgents: string[]
   aiAgentEnvVars: string[]

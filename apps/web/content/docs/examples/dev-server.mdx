@@ -1,0 +1,410 @@
+---
+title: Dev Server CLI
+description: Development server with advanced plugin system and configuration management
+---
+
+# Dev Server CLI Example
+
+A development server CLI showcasing advanced plugin system, configuration management, and long-running processes. Demonstrates production-ready patterns for complex CLI applications.
+
+## Overview
+
+This example consolidates plugin system and configuration patterns:
+
+- **Plugin system** with lifecycle hooks and type-safe stores
+- **Configuration management** from multiple sources
+- **Long-running processes** with graceful shutdown
+- **Real-time operations** like log following
+- **Type-safe plugin context** for command access
+- **Advanced patterns** for production CLIs
+
+## Commands
+
+### `start` - Start Development Server
+```bash
+bun run cli.ts start --port 3000 --host localhost --watch --open
+```
+
+Starts a development server with hot reload:
+- Configurable port and host
+- File watching and hot reload
+- Browser auto-opening
+- Graceful shutdown handling
+- Plugin context access
+
+### `build` - Build for Production
+```bash
+bun run cli.ts build --output dist --minify --sourcemap --target node
+```
+
+Builds the project for production:
+- Multi-step progress indicators
+- Plugin metrics recording
+- Configuration access
+- Build optimization options
+
+### `env` - Environment Management
+```bash
+bun run cli.ts env --set API_KEY=abc123
+bun run cli.ts env --get API_KEY
+bun run cli.ts env --list
+```
+
+Manages environment variables:
+- Set, get, and list environment variables
+- File-based configuration
+- Plugin event recording
+- Conditional command flows
+
+### `logs` - View Server Logs
+```bash
+bun run cli.ts logs --follow --lines 100 --level info --service server
+```
+
+Views and follows server logs:
+- Real-time log streaming
+- Log filtering and formatting
+- Process signal handling
+- Service-specific filtering
+
+## Plugin System
+
+### Built-in Plugins
+```typescript
+import { configMergerPlugin } from '@bunli/plugin-config'
+import { aiAgentPlugin } from '@bunli/plugin-ai-detect'
+
+const cli = await createCLI({
+  plugins: [
+    configMergerPlugin({
+      sources: ['.devserverrc.json', 'devserver.config.json']
+    }),
+    aiAgentPlugin({ verbose: true })
+  ]
+})
+```
+
+### Custom Metrics Plugin
+```typescript
+// plugins/metrics.ts
+import { createPlugin } from '@bunli/core/plugin'
+
+interface MetricsStore {
+  metrics: {
+    events: Array<{
+      name: string
+      timestamp: Date
+      data: Record<string, any>
+    }>
+    recordEvent: (name: string, data?: Record<string, any>) => void
+    getEvents: (name?: string) => Array<{ name: string; timestamp: Date; data: Record<string, any> }>
+    clearEvents: () => void
+  }
+}
+
+export const metricsPlugin = createPlugin<MetricsStore>({
+  name: 'metrics',
+  store: {
+    metrics: {
+      events: [],
+      recordEvent(name: string, data: Record<string, any> = {}) {
+        this.events.push({
+          name,
+          timestamp: new Date(),
+          data
+        })
+        
+        // Keep only last 100 events to prevent memory leaks
+        if (this.events.length > 100) {
+          this.events = this.events.slice(-100)
+        }
+      },
+      getEvents(name?: string) {
+        if (name) {
+          return this.events.filter(event => event.name === name)
+        }
+        return [...this.events]
+      },
+      clearEvents() {
+        this.events = []
+      }
+    }
+  },
+  
+  beforeCommand({ store, flags }) {
+    // Record command start
+    store.metrics.recordEvent('command_started', {
+      command: flags._[0] || 'unknown',
+      timestamp: new Date().toISOString()
+    })
+  },
+  
+  afterCommand({ store, flags }) {
+    // Record command completion
+    store.metrics.recordEvent('command_completed', {
+      command: flags._[0] || 'unknown',
+      timestamp: new Date().toISOString()
+    })
+  },
+  
+  onError({ store, error, flags }) {
+    // Record command errors
+    store.metrics.recordEvent('command_error', {
+      command: flags._[0] || 'unknown',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    })
+  }
+})
+```
+
+## Key Features Demonstrated
+
+### 1. Plugin Context Access
+```typescript
+handler: async ({ flags, context, spinner, colors }) => {
+  const { port, host, watch, open } = flags
+  
+  spinner.start('Starting development server...')
+  
+  // Access plugin context
+  if (context?.store.metrics) {
+    context.store.metrics.recordEvent('server_started', { port, host })
+  }
+  
+  if (context?.store.config) {
+    console.log(colors.dim(`Config loaded: ${JSON.stringify(context.store.config, null, 2)}`))
+  }
+  
+  // Continue with server startup
+}
+```
+
+### 2. Long-running Processes
+```typescript
+handler: async ({ flags, colors, context }) => {
+  // Start server
+  console.log(colors.green(`Server started on http://${host}:${port}`))
+  
+  // Keep the process alive
+  process.on('SIGINT', () => {
+    console.log(colors.yellow('\nShutting down server...'))
+    
+    // Record shutdown event
+    if (context?.store.metrics) {
+      context.store.metrics.recordEvent('server_shutdown', {
+        timestamp: new Date().toISOString()
+      })
+    }
+    
+    process.exit(0)
+  })
+  
+  // Simulate server running
+  await new Promise(() => {}) // Never resolves
+}
+```
+
+### 3. Real-time Operations
+```typescript
+handler: async ({ flags, colors, context }) => {
+  const { follow, lines, level, service } = flags
+  
+  if (follow) {
+    console.log(colors.cyan('Following logs (Press Ctrl+C to stop)...'))
+    
+    // Simulate log streaming
+    const interval = setInterval(() => {
+      const timestamp = new Date().toISOString()
+      const logLevel = getRandomLogLevel()
+      const message = getRandomMessage()
+      
+      console.log(`${colors.dim(timestamp)} ${levelColor(logLevel)} ${message}`)
+    }, 1000)
+    
+    // Handle Ctrl+C
+    process.on('SIGINT', () => {
+      clearInterval(interval)
+      console.log(colors.yellow('\nStopped following logs'))
+      process.exit(0)
+    })
+  }
+}
+```
+
+### 4. Configuration Management
+```typescript
+// Configuration is loaded automatically by the config plugin
+// Access it through plugin context
+if (context?.store.config) {
+  const config = context.store.config
+  
+  // Use configuration values
+  const defaultPort = config.port || 3000
+  const defaultHost = config.host || 'localhost'
+  
+  console.log(colors.dim(`Using config: ${JSON.stringify(config, null, 2)}`))
+}
+```
+
+## Project Structure
+
+```
+dev-server/
+├── cli.ts              # Main CLI file
+├── commands/
+│   ├── start.ts        # Start development server
+│   ├── build.ts        # Build for production
+│   ├── env.ts          # Environment management
+│   └── logs.ts         # Log viewing and following
+├── plugins/
+│   └── metrics.ts      # Custom metrics plugin
+├── bunli.config.ts     # Build configuration
+├── package.json        # Dependencies and scripts
+└── README.md          # Example documentation
+```
+
+## Running the Example
+
+```bash
+# Navigate to the example
+cd examples/dev-server
+
+# Install dependencies
+bun install
+
+# Run in development mode
+bun run dev
+
+# Try the commands
+bun run cli.ts start --port 3000 --watch
+bun run cli.ts build --minify --sourcemap
+bun run cli.ts env --set DEBUG=true
+bun run cli.ts logs --follow
+```
+
+## Plugin System Deep Dive
+
+### 1. Plugin Lifecycle Hooks
+```typescript
+export const myPlugin = createPlugin({
+  name: 'my-plugin',
+  store: { count: 0 },
+  
+  // Called before any command runs
+  beforeCommand({ store, flags }) {
+    store.count++
+    console.log(`Command ${flags._[0]} starting...`)
+  },
+  
+  // Called after command completes successfully
+  afterCommand({ store, flags }) {
+    console.log(`Command ${flags._[0]} completed`)
+  },
+  
+  // Called when command throws an error
+  onError({ store, error, flags }) {
+    console.error(`Command ${flags._[0]} failed:`, error.message)
+  }
+})
+```
+
+### 2. Type-safe Plugin Stores
+```typescript
+interface MyStore {
+  data: {
+    users: string[]
+    settings: Record<string, any>
+  }
+  addUser: (user: string) => void
+  getSettings: () => Record<string, any>
+}
+
+export const myPlugin = createPlugin<MyStore>({
+  name: 'my-plugin',
+  store: {
+    data: {
+      users: [],
+      settings: {}
+    },
+    addUser(user: string) {
+      this.data.users.push(user)
+    },
+    getSettings() {
+      return this.data.settings
+    }
+  }
+})
+```
+
+### 3. Plugin Configuration
+```typescript
+// Plugin with configuration
+export const configurablePlugin = createPlugin({
+  name: 'configurable',
+  store: { enabled: false },
+  
+  // Plugin can accept configuration
+  configure(config: { enabled: boolean }) {
+    this.store.enabled = config.enabled
+  }
+})
+
+// Use with configuration
+const cli = await createCLI({
+  plugins: [
+    configurablePlugin.configure({ enabled: true })
+  ]
+})
+```
+
+## Configuration Management
+
+### 1. Multiple Configuration Sources
+```typescript
+import { configMergerPlugin } from '@bunli/plugin-config'
+
+const cli = await createCLI({
+  plugins: [
+    configMergerPlugin({
+      sources: [
+        '.devserverrc.json',      // Project-specific config
+        'devserver.config.json',  // Alternative config file
+        'package.json'            // Package.json config section
+      ]
+    })
+  ]
+})
+```
+
+### 2. Configuration Access
+```typescript
+// Access configuration in commands
+handler: async ({ context, colors }) => {
+  if (context?.store.config) {
+    const config = context.store.config
+    
+    // Use configuration values
+    const port = config.port || 3000
+    const host = config.host || 'localhost'
+    
+    console.log(colors.dim(`Config: ${JSON.stringify(config, null, 2)}`))
+  }
+}
+```
+
+## Key Takeaways
+
+1. **Plugin System**: Extensible architecture with lifecycle hooks
+2. **Type Safety**: Full TypeScript support for plugin stores
+3. **Configuration**: Multi-source configuration management
+4. **Long-running Processes**: Server management with graceful shutdown
+5. **Real-time Operations**: Log following and live updates
+6. **Production Patterns**: Advanced patterns for complex CLIs
+
+## Next Steps
+
+- **[Plugin System Guide](/docs/guides/plugin-system)** - Deep dive into plugins
+- **[Configuration Management](/docs/guides/configuration)** - Advanced config patterns
+- **[Long-running Processes](/docs/guides/long-running)** - Server and daemon patterns
+- **[Real-time CLI](/docs/guides/real-time)** - Live updates and streaming

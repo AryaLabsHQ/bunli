@@ -10,6 +10,9 @@
   "scripts": {
     "build": "turbo run build --filter='./packages/*'",
     "typecheck": "turbo run typecheck --filter='./packages/*'",
+    "examples:generate": "turbo run generate --filter='@bunli-examples/*'",
+    "examples:typecheck": "turbo run typecheck --filter='@bunli-examples/*'",
+    "examples:build": "turbo run build --filter='@bunli-examples/*'",
     "clean": "bun scripts/clean.ts",
     "test": "bun test",
     "dev": "bun scripts/dev.ts",
@@ -17,7 +20,7 @@
   },
   "devDependencies": {
     "@types/bun": "latest",
-    "turbo": "^2.5.4",
+    "turbo": "^2.5.8",
     "typescript": "^5.8.0"
   },
   "packageManager": "bun@1.2.2"

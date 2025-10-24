@@ -5,23 +5,75 @@ description: Real-world examples of CLIs built with Bunli
 
 # Examples
 
-Learn by example with these real-world CLI implementations.
+Learn by example with these real-world CLI implementations, organized from simple to advanced.
 
-## Basic Examples
+## Learning Path
 
-- **[Minimal CLI](/docs/examples/minimal)** - The simplest possible CLI
-- **[Multi-Command](/docs/examples/multi-command)** - CLI with multiple commands
-- **[Interactive](/docs/examples/interactive)** - Using prompts and spinners
+Follow this progression to master Bunli:
 
-## Real-World Examples
-
-- **[Real-World CLI](/docs/examples/real-world)** - Complete production example
+1. **[Hello World](/docs/examples/hello-world)** - Absolute basics (5 min)
+2. **[Task Runner](/docs/examples/task-runner)** - Validation and interactivity (15 min)
+3. **[Git Tool](/docs/examples/git-tool)** - Command structure and organization (15 min)
+4. **[Dev Server](/docs/examples/dev-server)** - Plugins and advanced patterns (20 min)
 
 ## Example Projects
 
 Check out these complete example projects in the [Bunli repository](https://github.com/AryaLabsHQ/bunli/tree/main/examples):
 
-- **todo-cli** - Task management CLI
-- **deploy-tool** - Deployment automation
-- **dev-server** - Development server with hot reload
-- **git-tools** - Git workflow automation
+### hello-world
+The simplest possible Bunli CLI with a single command. Perfect starting point to understand the basics.
+- Basic command definition
+- Simple flag handling
+- Minimal configuration
+- Type generation for enhanced DX
+
+### task-runner
+A practical task automation CLI showcasing validation and interactivity patterns.
+- Schema validation with Zod
+- Interactive prompts and confirmations
+- Progress indicators and spinners
+- Build, test, deploy, and setup workflows
+
+### git-tool
+A Git workflow helper demonstrating command organization and external tool integration.
+- Nested command structure
+- Command aliases
+- Integration with external tools (git)
+- Shell command execution
+
+### dev-server
+A development server CLI showcasing advanced plugin system and configuration management.
+- Plugin system with lifecycle hooks
+- Type-safe plugin context
+- Configuration management
+- Long-running processes
+
+## Getting Started
+
+Each example demonstrates the recommended Bunli development workflow:
+
+```bash
+# Navigate to an example
+cd examples/hello-world
+
+# Install dependencies
+bun install
+
+# Start development with hot reload
+bun run dev
+
+# Build for production
+bun run build
+
+# Run the built executable
+bun run start
+```
+
+## Key Features Demonstrated
+
+- **Type Generation**: Automatic TypeScript definitions for commands
+- **Schema Validation**: Type-safe options with runtime validation
+- **Interactive Prompts**: User-friendly CLI experiences
+- **Plugin System**: Extensible architecture with type safety
+- **Command Organization**: Scalable multi-command structure
+- **External Integration**: Working with git, build tools, and more

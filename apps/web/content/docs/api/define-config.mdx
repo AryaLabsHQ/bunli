@@ -52,6 +52,14 @@ interface BunliConfig {
     port?: number
   }
   
+  // Code generation configuration
+  codegen?: {
+    enabled?: boolean
+    commandsDir?: string
+    output?: string
+    watch?: boolean
+  }
+  
   // Test configuration
   test?: {
     pattern?: string | string[]
@@ -133,6 +141,19 @@ export default defineConfig({
   test: {
     pattern: ['**/*.test.ts', '**/*.spec.ts'],
     coverage: true
+  }
+})
+```
+
+### With Code Generation
+
+```typescript
+export default defineConfig({
+  name: 'my-cli',
+  version: '1.0.0',
+  build: {
+    entry: './src/cli.ts',
+    outdir: './dist'
   }
 })
 ```
@@ -262,7 +283,7 @@ The `bunli` CLI looks for config files in this order:
 You can also load config programmatically:
 
 ```typescript
-import { loadConfig } from 'bunli'
+import { loadConfig } from '@bunli/core'
 
 const config = await loadConfig()
 ```

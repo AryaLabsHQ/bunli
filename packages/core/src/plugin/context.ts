@@ -70,6 +70,35 @@ export class CommandContext<TStore = {}> implements ICommandContext<TStore> {
   ) {
     this.store = initialStore
   }
+  
+  /**
+   * Type-safe store value access
+   * Provides compile-time type checking for store properties
+   */
+  getStoreValue<K extends keyof TStore>(key: K): TStore[K]
+  getStoreValue(key: string | number | symbol): any
+  getStoreValue(key: keyof TStore | string | number | symbol): any {
+    return (this.store as any)[key]
+  }
+  
+  /**
+   * Type-safe store value update
+   * Provides compile-time type checking for store property updates
+   */
+  setStoreValue<K extends keyof TStore>(key: K, value: TStore[K]): void
+  setStoreValue(key: string | number | symbol, value: any): void
+  setStoreValue(key: keyof TStore | string | number | symbol, value: any): void {
+    (this.store as any)[key] = value
+  }
+  
+  /**
+   * Check if a store property exists
+   */
+  hasStoreValue<K extends keyof TStore>(key: K): boolean
+  hasStoreValue(key: string | number | symbol): boolean
+  hasStoreValue(key: keyof TStore | string | number | symbol): boolean {
+    return key in (this.store as object)
+  }
 }
 
 /**
@@ -82,6 +111,6 @@ export function createEnvironmentInfo(): EnvironmentInfo {
           process.env.GITHUB_ACTIONS === 'true' ||
           process.env.GITLAB_CI === 'true' ||
           process.env.CIRCLECI === 'true' ||
-          process.env.JENKINS_URL !== undefined,
+          process.env.JENKINS_URL !== undefined
   }
 }

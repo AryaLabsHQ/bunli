@@ -43,11 +43,11 @@ export default defineCommand({
   handler: async ({ flags, positional, spinner, colors }) => {
     const config = await loadConfig()
 
-    // 1. Initialize generator if codegen is enabled
-    if (flags.generate && config.codegen?.enabled !== false) {
+    // 1. Initialize generator if codegen is enabled (always enabled)
+    if (flags.generate) {
       const generator = new Generator({
         commandsDir: flags.commandsDir,
-        outputFile: config.codegen?.output || './commands.gen.ts',
+        outputFile: './.bunli/commands.gen.ts',
         config
       })
 
@@ -89,7 +89,7 @@ export default defineCommand({
         plugins: flags.generate ? [
           bunliCodegenPlugin({
             commandsDir: flags.commandsDir,
-            outputFile: config.codegen?.output || './commands.gen.ts',
+            outputFile: './.bunli/commands.gen.ts',
             config
           })
         ] : []

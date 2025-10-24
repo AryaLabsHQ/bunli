@@ -5,224 +5,163 @@ description: How Bunli provides automatic type inference for your CLI
 
 # Type Inference
 
-Bunli provides excellent TypeScript support with automatic type inference throughout your CLI application.
+Bunli provides automatic type inference through a unified type system that combines runtime validation with compile-time type safety. By using `as const` on command names and leveraging module augmentation, you get full type safety with zero manual type annotations.
 
 ## How It Works
 
-When you define commands with options, Bunli automatically infers the types from your schema definitions. This means you get full type safety and autocomplete without manual type annotations.
+Bunli uses a revolutionary approach that combines:
 
-## Basic Type Inference
+1. **Module Augmentation** - Generated types automatically extend the core type system
+2. **Command Name Literals** - Using `as const` enables automatic type inference
+3. **Standard Schema Integration** - Built-in type extraction from validation schemas
+4. **Zero Manual Annotations** - Handlers are automatically typed based on command names
 
-```typescript
-import { defineCommand, option } from '@bunli/core'
-import { z } from 'zod'
+## The Magic: Automatic Type Inference
 
-export default defineCommand({
-  name: 'serve',
-  options: {
-    port: option(z.number().default(3000)),
-    host: option(z.string().default('localhost')),
-    ssl: option(z.boolean().optional())
-  },
-  handler: async ({ flags }) => {
-    // TypeScript knows:
-    // flags.port is number
-    // flags.host is string  
-    // flags.ssl is boolean | undefined
-    
-    console.log(`Starting server on ${flags.host}:${flags.port}`)
-  }
-})
-```
-
-## Advanced Type Inference
-
-### Enum Types
+When you define a command with `as const`, the handler automatically gets the correct types:
 
 ```typescript
 export default defineCommand({
+  name: 'deploy' as const, // ← REQUIRED: 'as const' enables type inference
+  description: 'Deploy the application',
   options: {
-    env: option(z.enum(['dev', 'staging', 'prod']))
-  },
-  handler: async ({ flags }) => {
-    // flags.env is typed as 'dev' | 'staging' | 'prod'
-    switch (flags.env) {
-      case 'dev':     // ✅ Autocompleted
-      case 'staging': // ✅ Autocompleted
-      case 'prod':    // ✅ Autocompleted
-    }
-  }
-})
-```
-
-### Complex Object Types
-
-```typescript
-const configSchema = z.object({
-  name: z.string(),
-  port: z.number(),
-  features: z.array(z.string())
-})
-
-export default defineCommand({
-  options: {
-    config: option(configSchema)
-  },
-  handler: async ({ flags }) => {
-    // flags.config is fully typed
-    flags.config.name     // string
-    flags.config.port     // number
-    flags.config.features // string[]
-  }
-})
-```
-
-### Union Types
-
-```typescript
-export default defineCommand({
-  options: {
-    output: option(
-      z.union([
-        z.literal('json'),
-        z.literal('yaml'),
-        z.literal('table')
-      ])
-    )
-  },
-  handler: async ({ flags }) => {
-    // flags.output is 'json' | 'yaml' | 'table'
-    if (flags.output === 'json') {
-      // TypeScript knows output is 'json' here
-    }
-  }
-})
-```
-
-## Handler Context Types
-
-The handler receives a fully typed context object:
-
-```typescript
-export default defineCommand({
-  options: {
-    verbose: option(z.boolean())
-  },
-  handler: async (context) => {
-    // All properties are typed:
-    context.flags       // { verbose: boolean }
-    context.positional  // string[]
-    context.shell       // Bun Shell ($)
-    context.env         // process.env
-    context.cwd         // string
-    context.prompt      // Prompt utilities
-    context.spinner     // Spinner utility
-    context.colors      // Color utilities
-  }
-})
-```
-
-## Generic Type Constraints
-
-Bunli uses TypeScript generics to flow types through your application:
-
-```typescript
-import type { Command } from '@bunli/core'
-
-// The Command type is generic over your options
-function processCommand<T extends Options>(
-  cmd: Command<T>
-): void {
-  // Type information is preserved
-}
-```
-
-## Type Inference with Multiple Schemas
-
-Bunli works with any Standard Schema compatible validation library:
-
-```typescript
-import { z } from 'zod'
-import * as v from 'valibot'
-import { Type } from '@sinclair/typebox'
-
-export default defineCommand({
-  options: {
-    // Zod
-    name: option(z.string()),
-    
-    // Valibot
-    age: option(v.number([v.minValue(0)])),
-    
-    // TypeBox
-    email: option(Type.String({ format: 'email' }))
-  },
-  handler: async ({ flags }) => {
-    // All types are correctly inferred
-    flags.name  // string
-    flags.age   // number
-    flags.email // string
-  }
-})
-```
-
-## Nested Command Types
-
-Type inference works seamlessly with nested commands:
-
-```typescript
-const dbCommand = defineCommand({
-  name: 'db',
-  commands: [
-    defineCommand({
-      name: 'migrate',
-      options: {
-        direction: option(z.enum(['up', 'down']))
-      },
-      handler: async ({ flags }) => {
-        // flags.direction is 'up' | 'down'
-      }
+    env: option(z.enum(['dev', 'staging', 'prod']), {
+      description: 'Environment to deploy to'
+    }),
+    dryRun: option(z.boolean().default(false), {
+      description: 'Run without making changes'
     })
-  ]
+  },
+  
+  // ✨ NO TYPE ANNOTATION NEEDED! ✨
+  // flags is automatically typed as { env: 'dev' | 'staging' | 'prod', dryRun: boolean }
+  handler: async ({ flags }) => {
+    console.log(`Deploying to ${flags.env}`) // ← Full autocomplete!
+    if (flags.dryRun) {
+      console.log('Dry run mode')
+    }
+  }
 })
 ```
 
-## Best Practices
+## Requirements
 
-1. **Let TypeScript Infer**: Don't manually annotate types that can be inferred
-2. **Use Const Assertions**: For literal types, use `as const`
-3. **Leverage Autocomplete**: Your IDE will provide suggestions based on inferred types
-4. **Type Narrowing**: Use TypeScript's type guards for runtime checks
+To use Bunli's automatic type inference, you need:
 
-## Troubleshooting
+1. **`as const` Required** - Command names MUST use `as const` for type inference
+2. **Generated File Required** - `.bunli/commands.gen.ts` must be in `tsconfig.json`
+3. **Type Generation Required** - Codegen must be enabled
+4. **No Manual Annotations** - Handler type annotations are automatic
 
-### Types Not Inferring?
+## Command Definition Pattern
 
-Make sure your `tsconfig.json` has:
-
-```json
-{
-  "compilerOptions": {
-    "strict": true,
-    "moduleResolution": "bundler"
+### Correct Pattern
+```typescript
+export default defineCommand({
+  name: 'deploy' as const, // ✅ 'as const' required
+  options: { ... },
+  handler: async ({ flags }) => { // ✅ No annotation needed!
+    // flags is automatically typed!
   }
-}
+})
 ```
 
-### Generic Type Issues
+### Incorrect Pattern
+```typescript
+export default defineCommand({
+  name: 'deploy', // ❌ No 'as const' - no type inference
+  options: { ... },
+  handler: async ({ flags }: { flags: { env: string } }) => { // ❌ Manual annotation not needed
+    // ...
+  }
+})
+```
 
-If you're passing commands between functions, preserve the generic type:
+## Type-Safe Command Execution
+
+With generated types, you can execute commands programmatically with full type safety:
 
 ```typescript
-function wrapCommand<T extends Options>(
-  cmd: Command<T>
-): Command<T> {
-  return cmd
+import { createCLI } from '@bunli/core'
+
+const cli = await createCLI(config)
+
+// ✅ Fully type-safe!
+await cli.execute('deploy', {
+  env: 'production', // ← Autocomplete: 'dev' | 'staging' | 'prod'
+  dryRun: true       // ← Type: boolean
+})
+
+// ❌ Type errors!
+await cli.execute('deploy', {
+  env: 'invalid',  // ❌ Error: Type '"invalid"' is not assignable
+  dryRun: 'yes'    // ❌ Error: Type 'string' is not assignable to type 'boolean'
+})
+```
+
+## Command Discovery
+
+Generated types provide helper functions for type-safe command discovery:
+
+```typescript
+import { listCommands, getCommandApi, hasCommand } from './commands.gen'
+
+// List all commands
+const commands = listCommands()
+console.log(`Total commands: ${commands.length}`)
+
+// Type-safe command lookup
+if (hasCommand('deploy')) {
+  const deployApi = getCommandApi('deploy')
+  // deployApi is fully typed!
 }
 ```
+
+## Advanced Type Utilities
+
+Bunli exports advanced TypeScript type utilities for complex type manipulation:
+
+```typescript
+import { 
+  UnionToIntersection, 
+  MergeAll, 
+  Expand,
+  DeepPartial,
+  Constrain
+} from '@bunli/core'
+
+// Get all command options as a union
+type AllCommandOptions = UnionToIntersection<
+  ReturnType<typeof getCommandApi>[keyof CommandRegistry]['options']
+>
+
+// Merge all command metadata
+type AllCommands = MergeAll<
+  Array<{ name: string; description: string }>
+>
+```
+
+## Configuration
+
+Enable type generation in your `bunli.config.ts`:
+
+```typescript
+export default defineConfig({
+  name: 'my-cli',
+  version: '1.0.0',
+})
+```
+
+## Generated File Structure
+
+The `.bunli/commands.gen.ts` file contains:
+
+- `CommandsByName` interface - Maps command names to their definitions
+- `RegisteredCommands` module augmentation - Extends @bunli/core types
+- Helper functions - `getCommandApi`, `listCommands`, `hasCommand`
+- Runtime registry - For command discovery
 
 ## See Also
 
-- [Commands](/docs/core-concepts/commands) - Learn about defining commands
-- [Validation](/docs/core-concepts/validation) - Schema validation with Standard Schema
-- [API Reference](/docs/api) - Complete API documentation
+- [Type Generation Guide](/docs/guides/type-generation) - Complete guide to code generation
+- [Configuration](/docs/core-concepts/configuration) - Configure type generation

@@ -4,6 +4,7 @@
     "index",
     "building-your-first-cli",
     "schema-validation",
+    "type-generation",
     "interactive-prompts",
     "testing",
     "distribution"

@@ -4,41 +4,36 @@ This directory contains example Bunli CLI applications demonstrating various fea
 
 ## Examples Overview
 
-### minimal
-The simplest possible Bunli CLI with a single command. Great starting point to understand the basics.
+### hello-world
+The absolute simplest possible Bunli CLI with a single command. Perfect starting point to understand the basics.
 - Basic command definition
 - Simple flag handling
 - Minimal configuration
+- Type generation for enhanced DX
 
-### schema-validation
-Examples showcasing Bunli's schema-driven validation using Standard Schema compatible libraries.
-- Type-safe options with runtime validation
-- Integration with Zod, Valibot, and other validation libraries
-- Custom validation rules and error messages
-- Coercion and transformation
-
-### command-structure
-Demonstrates how to organize multi-command CLIs with proper structure.
-- Command manifests for lazy loading
-- Nested commands (e.g., `git branch`, `git commit`)
-- Command aliases
-- Modular command organization
-
-### interactive
-Shows how to build interactive CLI experiences using Bunli's prompt utilities.
-- Interactive wizards and setup flows
-- Multi-step processes with validation
-- Various prompt types (text, select, multiselect, confirm)
-- Dynamic prompts based on previous answers
-
-### real-world
-A complete, production-ready CLI application demonstrating best practices.
-- Full project structure with configuration
-- Complex commands with multiple options
-- Integration with external tools (git, docker)
+### task-runner
+A practical task automation CLI showcasing validation and interactivity patterns.
+- Schema validation with Zod
+- Interactive prompts and confirmations
 - Progress indicators and spinners
-- Error handling and recovery
-- Build configuration for distribution
+- Build, test, deploy, and setup workflows
+- Conditional flows based on options
+
+### git-tool
+A Git workflow helper demonstrating command organization and external tool integration.
+- Nested command structure
+- Command aliases
+- Integration with external tools (git)
+- Shell command execution
+- Colored output for status
+
+### dev-server
+A development server CLI showcasing advanced plugin system and configuration management.
+- Plugin system with lifecycle hooks
+- Type-safe plugin context
+- Configuration management
+- Long-running processes
+- Real-time updates and log following
 
 ## Getting Started
 
@@ -46,10 +41,13 @@ Each example demonstrates the recommended Bunli development workflow:
 
 ```bash
 # Navigate to an example
-cd minimal
+cd hello-world
 
 # Install dependencies (includes bunli CLI)
 bun install
+
+# Generate types (creates .bunli/commands.gen.ts)
+bun run generate
 
 # Start development with hot reload
 bun run dev
@@ -58,24 +56,30 @@ bun run dev
 bun run build
 
 # Run the built executable
-./dist/cli
+bun run start
 
 # Or run directly (without hot reload)
 bun cli.ts
 ```
 
 All examples include:
-- `bunli.config.ts` - Configuration for building and development
+- `bunli.config.ts` - Configuration with required `commands.directory`
+- `commands/` directory - All command definitions (REQUIRED structure)
+- `.bunli/commands.gen.ts` - Generated TypeScript definitions (auto-created)
 - Development scripts using `bunli dev` for hot reload
 - Build scripts using `bunli build` for production
+- Type generation for enhanced developer experience
 
 ## Progression Path
 
-1. Start with **minimal** to understand basic concepts
-2. Move to **schema-validation** to learn about type-safe options
-3. Explore **command-structure** for multi-command CLIs
-4. Try **interactive** for user-friendly interfaces
-5. Study **real-world** for production patterns
+Follow this learning path to master Bunli:
+
+1. **hello-world** (5 min) - Learn the absolute basics
+2. **task-runner** (15 min) - Validation and interactivity
+3. **git-tool** (15 min) - Command structure and organization
+4. **dev-server** (20 min) - Plugins and advanced patterns
+
+Each example builds on the previous concepts and introduces new patterns.
 
 ## Key Concepts
 
@@ -97,15 +101,15 @@ export default defineCommand({
 ```
 
 ### Command Organization
-For larger CLIs, use command manifests with lazy loading:
+For larger CLIs, organize commands in a clear structure:
 
 ```typescript
 // commands/index.ts
-export default {
-  serve: () => import('./serve'),
-  build: () => import('./build'),
-  deploy: () => import('./deploy')
-}
+export const commands = [
+  buildCommand,
+  testCommand,
+  deployCommand
+]
 ```
 
 ### Interactive Prompts
@@ -115,6 +119,21 @@ Create engaging CLI experiences with built-in prompts:
 const name = await prompt.text('What is your name?')
 const color = await prompt.select('Favorite color?', ['red', 'green', 'blue'])
 const confirmed = await prompt.confirm('Continue?')
+```
+
+### Plugin System
+Extend functionality with type-safe plugins:
+
+```typescript
+import { createPlugin } from '@bunli/core/plugin'
+
+export const myPlugin = createPlugin({
+  name: 'my-plugin',
+  store: { count: 0 },
+  beforeCommand({ store }) {
+    store.count++
+  }
+})
 ```
 
 ## Building for Distribution
@@ -130,11 +149,21 @@ export default defineConfig({
   version: '1.0.0',
   description: 'My awesome CLI',
   
+  // REQUIRED: commands directory
+  commands: {
+    directory: './commands'
+  },
+  
+  // REQUIRED: plugins array (can be empty)
+  plugins: [],
+  
   build: {
     entry: './cli.ts',
     outdir: './dist',
-    targets: ['native'],     // or specific platforms
-    minify: true
+    targets: ['native'],  // Default target
+    compress: false,      // Default: false
+    minify: false,        // Default: false
+    sourcemap: true       // Default: true
   },
   
   dev: {

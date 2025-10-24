@@ -1,0 +1,22 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./",
+    "baseUrl": "./",
+    "allowImportingTsExtensions": false,
+    "paths": {
+      "@/*": ["./*"],
+      "./.bunli/commands.gen": ["./.bunli/commands.gen.ts"]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".bunli/commands.gen.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
+}

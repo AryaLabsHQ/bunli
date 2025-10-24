@@ -56,13 +56,13 @@ export default defineCommand({
   handler: async ({ flags, spinner, colors }) => {
     const config = await loadConfig()
     
-    // 1. Run codegen before build if enabled
-    if (config.codegen?.enabled !== false) {
+    // 1. Run codegen before build (always enabled)
+    {
       const spin = spinner('Generating types...')
       try {
         const generator = new Generator({
-          commandsDir: config.codegen?.commandsDir || 'commands',
-          outputFile: config.codegen?.output || './commands.gen.ts',
+          commandsDir: config.commands?.directory || 'commands',
+          outputFile: './.bunli/commands.gen.ts',
           config
         })
         await generator.run()
@@ -191,14 +191,14 @@ export default defineCommand({
           minify: flags.minify ?? config.build?.minify ?? true,
           sourcemap: flags.sourcemap ?? config.build?.sourcemap ?? false,
           external: config.build?.external || [],
-          // Add codegen plugin for automatic type generation
-          plugins: config.codegen?.enabled !== false ? [
+          // Add codegen plugin for automatic type generation (always enabled)
+          plugins: [
             bunliCodegenPlugin({
-              commandsDir: config.codegen?.commandsDir || 'commands',
-              outputFile: config.codegen?.output || './commands.gen.ts',
+              commandsDir: config.commands?.directory || 'commands',
+              outputFile: './.bunli/commands.gen.ts',
               config
             })
-          ] : []
+          ]
         }
         
         const result = await Bun.build(buildOptions)
