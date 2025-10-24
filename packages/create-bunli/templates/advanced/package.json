@@ -9,6 +9,7 @@
     "{{projectName}}": "./dist/index.js"
   },
   "scripts": {
+    "postinstall": "bunli generate",
     "dev": "bun run src/index.ts",
     "build": "bunli build",
     "test": "bun test",

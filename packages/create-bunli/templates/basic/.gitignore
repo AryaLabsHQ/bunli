@@ -28,6 +28,14 @@ yarn-error.log*
 coverage/
 .nyc_output/
 
+# Cache
+.cache/
+.temp/
+
+# OS
+.DS_Store
+Thumbs.db
+
 # Misc
 *.tmp
 *.temp
