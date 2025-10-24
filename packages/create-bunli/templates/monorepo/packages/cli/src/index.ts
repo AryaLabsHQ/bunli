@@ -3,7 +3,7 @@ import { createCLI } from '@bunli/core'
 import { logger } from '@{{projectName}}/utils'
 import { processCommand, analyzeCommand } from '@{{projectName}}/core'
 
-const cli = createCLI({
+const cli = await createCLI({
   name: '{{projectName}}',
   version: '0.1.0',
   description: '{{description}}'

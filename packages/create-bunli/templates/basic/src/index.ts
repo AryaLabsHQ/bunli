@@ -2,7 +2,7 @@
 import { createCLI } from '@bunli/core'
 import { helloCommand } from './commands/hello.js'
 
-const cli = createCLI({
+const cli = await createCLI({
   name: '{{projectName}}',
   version: '0.1.0',
   description: '{{description}}'

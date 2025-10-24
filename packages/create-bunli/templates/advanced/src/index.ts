@@ -6,7 +6,7 @@ import { serveCommand } from './commands/serve.js'
 import { configCommand } from './commands/config.js'
 import { loadConfig } from './utils/config.js'
 
-const cli = createCLI({
+const cli = await createCLI({
   name: '{{projectName}}',
   version: '0.1.0',
   description: '{{description}}'
