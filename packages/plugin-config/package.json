@@ -3,7 +3,12 @@
   "version": "0.2.0",
   "type": "module",
   "description": "Config merger plugin for Bunli - loads config from multiple sources",
-  "keywords": ["bunli", "cli", "plugin", "config"],
+  "keywords": [
+    "bunli",
+    "cli",
+    "plugin",
+    "config"
+  ],
   "author": "Bunli Team",
   "license": "MIT",
   "main": "./src/index.ts",
