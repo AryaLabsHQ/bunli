@@ -105,9 +105,11 @@ export const aiAgentPlugin = createPlugin<AIDetectPluginOptions, AIDetectStore>(
         context.env.aiAgents = detectedAgents
         
         // Use type-safe store - TypeScript knows the exact types!
-        context.store.isAIAgent = true
-        context.store.aiAgents = detectedAgents
-        context.store.aiAgentEnvVars = allDetectedEnvVars
+        if (context.store) {
+          context.store.isAIAgent = true
+          context.store.aiAgents = detectedAgents
+          context.store.aiAgentEnvVars = allDetectedEnvVars
+        }
         
         if (options.verbose) {
           if (detectedAgents.length === 1) {
@@ -118,9 +120,11 @@ export const aiAgentPlugin = createPlugin<AIDetectPluginOptions, AIDetectStore>(
         }
       } else {
         // Ensure fields are initialized even when no AI agent detected
-        context.store.isAIAgent = false
-        context.store.aiAgents = []
-        context.store.aiAgentEnvVars = []
+        if (context.store) {
+          context.store.isAIAgent = false
+          context.store.aiAgents = []
+          context.store.aiAgentEnvVars = []
+        }
       }
     }
   }

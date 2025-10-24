@@ -32,7 +32,12 @@ test('bunliConfigSchema - validates valid config', () => {
   }
   
   const result = bunliConfigSchema.parse(config)
-  expect(result).toEqual(config)
+  expect(result.name).toBe('test-cli')
+  expect(result.version).toBe('1.0.0')
+  expect(result.build?.entry).toBe('src/cli.ts')
+  expect(result.build?.minify).toBe(true)
+  expect(result.build?.outdir).toBe('./dist')
+  expect(result.dev?.watch).toBe(true)
 })
 
 test('bunliConfigSchema - handles partial build config', () => {
@@ -51,13 +56,15 @@ test('bunliConfigSchema - handles partial build config', () => {
 
 test('loadConfig - returns default config when no file found', async () => {
   const config = await loadConfig('/tmp/nonexistent')
-  expect(config).toEqual({
-    build: {},
-    dev: {},
-    test: {},
-    workspace: {},
-    release: {}
-  })
+  expect(config.build).toBeDefined()
+  expect(config.dev).toBeDefined()
+  expect(config.test).toBeDefined()
+  expect(config.workspace).toBeDefined()
+  expect(config.release).toBeDefined()
+  expect(config.build?.compress).toBe(false)
+  expect(config.build?.minify).toBe(false)
+  expect(config.build?.sourcemap).toBe(true)
+  expect(config.build?.targets).toEqual(['native'])
 })
 
 test('loadConfig - loads config from file', async () => {

@@ -66,7 +66,8 @@ export default defineCommand({
     await Bun.write(join(testDir, 'test-command.ts'), testCommandContent)
 
     const commandFile = join(testDir, 'test-command.ts')
-    const metadata = await parseCommand(commandFile, testDir)
+    const outputFile = join(testDir, 'commands.gen.ts')
+    const metadata = await parseCommand(commandFile, testDir, outputFile)
     
     expect(metadata).toBeTruthy()
     expect(metadata?.name).toBe('test-command')
@@ -87,7 +88,7 @@ export default defineCommand({
     ]
 
     const types = buildTypes(mockCommands as any)
-    expect(types).toContain('const modules = {')
+    expect(types).toContain('const modules: Record<GeneratedNames, Command<any>> = {')
     expect(types).toContain("'test-command'")
     expect(types).toContain('declare module \'@bunli/core\'')
   })
@@ -126,7 +127,7 @@ export default defineCommand({
 
     // Check that output file was created
     const output = await Bun.file(outputFile).text()
-    expect(output).toContain('const modules = {')
+    expect(output).toContain('const modules: Record<GeneratedNames, Command<any>> = {')
     expect(output).toContain("'test-command'")
     expect(output).toContain('name: \'test-command\'')
     expect(output).toContain('description: \'A test command\'')

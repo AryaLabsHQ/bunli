@@ -17,7 +17,7 @@ function getCommandName(filePath: string, commandsDir: string): string {
 }
 
 function toAbsolute(target: string): string {
-  return path.isAbsolute(target) ? target : path.join(process.cwd(), target)
+  return path.isAbsolute(target) ? target : path.join(process.cwd() || '.', target)
 }
 
 function getImportPath(filePath: string, outputFile: string): string {
