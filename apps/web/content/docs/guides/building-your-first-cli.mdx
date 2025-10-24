@@ -34,10 +34,11 @@ Your new project has this structure:
 
 ```
 todo-cli/
-├── src/
-│   ├── index.ts          # CLI entry point
-│   └── commands/         # Command definitions
-│       └── hello.ts      # Example command
+├── cli.ts                # CLI entry point
+├── commands/             # Command definitions (REQUIRED)
+│   └── hello.ts          # Example command
+├── .bunli/              # Generated files (auto-created)
+│   └── commands.gen.ts   # Generated TypeScript types
 ├── package.json
 ├── tsconfig.json
 ├── bunli.config.ts       # Bunli configuration
@@ -329,7 +330,7 @@ Enable type generation for enhanced developer experience:
 
 ```typescript
 // bunli.config.ts
-import { defineConfig } from 'bunli'
+import { defineConfig } from '@bunli/core'
 
 export default defineConfig({
   name: 'todo',
@@ -371,7 +372,7 @@ console.log(addApi.options) // { task: {...}, priority: {...}, due: {...} }
 Customize your CLI behavior with `bunli.config.ts`:
 
 ```typescript
-import { defineConfig } from 'bunli'
+import { defineConfig } from '@bunli/core'
 
 export default defineConfig({
   name: 'todo',

@@ -46,6 +46,9 @@ cd hello-world
 # Install dependencies (includes bunli CLI)
 bun install
 
+# Generate types (creates .bunli/commands.gen.ts)
+bun run generate
+
 # Start development with hot reload
 bun run dev
 
@@ -60,8 +63,9 @@ bun cli.ts
 ```
 
 All examples include:
-- `bunli.config.ts` - Configuration for building and development
-- `commands.gen.ts` - Generated TypeScript definitions (auto-created)
+- `bunli.config.ts` - Configuration with required `commands.directory`
+- `commands/` directory - All command definitions (REQUIRED structure)
+- `.bunli/commands.gen.ts` - Generated TypeScript definitions (auto-created)
 - Development scripts using `bunli dev` for hot reload
 - Build scripts using `bunli build` for production
 - Type generation for enhanced developer experience
@@ -145,11 +149,21 @@ export default defineConfig({
   version: '1.0.0',
   description: 'My awesome CLI',
   
+  // REQUIRED: commands directory
+  commands: {
+    directory: './commands'
+  },
+  
+  // REQUIRED: plugins array (can be empty)
+  plugins: [],
+  
   build: {
     entry: './cli.ts',
     outdir: './dist',
-    targets: ['node16', 'bun'],
-    compress: true
+    targets: ['native'],  // Default target
+    compress: false,      // Default: false
+    minify: false,        // Default: false
+    sourcemap: true       // Default: true
   },
   
   dev: {

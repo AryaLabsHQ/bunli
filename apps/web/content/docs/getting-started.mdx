@@ -52,11 +52,11 @@ Your new CLI project includes:
 
 ```
 my-cli/
-├── src/
-│   ├── index.ts       # CLI entry point
-│   └── commands/      # Command definitions
-├── .bunli/
-│   └── commands.gen.ts # Generated types (auto-created)
+├── cli.ts             # CLI entry point
+├── commands/          # Command definitions (REQUIRED)
+│   └── greet.ts       # Individual command files
+├── .bunli/            # Generated files (auto-created)
+│   └── commands.gen.ts # Generated TypeScript types
 ├── bunli.config.ts    # Configuration
 ├── package.json
 ├── tsconfig.json
@@ -74,12 +74,12 @@ bunli dev
 Or run directly with Bun:
 
 ```bash
-bun run src/index.ts --help
+bun run cli.ts --help
 ```
 
 ### Add your first command
 
-Create a new command in `src/commands/greet.ts`:
+Create a new command in `commands/greet.ts`:
 
 ```typescript
 import { defineCommand, option } from '@bunli/core'
@@ -259,7 +259,7 @@ cli.run()
 ### Create bunli.config.ts
 
 ```typescript
-import { defineConfig } from 'bunli'
+import { defineConfig } from '@bunli/core'
 
 export default defineConfig({
   name: 'my-cli',

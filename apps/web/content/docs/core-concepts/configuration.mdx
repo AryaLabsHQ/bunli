@@ -12,28 +12,30 @@ Configure your Bunli CLI project behavior with `bunli.config.ts`.
 Create a `bunli.config.ts` file in your project root:
 
 ```typescript
-import { defineConfig } from 'bunli'
+import { defineConfig } from '@bunli/core'
 
 export default defineConfig({
   name: 'my-cli',
   version: '1.0.0',
   description: 'My awesome CLI tool',
   
-  // Command options
+  // Command options (REQUIRED)
   commands: {
-    directory: './src/commands',
-    manifest: './src/commands/manifest.ts'
+    directory: './commands'  // Must use commands/ directory
   },
   
   // Build configuration
   build: {
-    entry: './src/index.ts',
+    entry: './cli.ts',
     outdir: './dist',
-    targets: ['darwin-arm64', 'linux-x64', 'windows-x64'],
-    compress: true,
-    minify: true,
-    sourcemap: false
-  }
+    targets: ['native'],  // Default target
+    compress: false,      // Default: false
+    minify: false,        // Default: false
+    sourcemap: true       // Default: true
+  },
+  
+  // Plugins (REQUIRED - can be empty array)
+  plugins: []
 })
 ```
 
@@ -59,54 +61,46 @@ export default defineConfig({
 ```typescript
 export default defineConfig({
   commands: {
-    // Where to find command files
-    directory: './src/commands',
+    // Where to find command files (REQUIRED)
+    directory: './commands',  // Must use commands/ directory
     
-    // Command manifest for lazy loading
-    manifest: './src/commands/manifest.ts',
-    
-    // Auto-discovery pattern (coming soon)
-    pattern: '**/*.command.ts'
+    // Command manifest for lazy loading (optional)
+    manifest: './commands/manifest.ts'
   }
 })
 ```
+
+<Callout type="warning">
+  All Bunli projects must use a `commands/` directory structure for reliable type generation. The `commands.directory` configuration is required.
+</Callout>
 
 ### Build Configuration
 
 ```typescript
 export default defineConfig({
   build: {
-    // Entry point(s)
-    entry: './src/index.ts',
-    // or multiple entries
-    entry: ['./src/cli.ts', './src/server.ts'],
+    // Entry point (default: './cli.ts')
+    entry: './cli.ts',
     
-    // Output directory
+    // Output directory (default: './dist')
     outdir: './dist',
     
-    // Target platforms for compiled builds
-    targets: [
-      'darwin-arm64',   // macOS Apple Silicon
-      'darwin-x64',     // macOS Intel
-      'linux-arm64',    // Linux ARM64
-      'linux-x64',      // Linux x64
-      'windows-x64'     // Windows x64
-    ],
+    // Target platforms (default: ['native'])
+    targets: ['native'],  // Native for current platform
+    // or specific platforms:
+    // targets: ['darwin-arm64', 'linux-x64', 'windows-x64'],
     
-    // Compress output archives
-    compress: true,
+    // Compress output archives (default: false)
+    compress: false,
     
     // External dependencies (not bundled)
     external: ['sqlite3', 'sharp'],
     
-    // Minify output
-    minify: true,
+    // Minify output (default: false)
+    minify: false,
     
-    // Generate sourcemaps
-    sourcemap: false,
-    
-    // Create standalone executables
-    compile: true
+    // Generate sourcemaps (default: true)
+    sourcemap: true
   }
 })
 ```
@@ -144,9 +138,10 @@ export default defineConfig({
 | Setting | Default | Description |
 |---------|---------|-------------|
 | **Auto-Generation** | `true` | Always enabled |
-| **Commands Directory** | `./commands` | Where to find command files |
+| **Commands Directory** | `./commands` | Where to find command files (REQUIRED) |
 | **Output File** | `./.bunli/commands.gen.ts` | Generated types location |
 | **Watch Mode** | `true` in dev | Regenerate on file changes |
+| **Plugins** | `[]` | Empty array (REQUIRED) |
 
 <Callout type="info">
   Type generation is automatically integrated with `bunli dev` and `bunli build` commands. Learn more in the [Type Generation Guide](/docs/guides/type-generation).
@@ -242,7 +237,7 @@ export const baseConfig = {
 }
 
 // bunli.config.ts
-import { defineConfig } from 'bunli'
+import { defineConfig } from '@bunli/core'
 import { baseConfig } from './base.config'
 
 export default defineConfig({
@@ -324,14 +319,17 @@ If no configuration file is found, these defaults are used:
   version: package.version,
   description: package.description,
   commands: {
-    directory: './src/commands'
+    directory: './commands'  // REQUIRED
   },
   build: {
-    entry: './src/index.ts',
+    entry: './cli.ts',
     outdir: './dist',
-    minify: true,
-    compile: false
-  }
+    targets: ['native'],
+    compress: false,
+    minify: false,
+    sourcemap: true
+  },
+  plugins: []  // REQUIRED
 }
 ```
 
