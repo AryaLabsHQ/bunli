@@ -33,5 +33,12 @@
         { "label": "Unlicense", "value": "Unlicense" }
       ]
     }
-  ]
+  ],
+  "files": {
+    "exclude": [
+      "node_modules/**",
+      ".git/**",
+      "template.json"
+    ]
+  }
 }

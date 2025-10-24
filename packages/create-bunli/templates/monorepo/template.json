@@ -20,5 +20,12 @@
       "type": "string",
       "default": ""
     }
-  ]
+  ],
+  "files": {
+    "exclude": [
+      "node_modules/**",
+      ".git/**",
+      "template.json"
+    ]
+  }
 }

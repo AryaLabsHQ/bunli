@@ -168,6 +168,22 @@ async function getFilesToProcess(dir: string, manifest?: TemplateManifest | null
   }
   
   await walk(dir)
+  
+  // Apply exclude patterns from manifest
+  if (manifest?.files?.exclude) {
+    return files.filter(file => {
+      return !manifest.files!.exclude!.some(pattern => {
+        // Convert glob pattern to regex
+        const regexPattern = pattern
+          .replace(/\*\*/g, '.*')  // ** matches any number of directories
+          .replace(/\*/g, '[^/]*') // * matches any characters except /
+          .replace(/\?/g, '[^/]')  // ? matches single character except /
+        const regex = new RegExp(`^${regexPattern}$`)
+        return regex.test(file)
+      })
+    })
+  }
+  
   return files
 }
 
