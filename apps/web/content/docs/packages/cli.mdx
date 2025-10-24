@@ -106,7 +106,7 @@ bunli build
 - `--outdir, -o` - Output directory (default: `./dist`)
 - `--outfile` - Output filename (for single executable)
 - `--targets, -t` - Target platforms for compilation
-- `--minify, -m` - Minify output (default: true)
+- `--minify, -m` - Minify output
 - `--sourcemap, -s` - Generate sourcemaps
 - `--bytecode` - Enable bytecode compilation (experimental)
 - `--runtime, -r` - Runtime target (`bun`, `node`)
@@ -132,8 +132,8 @@ bunli build --targets native
 # Build for specific platforms
 bunli build --targets darwin-arm64,linux-x64
 
-# Build for all platforms with compression
-bunli build --targets all --compress
+# Build for all platforms
+bunli build --targets all
 
 # Custom output directory
 bunli build --outdir ./bin
@@ -141,6 +141,38 @@ bunli build --outdir ./bin
 # Watch mode
 bunli build --watch
 ```
+
+### bunli generate
+
+Generate TypeScript type definitions for your commands.
+
+```bash
+bunli generate
+```
+
+**Options:**
+- `--commandsDir` - Commands directory (defaults to config or `./commands`)
+- `--output, -o` - Output file (default: `./.bunli/commands.gen.ts`)
+- `--watch, -w` - Watch for changes and regenerate
+
+**Examples:**
+```bash
+# Generate types once
+bunli generate
+
+# Generate with custom output location
+bunli generate --output ./types/commands.ts
+
+# Watch for changes
+bunli generate --watch
+
+# Use custom commands directory
+bunli generate --commandsDir ./src/commands
+```
+
+<Callout type="info">
+  Type generation is automatically run during `bunli dev` and `bunli build`. You typically only need to run this manually for one-off generation or when using watch mode.
+</Callout>
 
 ### bunli test
 
