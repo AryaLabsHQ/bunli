@@ -3,6 +3,8 @@ import { $ } from 'bun'
 import { readdir, readFile, writeFile } from 'fs/promises'
 import { join } from 'path'
 
+type SemverType = 'major' | 'minor' | 'patch' | 'prerelease' | 'current'
+
 interface PackageInfo {
   name: string
   version: string
@@ -10,11 +12,13 @@ interface PackageInfo {
   hasBin: boolean
   publishable: boolean
   modified: boolean
+  lastVersion?: string
+  publishedVersion?: string
 }
 
 interface ReleaseOptions {
   version?: string
-  semverType?: 'major' | 'minor' | 'patch' | 'prerelease'
+  semverType?: SemverType
   packages?: string[]
   auto: boolean
   dryRun: boolean
@@ -64,6 +68,29 @@ async function getAllPackages(): Promise<PackageInfo[]> {
   return packages
 }
 
+async function getPublishedVersions(packages: PackageInfo[]): Promise<Map<string, string>> {
+  const publishedVersions = new Map<string, string>()
+  
+  console.log('🔍 Checking published versions on npm...')
+  
+  for (const pkg of packages) {
+    if (pkg.publishable) {
+      try {
+        const { stdout: npmVersion } = await $`bun info ${pkg.name} version`.quiet()
+        const version = npmVersion.toString().trim()
+        if (version) {
+          publishedVersions.set(pkg.name, version)
+        }
+      } catch {
+        // Package doesn't exist on npm yet
+        publishedVersions.set(pkg.name, 'not-published')
+      }
+    }
+  }
+  
+  return publishedVersions
+}
+
 async function detectModifiedPackages(packages: PackageInfo[]): Promise<PackageInfo[]> {
   console.log('🔍 Detecting modified packages since last release...')
   
@@ -95,12 +122,37 @@ async function detectModifiedPackages(packages: PackageInfo[]): Promise<PackageI
       }
     }
     
-    // Update packages with modification status
+    // Get package versions from the last release for comparison
+    const lastReleaseVersions = new Map<string, string>()
+    try {
+      for (const pkg of packages) {
+        const packageDir = pkg.path.split('/').pop() || ''
+        if (modifiedPackages.has(packageDir)) {
+          try {
+            const { stdout: lastVersion } = await $`git show ${lastRelease}:packages/${packageDir}/package.json | grep '"version"' | head -1 | cut -d'"' -f4`.quiet()
+            lastReleaseVersions.set(packageDir, lastVersion.toString().trim())
+          } catch {
+            // If we can't get the last version, that's okay
+          }
+        }
+      }
+    } catch {
+      // If we can't get last release versions, continue without them
+    }
+    
+    // Get published versions from npm
+    const publishedVersions = await getPublishedVersions(packages)
+    
+    // Update packages with modification status, last version info, and published version
     const updatedPackages = packages.map(pkg => {
       const packageDir = pkg.path.split('/').pop() || ''
+      const lastVersion = lastReleaseVersions.get(packageDir)
+      const publishedVersion = publishedVersions.get(pkg.name)
       return {
         ...pkg,
-        modified: modifiedPackages.has(packageDir)
+        modified: modifiedPackages.has(packageDir),
+        lastVersion: lastVersion,
+        publishedVersion: publishedVersion
       }
     })
     
@@ -114,7 +166,7 @@ async function detectModifiedPackages(packages: PackageInfo[]): Promise<PackageI
   }
 }
 
-function calculateNewVersion(currentVersion: string, semverType: 'major' | 'minor' | 'patch' | 'prerelease'): string {
+function calculateNewVersion(currentVersion: string, semverType: SemverType): string {
   const [major, minor, patch, ...prerelease] = currentVersion.split(/[.-]/)
   if (!major || !minor || !patch) {
     throw new Error('Invalid version format')
@@ -157,10 +209,36 @@ async function promptForReleaseOptions(packages: PackageInfo[], options: Release
   if (modifiedPackages.length > 0) {
     console.log('\n📦 Modified packages since last release:')
     modifiedPackages.forEach(pkg => {
-      console.log(`  • ${pkg.name}@${pkg.version}`)
+      const gitProgression = pkg.lastVersion && pkg.lastVersion !== pkg.version 
+        ? `${pkg.lastVersion} → ${pkg.version}` 
+        : `@${pkg.version}`
+      
+      const npmStatus = pkg.publishedVersion === 'not-published' 
+        ? 'not published' 
+        : `published @${pkg.publishedVersion}`
+      
+      const needsPublish = pkg.publishedVersion === 'not-published' || 
+        (pkg.publishedVersion && pkg.publishedVersion !== pkg.version)
+      
+      const statusIcon = needsPublish ? '📤' : '✅'
+      
+      console.log(`  ${statusIcon} ${pkg.name}: ${gitProgression} (${npmStatus})`)
     })
   } else {
     console.log('\n📦 No modified packages detected since last release')
+  }
+  
+  // Show summary of what needs publishing
+  const needsPublishing = modifiedPackages.filter(pkg => 
+    pkg.publishedVersion === 'not-published' || 
+    (pkg.publishedVersion && pkg.publishedVersion !== pkg.version)
+  )
+  
+  if (needsPublishing.length > 0) {
+    console.log(`\n📤 ${needsPublishing.length} package(s) need publishing:`)
+    needsPublishing.forEach(pkg => {
+      console.log(`  • ${pkg.name}@${pkg.version}`)
+    })
   }
   
   // Get current version (use the first package as reference)
@@ -181,11 +259,32 @@ async function promptForReleaseOptions(packages: PackageInfo[], options: Release
   console.log(`  major: ${suggestedVersions.major} (breaking changes)`)
   console.log(`  prerelease: ${suggestedVersions.prerelease} (pre-release)`)
   
-  // Auto-select version based on changes
-  const semverType = modifiedPackages.length > 0 ? 'minor' : 'patch'
-  const newVersion = calculateNewVersion(currentVersion, semverType)
+  // Auto-select version based on what needs publishing
+  let newVersion: string
+  let semverType: string
   
-  console.log(`\n✅ Auto-selected: ${semverType} release → ${newVersion}`)
+  // Check if we just need to publish existing versions
+  const packagesNeedingPublish = modifiedPackages.filter(pkg => 
+    pkg.publishedVersion === 'not-published' || 
+    (pkg.publishedVersion && pkg.publishedVersion !== pkg.version)
+  )
+  
+  if (packagesNeedingPublish.length > 0) {
+    // We have packages that need publishing at their current version
+    newVersion = currentVersion
+    semverType = 'current'
+    console.log(`\n✅ Auto-selected: publish current versions → ${newVersion}`)
+  } else if (modifiedPackages.length > 0) {
+    // We have changes but packages are already published, suggest a bump
+    semverType = 'minor'
+    newVersion = calculateNewVersion(currentVersion, 'minor')
+    console.log(`\n✅ Auto-selected: ${semverType} release → ${newVersion}`)
+  } else {
+    // No changes, suggest patch
+    semverType = 'patch'
+    newVersion = calculateNewVersion(currentVersion, 'patch')
+    console.log(`\n✅ Auto-selected: ${semverType} release → ${newVersion}`)
+  }
   
   // Skip confirmation if --yes flag is provided
   if (!options.yes) {
@@ -230,7 +329,7 @@ async function promptForReleaseOptions(packages: PackageInfo[], options: Release
   return {
     ...options,
     version: newVersion,
-    semverType,
+    semverType: semverType as SemverType,
     packages: modifiedPackages.map(p => p.name),
     auto: true,
     dryRun: false,
