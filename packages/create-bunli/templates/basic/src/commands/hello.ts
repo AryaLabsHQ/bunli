@@ -1,7 +1,7 @@
 import { defineCommand, option } from '@bunli/core'
 import { z } from 'zod'
 
-export const helloCommand = defineCommand({
+const helloCommand = defineCommand({
   name: 'hello',
   description: 'Say hello to someone',
   options: {
@@ -27,3 +27,5 @@ export const helloCommand = defineCommand({
     console.log(colors.green(message))
   }
 })
+
+export default helloCommand

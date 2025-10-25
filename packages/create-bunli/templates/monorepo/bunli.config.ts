@@ -5,6 +5,10 @@ export default defineConfig({
   version: '{{version}}',
   description: '{{description}}',
   
+  commands: {
+    directory: './packages/core/src/commands'
+  },
+  
   plugins: [],
 
   build: {

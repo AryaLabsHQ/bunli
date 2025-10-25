@@ -2,7 +2,7 @@ import { defineCommand, option } from '@bunli/core'
 import { z } from 'zod'
 import { CONFIG_FILE_NAME, DEFAULT_CONFIG } from '../utils/constants.js'
 
-export const initCommand = defineCommand({
+const initCommand = defineCommand({
   name: 'init',
   description: 'Initialize a new configuration file',
   options: {
@@ -151,3 +151,5 @@ export default defineConfig({
   
   return templates[template]
 }
+
+export default initCommand

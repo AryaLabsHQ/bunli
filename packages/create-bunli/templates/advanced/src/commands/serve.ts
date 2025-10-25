@@ -2,7 +2,7 @@ import { defineCommand, option } from '@bunli/core'
 import { z } from 'zod'
 import { loadConfig } from '../utils/config.js'
 
-export const serveCommand = defineCommand({
+const serveCommand = defineCommand({
   name: 'serve',
   description: 'Start a development server',
   options: {
@@ -174,3 +174,5 @@ function getHomePage(): string {
 </html>
   `.trim()
 }
+
+export default serveCommand

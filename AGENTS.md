@@ -80,7 +80,7 @@ Commands in Bunli use a type-safe builder pattern:
 import { defineCommand, option } from '@bunli/core'
 import { z } from 'zod'
 
-export const command = defineCommand({
+const command = defineCommand({
   name: 'command-name',
   description: 'Command description',
   options: {
@@ -100,6 +100,8 @@ export const command = defineCommand({
     }
   }
 });
+
+export default command
 ```
 
 ### Package Exports

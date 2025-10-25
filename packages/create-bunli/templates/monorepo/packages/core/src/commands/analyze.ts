@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { logger, formatTable } from '@{{name}}/utils'
 import type { AnalyzeResult } from '../types.js'
 
-export const analyzeCommand = defineCommand({
+const analyzeCommand = defineCommand({
   name: 'analyze',
   description: 'Analyze files and generate reports',
   args: z.array(z.string()).min(1).describe('Files to analyze'),
@@ -82,3 +82,5 @@ async function analyzeFile(file: string): Promise<AnalyzeResult> {
     issues: []
   }
 }
+
+export default analyzeCommand

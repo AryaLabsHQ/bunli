@@ -4,7 +4,7 @@ import { loadConfig } from '../utils/config.js'
 import { validateFiles } from '../utils/validator.js'
 import { glob } from '../utils/glob.js'
 
-export const validateCommand = defineCommand({
+const validateCommand = defineCommand({
   name: 'validate',
   description: 'Validate files against defined rules',
   args: z.array(z.string()).min(1).describe('Files to validate'),
@@ -114,3 +114,5 @@ export const validateCommand = defineCommand({
     }
   }
 })
+
+export default validateCommand

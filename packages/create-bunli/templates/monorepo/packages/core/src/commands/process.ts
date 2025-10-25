@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { logger } from '@{{name}}/utils'
 import type { ProcessOptions } from '../types.js'
 
-export const processCommand = defineCommand({
+const processCommand = defineCommand({
   name: 'process',
   description: 'Process input files',
   args: z.array(z.string()).min(1).describe('Files to process'),
@@ -62,3 +62,5 @@ async function processFile(file: string, options: ProcessOptions): Promise<void>
   // Implementation here
   logger.debug(`Processing ${file} with options:`, options)
 }
+
+export default processCommand

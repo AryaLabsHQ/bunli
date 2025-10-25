@@ -2,7 +2,7 @@ import { defineCommand, option } from '@bunli/core'
 import { z } from 'zod'
 import { loadConfig, saveConfig, getConfigPath } from '../utils/config.js'
 
-export const configCommand = defineCommand({
+const configCommand = defineCommand({
   name: 'config',
   description: 'Manage configuration',
   subcommands: [
@@ -143,3 +143,5 @@ function setNestedValue(obj: any, path: string, value: any): void {
   
   current[lastKey] = value
 }
+
+export default configCommand

@@ -1,9 +1,9 @@
 #!/usr/bin/env bun
 import { createCLI } from '@bunli/core'
-import { initCommand } from './commands/init.js'
-import { validateCommand } from './commands/validate.js'
-import { serveCommand } from './commands/serve.js'
-import { configCommand } from './commands/config.js'
+import initCommand from './commands/init.js'
+import validateCommand from './commands/validate.js'
+import serveCommand from './commands/serve.js'
+import configCommand from './commands/config.js'
 import { loadConfig } from './utils/config.js'
 
 const cli = await createCLI({

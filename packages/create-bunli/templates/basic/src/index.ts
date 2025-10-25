@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { createCLI } from '@bunli/core'
-import { helloCommand } from './commands/hello.js'
+import helloCommand from './commands/hello.js'
 
 const cli = await createCLI({
   name: '{{name}}',
