@@ -14,7 +14,8 @@ export const bunliConfigSchema = z.object({
   // Commands configuration
   commands: z.object({
     manifest: z.string().optional(),
-    directory: z.string().optional()
+    directory: z.string().optional(),
+    generateReport: z.boolean().optional()
   }).optional(),
   
   // Build configuration - TypeScript REQUIRED

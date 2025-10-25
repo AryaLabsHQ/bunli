@@ -10,6 +10,7 @@ export type LoadedConfig = {
   commands?: {
     manifest?: string
     directory?: string
+    generateReport?: boolean
   }
   build: {
     entry?: string | string[]
