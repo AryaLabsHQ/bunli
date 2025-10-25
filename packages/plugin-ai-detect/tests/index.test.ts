@@ -35,7 +35,7 @@ describe('AI Agent Detection Plugin', () => {
   })
   
   test('detects Cursor', () => {
-    process.env.CURSOR_TRACE_ID = '123'
+    process.env.CURSOR_AGENT = '1'
     
     const plugin = aiAgentPlugin()
     const initialStore = plugin.store || {}
@@ -102,7 +102,7 @@ describe('AI Agent Detection Plugin', () => {
   })
   
   test('stores detected environment variables', () => {
-    process.env.CURSOR_TRACE_ID = '123'
+    process.env.CURSOR_AGENT = '1'
     
     const plugin = aiAgentPlugin()
     const initialStore = plugin.store || {}
@@ -112,7 +112,7 @@ describe('AI Agent Detection Plugin', () => {
     
     const detectedVars = context.store?.aiAgentEnvVars
     if (detectedVars) {
-      expect(detectedVars).toContain('CURSOR_TRACE_ID')
+      expect(detectedVars).toContain('CURSOR_AGENT')
     } else {
       // If store is not available, check env instead
       expect(context.env.isAIAgent).toBe(true)
@@ -141,9 +141,9 @@ describe('AI Agent Detection Plugin', () => {
   
   test('detects multiple agents', () => {
     // Set multiple AI agent env vars
-    process.env.CLAUDECODE = 'true'
-    process.env.CURSOR_TRACE_ID = '123'
-    
+    process.env.CLAUDECODE = '1'
+    process.env.CURSOR_AGENT = '1'
+
     const plugin = aiAgentPlugin()
     const initialStore = plugin.store || {}
     const context = new CommandContext('test', [], {}, createEnvironmentInfo(), initialStore)

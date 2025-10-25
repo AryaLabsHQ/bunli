@@ -64,7 +64,7 @@ interface AIAgentInfo {
 The plugin detects the following AI agents out of the box:
 
 - **Claude**: Detects Claude Code via `CLAUDECODE` environment variable
-- **Cursor**: Detects Cursor via `CURSOR_TRACE_ID` environment variable
+- **Cursor**: Detects Cursor via `CURSOR_AGENT` environment variable
 
 ## Custom Agents
 

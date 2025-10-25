@@ -32,8 +32,8 @@ const AI_AGENTS: AIAgentInfo[] = [
   },
   {
     name: 'cursor',
-    envVars: ['CURSOR_TRACE_ID'],
-    detect: (env) => !!env.CURSOR_TRACE_ID
+    envVars: ['CURSOR_AGENT'],
+    detect: (env) => !!env.CURSOR_AGENT
   },
 ]
 
