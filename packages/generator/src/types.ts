@@ -2,6 +2,7 @@ export interface GeneratorConfig {
   commandsDir: string
   outputFile: string
   config?: any
+  generateReport?: boolean
 }
 
 export interface GeneratorEvent {

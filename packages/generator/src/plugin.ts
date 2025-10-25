@@ -7,6 +7,7 @@ export interface BunliCodegenPluginOptions {
   commandsDir?: string
   outputFile?: string
   config?: any
+  generateReport?: boolean
 }
 
 /**
@@ -20,7 +21,8 @@ export function bunliCodegenPlugin(options: BunliCodegenPluginOptions = {}): Bun
   const {
     commandsDir = 'commands',
     outputFile = './commands.gen.ts',
-    config
+    config,
+    generateReport
   } = options
 
   let generator: Generator | null = null
@@ -33,7 +35,8 @@ export function bunliCodegenPlugin(options: BunliCodegenPluginOptions = {}): Bun
       generator = new Generator({
         commandsDir,
         outputFile,
-        config
+        config,
+        generateReport
       })
 
       // Hook into the build start to generate types
