@@ -1,4 +1,4 @@
-# {{projectName}}
+# {{name}}
 
 {{description}}
 
@@ -6,16 +6,16 @@
 
 ```bash
 # Install globally
-bun add -g {{projectName}}
+bun add -g {{name}}
 
 # Or use directly with bunx
-bunx {{projectName}} [command]
+bunx {{name}} [command]
 ```
 
 ## Usage
 
 ```bash
-{{projectName}} <command> [options]
+{{name}} <command> [options]
 ```
 
 ### Commands
@@ -24,7 +24,7 @@ bunx {{projectName}} [command]
 Initialize a new configuration file in the current directory.
 
 ```bash
-{{projectName}} init [options]
+{{name}} init [options]
 
 Options:
   -f, --force     Overwrite existing config
@@ -35,7 +35,7 @@ Options:
 Validate files against defined rules.
 
 ```bash
-{{projectName}} validate <files...> [options]
+{{name}} validate <files...> [options]
 
 Options:
   -c, --config    Path to config file
@@ -47,7 +47,7 @@ Options:
 Start a development server.
 
 ```bash
-{{projectName}} serve [options]
+{{name}} serve [options]
 
 Options:
   -p, --port      Port to listen on (default: 3000)
@@ -59,7 +59,7 @@ Options:
 Manage configuration settings.
 
 ```bash
-{{projectName}} config <action> [key] [value]
+{{name}} config <action> [key] [value]
 
 Actions:
   get <key>       Get a config value
@@ -78,7 +78,7 @@ Actions:
 
 ## Configuration
 
-Create a `{{projectName}}.config.js` file in your project root:
+Create a `{{name}}.config.js` file in your project root:
 
 ```javascript
 export default {

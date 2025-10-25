@@ -7,7 +7,7 @@ import { configCommand } from './commands/config.js'
 import { loadConfig } from './utils/config.js'
 
 const cli = await createCLI({
-  name: '{{projectName}}',
+  name: '{{name}}',
   version: '0.1.0',
   description: '{{description}}'
 })

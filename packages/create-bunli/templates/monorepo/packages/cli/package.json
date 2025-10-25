@@ -1,12 +1,12 @@
 {
-  "name": "@{{projectName}}/cli",
+  "name": "@{{name}}/cli",
   "version": "0.1.0",
   "type": "module",
-  "description": "CLI for {{projectName}}",
+  "description": "CLI for {{name}}",
   "author": "{{author}}",
   "license": "MIT",
   "bin": {
-    "{{projectName}}": "./dist/index.js"
+    "{{name}}": "./dist/index.js"
   },
   "scripts": {
     "postinstall": "bunli generate",
@@ -18,8 +18,8 @@
   },
   "dependencies": {
     "@bunli/core": "latest",
-    "@{{projectName}}/core": "workspace:*",
-    "@{{projectName}}/utils": "workspace:*"
+    "@{{name}}/core": "workspace:*",
+    "@{{name}}/utils": "workspace:*"
   },
   "devDependencies": {
     "@bunli/test": "latest",
@@ -30,6 +30,6 @@
   "bunli": {
     "entry": "./src/index.ts",
     "outDir": "./dist",
-    "external": ["@bunli/core", "@{{projectName}}/core", "@{{projectName}}/utils"]
+    "external": ["@bunli/core", "@{{name}}/core", "@{{name}}/utils"]
   }
 }

@@ -1,10 +1,10 @@
 #!/usr/bin/env bun
 import { createCLI } from '@bunli/core'
-import { logger } from '@{{projectName}}/utils'
-import { processCommand, analyzeCommand } from '@{{projectName}}/core'
+import { logger } from '@{{name}}/utils'
+import { processCommand, analyzeCommand } from '@{{name}}/core'
 
 const cli = await createCLI({
-  name: '{{projectName}}',
+  name: '{{name}}',
   version: '0.1.0',
   description: '{{description}}'
 })

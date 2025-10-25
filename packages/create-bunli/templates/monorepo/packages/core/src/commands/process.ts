@@ -1,6 +1,6 @@
 import { defineCommand, option } from '@bunli/core'
 import { z } from 'zod'
-import { logger } from '@{{projectName}}/utils'
+import { logger } from '@{{name}}/utils'
 import type { ProcessOptions } from '../types.js'
 
 export const processCommand = defineCommand({

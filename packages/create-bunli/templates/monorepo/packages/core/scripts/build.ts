@@ -12,7 +12,7 @@ await Bun.build({
   target: 'bun',
   format: 'esm',
   minify: false,
-  external: ['@bunli/core', '@{{projectName}}/utils', 'zod']
+  external: ['@bunli/core', '@{{name}}/utils', 'zod']
 })
 
-console.log('✅ @{{projectName}}/core built successfully')
+console.log('✅ @{{name}}/core built successfully')

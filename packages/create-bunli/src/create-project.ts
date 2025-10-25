@@ -70,7 +70,12 @@ export async function createProject(options: CreateProjectOptions) {
       try {
         await shell`cd ${dir} && git init`.quiet()
         await shell`cd ${dir} && git add .`.quiet()
-        await shell`cd ${dir} && git commit -m "Initial commit"`.quiet()
+        await shell`cd ${dir} && git commit -m "feat: initialize ${name} CLI project with Bunli
+
+- Generated using create-bunli template
+- Includes basic CLI structure with commands directory
+- Configured with Bunli build system and TypeScript
+- Ready for development with bun run dev"`
         
         gitSpin.succeed('Git repository initialized')
       } catch (error) {

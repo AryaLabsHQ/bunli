@@ -1,6 +1,6 @@
 import { defineCommand, option } from '@bunli/core'
 import { z } from 'zod'
-import { logger, formatTable } from '@{{projectName}}/utils'
+import { logger, formatTable } from '@{{name}}/utils'
 import type { AnalyzeResult } from '../types.js'
 
 export const analyzeCommand = defineCommand({

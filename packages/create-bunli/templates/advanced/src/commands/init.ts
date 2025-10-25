@@ -55,7 +55,7 @@ export const initCommand = defineCommand({
       console.log()
       console.log('Next steps:')
       console.log(colors.gray(`  1. Edit ${CONFIG_FILE_NAME} to customize your configuration`))
-      console.log(colors.gray(`  2. Run '{{projectName}} validate' to check your files`))
+      console.log(colors.gray(`  2. Run '{{name}} validate' to check your files`))
       
     } catch (error) {
       spin.fail('Failed to create config file')
@@ -89,7 +89,7 @@ function getConfigTemplate(template: 'minimal' | 'default' | 'full'): string {
   exclude: ['node_modules', 'dist', 'test'],
 }`,
     
-    full: `import { defineConfig } from '{{projectName}}'
+    full: `import { defineConfig } from '{{name}}'
 
 export default defineConfig({
   // Validation rules

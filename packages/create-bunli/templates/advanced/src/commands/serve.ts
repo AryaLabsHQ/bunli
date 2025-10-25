@@ -113,7 +113,7 @@ function getHomePage(): string {
 <!DOCTYPE html>
 <html>
 <head>
-  <title>{{projectName}}</title>
+  <title>{{name}}</title>
   <style>
     body {
       font-family: system-ui, -apple-system, sans-serif;
@@ -156,7 +156,7 @@ function getHomePage(): string {
 </head>
 <body>
   <div class="container">
-    <h1>{{projectName}}</h1>
+    <h1>{{name}}</h1>
     <p>{{description}}</p>
     <p><span class="status">Running</span></p>
     

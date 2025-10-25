@@ -3,7 +3,7 @@ import { createCLI } from '@bunli/core'
 import { helloCommand } from './commands/hello.js'
 
 const cli = await createCLI({
-  name: '{{projectName}}',
+  name: '{{name}}',
   version: '0.1.0',
   description: '{{description}}'
 })

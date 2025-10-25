@@ -1,4 +1,4 @@
-# {{projectName}}
+# {{name}}
 
 {{description}}
 
@@ -29,7 +29,7 @@ bun test
 ## Usage
 
 ```bash
-{{projectName}} hello --name World
+{{name}} hello --name World
 ```
 
 ## Commands

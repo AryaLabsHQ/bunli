@@ -14,4 +14,4 @@ await Bun.build({
   minify: false
 })
 
-console.log('✅ @{{projectName}}/utils built successfully')
+console.log('✅ @{{name}}/utils built successfully')
