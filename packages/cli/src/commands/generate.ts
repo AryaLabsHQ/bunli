@@ -33,7 +33,8 @@ export default defineCommand({
     const generator = new Generator({
       commandsDir: finalCommandsDir,
       outputFile: finalOutputFile,
-      config
+      config,
+      generateReport: config.commands?.generateReport
     })
     
     // Initial generation

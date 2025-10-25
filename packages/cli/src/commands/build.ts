@@ -63,7 +63,8 @@ export default defineCommand({
         const generator = new Generator({
           commandsDir: config.commands?.directory || 'commands',
           outputFile: './.bunli/commands.gen.ts',
-          config
+          config,
+          generateReport: config.commands?.generateReport
         })
         await generator.run()
         spin.succeed('Types generated')

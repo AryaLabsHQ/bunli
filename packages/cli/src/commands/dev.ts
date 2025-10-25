@@ -48,7 +48,8 @@ export default defineCommand({
       const generator = new Generator({
         commandsDir: flags.commandsDir,
         outputFile: './.bunli/commands.gen.ts',
-        config
+        config,
+        generateReport: config.commands?.generateReport
       })
 
       // Initial generation
@@ -90,7 +91,8 @@ export default defineCommand({
           bunliCodegenPlugin({
             commandsDir: flags.commandsDir,
             outputFile: './.bunli/commands.gen.ts',
-            config
+            config,
+            generateReport: config.commands?.generateReport
           })
         ] : []
       })
