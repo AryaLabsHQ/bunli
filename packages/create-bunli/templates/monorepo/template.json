@@ -3,7 +3,7 @@
   "description": "Monorepo template for multi-package Bunli projects",
   "variables": [
     {
-      "name": "projectName",
+      "name": "name",
       "message": "Project name",
       "type": "string",
       "default": "my-bunli-monorepo"

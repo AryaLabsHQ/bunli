@@ -159,8 +159,8 @@ async function getFilesToProcess(dir: string, manifest?: TemplateManifest | null
           await walk(join(currentDir, entry.name), path)
         }
       } else {
-        // Skip manifest files and common ignore patterns
-        if (!path.match(/^(template\.json|\.template\.json|\.DS_Store|Thumbs\.db)$/)) {
+        // Skip manifest files and common ignore patterns, but include .gitignore
+        if (!path.match(/^(template\.json|\.template\.json|\.DS_Store|Thumbs\.db)$/) || path === '.gitignore') {
           files.push(path)
         }
       }

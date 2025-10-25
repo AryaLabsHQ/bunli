@@ -1,12 +1,12 @@
 {
-  "name": "{{projectName}}",
+  "name": "{{name}}",
   "version": "0.1.0",
   "type": "module",
   "description": "{{description}}",
   "author": "{{author}}",
   "license": "{{license}}",
   "bin": {
-    "{{projectName}}": "./dist/index.js"
+    "{{name}}": "./dist/index.js"
   },
   "scripts": {
     "postinstall": "bunli generate",

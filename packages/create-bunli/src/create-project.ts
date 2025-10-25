@@ -51,9 +51,11 @@ export async function createProject(options: CreateProjectOptions) {
       dir,
       offline,
       variables: {
-        projectName: name,
+        name: name,
+        version: '0.1.0',
         description: `A CLI built with Bunli`,
         author: '',
+        license: 'MIT',
         year: new Date().getFullYear().toString()
       }
     })
