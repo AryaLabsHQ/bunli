@@ -9,10 +9,10 @@ export default $config({
       home: "aws",
       providers: {
         cloudflare: {
-          version: "6.2.0",
           apiToken: process.env.CLOUDFLARE_API_TOKEN,
         },
         aws: {
+          profile: "aryalabs",
           region: "us-west-2",
         }
       },
