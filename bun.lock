@@ -133,7 +133,7 @@
     },
     "packages/cli": {
       "name": "bunli",
-      "version": "0.3.1",
+      "version": "0.3.0",
       "bin": {
         "bunli": "./dist/cli.js",
       },
@@ -150,7 +150,7 @@
     },
     "packages/core": {
       "name": "@bunli/core",
-      "version": "0.3.1",
+      "version": "0.3.0",
       "dependencies": {
         "@bunli/utils": "workspace:*",
         "@standard-schema/spec": "^1.0.0",
@@ -164,7 +164,7 @@
     },
     "packages/create-bunli": {
       "name": "create-bunli",
-      "version": "0.3.1",
+      "version": "0.3.0",
       "bin": {
         "create-bunli": "./dist/cli.js",
       },
@@ -182,7 +182,7 @@
     },
     "packages/generator": {
       "name": "@bunli/generator",
-      "version": "0.3.1",
+      "version": "0.3.0",
       "dependencies": {
         "@babel/parser": "^7.23.0",
         "@babel/traverse": "^7.23.0",
@@ -197,7 +197,7 @@
     },
     "packages/plugin-ai-detect": {
       "name": "@bunli/plugin-ai-detect",
-      "version": "0.3.1",
+      "version": "0.3.0",
       "dependencies": {
         "@bunli/core": "workspace:*",
       },
@@ -208,7 +208,7 @@
     },
     "packages/plugin-config": {
       "name": "@bunli/plugin-config",
-      "version": "0.3.1",
+      "version": "0.2.0",
       "dependencies": {
         "@bunli/core": "workspace:*",
       },
@@ -219,7 +219,7 @@
     },
     "packages/test": {
       "name": "@bunli/test",
-      "version": "0.3.1",
+      "version": "0.2.0",
       "dependencies": {
         "@bunli/core": "workspace:*",
       },
@@ -233,7 +233,7 @@
     },
     "packages/tui": {
       "name": "@bunli/tui",
-      "version": "0.3.1",
+      "version": "0.2.0",
       "dependencies": {
         "@bunli/core": "workspace:*",
         "@opentui/core": "^0.1.27",
@@ -252,7 +252,7 @@
     },
     "packages/utils": {
       "name": "@bunli/utils",
-      "version": "0.3.1",
+      "version": "0.2.0",
       "dependencies": {
         "@standard-schema/spec": "^1.0.0",
         "@standard-schema/utils": "^0.3.0",
