@@ -10,6 +10,7 @@ This is a monorepo for the Bunli CLI framework, organized into apps, packages, a
 ## Core Architecture
 
 - **[packages/core/](mdc:packages/core)** - Core CLI framework functionality with type-safe plugin system and store
+- **[packages/generator/](mdc:packages/generator)** - TypeScript type generation from CLI commands
 - **[packages/cli/](mdc:packages/cli)** - Main CLI application (bunli) with build, dev, init, release, and test commands
 - **[packages/create-bunli/](mdc:packages/create-bunli)** - Project scaffolding tool with templates
 - **[apps/web/](mdc:apps/web)** - Next.js documentation website and landing page

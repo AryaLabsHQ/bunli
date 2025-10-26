@@ -56,7 +56,9 @@ import { Generator } from '@bunli/generator'
 
 const generator = new Generator({
   commandsDir: './commands',
-  outputFile: './.bunli/commands.gen.ts'
+  outputFile: './.bunli/commands.gen.ts',
+  config: {}, // Optional config object
+  generateReport: false // Optional report generation
 })
 
 // Generate types once
@@ -268,6 +270,7 @@ interface GeneratorOptions {
   commandsDir: string
   outputFile: string
   config?: any
+  generateReport?: boolean
 }
 ```
 

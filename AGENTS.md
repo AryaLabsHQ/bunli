@@ -11,6 +11,7 @@ Bunli is a minimal, type-safe CLI framework for Bun with an advanced plugin syst
 - **@bunli/core** - Core CLI framework with type-safe command definitions and plugin system
 - **@bunli/utils** - Shared utilities (colors, prompts, spinners, validation)
 - **@bunli/test** - Testing utilities for CLI applications
+- **@bunli/generator** - TypeScript type generation from CLI commands
 - **bunli** - CLI toolchain for development and building
 - **create-bunli** - Project scaffolding tool
 - **@bunli/plugin-ai-detect** - Plugin for detecting AI coding assistants
