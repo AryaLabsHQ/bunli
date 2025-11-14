@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { createCLI } from '@bunli/core'
-import { loadConfig } from './config.js'
+import { loadConfig } from '@bunli/core'
 
 const cli = await createCLI({
   name: 'bunli',

@@ -2,7 +2,7 @@ import { bunliConfigSchema, type BunliConfig } from '@bunli/core'
 import path from 'node:path'
 import { existsSync } from 'node:fs'
 
-// Type for loaded config with defaults applied
+// Type for loaded config with defaults applied by Zod
 export type LoadedConfig = {
   name?: string
   version?: string
@@ -12,37 +12,38 @@ export type LoadedConfig = {
     directory?: string
     generateReport?: boolean
   }
+  // Zod applies defaults, so these objects are never undefined
   build: {
     entry?: string | string[]
     outdir?: string
-    targets?: string[]
-    compress?: boolean
-    minify?: boolean
+    targets: string[]  // Always has default ['native']
+    compress: boolean  // Always has default false
+    minify: boolean  // Always has default false
     external?: string[]
-    sourcemap?: boolean
+    sourcemap: boolean  // Always has default true
   }
   dev: {
-    watch?: boolean
-    inspect?: boolean
+    watch: boolean  // Always has default true
+    inspect: boolean  // Always has default false
     port?: number
   }
   test: {
-    pattern?: string | string[]
-    coverage?: boolean
-    watch?: boolean
+    pattern: string | string[]  // Always has default ['**/*.test.ts', '**/*.spec.ts']
+    coverage: boolean  // Always has default false
+    watch: boolean  // Always has default false
   }
   workspace: {
     packages?: string[]
     shared?: any
-    versionStrategy?: 'fixed' | 'independent'
+    versionStrategy: 'fixed' | 'independent'  // Always has default 'fixed'
   }
   release: {
-    npm?: boolean
-    github?: boolean
-    tagFormat?: string
-    conventionalCommits?: boolean
+    npm: boolean  // Always has default true
+    github: boolean  // Always has default false
+    tagFormat: string  // Always has default 'v{{version}}'
+    conventionalCommits: boolean  // Always has default true
   }
-  plugins?: any[]
+  plugins: any[]  // Always has default []
 }
 
 // Config file names to search for
@@ -59,71 +60,17 @@ export async function loadConfig(cwd = process.cwd()): Promise<LoadedConfig> {
     if (existsSync(configPath)) {
       try {
         const module = await import(configPath)
-        const config = bunliConfigSchema.parse(module.default || module)
-        return {
-          ...config,
-          build: {
-            targets: ['native'],
-            compress: false,
-            minify: false,
-            sourcemap: true,
-            ...config.build
-          },
-          dev: {
-            watch: true,
-            inspect: false,
-            ...config.dev
-          },
-          test: {
-            pattern: ['**/*.test.ts', '**/*.spec.ts'],
-            coverage: false,
-            watch: false,
-            ...config.test
-          },
-          workspace: {
-            versionStrategy: 'fixed',
-            ...config.workspace
-          },
-          release: {
-            npm: true,
-            github: false,
-            tagFormat: 'v{{version}}',
-            conventionalCommits: true,
-            ...config.release
-          }
-        }
+        // Zod parse automatically applies all defaults
+        const config = bunliConfigSchema.parse(module.default || module) as LoadedConfig
+        return config
       } catch (error) {
         console.error(`Error loading config from ${configPath}:`, error)
         throw error
       }
     }
   }
-  
-  // Return default config if no file found (codegen is non-configurable)
-  return {
-    build: {
-      targets: ['native'],
-      compress: false,
-      minify: false,
-      sourcemap: true
-    },
-    dev: {
-      watch: true,
-      inspect: false
-    },
-    test: {
-      pattern: ['**/*.test.ts', '**/*.spec.ts'],
-      coverage: false,
-      watch: false
-    },
-    workspace: {
-      versionStrategy: 'fixed'
-    },
-    release: {
-      npm: true,
-      github: false,
-      tagFormat: 'v{{version}}',
-      conventionalCommits: true
-    }
-  }
+
+  // Return default config if no file found
+  // Zod parse with empty object will apply all defaults
+  return bunliConfigSchema.parse({}) as LoadedConfig
 }

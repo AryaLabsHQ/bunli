@@ -1,6 +1,6 @@
 import { defineCommand, option } from '@bunli/core'
 import { z } from 'zod'
-import { loadConfig } from '../config.js'
+import { loadConfig } from '@bunli/core'
 import { spawn } from 'node:child_process'
 import { readdir } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
