@@ -7,31 +7,40 @@ import { Callout } from 'fumadocs-ui/components/callout';
 
 # createCLI
 
-Creates a new CLI instance with global configuration.
+Creates a new CLI instance with automatic configuration loading from `bunli.config.ts`.
 
 ## Syntax
 
 ```typescript
-function createCLI(config: CLIConfig): CLI
+function createCLI(configOverride?: Partial<BunliConfig>): Promise<CLI>
 ```
 
 ## Parameters
 
-### config
+### configOverride (optional)
 
-The configuration object for your CLI.
+Override specific configuration values. If not provided, `createCLI` automatically loads configuration from `bunli.config.ts`.
 
 ```typescript
-interface CLIConfig {
-  name: string
-  version: string
+interface BunliConfig {
+  name?: string
+  version?: string
   description?: string
   commands?: {
     manifest?: string
+    directory?: string
   }
   plugins?: PluginConfig[]
+  build?: BuildConfig
+  dev?: DevConfig
+  test?: TestConfig
+  // ... other config options
 }
 ```
+
+<Callout type="tip">
+  **New in Bunli 0.4.0**: Configuration is automatically loaded from `bunli.config.ts`. You only need to provide overrides for runtime-specific settings like plugins with custom options.
+</Callout>
 
 ## Returns
 
@@ -48,16 +57,15 @@ interface CLI {
 
 ## Examples
 
-### Basic Usage
+### Basic Usage (Recommended)
+
+With automatic config loading from `bunli.config.ts`:
 
 ```typescript
+// cli.ts
 import { createCLI } from '@bunli/core'
 
-const cli = createCLI({
-  name: 'my-cli',
-  version: '1.0.0',
-  description: 'My awesome CLI tool'
-})
+const cli = await createCLI()
 
 // Add commands
 cli.command({
@@ -68,81 +76,106 @@ cli.command({
   }
 })
 
-// Run the CLI
 await cli.run()
+```
+
+```typescript
+// bunli.config.ts
+import { defineConfig } from '@bunli/core'
+
+export default defineConfig({
+  name: 'my-cli',
+  version: '1.0.0',
+  description: 'My awesome CLI tool'
+})
 ```
 
 ### With Command Manifest
 
 ```typescript
+// cli.ts
 import { createCLI } from '@bunli/core'
 
-const cli = createCLI({
+const cli = await createCLI()
+
+await cli.load({
+  build: () => import('./commands/build'),
+  test: () => import('./commands/test'),
+  deploy: () => import('./commands/deploy')
+})
+
+await cli.run()
+```
+
+```typescript
+// bunli.config.ts
+import { defineConfig } from '@bunli/core'
+
+export default defineConfig({
   name: 'my-cli',
   version: '1.0.0',
   description: 'My CLI with lazy-loaded commands',
   commands: {
-    manifest: './commands/manifest.js'
+    directory: './commands'
   }
 })
-
-// Initialize (loads manifest)
-await cli.init()
-
-// Run the CLI
-await cli.run()
 ```
 
-### Loading Commands Manually
+### With Runtime Plugin Configuration
+
+For plugins that need runtime-specific options:
 
 ```typescript
-import { createCLI } from '@bunli/core'
-import manifest from './commands/manifest.js'
-
-const cli = createCLI({
-  name: 'my-cli',
-  version: '1.0.0'
-})
-
-// Load commands from manifest
-await cli.load(manifest)
-
-// Run the CLI
-await cli.run()
-```
-
-### With Plugins
-
-```typescript
+// cli.ts
 import { createCLI } from '@bunli/core'
 import { configMergerPlugin } from '@bunli/plugin-config'
 import { aiAgentPlugin } from '@bunli/plugin-ai-detect'
 
 const cli = await createCLI({
-  name: 'my-cli',
-  version: '1.0.0',
   plugins: [
-    // Load configuration from files
-    configMergerPlugin(),
-    
-    // Detect AI agents
+    configMergerPlugin({ sources: ['.myrc.json'] }),
     aiAgentPlugin({ verbose: true })
-  ] as const // Use 'as const' for better type inference
-})
-
-// Commands can access plugin store
-cli.command({
-  name: 'info',
-  handler: async ({ context }) => {
-    if (context?.env.isAIAgent) {
-      console.log('Running in AI agent!')
-      console.log(`Agents: ${context.store.aiAgents.join(', ')}`)
-    }
-  }
+  ] as const
 })
 
 await cli.run()
 ```
+
+```typescript
+// bunli.config.ts
+import { defineConfig } from '@bunli/core'
+
+export default defineConfig({
+  name: 'my-cli',
+  version: '1.0.0',
+  description: 'My CLI with plugins',
+  // Plugins configured in cli.ts for runtime options
+  commands: {
+    directory: './commands'
+  }
+})
+```
+
+### Legacy: Explicit Configuration
+
+You can still provide full configuration explicitly:
+
+```typescript
+import { createCLI } from '@bunli/core'
+
+const cli = await createCLI({
+  name: 'my-cli',
+  version: '1.0.0',
+  description: 'My awesome CLI tool',
+  plugins: []
+})
+
+await cli.run()
+```
+
+<Callout type="warning">
+  **Deprecated**: Explicit configuration is still supported but not recommended. Use `bunli.config.ts` for better maintainability and consistency with the Bunli CLI toolchain.
+</Callout>
 
 ## CLI Methods
 

@@ -2,7 +2,7 @@ import { defineCommand, option } from '@bunli/core'
 import { Generator } from '@bunli/generator'
 import { bunliCodegenPlugin } from '@bunli/generator/plugin'
 import { z } from 'zod'
-import { loadConfig } from '../config.js'
+import { loadConfig } from '@bunli/core'
 import { findEntry } from '../utils/find-entry.js'
 import path from 'node:path'
 

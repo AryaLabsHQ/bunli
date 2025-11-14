@@ -3,6 +3,7 @@
   "pages": [
     "index",
     "config",
-    "ai-detect"
+    "ai-detect",
+    "completions"
   ]
 }

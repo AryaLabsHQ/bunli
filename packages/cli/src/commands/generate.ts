@@ -3,7 +3,7 @@ import { Generator } from '@bunli/generator'
 import { z } from 'zod'
 import { join } from 'node:path'
 import { isCommandFile } from '@bunli/generator'
-import { loadConfig } from '../config.js'
+import { loadConfig } from '@bunli/core'
 
 export default defineCommand({
   name: 'generate',

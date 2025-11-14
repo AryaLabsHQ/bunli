@@ -2,6 +2,7 @@
 export { createCLI } from './cli.js'
 export { defineCommand, option } from './types.js'
 export { defineConfig, bunliConfigSchema, type BunliConfig } from './config.js'
+export { loadConfig, type LoadedConfig } from './config-loader.js'
 export {
   createGeneratedHelpers,
   registerGeneratedStore,

@@ -12,9 +12,6 @@ import envCommand from './commands/env.js'
 import logsCommand from './commands/logs.js'
 
 const cli = await createCLI({
-  name: 'dev-server',
-  version: '0.0.1',
-  description: 'Development server with plugins - Advanced plugin system and configuration management',
   plugins: [
     configMergerPlugin({
       sources: ['.devserverrc.json', 'devserver.config.json']

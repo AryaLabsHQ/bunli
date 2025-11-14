@@ -123,6 +123,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@bunli/core": "workspace:*",
+        "@bunli/plugin-completions": "workspace:*",
         "zod": "^3.22.4",
       },
       "devDependencies": {
@@ -204,6 +205,18 @@
       "devDependencies": {
         "@types/bun": "latest",
         "typescript": "^5.7.0",
+      },
+    },
+    "packages/plugin-completions": {
+      "name": "@bunli/plugin-completions",
+      "version": "0.1.0",
+      "dependencies": {
+        "@bunli/core": "workspace:*",
+        "@bunli/generator": "workspace:*",
+        "zod": "^3.22.4",
+      },
+      "devDependencies": {
+        "typescript": "^5.3.3",
       },
     },
     "packages/plugin-config": {
@@ -302,6 +315,8 @@
     "@bunli/generator": ["@bunli/generator@workspace:packages/generator"],
 
     "@bunli/plugin-ai-detect": ["@bunli/plugin-ai-detect@workspace:packages/plugin-ai-detect"],
+
+    "@bunli/plugin-completions": ["@bunli/plugin-completions@workspace:packages/plugin-completions"],
 
     "@bunli/plugin-config": ["@bunli/plugin-config@workspace:packages/plugin-config"],
 

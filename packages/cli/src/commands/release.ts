@@ -1,6 +1,6 @@
 import { defineCommand, option } from '@bunli/core'
 import { z } from 'zod'
-import { loadConfig } from '../config.js'
+import { loadConfig } from '@bunli/core'
 import { $ } from 'bun'
 import { existsSync } from 'node:fs'
 

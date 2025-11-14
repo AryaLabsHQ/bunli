@@ -1,5 +1,6 @@
 import type { CLI, Command, BunliConfig, CommandManifest, CommandLoader, ResolvedConfig, CLIOption, TerminalInfo, RuntimeInfo } from './types.js'
-import { bunliConfigStrictSchema } from './config.js'
+import { bunliConfigStrictSchema, bunliConfigSchema } from './config.js'
+import { loadConfig, type LoadedConfig } from './config-loader.js'
 import { parseArgs } from './parser.js'
 import { SchemaError, getDotPath } from '@standard-schema/utils'
 import { PluginManager } from './plugin/manager.js'
@@ -12,16 +13,42 @@ import { loadGeneratedStores } from './generated.js'
 export async function createCLI<
   TPlugins extends readonly BunliPlugin[] = []
 >(
-  config: Omit<BunliConfig, 'plugins' | 'generated'> & { 
+  configOverride?: Partial<BunliConfig> & { 
     plugins?: TPlugins 
     generated?: string | boolean  // Optional, defaults to true
   }
 ): Promise<CLI<MergeStores<TPlugins>>> {
   type TStore = MergeStores<TPlugins>
   
-  // Normalize config - support both simple and full config
+  // Auto-load config from bunli.config.ts
+  let loadedConfigData: LoadedConfig | null = null
+  try {
+    loadedConfigData = await loadConfig()
+  } catch (error) {
+    // If no config file found and no override provided, throw an error
+    if (!configOverride || (!configOverride.name && !configOverride.version)) {
+      throw new Error(
+        '[bunli] No configuration file found. Please create bunli.config.ts, bunli.config.js, or bunli.config.mjs, ' +
+        'or provide configuration directly to createCLI().'
+      )
+    }
+    // If override is provided, use it as the base config
+    loadedConfigData = null
+  }
+
+  // Use loaded config or create from override
+  const loadedConfig: BunliConfig = loadedConfigData || (bunliConfigSchema.parse(configOverride || {}) as LoadedConfig)
+  
+  // Merge override config on top of loaded config
+  const mergedConfig = {
+    ...loadedConfig,
+    ...configOverride,
+    // Deep merge plugins arrays
+    plugins: configOverride?.plugins || loadedConfig.plugins || []
+  }
+  
   // Validate and coerce to strict at runtime to ensure required fields
-  const parsed = bunliConfigStrictSchema.safeParse(config)
+  const parsed = bunliConfigStrictSchema.safeParse(mergedConfig)
   if (!parsed.success) {
     throw new Error('[bunli] Invalid config: ' + JSON.stringify(parsed.error.format()))
   }
@@ -66,8 +93,8 @@ export async function createCLI<
   const pluginManager = new PluginManager<TStore>()
   
   // Load plugins if configured
-  if (config.plugins) {
-    await pluginManager.loadPlugins(config.plugins as any as PluginConfig[])
+  if (mergedConfig.plugins && mergedConfig.plugins.length > 0) {
+    await pluginManager.loadPlugins(mergedConfig.plugins as any as PluginConfig[])
     
     // Run setup hooks - this may modify config
     const { config: updatedConfig, commands: pluginCommands, middlewares } = await pluginManager.runSetup(fullConfig)
@@ -112,7 +139,7 @@ export async function createCLI<
   }
   
   // Run configResolved hooks
-  if ('plugins' in fullConfig && fullConfig.plugins) {
+  if (mergedConfig.plugins && mergedConfig.plugins.length > 0) {
     await pluginManager.runConfigResolved(resolvedConfig)
   }
   
@@ -298,7 +325,7 @@ export async function createCLI<
       const resultParsed = await parsed
       const { prompt, spinner, colors } = await import('@bunli/utils')
 
-      if ('plugins' in fullConfig && fullConfig.plugins) {
+      if (mergedConfig.plugins && mergedConfig.plugins.length > 0) {
         context = await pluginManager.runBeforeCommand(
           command.name,
           command,
@@ -356,14 +383,14 @@ export async function createCLI<
         })
       }
 
-      if ('plugins' in fullConfig && fullConfig.plugins && context) {
+      if (mergedConfig.plugins && mergedConfig.plugins.length > 0 && context) {
         await pluginManager.runAfterCommand(
           context,
           { exitCode: 0 }
         )
       }
     } catch (error) {
-      if ('plugins' in fullConfig && fullConfig.plugins && context) {
+      if (mergedConfig.plugins && mergedConfig.plugins.length > 0 && context) {
         await pluginManager.runAfterCommand(
           context,
           { exitCode: 1 }
@@ -502,7 +529,7 @@ export async function createCLI<
         
         // Run beforeCommand hooks if plugins are loaded
         let context: CommandContext<TStore> | undefined
-        if ('plugins' in fullConfig && fullConfig.plugins) {
+        if (mergedConfig.plugins && mergedConfig.plugins.length > 0) {
           context = await pluginManager.runBeforeCommand(
             command.name,
             command,
@@ -537,7 +564,7 @@ export async function createCLI<
         }
         
         // Run afterCommand hooks if plugins are loaded
-        if ('plugins' in fullConfig && fullConfig.plugins && context) {
+        if (mergedConfig.plugins && mergedConfig.plugins.length > 0 && context) {
           await pluginManager.runAfterCommand(
             context,
             { exitCode: 0 }

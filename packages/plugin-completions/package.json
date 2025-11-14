@@ -1,0 +1,39 @@
+{
+  "name": "@bunli/plugin-completions",
+  "version": "0.1.0",
+  "description": "Shell completions plugin for Bunli CLI framework",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "bun run scripts/build.ts && bun run tsc",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@bunli/core": "workspace:*",
+    "@bunli/generator": "workspace:*",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  },
+  "keywords": [
+    "bunli",
+    "cli",
+    "completions",
+    "bash",
+    "zsh",
+    "fish",
+    "shell"
+  ],
+  "author": "Bunli Team",
+  "license": "MIT"
+}

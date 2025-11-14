@@ -5,7 +5,68 @@ description: Configure your Bunli CLI project with bunli.config.ts
 
 # Configuration
 
-Configure your Bunli CLI project behavior with `bunli.config.ts`.
+Configure your Bunli CLI project behavior with `bunli.config.ts`. **Configuration is automatically loaded** - you don't need to manually import or pass config to `createCLI()`.
+
+## Automatic Configuration Loading
+
+Bunli automatically loads configuration from `bunli.config.ts` when you call `createCLI()`:
+
+```typescript
+// cli.ts - No config needed!
+import { createCLI } from '@bunli/core'
+
+const cli = await createCLI()  // Automatically loads bunli.config.ts
+
+await cli.load({
+  build: () => import('./commands/build'),
+  test: () => import('./commands/test')
+})
+
+await cli.run()
+```
+
+```typescript
+// bunli.config.ts - All configuration here
+import { defineConfig } from '@bunli/core'
+
+export default defineConfig({
+  name: 'my-cli',
+  version: '1.0.0',
+  description: 'My awesome CLI tool',
+  commands: {
+    directory: './commands'
+  },
+  plugins: []
+})
+```
+
+<Callout type="tip">
+  **Benefits of automatic loading:**
+  - **Single source of truth** - Configuration lives in one place
+  - **No duplication** - Don't repeat name, version, description in cli.ts
+  - **Consistent** - Same config used by `bunli` CLI commands and runtime
+  - **Type-safe** - Full TypeScript support with `defineConfig`
+</Callout>
+
+## Configuration Override
+
+You can override specific settings for runtime-specific needs:
+
+```typescript
+// cli.ts - Override plugins with runtime options
+import { createCLI } from '@bunli/core'
+import { configMergerPlugin } from '@bunli/plugin-config'
+
+const cli = await createCLI({
+  plugins: [
+    configMergerPlugin({ sources: ['.myrc.json'] })
+  ] as const
+})
+
+await cli.run()
+```
+
+The override merges with the loaded config (override values win).
 
 ## Configuration File
 

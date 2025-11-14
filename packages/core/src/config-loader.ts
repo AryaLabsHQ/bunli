@@ -1,4 +1,4 @@
-import { bunliConfigSchema, type BunliConfig } from '@bunli/core'
+import { bunliConfigSchema, type BunliConfig } from './config.js'
 import path from 'node:path'
 import { existsSync } from 'node:fs'
 
@@ -70,7 +70,12 @@ export async function loadConfig(cwd = process.cwd()): Promise<LoadedConfig> {
     }
   }
 
-  // Return default config if no file found
-  // Zod parse with empty object will apply all defaults
-  return bunliConfigSchema.parse({}) as LoadedConfig
+  // Throw error if no config file found
+  throw new Error(
+    `No configuration file found. Please create one of: ${CONFIG_NAMES.join(', ')}`
+  )
 }
+
+
+
+

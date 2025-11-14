@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { createCLI } from '@bunli/core'
-import { loadConfig } from './config.js'
+import { loadConfig } from '@bunli/core'
 
 const cli = await createCLI({
   name: 'bunli',
@@ -13,12 +13,12 @@ const config = await loadConfig()
 
 // Load commands from manifest
 await cli.load({
-  dev: () => import('./commands/dev.js') as any,
-  build: () => import('./commands/build.js') as any,
-  generate: () => import('./commands/generate.js') as any,
-  test: () => import('./commands/test.js') as any,
-  release: () => import('./commands/release.js') as any,
-  init: () => import('./commands/init.js') as any
+  dev: () => import('./commands/dev.js'),
+  build: () => import('./commands/build.js'),
+  generate: () => import('./commands/generate.js'),
+  test: () => import('./commands/test.js'),
+  release: () => import('./commands/release.js'),
+  init: () => import('./commands/init.js')
 })
 
 // Run CLI
