@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@bunli/core": "workspace:*",
+    "@bunli/plugin-completions": "workspace:*",
     "zod": "^3.22.4"
   },
   "devDependencies": {
