@@ -212,17 +212,25 @@ function extractOptions(objectExpression: any): Record<string, OptionMetadata> {
           const schema = args[0]
           const metadata = args[1]?.type === 'ObjectExpression' ? args[1] : null
 
-          const { type } = inferSchemaType(schema)
+          const { type} = inferSchemaType(schema)
           const defaultInfo = inferDefault(schema)
+          const enumValues = extractEnumValues(schema)
+          const constraints = extractConstraints(schema)
+          const description = extractDescription(metadata)
+          const fileType = detectFileType(metadata, description)
 
           options[optionName] = {
             type,
             required: inferRequired(schema),
             hasDefault: defaultInfo.hasDefault,
             default: defaultInfo.value,
-            description: extractDescription(metadata),
+            description,
             short: extractShort(metadata),
-            // NEW: Enhanced schema information
+            // Enhanced completion metadata
+            enumValues,
+            ...constraints,  // Spread min, max, pattern, literalValue, etc.
+            fileType,  // Add file type for path completions
+            // Schema information
             schema: extractSchemaDefinition(schema),
             validator: generateValidator(schema)
           }
@@ -423,10 +431,10 @@ function extractSchemaDefinition(schema: any): any {
  */
 function generateValidator(schema: any): string {
   if (!schema) return '() => true'
-  
+
   // Generate a simple validator based on the schema type
   const { type } = inferSchemaType(schema)
-  
+
   switch (type) {
     case 'string':
       return '(val) => typeof val === "string"'
@@ -441,5 +449,182 @@ function generateValidator(schema: any): string {
     default:
       return '(val) => true'
   }
+}
+
+/**
+ * Extract enum values from z.enum() or z.literal() calls
+ */
+function extractEnumValues(schema: any): (string | number)[] | undefined {
+  if (!schema) return undefined
+
+  if (schema.type === 'CallExpression') {
+    const callee = schema.callee
+
+    // Handle z.enum(['a', 'b', 'c'])
+    if (callee.type === 'MemberExpression' &&
+        callee.property?.type === 'Identifier' &&
+        callee.property.name === 'enum') {
+      const args = schema.arguments
+      if (args[0]?.type === 'ArrayExpression') {
+        const values = args[0].elements
+          .filter((el: any) => el?.type === 'StringLiteral' || el?.type === 'NumericLiteral')
+          .map((el: any) => el.value)
+        return values.length > 0 ? values : undefined
+      }
+    }
+
+    // Handle z.literal('value')
+    if (callee.type === 'MemberExpression' &&
+        callee.property?.type === 'Identifier' &&
+        callee.property.name === 'literal') {
+      const args = schema.arguments
+      if (args[0]) {
+        const value = extractLiteralValue(args[0])
+        return value !== undefined ? [value] : undefined
+      }
+    }
+
+    // Recursively check chained methods for any call expression
+    // This handles cases like z.enum(['a', 'b']).default('a')
+    if (callee.type === 'MemberExpression') {
+      // First check the object (the left side of the chain)
+      const fromObject = extractEnumValues(callee.object)
+      if (fromObject) {
+        return fromObject
+      }
+    }
+
+    // Also check callee itself if it's a call expression
+    if (callee.type === 'CallExpression') {
+      const fromCallee = extractEnumValues(callee)
+      if (fromCallee) return fromCallee
+    }
+  }
+
+  return undefined
+}
+
+/**
+ * Extract constraints like min, max, regex from Zod schema
+ */
+function extractConstraints(schema: any): Partial<OptionMetadata> {
+  const constraints: Partial<OptionMetadata> = {}
+
+  if (!schema) return constraints
+
+  if (schema.type === 'CallExpression') {
+    const callee = schema.callee
+
+    if (callee.type === 'MemberExpression' && callee.property?.type === 'Identifier') {
+      const methodName = callee.property.name
+      const args = schema.arguments
+
+      switch (methodName) {
+        case 'min':
+          if (args[0]) {
+            const value = extractLiteralValue(args[0])
+            if (typeof value === 'number') {
+              constraints.min = value
+              constraints.minLength = value
+            }
+          }
+          break
+
+        case 'max':
+          if (args[0]) {
+            const value = extractLiteralValue(args[0])
+            if (typeof value === 'number') {
+              constraints.max = value
+              constraints.maxLength = value
+            }
+          }
+          break
+
+        case 'regex':
+          if (args[0]?.type === 'RegExpLiteral') {
+            constraints.pattern = args[0].pattern
+          } else if (args[0]?.type === 'NewExpression' &&
+                    args[0].callee?.type === 'Identifier' &&
+                    args[0].callee.name === 'RegExp' &&
+                    args[0].arguments[0]?.type === 'StringLiteral') {
+            constraints.pattern = args[0].arguments[0].value
+          }
+          break
+
+        case 'transform':
+          constraints.isTransform = true
+          break
+
+        case 'refine':
+          constraints.isRefine = true
+          break
+
+        case 'array':
+          constraints.isArray = true
+          break
+
+        case 'literal':
+          if (args[0]) {
+            constraints.literalValue = extractLiteralValue(args[0])
+          }
+          break
+      }
+
+      // Recursively check chained methods
+      if (callee.object) {
+        const parentConstraints = extractConstraints(callee.object)
+        // Merge constraints, current call takes precedence
+        Object.keys(parentConstraints).forEach(key => {
+          if (!(key in constraints)) {
+            (constraints as any)[key] = (parentConstraints as any)[key]
+          }
+        })
+      }
+    }
+  }
+
+  return constraints
+}
+
+/**
+ * Detect file type from option metadata
+ * Checks for explicit fileType property and analyzes description for keywords
+ */
+function detectFileType(optionConfig: any, description?: string): 'file' | 'directory' | 'path' | undefined {
+  // Check for explicit fileType property
+  if (optionConfig?.type === 'ObjectExpression') {
+    for (const prop of optionConfig.properties) {
+      if (prop.key?.name === 'fileType' && prop.value?.type === 'StringLiteral') {
+        const value = prop.value.value
+        if (value === 'file' || value === 'directory' || value === 'path') {
+          return value
+        }
+      }
+    }
+  }
+
+  // Analyze description for file-related keywords
+  if (description) {
+    const lowerDesc = description.toLowerCase()
+
+    // Check for directory-specific keywords
+    if (lowerDesc.includes('directory') || lowerDesc.includes('folder') || lowerDesc.includes('dir')) {
+      return 'directory'
+    }
+
+    // Check for file-specific keywords
+    if (lowerDesc.includes('file path') || lowerDesc.includes('file name') ||
+        lowerDesc.includes('config file') || lowerDesc.includes('output file') ||
+        lowerDesc.includes('input file')) {
+      return 'file'
+    }
+
+    // Generic path keywords (less specific)
+    if (lowerDesc.includes(' path') || lowerDesc.includes('filepath')) {
+      return 'path'
+    }
+  }
+
+  return undefined
 }
 

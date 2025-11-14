@@ -147,6 +147,19 @@ function buildMetadataObject(command: CommandMetadata, indent: string): string {
         option.hasDefault ? `default: ${JSON.stringify(option.default)}` : undefined,
         option.description ? `description: '${escape(option.description)}'` : undefined,
         option.short ? `short: '${escape(option.short)}'` : undefined,
+        // Enhanced completion metadata
+        option.enumValues ? `enumValues: ${JSON.stringify(option.enumValues)}` : undefined,
+        option.literalValue !== undefined ? `literalValue: ${JSON.stringify(option.literalValue)}` : undefined,
+        option.min !== undefined ? `min: ${option.min}` : undefined,
+        option.max !== undefined ? `max: ${option.max}` : undefined,
+        option.minLength !== undefined ? `minLength: ${option.minLength}` : undefined,
+        option.maxLength !== undefined ? `maxLength: ${option.maxLength}` : undefined,
+        option.pattern ? `pattern: '${escape(option.pattern)}'` : undefined,
+        option.isArray ? `isArray: true` : undefined,
+        option.isTransform ? `isTransform: true` : undefined,
+        option.isRefine ? `isRefine: true` : undefined,
+        option.fileType ? `fileType: '${option.fileType}'` : undefined,
+        // Schema information
         option.schema ? `schema: ${JSON.stringify(option.schema)}` : undefined,
         option.validator ? `validator: '${escape(option.validator)}'` : undefined
       ].filter(Boolean).join(', ')
