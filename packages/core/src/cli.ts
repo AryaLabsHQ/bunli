@@ -444,16 +444,21 @@ export async function createCLI<
         return
       }
       
-      // Handle version flag
-      if (argv.includes('--version') || argv.includes('-v')) {
+      // Handle -- separator: split args before and after --
+      const separatorIndex = argv.indexOf('--')
+      const commandArgs = separatorIndex >= 0 ? argv.slice(0, separatorIndex) : argv
+      const passthroughArgs = separatorIndex >= 0 ? argv.slice(separatorIndex + 1) : []
+      
+      // Handle version flag (only check before -- separator)
+      if (commandArgs.includes('--version') || commandArgs.includes('-v')) {
         console.log(`${fullConfig.name} v${fullConfig.version}`)
         return
       }
       
-      // Handle help flags
-      if (argv.includes('--help') || argv.includes('-h')) {
-        const helpIndex = Math.max(argv.indexOf('--help'), argv.indexOf('-h'))
-        const cmdArgs = argv.slice(0, helpIndex)
+      // Handle help flags (only check before -- separator)
+      if (commandArgs.includes('--help') || commandArgs.includes('-h')) {
+        const helpIndex = Math.max(commandArgs.indexOf('--help'), commandArgs.indexOf('-h'))
+        const cmdArgs = commandArgs.slice(0, helpIndex)
         
         if (cmdArgs.length === 0) {
           showHelp()
@@ -470,21 +475,23 @@ export async function createCLI<
       }
       
       // Find and execute command
-      const { command, remainingArgs } = findCommand(argv)
+      const { command, remainingArgs } = findCommand(commandArgs)
       
       if (!command) {
-        console.error(`Unknown command: ${argv[0]}`)
+        console.error(`Unknown command: ${commandArgs[0]}`)
         process.exit(1)
       }
       
       // If command has subcommands but no handler, show help
       if (!command.handler && !command.render && command.commands) {
-        showHelp(command, argv.slice(0, argv.length - remainingArgs.length - 1))
+        showHelp(command, commandArgs.slice(0, commandArgs.length - remainingArgs.length - 1))
         return
       }
       
       if (command.handler || command.render) {
-        await runCommandInternal(command, remainingArgs)
+        // Combine remaining args from command parsing with passthrough args
+        const allArgs = [...remainingArgs, ...passthroughArgs]
+        await runCommandInternal(command, allArgs)
       }
     },
     

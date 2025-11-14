@@ -24,9 +24,22 @@ export async function parseArgs(
   }
   
   // Parse arguments
+  let stopParsingFlags = false
   for (let i = 0; i < args.length; i++) {
     const arg = args[i]
     if (!arg) continue
+    
+    // Handle -- separator: everything after is positional
+    if (arg === '--') {
+      stopParsingFlags = true
+      continue
+    }
+    
+    // After -- separator, treat everything as positional
+    if (stopParsingFlags) {
+      positional.push(arg)
+      continue
+    }
     
     if (arg.startsWith('--')) {
       // Long flag: --name or --name=value
