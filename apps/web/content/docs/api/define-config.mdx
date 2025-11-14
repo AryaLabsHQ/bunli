@@ -289,6 +289,10 @@ const config = await loadConfig()
 ```
 
 <Callout type="tip">
+  **Automatic Loading**: In most cases, you don't need to manually load config. `createCLI()` automatically loads from `bunli.config.ts` when called without arguments.
+</Callout>
+
+<Callout type="tip">
   Use `defineConfig` for better TypeScript support. It provides type checking and autocompletion for all configuration options.
 </Callout>
 
