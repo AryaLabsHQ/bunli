@@ -1,10 +1,10 @@
 import { defineCommand, option } from '@bunli/core'
 import { Generator } from '@bunli/generator'
-import { bunliCodegenPlugin } from '@bunli/generator/plugin'
 import { z } from 'zod'
 import { loadConfig } from '@bunli/core'
 import { findEntry } from '../utils/find-entry.js'
 import path from 'node:path'
+import { existsSync } from 'node:fs'
 
 export default defineCommand({
   name: 'dev',
@@ -43,8 +43,10 @@ export default defineCommand({
   handler: async ({ flags, positional, spinner, colors }) => {
     const config = await loadConfig()
 
-    // 1. Initialize generator if codegen is enabled (always enabled)
-    if (flags.generate) {
+    // Generate types if codegen is enabled
+    const generateTypes = async () => {
+      if (!flags.generate) return
+
       const generator = new Generator({
         commandsDir: flags.commandsDir,
         outputFile: './.bunli/commands.gen.ts',
@@ -52,16 +54,25 @@ export default defineCommand({
         generateReport: config.commands?.generateReport
       })
 
-      // Initial generation
-      const spin = spinner('Generating command types...')
       try {
         await generator.run()
-        spin.succeed('Types generated')
+        return true
       } catch (error) {
-        spin.fail('Failed to generate types')
         const message = error instanceof Error ? error.message : String(error)
-        console.error(colors.red(message))
-        return
+        console.error(colors.red(`Failed to generate types: ${message}`))
+        return false
+      }
+    }
+
+    // Initial type generation
+    if (flags.generate) {
+      const spin = spinner('Generating command types...')
+      const success = await generateTypes()
+      if (success) {
+        spin.succeed('Types generated')
+      } else {
+        spin.fail('Failed to generate types')
+        process.exit(1)
       }
     }
 
@@ -73,153 +84,125 @@ export default defineCommand({
     }
 
     const entryFile = Array.isArray(entry) ? entry[0] : entry
-
     if (!entryFile) {
       console.error(colors.red('Entry file is required'))
       process.exit(1)
     }
 
     const entryPath = path.resolve(entryFile)
+    if (!existsSync(entryPath)) {
+      console.error(colors.red(`Entry file not found: ${entryPath}`))
+      process.exit(1)
+    }
 
-    // 3. Build function that can be called repeatedly
-    const buildProject = async () => {
-      const result = await Bun.build({
-        entrypoints: [entryPath],
-        outdir: '.bunli/dev',
-        target: 'bun',
-        plugins: flags.generate ? [
-          bunliCodegenPlugin({
-            commandsDir: flags.commandsDir,
-            outputFile: './.bunli/commands.gen.ts',
-            config,
-            generateReport: config.commands?.generateReport
-          })
-        ] : []
-      })
+    // Build bun command args
+    const bunArgs: string[] = []
+    
+    // Use --hot for hot reload (Bun's native hot reload)
+    if (flags.watch ?? config.dev?.watch ?? true) {
+      bunArgs.push('--hot')
+    }
 
-      if (!result.success) {
-        console.error(colors.red('Build failed'))
-        for (const log of result.logs) {
-          console.error(log)
-        }
-        return null
+    // Add inspect flag if enabled
+    if (flags.inspect) {
+      bunArgs.push('--inspect')
+      if (flags.port) {
+        bunArgs.push(`--inspect-port=${flags.port}`)
       }
+    } else if (flags.port) {
+      // If port is specified without inspect, still add it
+      bunArgs.push(`--inspect-port=${flags.port}`)
+    }
 
-      return result.outputs[0]
+    // Add the entry file
+    bunArgs.push(entryPath)
+
+    // Add any positional arguments (passed through to the CLI)
+    if (positional.length > 0) {
+      bunArgs.push(...positional)
     }
 
     console.log(colors.cyan('\n👀 Starting dev mode...\n'))
-
     if (flags.watch ?? config.dev?.watch ?? true) {
-      // Watch mode implementation with manual file watching
-      let currentProc: ReturnType<typeof Bun.spawn> | null = null
+      console.log(colors.dim(`Running: bun ${bunArgs.join(' ')}\n`))
+    }
 
-      // Initial build and run
-      const output = await buildProject()
-      if (output) {
-        currentProc = Bun.spawn(['bun', output.path], {
-          stdio: ['inherit', 'inherit', 'inherit'],
-          env: {
-            ...process.env,
-            NODE_ENV: 'development'
-          },
-          onExit: (_subprocess, exitCode, signalCode, _error) => {
-            if (exitCode !== 0 && exitCode !== null && !signalCode) {
-              console.log(colors.dim(`Process exited with code ${exitCode}`))
-            }
-          }
-        })
-      }
+    // Watch for changes in commands directory to regenerate types
+    let ac: AbortController | null = null
+    if (flags.watch ?? config.dev?.watch ?? true) {
+      const commandsDir = path.resolve(flags.commandsDir)
+      if (existsSync(commandsDir) && flags.generate) {
+        const { watch } = await import('node:fs/promises')
+        ac = new AbortController()
+        const { signal } = ac
 
-      // Watch for file changes
-      const { watch } = await import('node:fs/promises')
-      const ac = new AbortController()
-      const { signal } = ac
-
-      // Handle Ctrl+C gracefully
-      process.on('SIGINT', () => {
-        console.log(colors.dim('\n\nStopping dev server...'))
-        if (currentProc) {
-          currentProc.kill()
-        }
-        ac.abort()
-        process.exit(0)
-      })
-
-      try {
-        const watchDir = path.dirname(entryPath)
-        const watcher = watch(watchDir, {
-          recursive: true,
-          signal
-        })
-
-        for await (const event of watcher) {
-          // Only rebuild for TypeScript/JavaScript files
-          if (!event.filename?.match(/\.(ts|tsx|js|jsx)$/)) continue
-
-          // Skip generated files and build artifacts to prevent infinite loops
-          if (event.filename?.includes('commands.gen.ts')) continue
-          if (event.filename?.includes('.bunli/')) continue
-
-          if (flags.clearScreen) console.clear()
-          console.log(colors.dim(`[${new Date().toLocaleTimeString()}] File changed: ${event.filename}`))
-          console.log(colors.cyan('Rebuilding...'))
-
-          const output = await buildProject()
-          if (output) {
-            // Kill old process
-            if (currentProc) {
-              currentProc.kill()
-              // Wait a bit for the process to actually exit
-              await new Promise(resolve => setTimeout(resolve, 100))
-            }
-
-            // Start new process
-            currentProc = Bun.spawn(['bun', output.path], {
-              stdio: ['inherit', 'inherit', 'inherit'],
-              env: {
-                ...process.env,
-                NODE_ENV: 'development'
-              },
-              onExit: (_subprocess, exitCode, signalCode, _error) => {
-                if (exitCode !== 0 && exitCode !== null && !signalCode) {
-                  console.log(colors.dim(`Process exited with code ${exitCode}`))
-                }
-              }
+        // Watch commands directory for type regeneration
+        const watchCommands = async () => {
+          try {
+            const watcher = watch(commandsDir, {
+              recursive: true,
+              signal
             })
 
-            console.log(colors.green('✓ Reloaded\n'))
-          }
-        }
-      } catch (err: any) {
-        if (err.name === 'AbortError') {
-          console.log(colors.dim('Watch stopped'))
-          return
-        }
-        throw err
-      }
-    } else {
-      // Non-watch mode - just run once
-      const output = await buildProject()
-      if (output) {
-        const proc = Bun.spawn(['bun', output.path], {
-          stdio: ['inherit', 'inherit', 'inherit'],
-          env: {
-            ...process.env,
-            NODE_ENV: 'development'
-          },
-          onExit: (_subprocess, exitCode, signalCode, _error) => {
-            if (exitCode !== 0 && exitCode !== null && !signalCode) {
-              console.log(colors.dim(`Process exited with code ${exitCode}`))
+            for await (const event of watcher) {
+              // Only regenerate for TypeScript/JavaScript files
+              if (!event.filename?.match(/\.(ts|tsx|js|jsx)$/)) continue
+              
+              // Skip generated files
+              if (event.filename?.includes('commands.gen.ts')) continue
+              if (event.filename?.includes('.bunli/')) continue
+
+              console.log(colors.dim(`\n[${new Date().toLocaleTimeString()}] Command file changed: ${event.filename}`))
+              const spin = spinner('Regenerating types...')
+              const success = await generateTypes()
+              if (success) {
+                spin.succeed('Types regenerated')
+              } else {
+                spin.fail('Failed to regenerate types')
+              }
+            }
+          } catch (err: any) {
+            if (err.name !== 'AbortError') {
+              throw err
             }
           }
-        })
+        }
 
-        await proc.exited
-        process.exit(proc.exitCode ?? 0)
-      } else {
-        process.exit(1)
+        // Start watching in background
+        watchCommands().catch(err => {
+          console.error(colors.red(`Watch error: ${err.message}`))
+        })
       }
     }
+
+    // Run the CLI with Bun
+    const proc = Bun.spawn(['bun', ...bunArgs], {
+      stdio: ['inherit', 'inherit', 'inherit'],
+      env: {
+        ...process.env,
+        NODE_ENV: 'development'
+      }
+    })
+
+    const handleExit = () => {
+      console.log(colors.dim('\n\nStopping dev server...'))
+      // Abort file watcher if it exists
+      if (ac) {
+        ac.abort()
+      }
+      // Kill the spawned process
+      proc.kill()
+      process.exit(0)
+    }
+    process.on('SIGINT', handleExit)
+    process.on('SIGTERM', handleExit)
+
+    // Wait for process to exit
+    await proc.exited
+    // Abort file watcher if it exists
+    if (ac) {
+      ac.abort()
+    }
+    process.exit(proc.exitCode ?? 0)
   }
 })
