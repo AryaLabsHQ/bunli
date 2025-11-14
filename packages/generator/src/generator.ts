@@ -1,9 +1,12 @@
 import { mkdir } from 'node:fs/promises'
 import { dirname } from 'node:path'
+import debug from 'debug'
 import type { GeneratorConfig, GeneratorEvent, CommandMetadata } from './types.js'
 import { CommandScanner } from './scanner.js'
 import { parseCommand } from './parser.js'
 import { buildTypes } from './builder.js'
+
+const log = debug('bunli:generator')
 
 export class Generator {
   private config: GeneratorConfig
@@ -63,13 +66,13 @@ export class Generator {
     const commands: CommandMetadata[] = []
 
     for (const file of files) {
-      console.log(`Parsing file: ${file}`)
+      log(`Parsing file: ${file}`)
       const command = await parseCommand(file, this.config.commandsDir, this.config.outputFile)
       if (command) {
-        console.log(`✅ Successfully parsed: ${command.name}`)
+        log(`✅ Successfully parsed: ${command.name}`)
         commands.push(command)
       } else {
-        console.log(`❌ Failed to parse: ${file}`)
+        log(`❌ Failed to parse: ${file}`)
       }
     }
 
