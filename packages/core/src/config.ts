@@ -27,36 +27,55 @@ export const bunliConfigSchema = z.object({
     minify: z.boolean().default(false),
     external: z.array(z.string()).optional(),
     sourcemap: z.boolean().default(true)  // Always include sourcemaps for debugging
-  }).optional(),
-  
+  }).default({
+    targets: ['native'],
+    compress: false,
+    minify: false,
+    sourcemap: true
+  }),
+
   // Development configuration
   dev: z.object({
     watch: z.boolean().default(true),  // Always watch by default
     inspect: z.boolean().default(false),
     port: z.number().optional()
-  }).optional(),
-  
+  }).default({
+    watch: true,
+    inspect: false
+  }),
+
   // Test configuration
   test: z.object({
     pattern: z.string().or(z.array(z.string())).default(['**/*.test.ts', '**/*.spec.ts']),
     coverage: z.boolean().default(false),
     watch: z.boolean().default(false)
-  }).optional(),
-  
+  }).default({
+    pattern: ['**/*.test.ts', '**/*.spec.ts'],
+    coverage: false,
+    watch: false
+  }),
+
   // Workspace configuration
   workspace: z.object({
     packages: z.array(z.string()).optional(),
     shared: z.any().optional(),
     versionStrategy: z.enum(['fixed', 'independent']).default('fixed')
-  }).optional(),
-  
+  }).default({
+    versionStrategy: 'fixed' as const
+  }),
+
   // Release configuration
   release: z.object({
     npm: z.boolean().default(true),
     github: z.boolean().default(false),
     tagFormat: z.string().default('v{{version}}'),
     conventionalCommits: z.boolean().default(true)
-  }).optional(),
+  }).default({
+    npm: true,
+    github: false,
+    tagFormat: 'v{{version}}',
+    conventionalCommits: true
+  }),
   
   // Plugins configuration
   plugins: z.array(z.any()).default([])
