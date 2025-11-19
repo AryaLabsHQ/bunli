@@ -3,8 +3,7 @@ import { defineConfig } from '@bunli/core'
 export default defineConfig({
   name: 'git-tool',
   version: '1.0.0',
-  description: 'Git workflow automation CLI',
-  
+  description: 'Git workflow automation CLI',  
   plugins: [],
   commands: {
     directory: './commands'

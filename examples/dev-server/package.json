@@ -4,7 +4,7 @@
   "description": "Development server with plugins - Advanced plugin system and configuration management",
   "type": "module",
   "scripts": {
-    "dev": "bun run cli.ts",
+    "dev": "bunli dev",
     "build": "bunli build",
     "generate": "bunli generate",
     "start": "bun run dist/cli.js",
