@@ -17,17 +17,17 @@
   },
   "dependencies": {
     "@bunli/core": "workspace:*",
-    "@opentui/core": "^0.1.27",
-    "@opentui/react": "^0.1.27"
+    "@opentui/core": "^0.1.57",
+    "@opentui/react": "^0.1.57"
   },
   "devDependencies": {
     "@types/bun": "latest",
-    "react": "^19.2.0",
-    "@types/react": "^19.2.2",
-    "typescript": "^5.3.3"
+    "@types/react": "19.2.7",
+    "react": "19.2.1",
+    "typescript": "^5.8.3"
   },
   "peerDependencies": {
-    "@opentui/core": "^0.1.27",
+    "@opentui/core": "^0.1.57",
     "react": "^19.2.0"
   },
   "files": [

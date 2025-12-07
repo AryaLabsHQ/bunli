@@ -15,7 +15,7 @@
     "@babel/traverse": "^7.23.0",
     "@bunli/core": "workspace:*",
     "debug": "^4.4.3",
-    "zod": "^4.1.12"
+    "zod": "^4.1.13"
   },
   "devDependencies": {
     "@types/babel__parser": "^7.1.0",

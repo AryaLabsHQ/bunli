@@ -20,8 +20,8 @@
   },
   "devDependencies": {
     "@types/bun": "latest",
-    "turbo": "^2.5.8",
-    "typescript": "^5.8.0"
+    "turbo": "^2.6.3",
+    "typescript": "^5.8.3"
   },
   "packageManager": "bun@1.2.2"
 }
