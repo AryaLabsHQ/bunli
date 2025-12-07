@@ -96,42 +96,40 @@ const cli = await createCLI({
 - Dark/light mode support
 - Accessible component patterns
 
-## Infrastructure with SST
+## Deployment with Vercel
 
-- Uses SST (Serverless Stack) for infrastructure as code
-- Configuration in [sst.config.ts](mdc:apps/web/sst.config.ts)
-- AWS as primary provider (us-west-2 region)
-- Cloudflare for DNS management
+- Deployed to Vercel for Next.js hosting
+- Automatic deployments from Git pushes
 - Custom domain: `bunli.dev` with `www.bunli.dev` alias
 
-### SST Resources
+### Deployment Workflow
 
-- `BunliWeb` - Next.js application deployment
-- Auto-generated types in [sst-env.d.ts](mdc:apps/web/sst-env.d.ts)
-- Production protection and retention policies
+- **Preview Deployments**: Every pull request gets a unique preview URL
+- **Production Deployments**: Merges to `main` branch trigger production deploys
+- **Instant Rollbacks**: One-click rollback to previous deployments
 
 ### Deployment Commands
 
 ```bash
-# Deploy to development
-bun sst deploy
+# Install Vercel CLI
+bun add -g vercel
+
+# Deploy preview (from apps/web directory)
+vercel
 
 # Deploy to production
-bun sst deploy --stage production
+vercel --prod
 
-# Remove development stack
-bun sst remove
-
-# View SST console
-bun sst console
+# Pull environment variables locally
+vercel env pull
 ```
 
 ### Environment Management
 
-- Development: Resources are removed on stack deletion
-- Production: Resources are retained and protected
-- Environment variables managed through SST
-- Domain configuration with Cloudflare DNS
+- Environment variables configured in Vercel Dashboard
+- Separate variables for Preview, Development, and Production
+- Secrets managed securely through Vercel's encrypted storage
+- Local development uses `.env.local` (gitignored)
 
 ## SEO and Meta
 

@@ -44,7 +44,6 @@
     ".next/dev/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules",
-    "sst.config.ts"
+    "node_modules"
   ]
 }
