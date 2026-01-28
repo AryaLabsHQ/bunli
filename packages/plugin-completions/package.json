@@ -20,7 +20,7 @@
   "dependencies": {
     "@bunli/core": "workspace:*",
     "@bunli/generator": "workspace:*",
-    "zod": "^4.1.13"
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

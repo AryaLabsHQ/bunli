@@ -14,7 +14,7 @@
     "@bunli/core": "workspace:*",
     "@bunli/plugin-ai-detect": "workspace:*",
     "@bunli/plugin-config": "workspace:*",
-    "zod": "^4.1.13"
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/node": "24.10.1",
