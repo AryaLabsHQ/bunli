@@ -1,0 +1,92 @@
+[
+  {
+    "name": "company_research_exa",
+    "description": "Research any company to get business information, news, and insights.\n\nBest for: Learning about a company's products, services, recent news, or industry position.\nReturns: Company information from trusted business sources.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "companyName": {
+          "type": "string",
+          "description": "Name of the company to research"
+        },
+        "numResults": {
+          "type": "number",
+          "description": "Number of search results to return (default: 5)"
+        }
+      },
+      "required": [
+        "companyName"
+      ],
+      "additionalProperties": false,
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    }
+  },
+  {
+    "name": "get_code_context_exa",
+    "description": "Find code examples, documentation, and programming solutions. Searches GitHub, Stack Overflow, and official docs.\n\nBest for: Any programming question - API usage, library examples, code snippets, debugging help.\nReturns: Relevant code and documentation, formatted for easy reading.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string",
+          "description": "Search query to find relevant context for APIs, Libraries, and SDKs. For example, 'React useState hook examples', 'Python pandas dataframe filtering', 'Express.js middleware', 'Next js partial prerendering configuration'"
+        },
+        "tokensNum": {
+          "type": "number",
+          "minimum": 1000,
+          "maximum": 50000,
+          "default": 5000,
+          "description": "Number of tokens to return (1000-50000). Default is 5000 tokens. Adjust this value based on how much context you need - use lower values for focused queries and higher values for comprehensive documentation."
+        }
+      },
+      "required": [
+        "query"
+      ],
+      "additionalProperties": false,
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    }
+  },
+  {
+    "name": "web_search_exa",
+    "description": "Search the web for any topic and get clean, ready-to-use content.\n\nBest for: Finding current information, news, facts, or answering questions about any topic.\nReturns: Clean text content from top search results, ready for LLM use.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "contextMaxCharacters": {
+          "type": "number",
+          "description": "Maximum characters for context string optimized for LLMs (default: 10000)"
+        },
+        "livecrawl": {
+          "type": "string",
+          "enum": [
+            "fallback",
+            "preferred"
+          ],
+          "description": "Live crawl mode - 'fallback': use live crawling as backup if cached content unavailable, 'preferred': prioritize live crawling (default: 'fallback')"
+        },
+        "numResults": {
+          "type": "number",
+          "description": "Number of search results to return (default: 8)"
+        },
+        "query": {
+          "type": "string",
+          "description": "Websearch query"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "fast",
+            "deep"
+          ],
+          "description": "Search type - 'auto': balanced search (default), 'fast': quick results, 'deep': comprehensive search"
+        }
+      },
+      "required": [
+        "query"
+      ],
+      "additionalProperties": false,
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    }
+  }
+]
