@@ -1,242 +1,101 @@
-# CLAUDE.md
+# PROJECT KNOWLEDGE BASE
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+**Generated:** 2026-01-29
+**Type:** Bun monorepo (workspace + Turbo)
 
-## Project Overview
+## OVERVIEW
 
-Bunli is a minimal, type-safe CLI framework for Bun with an advanced plugin system. It's a monorepo managed with Bun workspaces and Turborepo.
+Minimal, type-safe CLI framework for Bun with advanced plugin system. Uses Zod for command validation, Bun Shell for execution, and Turborepo for builds.
 
-### Key Packages
+## STRUCTURE
 
-- **@bunli/core** - Core CLI framework with type-safe command definitions and plugin system
-- **@bunli/utils** - Shared utilities (colors, prompts, spinners, validation)
-- **@bunli/test** - Testing utilities for CLI applications
-- **@bunli/generator** - TypeScript type generation from CLI commands
-- **bunli** - CLI toolchain for development and building
-- **create-bunli** - Project scaffolding tool
-- **@bunli/plugin-ai-detect** - Plugin for detecting AI coding assistants
-- **@bunli/plugin-config** - Plugin for loading and merging configuration files
+```
+./
+├── packages/           # 11 core packages
+│   ├── core/           # CLI framework (defineCommand, plugins)
+│   ├── cli/            # bunli CLI toolchain
+│   ├── utils/          # colors, prompts, spinners
+│   ├── test/           # CLI testing utilities
+│   ├── generator/      # TypeScript type generation
+│   ├── create-bunli/   # Project scaffolding
+│   ├── plugin-*/       # ai-detect, config, completions
+│   └── tui/            # Terminal UI components
+├── examples/           # 4 working examples
+├── apps/web/           # Next.js docs site
+└── scripts/            # Build/release automation
+```
 
-## Development Commands
+## WHERE TO LOOK
 
-### Root Level
+| Task | Location | Notes |
+|------|----------|-------|
+| Add command | `packages/cli/src/commands/` | Use `defineCommand` pattern |
+| Plugin system | `packages/core/src/plugin/` | `createPlugin<T>()` with typed store |
+| Type generation | `packages/generator/src/` | Creates `commands.gen.ts` |
+| Utilities | `packages/utils/src/` | colors, prompt, spinner, validation |
+| Tests | `packages/*/test/*.test.ts` | Bun test runner |
+
+## CODE MAP
+
+| Symbol | Location | Purpose |
+|--------|----------|---------|
+| `defineCommand` | `packages/core/src/command/` | Command builder |
+| `option()` | `packages/core/src/option/` | Flag definition |
+| `createPlugin` | `packages/core/src/plugin/` | Plugin factory |
+| `createCLI` | `packages/core/src/cli.ts` | CLI entry point |
+
+## CONVENTIONS
+
+- **ESM imports**: Always use `.js` extension for local imports
+- **Named exports**: Avoid default exports for tree-shaking
+- **File naming**: kebab-case (`my-command.ts`)
+- **Zod validation**: All command options use Zod schemas
+- **Plugin store**: Typed via generics, accessed via context
+- **Test files**: `.test.ts` suffix in `packages/*/test/`
+
+## ANTI-PATTERNS (THIS PROJECT)
+
+- `as any` / `@ts-ignore` - Never suppress type errors
+- `Object.freeze()` in plugin stores - Breaks Zod validation
+- Global store access - Always use context-bound store
+- Missing `.js` extension on local imports
+- Modifying store properties directly - Use setters
+
+## COMMANDS
+
 ```bash
-bun run build    # Build all packages via Turbo
-bun test         # Run all tests
-bun run clean    # Clean build artifacts
-bun run release  # Release packages
+# Install dependencies
+bun install
+
+# Development (watch mode)
+bun run dev
+
+# Run all tests
+bun test
+
+# Build all packages
+bun run build
+
+# Clean artifacts
+bun run clean
+
+# Release packages
+bun run release
 ```
 
-### Package Level
-```bash
-bun run build      # Build package and generate types
-bun test           # Run package tests
-bun run typecheck # Type check without emitting
-```
+## AGENTS.md LOCATIONS
 
-### Running Single Tests
-```bash
-bun test path/to/test.test.ts  # Run specific test file
-bun test -t "test name"         # Run tests matching pattern
-```
-
-## Architecture & Code Patterns
-
-### Module System
-- Pure ESM modules (all packages have `"type": "module"`)
-- TypeScript with `"moduleResolution": "bundler"`
-- Use `.js` extensions for all local imports (ESM requirement)
-- Use named exports, avoid default exports
-
-### Project Structure
-All Bunli projects must follow this structure for reliable type generation:
-
-```
-my-cli/
-├── cli.ts              # Main CLI entry point
-├── commands/           # Command definitions (REQUIRED)
-│   ├── command1.ts     # Individual command files
-│   └── command2.ts     # Each command as default export
-├── .bunli/            # Generated files (auto-created)
-│   └── commands.gen.ts # Generated TypeScript types
-├── bunli.config.ts     # Bunli configuration
-├── package.json        # Project dependencies
-└── tsconfig.json       # TypeScript configuration
-```
-
-**Required Configuration**: All `bunli.config.ts` files must include:
-```typescript
-export default defineConfig({
-  // ... other config
-  commands: {
-    directory: './commands'
-  }
-})
-```
-
-### Command Definition Pattern
-Commands in Bunli use a type-safe builder pattern:
-
-```typescript
-import { defineCommand, option } from '@bunli/core'
-import { z } from 'zod'
-
-const command = defineCommand({
-  name: 'command-name',
-  description: 'Command description',
-  options: {
-    flagName: option(
-      z.string().optional(),
-      { description: 'Flag description', short: 'f' }
-    )
-  },
-  handler: async ({ flags, positional, shell, env, cwd, prompt, spinner, colors, context }) => {
-    // Implementation with full type safety
-    console.log(flags.flagName) // TypeScript knows the type
-    console.log(positional[0]) // Access positional args
-    
-    // Access plugin store if available
-    if (context?.store.someData) {
-      console.log(context.store.someData)
-    }
-  }
-});
-
-export default command
-```
-
-### Package Exports
-Each package uses explicit exports in package.json:
-
-```json
-{
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./src/index.ts"
-    }
-  }
-}
-```
-
-### Build System
-- Custom build scripts in `scripts/build.ts` for each package
-- Turbo manages inter-package dependencies
-- TypeScript compilation only for type declarations (Bun runs .ts directly)
-
-### Testing Patterns
-- Use Bun's built-in test runner
-- Test files use `.test.ts` suffix
-- @bunli/test provides CLI-specific testing utilities
-- Mock commands and capture output using test helpers
-
-## Important Conventions
-
-- **Always use Bun** instead of npm/yarn/pnpm (overrides user preference)
-- **Always use ESM** - no CommonJS
-- **File naming**: Always use kebab-case (e.g., `my-command.ts`)
-- **Imports**: Always use `.js` extensions for local imports (ESM requirement)
-- **Type exports**: Export types explicitly for better tree-shaking
-
-## Common Tasks
-
-### Adding a New Command
-1. Create command file in `commands/` directory (e.g., `commands/my-command.ts`)
-2. Use `defineCommand` from @bunli/core
-3. Export as default export
-4. Import and register in `cli.ts`
-5. Run `bun run generate` to update types
-6. Add tests using @bunli/test utilities
-
-**Note**: All Bunli projects must use a `commands/` directory structure for reliable type generation.
-
-### Creating a New Package
-1. Create directory under `packages/`
-2. Add package.json with ESM configuration
-3. Add to root workspace in package.json
-4. Configure build script following existing patterns
-5. Add to Turbo pipeline if needed
-
-### Running Examples
-```bash
-cd examples/[example-name]
-bun run src/index.ts [command]
-```
-
-## Type Safety
-
-Bunli emphasizes type safety throughout:
-- Command flags are fully typed via Zod schemas
-- Plugin stores provide compile-time type safety
-- Validation schemas integrate with TypeScript
-- Builder pattern ensures compile-time safety
-- Test utilities provide typed mocks and assertions
-
-## Plugin System
-
-### Creating Plugins
-
-```typescript
-import { createPlugin } from '@bunli/core/plugin'
-
-interface MyStore {
-  count: number
-  data: string[]
-}
-
-export const myPlugin = createPlugin<MyStore>({
-  name: 'my-plugin',
-  store: {
-    count: 0,
-    data: []
-  },
-  beforeCommand({ store }) {
-    store.count++ // Type-safe!
-  }
-})
-```
-
-### Using Plugins
-
-```typescript
-import { createCLI } from '@bunli/core'
-import { aiAgentPlugin } from '@bunli/plugin-ai-detect'
-import { configMergerPlugin } from '@bunli/plugin-config'
-
-const cli = await createCLI({
-  name: 'my-cli',
-  version: '1.0.0',
-  plugins: [
-    aiAgentPlugin({ verbose: true }),
-    configMergerPlugin({ sources: ['.myrc.json'] }),
-    myPlugin
-  ] as const // Use 'as const' for better type inference
-})
-```
-
-## Configuration
-
-Projects use `bunli.config.ts` for configuration:
-
-```typescript
-import { defineConfig } from '@bunli/core'
-
-export default defineConfig({
-  name: 'my-cli',
-  version: '1.0.0',
-  description: 'My CLI tool',
-  build: {
-    entry: 'src/index.ts',
-    outdir: 'dist',
-    targets: ['node16', 'bun'],
-    compress: true
-  },
-  dev: {
-    watch: true,
-    inspect: false
-  },
-  plugins: [
-    // Plugin configuration
-  ]
-})
-```
+| Directory | Purpose |
+|-----------|---------|
+| `packages/core/` | CLI framework patterns |
+| `packages/cli/` | bunli CLI commands |
+| `packages/utils/` | Utility patterns |
+| `packages/plugin-ai-detect/` | AI detection plugin |
+| `packages/plugin-config/` | Config merging plugin |
+| `packages/plugin-completions/` | Shell completions |
+| `packages/generator/` | Type generation |
+| `packages/test/` | Testing utilities |
+| `packages/tui/` | TUI components |
+| `packages/create-bunli/` | Scaffolding patterns |
+| `examples/*/` | Example-specific patterns |
+| `apps/web/` | Web app documentation |
