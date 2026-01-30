@@ -27,7 +27,7 @@ export const bunliConfigSchema = z.object({
     minify: z.boolean().default(false),
     external: z.array(z.string()).optional(),
     sourcemap: z.boolean().default(true)  // Always include sourcemaps for debugging
-  }).optional().default({
+  }).default({
     targets: ['native'],
     compress: false,
     minify: false,
@@ -39,7 +39,7 @@ export const bunliConfigSchema = z.object({
     watch: z.boolean().default(true),  // Always watch by default
     inspect: z.boolean().default(false),
     port: z.number().optional()
-  }).optional().default({
+  }).default({
     watch: true,
     inspect: false
   }),
@@ -49,7 +49,7 @@ export const bunliConfigSchema = z.object({
     pattern: z.string().or(z.array(z.string())).default(['**/*.test.ts', '**/*.spec.ts']),
     coverage: z.boolean().default(false),
     watch: z.boolean().default(false)
-  }).optional().default({
+  }).default({
     pattern: ['**/*.test.ts', '**/*.spec.ts'],
     coverage: false,
     watch: false
@@ -60,7 +60,7 @@ export const bunliConfigSchema = z.object({
     packages: z.array(z.string()).optional(),
     shared: z.any().optional(),
     versionStrategy: z.enum(['fixed', 'independent']).default('fixed')
-  }).optional().default({
+  }).default({
     versionStrategy: 'fixed' as const
   }),
 
@@ -70,7 +70,7 @@ export const bunliConfigSchema = z.object({
     github: z.boolean().default(false),
     tagFormat: z.string().default('v{{version}}'),
     conventionalCommits: z.boolean().default(true)
-  }).optional().default({
+  }).default({
     npm: true,
     github: false,
     tagFormat: 'v{{version}}',
@@ -82,10 +82,15 @@ export const bunliConfigSchema = z.object({
 })
 
 /**
- * Inferred TypeScript type from the schema
+ * Inferred TypeScript type from the schema (output type with defaults applied)
  * This ensures runtime validation matches compile-time types
  */
 export type BunliConfig = z.infer<typeof bunliConfigSchema>
+
+/**
+ * Input type for config (fields with defaults are optional)
+ */
+export type BunliConfigInput = z.input<typeof bunliConfigSchema>
 
 /**
  * Strict schema for CLI creation that requires name and version
@@ -100,8 +105,8 @@ export type BunliConfigStrict = z.infer<typeof bunliConfigStrictSchema>
 
 /**
  * Helper function to define configuration with type safety
- * Codegen and TypeScript are automatically configured
+ * Parses and validates config, applying defaults
  */
-export function defineConfig(config: BunliConfig): BunliConfig {
-  return config
+export function defineConfig(config: BunliConfigInput): BunliConfig {
+  return bunliConfigSchema.parse(config)
 }

@@ -5,16 +5,21 @@ import { writeFileSync, unlinkSync, existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-test('defineConfig - returns config as-is', () => {
+test('defineConfig - parses config and applies defaults', () => {
   const config = {
     name: 'test-cli',
     build: {
       entry: 'src/cli.ts'
     }
   }
-  
+
   const result = defineConfig(config)
-  expect(result).toEqual(config)
+  expect(result.name).toBe('test-cli')
+  expect(result.build.entry).toBe('src/cli.ts')
+  // Defaults should be applied
+  expect(result.build.targets).toEqual(['native'])
+  expect(result.build.minify).toBe(false)
+  expect(result.dev.watch).toBe(true)
 })
 
 test('bunliConfigSchema - validates valid config', () => {
