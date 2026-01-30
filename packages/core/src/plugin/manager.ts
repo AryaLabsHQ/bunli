@@ -27,7 +27,7 @@ export class PluginManager<TStore = {}> {
   private plugins: BunliPlugin[] = []
   private combinedStore: TStore = {} as TStore
   private loader = new PluginLoader()
-  private logger = createLogger('plugin-manager')
+  private logger = createLogger('core:plugin-manager')
   
   /**
    * Load and validate plugins
@@ -64,7 +64,7 @@ export class PluginManager<TStore = {}> {
       return acc
     }, {} as any) as TStore
     
-    this.logger.info(`Loaded ${this.plugins.length} plugins`)
+    this.logger.debug(`Loaded ${this.plugins.length} plugins`)
   }
   
   /**
@@ -74,7 +74,7 @@ export class PluginManager<TStore = {}> {
     const context = new PluginContext(
       config,
       new Map(Object.entries(this.combinedStore as any)),
-      createLogger('plugins'),
+      createLogger('core:plugins'),
       {
         cwd: process.cwd(),
         home: homedir(),
