@@ -4,6 +4,16 @@ import * as p from '@clack/prompts'
 import { readdir, readFile, writeFile } from 'fs/promises'
 import { join } from 'path'
 
+// Handle Ctrl+C gracefully
+process.on('SIGINT', () => {
+  p.cancel('Release cancelled')
+  process.exit(130)
+})
+process.on('SIGTERM', () => {
+  p.cancel('Release terminated')
+  process.exit(143)
+})
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -302,6 +312,62 @@ async function getPublishedVersion(packageName: string): Promise<string | null> 
   }
 }
 
+function compareVersions(a: string, b: string): number {
+  const parseVersion = (v: string) => {
+    const [main] = v.split('-')
+    return (main || '0.0.0').split('.').map(Number)
+  }
+  const [aMajor = 0, aMinor = 0, aPatch = 0] = parseVersion(a)
+  const [bMajor = 0, bMinor = 0, bPatch = 0] = parseVersion(b)
+
+  if (aMajor !== bMajor) return aMajor - bMajor
+  if (aMinor !== bMinor) return aMinor - bMinor
+  return aPatch - bPatch
+}
+
+interface IncompleteRelease {
+  config: PackageReleaseConfig
+  localVersion: string
+  publishedVersion: string | null
+  needsPublish: boolean
+  needsTag: boolean
+}
+
+async function checkIncompleteReleases(configs: PackageReleaseConfig[]): Promise<IncompleteRelease[]> {
+  const incomplete: IncompleteRelease[] = []
+
+  const s = p.spinner()
+  s.start('Checking for incomplete releases...')
+
+  for (const config of configs) {
+    const publishedVersion = await getPublishedVersion(config.name)
+    const lastTag = await getLastTagForPackage(config.tagPrefix)
+    const tagVersion = lastTag?.replace(config.tagPrefix, '') || null
+
+    const needsPublish = !publishedVersion || compareVersions(config.version, publishedVersion) > 0
+    const needsTag = !tagVersion || compareVersions(config.version, tagVersion) > 0
+
+    if (needsPublish || needsTag) {
+      // Only include if local version is ahead (not just different)
+      const isAhead = (!publishedVersion || compareVersions(config.version, publishedVersion) > 0) &&
+                      (!tagVersion || compareVersions(config.version, tagVersion) > 0)
+
+      if (isAhead && (needsPublish || needsTag)) {
+        incomplete.push({
+          config,
+          localVersion: config.version,
+          publishedVersion,
+          needsPublish,
+          needsTag,
+        })
+      }
+    }
+  }
+
+  s.stop('Checked for incomplete releases')
+  return incomplete
+}
+
 // ============================================================================
 // Release Functions
 // ============================================================================
@@ -333,22 +399,22 @@ async function buildPackages(): Promise<boolean> {
 }
 
 async function publishPackage(config: PackageReleaseConfig, newVersion: string): Promise<boolean> {
-  const s = p.spinner()
-  s.start(`Publishing ${config.name}@${newVersion}...`)
+  // Check if already published
+  const publishedVersion = await getPublishedVersion(config.name)
+  if (publishedVersion === newVersion) {
+    p.log.info(`${config.name}@${newVersion} already published`)
+    return true
+  }
+
+  p.log.step(`Publishing ${config.name}@${newVersion}...`)
 
   try {
-    // Check if already published
-    const publishedVersion = await getPublishedVersion(config.name)
-    if (publishedVersion === newVersion) {
-      s.stop(`${config.name}@${newVersion} already published`)
-      return true
-    }
-
-    await $`cd ${config.path} && bun publish --access public`.quiet()
-    s.stop(`Published ${config.name}@${newVersion}`)
+    // Don't use spinner or quiet - publish may need interactive login
+    await $`cd ${config.path} && bun publish --access public`
+    p.log.success(`Published ${config.name}@${newVersion}`)
     return true
   } catch (error) {
-    s.stop(`Failed to publish ${config.name}`)
+    p.log.error(`Failed to publish ${config.name}`)
     return false
   }
 }
@@ -508,6 +574,63 @@ async function main() {
   if (allConfigs.length === 0) {
     p.log.error('No publishable packages found')
     process.exit(1)
+  }
+
+  // Check for incomplete releases (version bumped but not published/tagged)
+  const incompleteReleases = await checkIncompleteReleases(allConfigs)
+
+  if (incompleteReleases.length > 0) {
+    console.log('')
+    p.log.warn('Found incomplete releases:')
+    for (const inc of incompleteReleases) {
+      const status: string[] = []
+      if (inc.needsPublish) status.push(`npm has ${inc.publishedVersion || 'none'}`)
+      if (inc.needsTag) status.push('missing tag')
+      p.log.info(`  ${inc.config.name}@${inc.localVersion} (${status.join(', ')})`)
+    }
+
+    if (!options.dryRun) {
+      const resume = options.yes || await p.confirm({
+        message: 'Resume incomplete releases?',
+      })
+
+      if (p.isCancel(resume)) {
+        p.cancel('Release cancelled')
+        process.exit(0)
+      }
+
+      if (resume) {
+        // Resume: publish and tag incomplete releases
+        for (const inc of incompleteReleases) {
+          if (inc.needsPublish) {
+            await publishPackage(inc.config, inc.localVersion)
+          }
+          if (inc.needsTag) {
+            await createPackageTag(inc.config, inc.localVersion)
+          }
+        }
+
+        // Ask to push
+        if (!options.yes) {
+          const shouldPush = await p.confirm({
+            message: 'Push tags to remote?',
+          })
+
+          if (!p.isCancel(shouldPush) && shouldPush) {
+            await pushToRemote()
+          } else {
+            p.log.info('Run `git push origin --tags && git push` manually.')
+          }
+        } else {
+          await pushToRemote()
+        }
+
+        p.outro('🎉 Incomplete releases finished!')
+        process.exit(0)
+      }
+    } else {
+      p.log.info('Would resume these incomplete releases')
+    }
   }
 
   // Get commits for each package
