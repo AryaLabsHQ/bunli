@@ -1,454 +1,442 @@
 #!/usr/bin/env bun
 import { $ } from 'bun'
+import * as p from '@clack/prompts'
 import { readdir, readFile, writeFile } from 'fs/promises'
 import { join } from 'path'
 
-type SemverType = 'major' | 'minor' | 'patch' | 'prerelease' | 'current'
+// ============================================================================
+// Types
+// ============================================================================
 
-interface PackageInfo {
+type VersionBump = 'major' | 'minor' | 'patch' | null
+
+interface ConventionalCommit {
+  hash: string
+  type: string
+  scope: string
+  breaking: boolean
+  message: string
+}
+
+interface PackageReleaseConfig {
   name: string
+  shortName: string
   version: string
   path: string
-  hasBin: boolean
+  tagPrefix: string
+  commitPaths: string[]
   publishable: boolean
-  modified: boolean
-  lastVersion?: string
-  publishedVersion?: string
 }
 
 interface ReleaseOptions {
-  version?: string
-  semverType?: SemverType
-  packages?: string[]
-  auto: boolean
+  package?: string
+  all: boolean
   dryRun: boolean
   yes: boolean
 }
 
-async function getAllPackages(): Promise<PackageInfo[]> {
-  const packages: PackageInfo[] = []
+// ============================================================================
+// Constants
+// ============================================================================
+
+const COMMIT_EMOJI: Record<string, string> = {
+  feat: '✨',
+  fix: '🐛',
+  docs: '📝',
+  style: '💄',
+  refactor: '♻️',
+  test: '🧪',
+  chore: '🔧',
+  perf: '⚡',
+  ci: '👷',
+  build: '📦',
+  breaking: '💥',
+}
+
+const COMMIT_TYPE_REGEX = /^(\w+)(?:\(([^)]*)\))?(!)?:\s*(.+)$/
+
+// ============================================================================
+// Utility Functions
+// ============================================================================
+
+function parseConventionalCommit(line: string): ConventionalCommit | null {
+  // Format: "hash|type(scope): message" or "hash|type: message"
+  const [hash, ...rest] = line.split('|')
+  if (!hash || rest.length === 0) return null
+
+  const commitMessage = rest.join('|')
+  const match = commitMessage.match(COMMIT_TYPE_REGEX)
+
+  if (!match) {
+    // Non-conventional commit
+    return {
+      hash: hash.trim(),
+      type: 'other',
+      scope: '',
+      breaking: false,
+      message: commitMessage.trim(),
+    }
+  }
+
+  const [, type, scope, bang, message] = match
+  const hasBreakingFooter = commitMessage.includes('BREAKING CHANGE')
+
+  return {
+    hash: hash.trim(),
+    type: type?.toLowerCase() || 'other',
+    scope: scope || '',
+    breaking: !!bang || hasBreakingFooter,
+    message: message?.trim() || commitMessage.trim(),
+  }
+}
+
+function determineVersionBump(commits: ConventionalCommit[]): VersionBump {
+  if (commits.length === 0) return null
+
+  // Check for breaking changes
+  if (commits.some((c) => c.breaking)) {
+    return 'major'
+  }
+
+  // Check for features
+  if (commits.some((c) => c.type === 'feat')) {
+    return 'minor'
+  }
+
+  // Any other conventional commit types
+  const patchTypes = ['fix', 'refactor', 'chore', 'docs', 'test', 'perf', 'style', 'ci', 'build']
+  if (commits.some((c) => patchTypes.includes(c.type))) {
+    return 'patch'
+  }
+
+  // Default to patch for non-conventional commits
+  return 'patch'
+}
+
+function calculateNewVersion(currentVersion: string, bump: VersionBump): string {
+  if (!bump) return currentVersion
+
+  const parts = currentVersion.split('.')
+  const major = parseInt(parts[0] || '0')
+  const minor = parseInt(parts[1] || '0')
+  const patch = parseInt(parts[2]?.split('-')[0] || '0')
+
+  switch (bump) {
+    case 'major':
+      return `${major + 1}.0.0`
+    case 'minor':
+      return `${major}.${minor + 1}.0`
+    case 'patch':
+      return `${major}.${minor}.${patch + 1}`
+    default:
+      return currentVersion
+  }
+}
+
+function displayCommitSummary(commits: ConventionalCommit[]): void {
+  if (commits.length === 0) {
+    p.log.info('No commits found')
+    return
+  }
+
+  const grouped = new Map<string, ConventionalCommit[]>()
+  for (const commit of commits) {
+    const key = commit.breaking ? 'breaking' : commit.type
+    if (!grouped.has(key)) {
+      grouped.set(key, [])
+    }
+    grouped.get(key)!.push(commit)
+  }
+
+  // Display breaking changes first
+  if (grouped.has('breaking')) {
+    const breaking = grouped.get('breaking')!
+    p.log.warn(`${COMMIT_EMOJI.breaking} Breaking Changes (${breaking.length})`)
+    for (const c of breaking) {
+      console.log(`    ${c.hash.slice(0, 7)} ${c.message}`)
+    }
+    grouped.delete('breaking')
+  }
+
+  // Display other types
+  const typeOrder = ['feat', 'fix', 'refactor', 'perf', 'docs', 'test', 'chore', 'style', 'ci', 'build', 'other']
+  for (const type of typeOrder) {
+    if (grouped.has(type)) {
+      const commits = grouped.get(type)!
+      const emoji = COMMIT_EMOJI[type] || '📌'
+      p.log.info(`${emoji} ${type} (${commits.length})`)
+      for (const c of commits) {
+        console.log(`    ${c.hash.slice(0, 7)} ${c.message}`)
+      }
+    }
+  }
+}
+
+// ============================================================================
+// Git Functions
+// ============================================================================
+
+async function getLastTagForPackage(tagPrefix: string): Promise<string | null> {
+  try {
+    const { stdout } = await $`git tag -l "${tagPrefix}*" --sort=-v:refname`.quiet()
+    const tags = stdout.toString().trim().split('\n').filter(Boolean)
+    return tags[0] || null
+  } catch {
+    return null
+  }
+}
+
+async function getCommitsSinceLastTag(
+  lastTag: string | null,
+  commitPaths: string[]
+): Promise<ConventionalCommit[]> {
+  try {
+    const pathArgs = commitPaths.length > 0 ? ['--', ...commitPaths] : []
+    const range = lastTag ? `${lastTag}..HEAD` : 'HEAD'
+
+    const { stdout } = await $`git log ${range} --pretty=format:"%h|%s" ${pathArgs}`.quiet()
+    const lines = stdout.toString().trim().split('\n').filter(Boolean)
+
+    return lines.map(parseConventionalCommit).filter((c): c is ConventionalCommit => c !== null)
+  } catch {
+    return []
+  }
+}
+
+async function checkAheadOfOrigin(): Promise<{ ahead: number; behind: number }> {
+  try {
+    // Fetch first to get latest remote state
+    await $`git fetch origin --quiet`.quiet()
+
+    const { stdout } = await $`git rev-list --left-right --count HEAD...@{upstream}`.quiet()
+    const [ahead, behind] = stdout.toString().trim().split('\t').map(Number)
+    return { ahead: ahead || 0, behind: behind || 0 }
+  } catch {
+    return { ahead: 0, behind: 0 }
+  }
+}
+
+async function getCurrentBranch(): Promise<string> {
+  const { stdout } = await $`git branch --show-current`.quiet()
+  return stdout.toString().trim()
+}
+
+// ============================================================================
+// Package Functions
+// ============================================================================
+
+async function getAllPackageConfigs(): Promise<PackageReleaseConfig[]> {
+  const configs: PackageReleaseConfig[] = []
   const packagesDir = join(process.cwd(), 'packages')
-  
+
   try {
     const entries = await readdir(packagesDir, { withFileTypes: true })
-    
+
     for (const entry of entries) {
       if (entry.isDirectory()) {
         const packagePath = join(packagesDir, entry.name)
         const packageJsonPath = join(packagePath, 'package.json')
-        
+
         try {
           const packageJson = JSON.parse(await readFile(packageJsonPath, 'utf-8'))
-          
-          // Include all packages that are not private and are part of the Bunli ecosystem
-          const isPublishable = !packageJson.private && (
-            packageJson.name.startsWith('@bunli/') || 
-            packageJson.name === 'bunli' || 
-            packageJson.name === 'create-bunli'
-          )
-          
-          packages.push({
-            name: packageJson.name,
-            version: packageJson.version,
-            path: packagePath,
-            hasBin: !!packageJson.bin,
-            publishable: isPublishable,
-            modified: false // Will be set by detectModifiedPackages
-          })
-        } catch (error) {
-          console.warn(`⚠️  Could not read package.json for ${entry.name}:`, error)
+
+          const isPublishable =
+            !packageJson.private &&
+            (packageJson.name.startsWith('@bunli/') ||
+              packageJson.name === 'bunli' ||
+              packageJson.name === 'create-bunli')
+
+          if (isPublishable) {
+            const shortName = packageJson.name.startsWith('@bunli/')
+              ? packageJson.name.replace('@bunli/', '')
+              : packageJson.name
+
+            configs.push({
+              name: packageJson.name,
+              shortName,
+              version: packageJson.version,
+              path: packagePath,
+              tagPrefix: `${packageJson.name}@`,
+              commitPaths: [`packages/${entry.name}/`],
+              publishable: true,
+            })
+          }
+        } catch {
+          // Skip packages without valid package.json
         }
       }
     }
   } catch (error) {
-    console.error('❌ Error reading packages directory:', error)
+    p.log.error(`Error reading packages directory: ${error}`)
     process.exit(1)
   }
-  
-  return packages
+
+  return configs.sort((a, b) => a.name.localeCompare(b.name))
 }
 
-async function getPublishedVersions(packages: PackageInfo[]): Promise<Map<string, string>> {
-  const publishedVersions = new Map<string, string>()
-  
-  console.log('🔍 Checking published versions on npm...')
-  
-  for (const pkg of packages) {
-    if (pkg.publishable) {
-      try {
-        const { stdout: npmVersion } = await $`bun info ${pkg.name} version`.quiet()
-        const version = npmVersion.toString().trim()
-        if (version) {
-          publishedVersions.set(pkg.name, version)
-        }
-      } catch {
-        // Package doesn't exist on npm yet
-        publishedVersions.set(pkg.name, 'not-published')
-      }
-    }
-  }
-  
-  return publishedVersions
-}
+async function getPackageWithCommits(
+  config: PackageReleaseConfig
+): Promise<{ config: PackageReleaseConfig; commits: ConventionalCommit[]; lastTag: string | null }> {
+  const lastTag = await getLastTagForPackage(config.tagPrefix)
+  const commits = await getCommitsSinceLastTag(lastTag, config.commitPaths)
 
-async function detectModifiedPackages(packages: PackageInfo[]): Promise<PackageInfo[]> {
-  console.log('🔍 Detecting modified packages since last release...')
-  
-  try {
-    // Get the last release tag
-    const { stdout: lastTag } = await $`git describe --tags --abbrev=0`.quiet()
-    const lastRelease = lastTag.toString().trim()
-    
-    if (!lastRelease) {
-      console.log('ℹ️  No previous release found, all packages will be included')
-      return packages.map(pkg => ({ ...pkg, modified: true }))
-    }
-    
-    console.log(`📋 Comparing against last release: ${lastRelease}`)
-    
-    // Get list of modified files since last release
-    const { stdout: modifiedFiles } = await $`git diff --name-only ${lastRelease}..HEAD`.quiet()
-    const files = modifiedFiles.toString().trim().split('\n').filter(Boolean)
-    
-    // Check which packages have been modified
-    const modifiedPackages = new Set<string>()
-    
-    for (const file of files) {
-      if (file.startsWith('packages/')) {
-        const packageName = file.split('/')[1]
-        if (packageName) {
-          modifiedPackages.add(packageName)
-        }
-      }
-    }
-    
-    // Get package versions from the last release for comparison
-    const lastReleaseVersions = new Map<string, string>()
-    try {
-      for (const pkg of packages) {
-        const packageDir = pkg.path.split('/').pop() || ''
-        if (modifiedPackages.has(packageDir)) {
-          try {
-            const { stdout: lastVersion } = await $`git show ${lastRelease}:packages/${packageDir}/package.json | grep '"version"' | head -1 | cut -d'"' -f4`.quiet()
-            lastReleaseVersions.set(packageDir, lastVersion.toString().trim())
-          } catch {
-            // If we can't get the last version, that's okay
-          }
-        }
-      }
-    } catch {
-      // If we can't get last release versions, continue without them
-    }
-    
-    // Get published versions from npm
-    const publishedVersions = await getPublishedVersions(packages)
-    
-    // Update packages with modification status, last version info, and published version
-    const updatedPackages = packages.map(pkg => {
-      const packageDir = pkg.path.split('/').pop() || ''
-      const lastVersion = lastReleaseVersions.get(packageDir)
-      const publishedVersion = publishedVersions.get(pkg.name)
-      return {
-        ...pkg,
-        modified: modifiedPackages.has(packageDir),
-        lastVersion: lastVersion,
-        publishedVersion: publishedVersion
-      }
-    })
-    
-    const modifiedCount = updatedPackages.filter(p => p.modified).length
-    console.log(`📊 Found ${modifiedCount} modified packages out of ${packages.length} total`)
-    
-    return updatedPackages
-  } catch (error) {
-    console.warn('⚠️  Could not detect modified packages, including all packages:', error)
-    return packages.map(pkg => ({ ...pkg, modified: true }))
-  }
-}
-
-function calculateNewVersion(currentVersion: string, semverType: SemverType): string {
-  const [major, minor, patch, ...prerelease] = currentVersion.split(/[.-]/)
-  if (!major || !minor || !patch) {
-    throw new Error('Invalid version format')
-  }
-  
-  switch (semverType) {
-    case 'major':
-      return `${parseInt(major) + 1}.0.0`
-    case 'minor':
-      return `${major}.${parseInt(minor) + 1}.0`
-    case 'patch':
-      return `${major}.${minor}.${parseInt(patch) + 1}`
-    case 'prerelease':
-      const prereleaseStr = prerelease.join('-')
-      if (prereleaseStr) {
-        // Increment prerelease version
-        const parts = prereleaseStr.split('.')
-        const lastPart = parts[parts.length - 1]
-        if (lastPart && /^\d+$/.test(lastPart)) {
-          parts[parts.length - 1] = (parseInt(lastPart) + 1).toString()
-        } else {
-          parts.push('1')
-        }
-        return `${major}.${minor}.${patch}-${parts.join('.')}`
-      } else {
-        return `${major}.${minor}.${parseInt(patch) + 1}-beta.1`
-      }
-    default:
-      throw new Error(`Invalid semver type: ${semverType}`)
-  }
-}
-
-async function promptForReleaseOptions(packages: PackageInfo[], options: ReleaseOptions): Promise<ReleaseOptions> {
-  const modifiedPackages = packages.filter(p => p.modified && p.publishable)
-  
-  console.log('\n🎯 Release Configuration')
-  console.log('=' .repeat(50))
-  
-  // Show modified packages
-  if (modifiedPackages.length > 0) {
-    console.log('\n📦 Modified packages since last release:')
-    modifiedPackages.forEach(pkg => {
-      const gitProgression = pkg.lastVersion && pkg.lastVersion !== pkg.version 
-        ? `${pkg.lastVersion} → ${pkg.version}` 
-        : `@${pkg.version}`
-      
-      const npmStatus = pkg.publishedVersion === 'not-published' 
-        ? 'not published' 
-        : `published @${pkg.publishedVersion}`
-      
-      const needsPublish = pkg.publishedVersion === 'not-published' || 
-        (pkg.publishedVersion && pkg.publishedVersion !== pkg.version)
-      
-      const statusIcon = needsPublish ? '📤' : '✅'
-      
-      console.log(`  ${statusIcon} ${pkg.name}: ${gitProgression} (${npmStatus})`)
-    })
-  } else {
-    console.log('\n📦 No modified packages detected since last release')
-  }
-  
-  // Show summary of what needs publishing
-  const needsPublishing = modifiedPackages.filter(pkg => 
-    pkg.publishedVersion === 'not-published' || 
-    (pkg.publishedVersion && pkg.publishedVersion !== pkg.version)
-  )
-  
-  if (needsPublishing.length > 0) {
-    console.log(`\n📤 ${needsPublishing.length} package(s) need publishing:`)
-    needsPublishing.forEach(pkg => {
-      console.log(`  • ${pkg.name}@${pkg.version}`)
-    })
-  }
-  
-  // Get current version (use the first package as reference)
-  const currentVersion = packages[0]?.version || '0.0.0'
-  console.log(`\n📋 Current version: ${currentVersion}`)
-  
-  // Calculate suggested versions
-  const suggestedVersions = {
-    patch: calculateNewVersion(currentVersion, 'patch'),
-    minor: calculateNewVersion(currentVersion, 'minor'),
-    major: calculateNewVersion(currentVersion, 'major'),
-    prerelease: calculateNewVersion(currentVersion, 'prerelease')
-  }
-  
-  console.log('\n🚀 Suggested versions:')
-  console.log(`  patch: ${suggestedVersions.patch} (bug fixes)`)
-  console.log(`  minor: ${suggestedVersions.minor} (new features)`)
-  console.log(`  major: ${suggestedVersions.major} (breaking changes)`)
-  console.log(`  prerelease: ${suggestedVersions.prerelease} (pre-release)`)
-  
-  // Auto-select version based on what needs publishing
-  let newVersion: string
-  let semverType: string
-  
-  // Check if we just need to publish existing versions
-  const packagesNeedingPublish = modifiedPackages.filter(pkg => 
-    pkg.publishedVersion === 'not-published' || 
-    (pkg.publishedVersion && pkg.publishedVersion !== pkg.version)
-  )
-  
-  if (packagesNeedingPublish.length > 0) {
-    // We have packages that need publishing at their current version
-    newVersion = currentVersion
-    semverType = 'current'
-    console.log(`\n✅ Auto-selected: publish current versions → ${newVersion}`)
-  } else if (modifiedPackages.length > 0) {
-    // We have changes but packages are already published, suggest a bump
-    semverType = 'minor'
-    newVersion = calculateNewVersion(currentVersion, 'minor')
-    console.log(`\n✅ Auto-selected: ${semverType} release → ${newVersion}`)
-  } else {
-    // No changes, suggest patch
-    semverType = 'patch'
-    newVersion = calculateNewVersion(currentVersion, 'patch')
-    console.log(`\n✅ Auto-selected: ${semverType} release → ${newVersion}`)
-  }
-  
-  // Skip confirmation if --yes flag is provided
-  if (!options.yes) {
-    console.log('\n❓ Proceed with this release? (y/N)')
-    console.log('   Use --yes flag to skip this prompt')
-    
-    try {
-      // Use Bun's built-in stdin reading
-      const stdin = process.stdin
-      stdin.setRawMode(true)
-      stdin.resume()
-      stdin.setEncoding('utf8')
-      
-      const response = await new Promise<string>((resolve) => {
-        stdin.once('data', (key) => {
-          stdin.setRawMode(false)
-          stdin.pause()
-          resolve(key.toString().toLowerCase())
-        })
-      })
-      
-      if (response !== 'y' && response !== 'yes') {
-        console.log('\n❌ Release cancelled by user')
-        process.exit(0)
-      }
-      
-      console.log('\n🚀 Proceeding with release...')
-    } catch (error) {
-      // Fallback: if stdin reading fails, ask user to run with --dry-run first
-      console.log('\n⚠️  Could not prompt for confirmation. Please run with --dry-run first to preview:')
-      console.log(`   bun scripts/release.ts --auto --dry-run`)
-      console.log('\nThen run without --dry-run to execute:')
-      console.log(`   bun scripts/release.ts --auto`)
-      console.log('\nOr use --yes flag to skip confirmation:')
-      console.log(`   bun scripts/release.ts --auto --yes`)
-      process.exit(1)
-    }
-  } else {
-    console.log('\n🚀 Proceeding with release (--yes flag provided)...')
-  }
-  
-  return {
-    ...options,
-    version: newVersion,
-    semverType: semverType as SemverType,
-    packages: modifiedPackages.map(p => p.name),
-    auto: true,
-    dryRun: false,
-  }
+  return { config, commits, lastTag }
 }
 
 async function updatePackageVersion(packagePath: string, newVersion: string): Promise<void> {
   const packageJsonPath = join(packagePath, 'package.json')
   const packageJson = JSON.parse(await readFile(packageJsonPath, 'utf-8'))
-  
-  // Only update if version is different (idempotent)
+
   if (packageJson.version !== newVersion) {
     packageJson.version = newVersion
     await writeFile(packageJsonPath, JSON.stringify(packageJson, null, 2) + '\n')
   }
 }
 
-async function runTests(): Promise<boolean> {
-  console.log('🧪 Running tests...')
+async function getPublishedVersion(packageName: string): Promise<string | null> {
   try {
-    await $`bun test`
-    console.log('✅ All tests passed')
+    const { stdout } = await $`npm view ${packageName} version`.quiet()
+    return stdout.toString().trim() || null
+  } catch {
+    return null
+  }
+}
+
+// ============================================================================
+// Release Functions
+// ============================================================================
+
+async function runTests(): Promise<boolean> {
+  const s = p.spinner()
+  s.start('Running tests...')
+  try {
+    await $`bun test`.quiet()
+    s.stop('All tests passed')
     return true
   } catch (error) {
-    console.error('❌ Tests failed:', error)
+    s.stop('Tests failed')
     return false
   }
 }
 
 async function buildPackages(): Promise<boolean> {
-  console.log('🔨 Building packages...')
+  const s = p.spinner()
+  s.start('Building packages...')
   try {
-    await $`bun run build`
-    console.log('✅ All packages built successfully')
+    await $`bun run build`.quiet()
+    s.stop('All packages built successfully')
     return true
   } catch (error) {
-    console.error('❌ Build failed:', error)
+    s.stop('Build failed')
     return false
   }
 }
 
-async function publishPackages(packages: PackageInfo[]): Promise<void> {
-  const publishablePackages = packages.filter(p => p.publishable)
-  
-  if (publishablePackages.length === 0) {
-    console.log('ℹ️  No publishable packages found')
-    return
-  }
-  
-  console.log(`📦 Publishing ${publishablePackages.length} packages...`)
-  
-  for (const pkg of publishablePackages) {
-    console.log(`📤 Publishing ${pkg.name}@${pkg.version}...`)
-    try {
-      // Check if package version already exists on npm
-      try {
-        const { stdout: npmInfo } = await $`bun info ${pkg.name}@${pkg.version} version`.quiet()
-        if (npmInfo && npmInfo.toString().trim()) {
-          console.log(`ℹ️  ${pkg.name}@${pkg.version} already published, skipping`)
-          continue
-        }
-      } catch (infoError) {
-        // Package version doesn't exist, proceed with publishing
-        console.log(`ℹ️  ${pkg.name}@${pkg.version} not found on npm, proceeding with publish`)
-      }
-      
-      await $`cd ${pkg.path} && bun publish --access public`
-      console.log(`✅ Published ${pkg.name}@${pkg.version}`)
-    } catch (error) {
-      console.error(`❌ Failed to publish ${pkg.name}:`, error)
-      throw error
+async function publishPackage(config: PackageReleaseConfig, newVersion: string): Promise<boolean> {
+  const s = p.spinner()
+  s.start(`Publishing ${config.name}@${newVersion}...`)
+
+  try {
+    // Check if already published
+    const publishedVersion = await getPublishedVersion(config.name)
+    if (publishedVersion === newVersion) {
+      s.stop(`${config.name}@${newVersion} already published`)
+      return true
     }
+
+    await $`cd ${config.path} && bun publish --access public`.quiet()
+    s.stop(`Published ${config.name}@${newVersion}`)
+    return true
+  } catch (error) {
+    s.stop(`Failed to publish ${config.name}`)
+    return false
   }
 }
 
-async function createGitTag(version: string): Promise<void> {
-  console.log(`🏷️  Creating git tag v${version}...`)
+async function createPackageTag(config: PackageReleaseConfig, newVersion: string): Promise<boolean> {
+  const tagName = `${config.name}@${newVersion}`
+
   try {
-    // Check if there are any changes to commit
-    const { stdout: statusOutput } = await $`git status --porcelain`.quiet()
-    if (statusOutput.toString().trim()) {
-      await $`git add .`
-      await $`git commit -m "chore: release v${version}"`
-      console.log(`✅ Committed changes for v${version}`)
-    } else {
-      console.log(`ℹ️  No changes to commit for v${version}`)
-    }
-    
     // Check if tag already exists
-    const { stdout: tagOutput } = await $`git tag -l v${version}`.quiet()
-    if (!tagOutput.toString().trim()) {
-      await $`git tag v${version}`
-      console.log(`✅ Created tag v${version}`)
-    } else {
-      console.log(`ℹ️  Tag v${version} already exists`)
+    const { stdout } = await $`git tag -l ${tagName}`.quiet()
+    if (stdout.toString().trim()) {
+      p.log.info(`Tag ${tagName} already exists`)
+      return true
     }
+
+    await $`git tag ${tagName}`
+    p.log.success(`Created tag ${tagName}`)
+    return true
   } catch (error) {
-    console.error('❌ Failed to create git tag:', error)
-    throw error
+    p.log.error(`Failed to create tag ${tagName}`)
+    return false
   }
 }
+
+async function commitVersionChanges(packages: Array<{ name: string; version: string }>): Promise<boolean> {
+  try {
+    const { stdout: statusOutput } = await $`git status --porcelain`.quiet()
+    if (!statusOutput.toString().trim()) {
+      p.log.info('No changes to commit')
+      return true
+    }
+
+    await $`git add .`
+
+    const packageList = packages.map((p) => `${p.name}@${p.version}`).join(', ')
+    const message = packages.length === 1 ? `chore: release ${packageList}` : `chore: release ${packages.length} packages\n\n${packageList}`
+
+    await $`git commit -m ${message}`
+    p.log.success('Committed version changes')
+    return true
+  } catch (error) {
+    p.log.error('Failed to commit changes')
+    return false
+  }
+}
+
+async function pushToRemote(): Promise<boolean> {
+  const s = p.spinner()
+  s.start('Pushing to remote...')
+
+  try {
+    await $`git push origin --tags`.quiet()
+    await $`git push origin`.quiet()
+    s.stop('Pushed to remote')
+    return true
+  } catch (error) {
+    s.stop('Failed to push to remote')
+    return false
+  }
+}
+
+// ============================================================================
+// CLI Argument Parsing
+// ============================================================================
 
 function parseArgs(args: string[]): ReleaseOptions {
   const options: ReleaseOptions = {
-    auto: false,
+    all: false,
     dryRun: false,
-    yes: false
+    yes: false,
   }
-  
+
   for (let i = 0; i < args.length; i++) {
     const arg = args[i]
-    
+
     switch (arg) {
       case '--help':
       case '-h':
-        return { ...options, version: '--help' }
-      case '--auto':
-      case '-a':
-        options.auto = true
+        printHelp()
+        process.exit(0)
+      case '--package':
+      case '-p':
+        if (i + 1 < args.length) {
+          options.package = args[++i]
+        }
+        break
+      case '--all':
+        options.all = true
         break
       case '--dry-run':
       case '-d':
@@ -458,214 +446,323 @@ function parseArgs(args: string[]): ReleaseOptions {
       case '-y':
         options.yes = true
         break
-      case '--patch':
-        options.semverType = 'patch'
-        break
-      case '--minor':
-        options.semverType = 'minor'
-        break
-      case '--major':
-        options.semverType = 'major'
-        break
-      case '--prerelease':
-        options.semverType = 'prerelease'
-        break
-      case '--packages':
-        if (i + 1 < args.length) {
-          options.packages = args[i + 1]?.split(',').map(p => p.trim())
-          i++
-        }
-        break
-      default:
-        if (arg && !arg.startsWith('-') && !options.version) {
-          options.version = arg
-        }
-        break
     }
   }
-  
+
   return options
 }
+
+function printHelp(): void {
+  console.log(`
+🚀 Bunli Release Script
+
+Usage: bun scripts/release.ts [options]
+
+Options:
+  --package, -p <name>    Release a single package (e.g., core, @bunli/utils)
+  --all                   Release all modified packages
+  --dry-run, -d           Preview what would be released
+  --yes, -y               Skip confirmation prompts
+  --help, -h              Show this help message
+
+Examples:
+  bun scripts/release.ts                  # Interactive mode (default)
+  bun scripts/release.ts -p core          # Release @bunli/core only
+  bun scripts/release.ts --all            # Release all modified packages
+  bun scripts/release.ts --dry-run        # Preview release
+  bun scripts/release.ts --all --yes      # Release all without prompts
+
+Features:
+  • Auto-detects version bump from conventional commits
+  • Per-package versioning and tags (e.g., @bunli/core@0.4.1)
+  • Shows commit summary with emoji-coded types
+  • Warns about unpushed commits
+`)
+}
+
+// ============================================================================
+// Main Release Flow
+// ============================================================================
 
 async function main() {
   const args = process.argv.slice(2)
   const options = parseArgs(args)
-  
-  if (options.version === '--help' || args.length === 0) {
-    console.log('🚀 Bunli Release Script')
-    console.log('')
-    console.log('Usage: bun scripts/release.ts [options] [version]')
-    console.log('')
-    console.log('Options:')
-    console.log('  --auto, -a              Auto-detect version and packages')
-    console.log('  --dry-run, -d           Show what would be done without executing')
-    console.log('  --yes, -y               Skip confirmation prompt (use with caution)')
-    console.log('  --patch                 Bump patch version (bug fixes)')
-    console.log('  --minor                 Bump minor version (new features)')
-    console.log('  --major                 Bump major version (breaking changes)')
-    console.log('  --prerelease            Bump prerelease version')
-    console.log('  --packages <list>       Comma-separated list of packages to release')
-    console.log('  --help, -h              Show this help message')
-    console.log('')
-    console.log('Examples:')
-    console.log('  bun scripts/release.ts --auto                    # Auto-detect everything')
-    console.log('  bun scripts/release.ts --minor                   # Bump minor version')
-    console.log('  bun scripts/release.ts 0.2.1                    # Specific version')
-    console.log('  bun scripts/release.ts --packages bunli,core     # Release specific packages')
-    console.log('  bun scripts/release.ts --dry-run --minor         # Preview minor release')
-    console.log('')
-    console.log('This script will:')
-    console.log('1. Detect modified packages since last release')
-    console.log('2. Run tests')
-    console.log('3. Build all packages')
-    console.log('4. Update version numbers (idempotent)')
-    console.log('5. Publish to npm (idempotent)')
-    console.log('6. Create git tags (idempotent)')
-    console.log('')
-    console.log('The script is idempotent - it can be run multiple times safely.')
-    console.log('')
+
+  p.intro('🚀 Bunli Release')
+
+  // Check git status
+  const branch = await getCurrentBranch()
+  const { ahead, behind } = await checkAheadOfOrigin()
+
+  if (behind > 0) {
+    p.log.warn(`You are ${behind} commit(s) behind origin/${branch}. Consider pulling first.`)
+  }
+
+  if (ahead > 0 && !options.dryRun) {
+    p.log.info(`You have ${ahead} unpushed commit(s)`)
+  }
+
+  // Load all package configs
+  const allConfigs = await getAllPackageConfigs()
+
+  if (allConfigs.length === 0) {
+    p.log.error('No publishable packages found')
+    process.exit(1)
+  }
+
+  // Get commits for each package
+  const packagesWithCommits = await Promise.all(allConfigs.map(getPackageWithCommits))
+
+  // Filter to packages with changes
+  const modifiedPackages = packagesWithCommits.filter((p) => p.commits.length > 0)
+
+  // Determine which packages to release
+  let packagesToRelease: typeof packagesWithCommits
+
+  if (options.package) {
+    // Single package mode
+    const searchTerm = options.package.toLowerCase()
+    const found = packagesWithCommits.find(
+      (p) =>
+        p.config.name.toLowerCase() === searchTerm ||
+        p.config.shortName.toLowerCase() === searchTerm ||
+        p.config.name.toLowerCase() === `@bunli/${searchTerm}`
+    )
+
+    if (!found) {
+      p.log.error(`Package "${options.package}" not found`)
+      p.log.info(`Available packages: ${allConfigs.map((c) => c.shortName).join(', ')}`)
+      process.exit(1)
+    }
+
+    packagesToRelease = [found]
+  } else if (options.all) {
+    // All modified packages
+    packagesToRelease = modifiedPackages
+  } else {
+    // Interactive mode - let user choose
+    if (modifiedPackages.length === 0) {
+      p.log.info('No packages have changes since their last release')
+      p.outro('Nothing to release')
+      process.exit(0)
+    }
+
+    if (modifiedPackages.length === 1) {
+      packagesToRelease = modifiedPackages
+    } else {
+      const selected = await p.multiselect({
+        message: 'Select packages to release',
+        options: modifiedPackages.map((pkg) => ({
+          value: pkg.config.name,
+          label: `${pkg.config.name} (${pkg.commits.length} commits)`,
+          hint: pkg.lastTag ? `last: ${pkg.lastTag}` : 'first release',
+        })),
+        required: true,
+      })
+
+      if (p.isCancel(selected)) {
+        p.cancel('Release cancelled')
+        process.exit(0)
+      }
+
+      packagesToRelease = modifiedPackages.filter((p) => (selected as string[]).includes(p.config.name))
+    }
+  }
+
+  if (packagesToRelease.length === 0) {
+    p.log.info('No packages selected for release')
+    p.outro('Nothing to release')
     process.exit(0)
   }
-  
-  console.log('🚀 Bunli Release Script')
-  console.log('')
-  
-  // Get all packages and detect modifications
-  const allPackages = await getAllPackages()
-  const packages = await detectModifiedPackages(allPackages)
-  
-  // Determine release options
-  let releaseOptions: ReleaseOptions
-  
-  if (options.auto || (!options.version && !options.semverType)) {
-    // Auto-detect mode
-    releaseOptions = await promptForReleaseOptions(packages, options)
-  } else {
-    // Manual mode
-    const currentVersion = packages[0]?.version || '0.0.0'
-    let newVersion = options.version
-    
-    if (options.semverType && !newVersion) {
-      newVersion = calculateNewVersion(currentVersion, options.semverType)
-    }
-    
-    if (!newVersion) {
-      console.error('❌ No version specified. Use --auto, provide a version, or specify --patch/--minor/--major')
-      process.exit(1)
-    }
-    
-    // Basic version validation
-    if (!/^\d+\.\d+\.\d+(-[a-zA-Z0-9.-]+)?$/.test(newVersion)) {
-      console.error('❌ Invalid version format. Use semantic versioning (e.g., 1.0.0, 1.0.0-beta.1)')
-      process.exit(1)
-    }
-    
-    releaseOptions = {
-      ...options,
-      version: newVersion,
-      semverType: options.semverType,
-      packages: options.packages,
-      auto: false,
-      dryRun: options.dryRun
-    }
-  }
-  
-  // Filter packages if specific packages were requested
-  let packagesToRelease = packages
-  if (releaseOptions.packages && releaseOptions.packages.length > 0) {
-    packagesToRelease = packages.filter(pkg => 
-      releaseOptions.packages!.includes(pkg.name) || 
-      releaseOptions.packages!.includes(pkg.name.split('/').pop() || '')
-    )
-  }
-  
-  console.log(`\n📋 Release Plan:`)
-  console.log(`  Version: ${releaseOptions.version}`)
-  console.log(`  Packages: ${packagesToRelease.filter(p => p.publishable).length} publishable`)
-  console.log(`  Mode: ${releaseOptions.dryRun ? 'DRY RUN' : 'LIVE'}`)
-  console.log('')
-  
-  if (releaseOptions.dryRun) {
-    console.log('🔍 DRY RUN MODE - No changes will be made')
-    console.log('')
-  }
-  
-  // Run tests
-  if (!releaseOptions.dryRun) {
-    if (!(await runTests())) {
-      console.log('❌ Release aborted due to test failures')
-      process.exit(1)
-    }
-    console.log('')
-  } else {
-    console.log('🧪 [DRY RUN] Would run tests')
-    console.log('')
-  }
-  
-  // Build packages
-  if (!releaseOptions.dryRun) {
-    if (!(await buildPackages())) {
-      console.log('❌ Release aborted due to build failures')
-      process.exit(1)
-    }
-    console.log('')
-  } else {
-    console.log('🔨 [DRY RUN] Would build packages')
-    console.log('')
-  }
-  
-  // Update versions
-  console.log(`📝 ${releaseOptions.dryRun ? '[DRY RUN] Would update' : 'Updating'} packages to version ${releaseOptions.version}...`)
-  let updatedCount = 0
+
+  // For each package, show commits and determine version
+  const releaseItems: Array<{
+    config: PackageReleaseConfig
+    commits: ConventionalCommit[]
+    currentVersion: string
+    newVersion: string
+    bump: VersionBump
+  }> = []
+
   for (const pkg of packagesToRelease) {
-    const oldVersion = pkg.version
-    if (!releaseOptions.dryRun) {
-      await updatePackageVersion(pkg.path, releaseOptions.version!)
-    }
-    if (oldVersion !== releaseOptions.version) {
-      console.log(`${releaseOptions.dryRun ? '🔍 [DRY RUN]' : '✅'} ${releaseOptions.dryRun ? 'Would update' : 'Updated'} ${pkg.name} from ${oldVersion} to ${releaseOptions.version}`)
-      updatedCount++
+    console.log('')
+    p.log.step(`📦 ${pkg.config.name}`)
+
+    if (pkg.lastTag) {
+      p.log.info(`Last release: ${pkg.lastTag}`)
     } else {
-      console.log(`ℹ️  ${pkg.name} already at version ${releaseOptions.version}`)
+      p.log.info('First release for this package')
     }
-  }
-  console.log(`📊 ${releaseOptions.dryRun ? '[DRY RUN] Would update' : 'Updated'} ${updatedCount} packages, ${packagesToRelease.length - updatedCount} already at target version`)
-  console.log('')
-  
-  // Publish packages
-  if (!releaseOptions.dryRun) {
-    await publishPackages(packagesToRelease)
-  } else {
-    console.log('📦 [DRY RUN] Would publish packages:')
-    packagesToRelease.filter(p => p.publishable).forEach(pkg => {
-      console.log(`  • ${pkg.name}@${releaseOptions.version}`)
+
+    // Show commits
+    displayCommitSummary(pkg.commits)
+
+    // Determine suggested bump
+    const suggestedBump = determineVersionBump(pkg.commits)
+    const suggestedVersion = calculateNewVersion(pkg.config.version, suggestedBump)
+
+    let newVersion: string
+    let bump: VersionBump
+
+    if (options.yes) {
+      // Auto-accept suggested version
+      newVersion = suggestedVersion
+      bump = suggestedBump
+      p.log.info(`Version: ${pkg.config.version} → ${newVersion} (${bump || 'no change'})`)
+    } else {
+      // Let user choose version
+      const versionChoice = await p.select({
+        message: `Version for ${pkg.config.name}`,
+        options: [
+          {
+            value: suggestedBump || 'patch',
+            label: `${suggestedVersion} (${suggestedBump || 'patch'}) (Recommended)`,
+          },
+          ...(suggestedBump !== 'patch'
+            ? [
+                {
+                  value: 'patch' as const,
+                  label: `${calculateNewVersion(pkg.config.version, 'patch')} (patch)`,
+                },
+              ]
+            : []),
+          ...(suggestedBump !== 'minor'
+            ? [
+                {
+                  value: 'minor' as const,
+                  label: `${calculateNewVersion(pkg.config.version, 'minor')} (minor)`,
+                },
+              ]
+            : []),
+          ...(suggestedBump !== 'major'
+            ? [
+                {
+                  value: 'major' as const,
+                  label: `${calculateNewVersion(pkg.config.version, 'major')} (major)`,
+                },
+              ]
+            : []),
+          {
+            value: 'skip' as const,
+            label: 'Skip this package',
+          },
+        ],
+      })
+
+      if (p.isCancel(versionChoice)) {
+        p.cancel('Release cancelled')
+        process.exit(0)
+      }
+
+      if (versionChoice === 'skip') {
+        p.log.info(`Skipping ${pkg.config.name}`)
+        continue
+      }
+
+      bump = versionChoice as VersionBump
+      newVersion = calculateNewVersion(pkg.config.version, bump)
+    }
+
+    releaseItems.push({
+      config: pkg.config,
+      commits: pkg.commits,
+      currentVersion: pkg.config.version,
+      newVersion,
+      bump,
     })
   }
-  console.log('')
-  
-  // Create git tag
-  if (!releaseOptions.dryRun) {
-    await createGitTag(releaseOptions.version!)
-  } else {
-    console.log(`🏷️  [DRY RUN] Would create git tag v${releaseOptions.version}`)
+
+  if (releaseItems.length === 0) {
+    p.log.info('No packages to release')
+    p.outro('Nothing to release')
+    process.exit(0)
   }
+
+  // Show release summary
   console.log('')
-  
-  if (releaseOptions.dryRun) {
-    console.log('🔍 DRY RUN COMPLETED - No changes were made')
-    console.log('')
-    console.log('To execute this release, run the same command without --dry-run')
-  } else {
-    console.log('🎉 Release completed successfully!')
-    console.log(`📦 Published version ${releaseOptions.version}`)
-    console.log('🏷️  Git tag created')
-    console.log('')
-    console.log('Next steps:')
-    console.log('  git push origin main --tags')
+  p.log.step('📋 Release Summary')
+  for (const item of releaseItems) {
+    const bumpLabel = item.bump ? ` (${item.bump})` : ''
+    p.log.info(`${item.config.name}: ${item.currentVersion} → ${item.newVersion}${bumpLabel}`)
   }
+
+  if (options.dryRun) {
+    console.log('')
+    p.log.warn('DRY RUN - No changes will be made')
+    p.outro('Dry run complete')
+    process.exit(0)
+  }
+
+  // Confirm proceed
+  if (!options.yes) {
+    const proceed = await p.confirm({
+      message: 'Proceed with release?',
+    })
+
+    if (p.isCancel(proceed) || !proceed) {
+      p.cancel('Release cancelled')
+      process.exit(0)
+    }
+  }
+
+  console.log('')
+
+  // Run tests
+  if (!(await runTests())) {
+    p.log.error('Release aborted due to test failures')
+    process.exit(1)
+  }
+
+  // Build packages
+  if (!(await buildPackages())) {
+    p.log.error('Release aborted due to build failures')
+    process.exit(1)
+  }
+
+  // Update versions
+  for (const item of releaseItems) {
+    await updatePackageVersion(item.config.path, item.newVersion)
+    p.log.success(`Updated ${item.config.name} to ${item.newVersion}`)
+  }
+
+  // Commit version changes
+  await commitVersionChanges(releaseItems.map((i) => ({ name: i.config.name, version: i.newVersion })))
+
+  // Publish packages
+  for (const item of releaseItems) {
+    const success = await publishPackage(item.config, item.newVersion)
+    if (!success) {
+      p.log.error(`Failed to publish ${item.config.name}. You may need to retry.`)
+    }
+  }
+
+  // Create tags
+  for (const item of releaseItems) {
+    await createPackageTag(item.config, item.newVersion)
+  }
+
+  // Push to remote
+  if (!options.yes) {
+    const shouldPush = await p.confirm({
+      message: 'Push to remote?',
+    })
+
+    if (p.isCancel(shouldPush)) {
+      p.log.info('Skipped pushing. Run `git push origin --tags && git push` manually.')
+    } else if (shouldPush) {
+      await pushToRemote()
+    } else {
+      p.log.info('Skipped pushing. Run `git push origin --tags && git push` manually.')
+    }
+  } else {
+    await pushToRemote()
+  }
+
+  console.log('')
+  p.outro('🎉 Release complete!')
 }
 
-main().catch(error => {
-  console.error('❌ Release failed:', error)
+main().catch((error) => {
+  p.log.error(`Release failed: ${error}`)
   process.exit(1)
 })
