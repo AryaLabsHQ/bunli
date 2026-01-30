@@ -9,6 +9,9 @@ import { CommandContext, createEnvironmentInfo } from './plugin/context.js'
 import { GLOBAL_FLAGS, type GlobalFlags } from './global-flags.js'
 import { getTuiRenderer } from './tui/registry.js'
 import { loadGeneratedStores } from './generated.js'
+import { createLogger } from './utils/logger.js'
+
+const logger = createLogger('core:cli')
 
 export async function createCLI<
   TPlugins extends readonly BunliPlugin[] = []
@@ -66,7 +69,7 @@ export async function createCLI<
     await import(resolvedPath)
     // Side-effect import automatically registers via registerGeneratedStore
   } catch (error) {
-    console.warn(`[bunli] Could not load generated types from ${generatedPath}:`, error)
+    logger.debug('Could not load generated types from %s: %O', generatedPath, error)
   }
   
   const commands = new Map<string, Command<any, any>>()
@@ -264,7 +267,7 @@ export async function createCLI<
         const manifest = manifestModule.default || manifestModule
         await loadCommandsFromManifest(manifest)
       } catch (error) {
-        console.error(`Failed to load command manifest from ${fullConfig.commands.manifest}:`, error)
+        logger.debug('Failed to load command manifest from %s: %O', fullConfig.commands.manifest, error)
       }
     }
   }

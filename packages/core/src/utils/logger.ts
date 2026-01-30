@@ -1,6 +1,12 @@
 /**
- * Simple logger implementation
+ * Logger implementation using the debug package
+ *
+ * Silent by default, enabled via:
+ * - DEBUG=bunli:* (all namespaces)
+ * - DEBUG=bunli:cli (specific namespace)
  */
+
+import createDebug from 'debug'
 
 export interface Logger {
   info(message: string, ...args: any[]): void
@@ -10,34 +16,23 @@ export interface Logger {
 }
 
 export function createLogger(namespace: string): Logger {
-  const prefix = `[${namespace}]`
-  const debugEnabled = process.env.BUNLI_DEBUG === 'true' || 
-                      process.env.BUNLI_DEBUG?.includes(namespace)
-  const silent = process.env.BUNLI_SILENT === 'true' || process.env.NODE_ENV === 'test'
-  
+  const debug = createDebug(`bunli:${namespace}`)
+
   return {
     info(message: string, ...args: any[]) {
-      if (!silent) {
-        console.log(prefix, message, ...args)
-      }
+      debug(message, ...args)
     },
-    
+
     warn(message: string, ...args: any[]) {
-      if (!silent) {
-        console.warn(prefix, message, ...args)
-      }
+      debug('[WARN]', message, ...args)
     },
-    
+
     error(message: string, ...args: any[]) {
-      if (!silent) {
-        console.error(prefix, message, ...args)
-      }
+      debug('[ERROR]', message, ...args)
     },
-    
+
     debug(message: string, ...args: any[]) {
-      if (debugEnabled && !silent) {
-        console.log(`${prefix} [DEBUG]`, message, ...args)
-      }
+      debug(message, ...args)
     }
   }
 }

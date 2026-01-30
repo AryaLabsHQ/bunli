@@ -1,6 +1,9 @@
 import { bunliConfigSchema, type BunliConfig } from '@bunli/core'
+import { createLogger } from '@bunli/core/utils'
 import path from 'node:path'
 import { existsSync } from 'node:fs'
+
+const logger = createLogger('cli:config')
 
 // Type for loaded config with defaults applied by Zod
 export type LoadedConfig = {
@@ -64,7 +67,7 @@ export async function loadConfig(cwd = process.cwd()): Promise<LoadedConfig> {
         const config = bunliConfigSchema.parse(module.default || module) as LoadedConfig
         return config
       } catch (error) {
-        console.error(`Error loading config from ${configPath}:`, error)
+        logger.debug('Error loading config from %s: %O', configPath, error)
         throw error
       }
     }

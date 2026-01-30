@@ -2,6 +2,9 @@ import type { BuildOutput, BunPlugin, OnLoadArgs, OnResolveArgs } from 'bun'
 import { Generator } from './generator.js'
 import type { GeneratorConfig } from './types.js'
 import type { Build } from 'bun'
+import { createLogger } from '@bunli/core/utils'
+
+const logger = createLogger('generator:plugin')
 
 export interface BunliCodegenPluginOptions {
   commandsDir?: string
@@ -43,11 +46,11 @@ export function bunliCodegenPlugin(options: BunliCodegenPluginOptions = {}): Bun
       build.onStart(async () => {
         if (generator) {
           try {
-            console.log('🔧 Generating command types...')
+            logger.debug('Generating command types...')
             await generator.run()
-            console.log('✅ Command types generated')
+            logger.debug('Command types generated')
           } catch (error) {
-            console.warn('⚠️  Failed to generate command types:', error instanceof Error ? error.message : String(error))
+            logger.debug('Failed to generate command types: %s', error instanceof Error ? error.message : String(error))
           }
         }
       })
@@ -78,7 +81,7 @@ export function bunliCodegenPlugin(options: BunliCodegenPluginOptions = {}): Bun
           try {
             await generator.run()
           } catch (error) {
-            console.warn('⚠️  Failed to regenerate types:', error instanceof Error ? error.message : String(error))
+            logger.debug('Failed to regenerate types: %s', error instanceof Error ? error.message : String(error))
           }
         }
       })

@@ -1,4 +1,7 @@
 import type { CLI, Command, CommandOptions } from './types.js'
+import { createLogger } from './utils/logger.js'
+
+const logger = createLogger('core:generated')
 
 export interface GeneratedOptionMeta {
   type: string
@@ -83,7 +86,7 @@ export function clearGeneratedStores(): void {
 
 export function loadGeneratedStores(cli?: CLI<any>): void {
   if (generatedStores.length === 0) {
-    console.warn('[bunli] No generated command types registered. Run `bunli generate` to enable typed execution.')
+    logger.debug('No generated command types registered. Run `bunli generate` to enable typed execution.')
     return
   }
 

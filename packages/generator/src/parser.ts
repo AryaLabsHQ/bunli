@@ -2,6 +2,9 @@ import { parse } from '@babel/parser'
 const traverse = require('@babel/traverse').default
 import path from 'node:path'
 import type { CommandMetadata, OptionMetadata } from './types.js'
+import { createLogger } from '@bunli/core/utils'
+
+const logger = createLogger('generator:parser')
 
 // Utility functions
 function getCommandName(filePath: string, commandsDir: string): string {
@@ -115,11 +118,7 @@ export async function parseCommand(
 
     return commandMetadata
   } catch (error) {
-    console.warn(`Warning: Could not parse command file: ${filePath}`)
-    console.warn(`Error:`, error)
-    if (error instanceof Error) {
-      console.warn(`Stack:`, error.stack)
-    }
+    logger.debug('Could not parse command file %s: %O', filePath, error)
     return null
   }
 }

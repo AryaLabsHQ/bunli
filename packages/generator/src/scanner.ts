@@ -1,5 +1,8 @@
 import { join, relative, extname } from 'node:path'
 import type { CommandMetadata } from './types.js'
+import { createLogger } from '@bunli/core/utils'
+
+const logger = createLogger('generator:scanner')
 
 /**
  * Fast command scanner using Bun.Transpiler for optimal performance
@@ -64,7 +67,7 @@ export class CommandScanner {
       
       return commandFiles
     } catch (error) {
-      console.warn(`Warning: Could not scan commands directory: ${commandsDir}`)
+      logger.debug('Could not scan commands directory %s: %O', commandsDir, error)
       return []
     }
   }
