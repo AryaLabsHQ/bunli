@@ -1,6 +1,6 @@
 {
   "name": "@bunli/utils",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Built-in utilities for Bunli CLI framework - prompts, spinners, and colors",
   "type": "module",
   "module": "./dist/index.js",
