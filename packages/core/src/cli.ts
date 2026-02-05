@@ -105,7 +105,9 @@ export async function createCLI<
     fullConfig = bunliConfigStrictSchema.parse(updatedConfig)
     
     // Register plugin commands
-    pluginCommands.forEach(cmd => registerCommand(cmd))
+    for (const cmd of pluginCommands) {
+      registerCommand(cmd)
+    }
   }
   
   // Create resolved config with defaults
@@ -138,7 +140,8 @@ export async function createCLI<
       tagFormat: 'v{{version}}',
       conventionalCommits: true
     },
-    plugins: fullConfig.plugins || []
+    plugins: fullConfig.plugins || [],
+    help: fullConfig.help
   }
   
   // Run configResolved hooks
@@ -181,8 +184,94 @@ export async function createCLI<
     return { command: undefined, remainingArgs: args }
   }
   
+  function wrapText(text: string, width: number): string[] {
+    const safeWidth = Math.max(10, width)
+    const words = text.trim().split(/\s+/).filter(Boolean)
+    if (words.length === 0) return ['']
+    const first = words[0]
+    if (!first) return ['']
+    const lines: string[] = []
+    let line = first
+    for (let i = 1; i < words.length; i += 1) {
+      const word = words[i] ?? ''
+      if (!word) continue
+      if ((line + ' ' + word).length <= safeWidth) {
+        line = `${line} ${word}`
+      } else {
+        lines.push(line)
+        line = word
+      }
+    }
+    lines.push(line)
+    return lines
+  }
+
+  function printTwoColumnRows(rows: Array<{ label: string; description: string }>, terminalWidth: number) {
+    const indent = '  '
+    const maxLabel = rows.reduce((max, row) => Math.max(max, row.label.length), 0)
+    const maxColumn = Math.max(18, Math.floor(terminalWidth * 0.4))
+    const labelWidth = Math.min(maxLabel + 2, maxColumn)
+    const descWidth = Math.max(20, terminalWidth - indent.length - labelWidth - 1)
+
+    for (const row of rows) {
+      const label = row.label
+      const description = row.description || ''
+      if (label.length >= labelWidth - 1) {
+        console.log(`${indent}${label}`)
+        const lines = wrapText(description, descWidth)
+        for (const line of lines) {
+          console.log(`${indent}${' '.repeat(labelWidth)}${line}`)
+        }
+        continue
+      }
+      const paddedLabel = label.padEnd(labelWidth)
+      const lines = wrapText(description, descWidth)
+      lines.forEach((line, index) => {
+        if (index === 0) {
+          console.log(`${indent}${paddedLabel}${line}`)
+        } else {
+          console.log(`${indent}${' '.repeat(labelWidth)}${line}`)
+        }
+      })
+    }
+  }
+
   // Helper to show help for a command
   function showHelp(cmd?: Command<any, TStore>, path: string[] = []) {
+    const terminalInfo = getTerminalInfo()
+    const terminalWidth = terminalInfo.width || 80
+    const helpRenderer = fullConfig.help?.renderer
+    if (typeof helpRenderer === 'function') {
+      if (!cmd) {
+        const topLevel = new Set<Command<any, TStore>>()
+        for (const [name, command] of commands) {
+          if (!name.includes(' ') && !command.alias?.includes(name)) {
+            topLevel.add(command)
+          }
+        }
+        helpRenderer({
+          cliName: fullConfig.name,
+          version: fullConfig.version,
+          description: fullConfig.description,
+          command: undefined,
+          path,
+          commands: Array.from(topLevel),
+          terminal: terminalInfo
+        })
+        return
+      }
+
+      helpRenderer({
+        cliName: fullConfig.name,
+        version: fullConfig.version,
+        description: fullConfig.description,
+        command: cmd,
+        path,
+        commands: cmd.commands ?? [],
+        terminal: terminalInfo
+      })
+      return
+    }
     if (!cmd) {
       // Show root help
       console.log(`${fullConfig.name} v${fullConfig.version}`)
@@ -199,9 +288,11 @@ export async function createCLI<
         }
       }
       
-      for (const command of topLevel) {
-        console.log(`  ${command.name.padEnd(20)} ${command.description}`)
-      }
+      const rows = Array.from(topLevel).map((command) => ({
+        label: command.name,
+        description: command.description || ''
+      }))
+      printTwoColumnRows(rows, terminalWidth)
     } else {
       // Show command-specific help
       const fullPath = [...path, cmd.name].join(' ')
@@ -210,19 +301,21 @@ export async function createCLI<
       
       if (cmd.options && Object.keys(cmd.options).length > 0) {
         console.log('\nOptions:')
-        for (const [name, opt] of Object.entries(cmd.options)) {
+        const rows = Object.entries(cmd.options).map(([name, opt]) => {
           const option = opt as CLIOption<any>
           const flag = `--${name}${option.short ? `, -${option.short}` : ''}`
-          const description = option.description || ''
-          console.log(`  ${flag.padEnd(20)} ${description}`)
-        }
+          return { label: flag, description: option.description || '' }
+        })
+        printTwoColumnRows(rows, terminalWidth)
       }
       
       if (cmd.commands && cmd.commands.length > 0) {
         console.log('\nSubcommands:')
-        for (const subCmd of cmd.commands) {
-          console.log(`  ${subCmd.name.padEnd(20)} ${subCmd.description}`)
-        }
+        const rows = cmd.commands.map((subCmd) => ({
+          label: subCmd.name,
+          description: subCmd.description || ''
+        }))
+        printTwoColumnRows(rows, terminalWidth)
       }
     }
   }
@@ -307,7 +400,9 @@ export async function createCLI<
     }
     
     const loadedCommands = await loadFromManifest(manifest)
-    loadedCommands.forEach(cmd => registerCommand(cmd))
+    for (const cmd of loadedCommands) {
+      registerCommand(cmd)
+    }
   }
   
   async function runCommandInternal(

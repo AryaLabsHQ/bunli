@@ -78,7 +78,12 @@ export const bunliConfigSchema = z.object({
   }),
   
   // Plugins configuration
-  plugins: z.array(z.any()).default([])
+  plugins: z.array(z.any()).default([]),
+
+  // Help output configuration
+  help: z.object({
+    renderer: z.any().optional()
+  }).optional()
 })
 
 /**

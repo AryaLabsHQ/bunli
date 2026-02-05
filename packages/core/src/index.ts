@@ -30,6 +30,8 @@ export type {
   ResolvedConfig,
   TerminalInfo,
   RuntimeInfo,
+  HelpRenderContext,
+  HelpRenderer,
   RenderResult,
   RegisteredCommands,
   CommandOptions

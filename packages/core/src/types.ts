@@ -130,6 +130,18 @@ export interface RuntimeInfo {
   command: string
 }
 
+export interface HelpRenderContext<TStore = {}> {
+  cliName: string
+  version: string
+  description?: string
+  command?: Command<any, TStore>
+  path: string[]
+  commands: Command<any, TStore>[]
+  terminal: TerminalInfo
+}
+
+export type HelpRenderer<TStore = {}> = (context: HelpRenderContext<TStore>) => void
+
 // CLI option with metadata - generic to preserve schema type
 export interface CLIOption<S extends StandardSchemaV1 = StandardSchemaV1> {
   schema: S
@@ -201,12 +213,13 @@ export type RegisteredCommandNames = keyof RegisteredCommands
 
 // Resolved config after all plugins have run
 // Codegen is handled internally and not part of the resolved config
-export type ResolvedConfig = Required<Omit<BunliConfig, 'build' | 'dev' | 'test' | 'workspace' | 'release'>> & {
+export type ResolvedConfig = Required<Omit<BunliConfig, 'build' | 'dev' | 'test' | 'workspace' | 'release' | 'help'>> & {
   build: NonNullable<BunliConfig['build']>
   dev: NonNullable<BunliConfig['dev']>
   test: NonNullable<BunliConfig['test']>
   workspace: NonNullable<BunliConfig['workspace']>
   release: NonNullable<BunliConfig['release']>
+  help?: BunliConfig['help']
 }
 
 /**
