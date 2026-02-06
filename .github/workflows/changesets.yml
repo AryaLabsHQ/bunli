@@ -74,5 +74,5 @@ jobs:
               repo: context.repo.repo,
               workflow_id: "release.yml",
               ref: "main",
-              inputs: { tag },
+              inputs: { tag, ref: context.sha },
             });

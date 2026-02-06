@@ -7,6 +7,11 @@ on:
         description: "Release tag to build binaries for (e.g. bunli@0.5.2)"
         required: true
         type: string
+      ref:
+        description: "Git ref (commit SHA, branch, or tag) to build from. For published releases, pass the publish commit SHA."
+        required: false
+        default: "main"
+        type: string
 
 permissions:
   contents: write
@@ -18,7 +23,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.tag }}
+          ref: ${{ inputs.ref }}
       
       - uses: oven-sh/setup-bun@v1
         with:
@@ -45,10 +50,6 @@ jobs:
     needs: build-binaries
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.tag }}
-      
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
@@ -60,6 +61,7 @@ jobs:
         with:
           tag_name: ${{ inputs.tag }}
           name: ${{ inputs.tag }}
+          target_commitish: ${{ inputs.ref }}
           files: ./artifacts/*.tar.gz
           generate_release_notes: true
           draft: false

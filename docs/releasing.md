@@ -60,6 +60,13 @@ The binaries GitHub Release workflow is triggered via `workflow_dispatch` (not t
 is dispatched automatically by the Changesets workflow when the `bunli` package is published.
 This is intentionally done so we can rely on `secrets.GITHUB_TOKEN` and avoid a PAT.
 
+The dispatch passes both:
+
+- `tag`: the published `bunli@x.y.z` tag name
+- `ref`: the commit SHA that was published
+
+This is intentional, because tags created during publish might not exist on the remote yet.
+
 ## Changeset reminders
 
 We recommend installing the changeset-bot GitHub app to remind contributors to add changesets.
