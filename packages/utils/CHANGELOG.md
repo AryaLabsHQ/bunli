@@ -1,5 +1,11 @@
 # @bunli/utils
 
+## 0.3.2
+
+### Patch Changes
+
+- 5e3a702: chore: bump all packages (patch) to validate the Changesets + bun publish release pipeline end-to-end.
+
 ## 0.3.1
 
 ### Patch Changes

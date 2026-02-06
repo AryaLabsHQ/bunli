@@ -1,5 +1,13 @@
 # @bunli/plugin-config
 
+## 0.3.2
+
+### Patch Changes
+
+- 5e3a702: chore: bump all packages (patch) to validate the Changesets + bun publish release pipeline end-to-end.
+- Updated dependencies [5e3a702]
+  - @bunli/core@0.5.4
+
 ## 0.3.1
 
 ### Patch Changes
