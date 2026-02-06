@@ -1,6 +1,6 @@
 {
   "name": "create-bunli",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "type": "module",
   "description": "Scaffold new Bunli CLI projects",
   "bin": {
