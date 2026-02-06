@@ -40,6 +40,13 @@ Useful flags:
 The repo uses `changesets/action` to keep a Version Packages PR up to date.
 When the Version Packages PR is merged, CI will publish packages to npm.
 
+### Required GitHub secrets
+
+- `NPM_TOKEN`: used by the publish step to publish to npm.
+- `RELEASE_GITHUB_TOKEN` (recommended): a GitHub PAT used by `changesets/action` to push tags.
+  This matters because the binary release workflow is triggered by `bunli@*` tags, and GitHub
+  does not trigger workflows from tag pushes created using `secrets.GITHUB_TOKEN`.
+
 ## Changeset reminders
 
 We recommend installing the changeset-bot GitHub app to remind contributors to add changesets.

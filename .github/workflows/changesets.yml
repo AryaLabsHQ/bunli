@@ -39,5 +39,8 @@ jobs:
           publish: bun run release:publish
           createGithubReleases: false
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # If you want `bunli@*` tags (created during publish) to trigger other workflows
+          # like `.github/workflows/release.yml`, you must use a PAT.
+          # GitHub does not trigger workflows from events created with `secrets.GITHUB_TOKEN`.
+          GITHUB_TOKEN: ${{ secrets.RELEASE_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
