@@ -19,9 +19,11 @@
     "release": "bun run release:prepare",
     "changeset": "bunx changeset",
     "changeset:version": "bunx changeset version",
-    "changeset:publish": "bunx changeset publish",
+    "changeset:publish": "bun run ci:publish",
     "release:prepare": "bun scripts/release-prepare.ts",
-    "release:publish": "bun run build && bunx changeset publish"
+    "ci:version": "bun scripts/ci-version.ts",
+    "ci:publish": "bun scripts/ci-publish.ts",
+    "release:publish": "bun run build && bun run ci:publish"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.8",

@@ -40,6 +40,9 @@ Useful flags:
 The repo uses `changesets/action` to keep a Version Packages PR up to date.
 When the Version Packages PR is merged, CI will publish packages to npm.
 
+Publishing uses `bun publish` (not `npm publish`) so workspace dependencies like `workspace:*`
+are correctly resolved into real semver ranges in the published tarballs.
+
 ### Required GitHub secrets
 
 - `NPM_TOKEN`: used by the publish step to publish to npm.

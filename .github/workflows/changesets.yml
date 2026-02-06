@@ -37,28 +37,26 @@ jobs:
         id: changesets
         uses: changesets/action@v1
         with:
-          version: bun run changeset:version
-          publish: bun run release:publish
+          version: bun run ci:version
+          publish: bun run ci:publish
           createGithubReleases: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Dispatch Binary Release
-        if: steps.changesets.outputs.published == 'true'
         uses: actions/github-script@v7
-        env:
-          PUBLISHED_PACKAGES: ${{ steps.changesets.outputs.publishedPackages }}
         with:
           script: |
-            const publishedRaw = process.env.PUBLISHED_PACKAGES || "[]";
-            let published;
-            try {
-              published = JSON.parse(publishedRaw);
-            } catch {
-              core.warning(`Failed to parse publishedPackages: ${publishedRaw}`);
-              published = [];
+            const fs = require("fs");
+            const publishedPath = ".changeset/published-packages.json";
+            if (!fs.existsSync(publishedPath)) {
+              core.info("No published packages file found; skipping binary release dispatch.");
+              return;
             }
+
+            const publishedRaw = fs.readFileSync(publishedPath, "utf8");
+            const published = JSON.parse(publishedRaw || "[]");
 
             const cli = published.find((p) => p?.name === "bunli");
             if (!cli?.version) {
