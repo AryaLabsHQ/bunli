@@ -1,6 +1,6 @@
 {
   "name": "@bunli/plugin-config",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "type": "module",
   "description": "Config merger plugin for Bunli - loads config from multiple sources",
   "keywords": [
