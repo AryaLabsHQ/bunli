@@ -1,5 +1,5 @@
 import { $ } from 'bun'
-import { readdir, readFile, writeFile, mkdir, appendFile } from 'node:fs/promises'
+import { readdir, readFile, writeFile, mkdir, appendFile, mkdtemp } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
@@ -90,10 +90,27 @@ async function listPublishablePackages(): Promise<Array<{ dir: string; name: str
 }
 
 async function publishPackage(dir: string) {
-  // `--no-save` prevents bun.lockb or package.json modifications during publish.
-  // `--frozen-lockfile` ensures the lockfile committed in the Version Packages PR is honored.
-  // `--ignore-scripts` avoids re-running builds since CI already ran `bun run build`.
-  await $`bun publish --cwd ${dir} --access public --tag latest --no-save --frozen-lockfile --ignore-scripts`
+  /**
+   * bun publish is currently unreliable in GitHub Actions for token-based auth in this repo.
+   *
+   * Instead:
+   * 1) pack with Bun (so `workspace:*` deps resolve in the tarball)
+   * 2) publish the tarball with npm (so auth via NPM_TOKEN works reliably)
+   */
+  const packDir = await mkdtemp(path.join(process.env.RUNNER_TEMP || os.tmpdir(), 'bunli-pack-'))
+
+  // Pack without running scripts; CI already ran `bun run build`.
+  await $`bun pm pack --cwd ${dir} --destination ${packDir} --ignore-scripts`
+
+  const packed = (await readdir(packDir)).filter((f) => f.endsWith('.tgz'))
+  if (packed.length !== 1) {
+    throw new Error(`Expected exactly one .tgz in ${packDir}, found ${packed.length}`)
+  }
+
+  const tgzPath = path.join(packDir, packed[0]!)
+
+  // Publish tarball using npm for robust token auth.
+  await $`npm publish ${tgzPath} --access public --tag latest`
 }
 
 async function writePublishedFile(published: PublishedPackage[]) {
