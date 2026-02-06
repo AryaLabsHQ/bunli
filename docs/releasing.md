@@ -44,6 +44,16 @@ When the Version Packages PR is merged, CI will publish packages to npm.
 
 - `NPM_TOKEN`: used by the publish step to publish to npm.
 
+### Required GitHub repo setting
+
+Enable GitHub Actions to create pull requests:
+
+1. Go to GitHub repo Settings
+2. Actions > General
+3. Under "Workflow permissions", enable "Allow GitHub Actions to create and approve pull requests"
+
+Without this, `changesets/action` will fail when trying to open the "Version Packages" PR.
+
 ### Binaries automation
 
 The binaries GitHub Release workflow is triggered via `workflow_dispatch` (not tag-push), and
