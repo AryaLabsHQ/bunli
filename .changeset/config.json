@@ -7,5 +7,11 @@
   "updateInternalDependencies": "patch",
   "fixed": [],
   "linked": [],
-  "ignore": []
+  "ignore": [
+    "@bunli-examples/dev-server",
+    "@bunli-examples/git-tool",
+    "@bunli-examples/hello-world",
+    "@bunli-examples/task-runner",
+    "web"
+  ]
 }

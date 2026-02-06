@@ -1,6 +1,7 @@
 {
   "name": "@bunli-examples/task-runner",
   "version": "1.0.0",
+  "private": true,
   "type": "module",
   "scripts": {
     "generate": "bunli generate",

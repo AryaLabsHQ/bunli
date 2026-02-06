@@ -1,6 +1,7 @@
 {
   "name": "@bunli-examples/dev-server",
   "version": "0.0.1",
+  "private": true,
   "description": "Development server with plugins - Advanced plugin system and configuration management",
   "type": "module",
   "scripts": {
