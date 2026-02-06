@@ -169,7 +169,10 @@ function buildStringSchema(schema: JSONSchema7): z.ZodString {
 /**
  * Build Zod number schema with constraints
  */
-function buildNumberSchema(schema: JSONSchema7, coerce: boolean): z.ZodNumber {
+function buildNumberSchema(
+  schema: JSONSchema7,
+  coerce: boolean,
+): z.ZodNumber | z.ZodCoercedNumber {
   let zodSchema = coerce ? z.coerce.number() : z.number()
 
   // Integer constraint
@@ -240,7 +243,8 @@ function buildArraySchema(schema: JSONSchema7, options: SchemaConversionOptions)
 function buildObjectSchema(schema: JSONSchema7, options: SchemaConversionOptions): ZodTypeAny {
   // For nested objects without properties, use record
   if (!schema.properties) {
-    return z.record(z.unknown())
+    // Zod v4 requires an explicit key schema for record().
+    return z.record(z.string(), z.unknown())
   }
 
   // Build object shape
