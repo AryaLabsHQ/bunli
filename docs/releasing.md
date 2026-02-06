@@ -40,6 +40,12 @@ Useful flags:
 The repo uses `changesets/action` to keep a Version Packages PR up to date.
 When the Version Packages PR is merged, CI will publish packages to npm.
 
+### Workspace protocol note
+
+Inside the monorepo, packages depend on each other via `workspace:*`.
+Before publishing to npm, we rewrite those ranges to real semver ranges so consumers can install
+with npm or Bun. This happens automatically in CI as part of `release:publish`.
+
 ### Required GitHub secrets
 
 - `NPM_TOKEN`: used by the publish step to publish to npm.
