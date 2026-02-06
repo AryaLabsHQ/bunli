@@ -43,9 +43,12 @@ When the Version Packages PR is merged, CI will publish packages to npm.
 ### Required GitHub secrets
 
 - `NPM_TOKEN`: used by the publish step to publish to npm.
-- `RELEASE_GITHUB_TOKEN` (recommended): a GitHub PAT used by `changesets/action` to push tags.
-  This matters because the binary release workflow is triggered by `bunli@*` tags, and GitHub
-  does not trigger workflows from tag pushes created using `secrets.GITHUB_TOKEN`.
+
+### Binaries automation
+
+The binaries GitHub Release workflow is triggered via `workflow_dispatch` (not tag-push), and
+is dispatched automatically by the Changesets workflow when the `bunli` package is published.
+This is intentionally done so we can rely on `secrets.GITHUB_TOKEN` and avoid a PAT.
 
 ## Changeset reminders
 

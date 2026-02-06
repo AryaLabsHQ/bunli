@@ -11,6 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
+  actions: write
   contents: write
   pull-requests: write
 
@@ -33,14 +34,45 @@ jobs:
         run: bun run build
 
       - name: Create Release PR or Publish
+        id: changesets
         uses: changesets/action@v1
         with:
           version: bun run changeset:version
           publish: bun run release:publish
           createGithubReleases: false
         env:
-          # If you want `bunli@*` tags (created during publish) to trigger other workflows
-          # like `.github/workflows/release.yml`, you must use a PAT.
-          # GitHub does not trigger workflows from events created with `secrets.GITHUB_TOKEN`.
-          GITHUB_TOKEN: ${{ secrets.RELEASE_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Dispatch Binary Release
+        if: steps.changesets.outputs.published == 'true'
+        uses: actions/github-script@v7
+        env:
+          PUBLISHED_PACKAGES: ${{ steps.changesets.outputs.publishedPackages }}
+        with:
+          script: |
+            const publishedRaw = process.env.PUBLISHED_PACKAGES || "[]";
+            let published;
+            try {
+              published = JSON.parse(publishedRaw);
+            } catch {
+              core.warning(`Failed to parse publishedPackages: ${publishedRaw}`);
+              published = [];
+            }
+
+            const cli = published.find((p) => p?.name === "bunli");
+            if (!cli?.version) {
+              core.info("bunli was not published; skipping binary release dispatch.");
+              return;
+            }
+
+            const tag = `bunli@${cli.version}`;
+            core.info(`Dispatching Release workflow for ${tag}`);
+
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: "release.yml",
+              ref: "main",
+              inputs: { tag },
+            });

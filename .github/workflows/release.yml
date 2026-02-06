@@ -1,9 +1,12 @@
 name: Release
 
 on:
-  push:
-    tags:
-      - 'bunli@*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to build binaries for (e.g. bunli@0.5.2)"
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -14,6 +17,8 @@ jobs:
     
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
       
       - uses: oven-sh/setup-bun@v1
         with:
@@ -28,7 +33,7 @@ jobs:
       - name: Build binaries for all platforms
         run: |
           cd packages/cli
-          bun scripts/release-binaries.ts ${{ github.ref_name }}
+          bun scripts/release-binaries.ts ${{ inputs.tag }}
       
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -41,6 +46,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
       
       - name: Download artifacts
         uses: actions/download-artifact@v4
@@ -51,6 +58,8 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
+          tag_name: ${{ inputs.tag }}
+          name: ${{ inputs.tag }}
           files: ./artifacts/*.tar.gz
           generate_release_notes: true
           draft: false
