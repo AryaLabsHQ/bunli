@@ -14,8 +14,20 @@ async function ensureNpmAuth() {
     throw new Error('Missing NPM_TOKEN (or NODE_AUTH_TOKEN) in environment')
   }
 
-  const npmrcPath = path.join(os.homedir(), '.npmrc')
+  // Some tooling (and sometimes Bun itself) prefers NODE_AUTH_TOKEN-style env auth.
+  // Setting these ensures child processes (bun publish) see them even if npmrc resolution differs.
+  process.env.NODE_AUTH_TOKEN = token
+  process.env.BUN_AUTH_TOKEN = token
+
+  // Ensure there is always a userconfig file, and point tooling at it explicitly.
+  // This avoids relying on Bun's npmrc discovery across `--cwd` boundaries.
+  const userConfigPath = path.join(process.env.RUNNER_TEMP || os.tmpdir(), 'bunli-npmrc')
   const line = `//registry.npmjs.org/:_authToken=${token}\n`
+  await writeFile(userConfigPath, line, 'utf8')
+  process.env.NPM_CONFIG_USERCONFIG = userConfigPath
+  process.env.npm_config_userconfig = userConfigPath
+
+  const npmrcPath = path.join(os.homedir(), '.npmrc')
 
   // Avoid clobbering user configs; in CI this is typically empty anyway.
   if (existsSync(npmrcPath)) {
