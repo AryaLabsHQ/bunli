@@ -6,10 +6,11 @@
 
 import { $ } from 'bun'
 
-const version = process.argv[2] || 'latest'
+const rawVersion = process.argv[2] || 'latest'
+const version = normalizeVersion(rawVersion)
 const platforms = [
   'darwin-arm64',
-  'darwin-x64', 
+  'darwin-x64',
   'linux-arm64',
   'linux-x64',
   'windows-x64'
@@ -52,3 +53,20 @@ console.log('\n✨ Release binaries ready in ./release/')
 console.log('Files:')
 const files = await $`ls -la ${outdir}`.text()
 console.log(files)
+
+function normalizeVersion(input: string): string {
+  const trimmed = (input || '').trim()
+  if (!trimmed) return 'latest'
+
+  if (trimmed.includes('@')) {
+    const parts = trimmed.split('@')
+    const last = parts[parts.length - 1]
+    return last || trimmed
+  }
+
+  if (trimmed.startsWith('v') && trimmed.length > 1) {
+    return trimmed.slice(1)
+  }
+
+  return trimmed
+}
