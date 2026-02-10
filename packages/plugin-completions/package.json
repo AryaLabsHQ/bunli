@@ -14,13 +14,13 @@
     "src"
   ],
   "scripts": {
-    "build": "bun run scripts/build.ts && bun run tsc",
-    "typecheck": "tsc --noEmit"
+    "build": "node ./scripts/fix-tab-types.cjs && bun run scripts/build.ts && bun run tsc",
+    "postinstall": "node ./scripts/fix-tab-types.cjs",
+    "typecheck": "node ./scripts/fix-tab-types.cjs && tsc --noEmit"
   },
   "dependencies": {
-    "@bunli/core": "workspace:*",
-    "@bunli/generator": "workspace:*",
-    "zod": "^4.3.6"
+    "@bomb.sh/tab": "0.0.13",
+    "@bunli/core": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

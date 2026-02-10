@@ -1,5 +1,6 @@
 {
   "lockfileVersion": 1,
+  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "bunli-monorepo",
@@ -217,9 +218,8 @@
       "name": "@bunli/plugin-completions",
       "version": "0.2.2",
       "dependencies": {
+        "@bomb.sh/tab": "0.0.13",
         "@bunli/core": "workspace:*",
-        "@bunli/generator": "workspace:*",
-        "zod": "^4.3.6",
       },
       "devDependencies": {
         "typescript": "^5.8.3",
@@ -329,6 +329,8 @@
     "@babel/traverse": ["@babel/traverse@7.28.6", "", { "dependencies": { "@babel/code-frame": "^7.28.6", "@babel/generator": "^7.28.6", "@babel/helper-globals": "^7.28.0", "@babel/parser": "^7.28.6", "@babel/template": "^7.28.6", "@babel/types": "^7.28.6", "debug": "^4.3.1" } }, "sha512-fgWX62k02qtjqdSNTAGxmKYY/7FSL9WAS1o2Hu5+I5m9T0yxZzr4cnrfXQ/MX0rIifthCSs6FKTlzYbJcPtMNg=="],
 
     "@babel/types": ["@babel/types@7.28.4", "", { "dependencies": { "@babel/helper-string-parser": "^7.27.1", "@babel/helper-validator-identifier": "^7.27.1" } }, "sha512-bkFqkLhh3pMBUQQkpVgWDWq/lqzc2678eUyDlTBhRqhCHFguYYGM0Efga7tYk4TogG/3x0EEl66/OQ+WGbWB/Q=="],
+
+    "@bomb.sh/tab": ["@bomb.sh/tab@0.0.13", "", { "peerDependencies": { "cac": "^6.7.14", "citty": "^0.1.6 || ^0.2.0", "commander": "^13.1.0" }, "optionalPeers": ["cac", "citty", "commander"], "bin": { "tab": "dist/bin/cli.js" } }, "sha512-QY5gQ/4GSDiCsCFjwXvbqnL0tvaCaG38O9jwvamdxajTEtdcKuYEICfpShF0B66GVmihUF91b2hTOWoUJvWRYw=="],
 
     "@bunli-examples/dev-server": ["@bunli-examples/dev-server@workspace:examples/dev-server"],
 
