@@ -71,6 +71,7 @@ import { z } from 'zod'
 
 export default defineCommand({
   name: 'deploy',
+  description: 'Deploy the application',
   options: {
     env: option(
       z.enum(['dev', 'staging', 'prod']),
@@ -94,17 +95,35 @@ export default defineCommand({
 Create complex CLIs with multiple commands:
 
 ```typescript
-import { createCLI } from '@bunli/core'
-import build from './commands/build.js'
-import deploy from './commands/deploy.js'
-import test from './commands/test.js'
+import { createCLI, defineCommand } from '@bunli/core'
+
+const build = defineCommand({
+  name: 'build',
+  description: 'Build the project',
+  handler: async () => {}
+})
+
+const deploy = defineCommand({
+  name: 'deploy',
+  description: 'Deploy the project',
+  handler: async () => {}
+})
+
+const test = defineCommand({
+  name: 'test',
+  description: 'Run tests',
+  handler: async () => {}
+})
 
 const cli = await createCLI({
   name: 'my-tool',
   version: '1.0.0',
   description: 'My awesome CLI tool',
-  commands: [build, deploy, test]
 })
+
+cli.command(build)
+cli.command(deploy)
+cli.command(test)
 
 await cli.run()
 ```
@@ -154,7 +173,7 @@ const myPlugin: BunliPlugin<MyPluginStore> = {
   // Lifecycle hooks
   setup(context) {
     // One-time initialization
-    context.updateConfig({ customField: 'value' })
+    context.updateConfig({ description: 'Enhanced by my plugin' })
   },
   
   configResolved(config) {
@@ -163,8 +182,9 @@ const myPlugin: BunliPlugin<MyPluginStore> = {
   
   beforeCommand(context) {
     // Called before each command - context.store is type-safe!
-    context.store.apiKey = process.env.API_KEY || ''
-    context.store.isAuthenticated = !!context.store.apiKey
+    const apiKey = process.env.API_KEY || ''
+    context.setStoreValue('apiKey', apiKey)
+    context.setStoreValue('isAuthenticated', apiKey.length > 0)
   },
   
   afterCommand(context) {
@@ -183,20 +203,39 @@ Use `createPlugin` for better ergonomics:
 ```typescript
 import { createPlugin } from '@bunli/core/plugin'
 
-export const authPlugin = createPlugin((options: AuthOptions) => {
-  return {
-    name: 'auth-plugin',
-    store: {
-      token: '',
-      user: null as User | null
-    },
-    async beforeCommand(context) {
-      const token = await loadToken()
-      context.store.token = token
-      context.store.user = await fetchUser(token)
-    }
+type AuthOptions = {
+  provider: 'github' | 'gitlab'
+}
+
+type User = {
+  name: string
+}
+
+type AuthStore = {
+  token: string
+  user: User | null
+}
+
+async function loadToken() {
+  return 'token'
+}
+
+async function fetchUser(_token: string): Promise<User> {
+  return { name: 'octocat' }
+}
+
+export const authPlugin = createPlugin<AuthOptions, AuthStore>((options) => ({
+  name: `auth-${options.provider}`,
+  store: {
+    token: '',
+    user: null
+  },
+  async beforeCommand(context) {
+    const token = await loadToken()
+    context.setStoreValue('token', token)
+    context.setStoreValue('user', await fetchUser(token))
   }
-})
+}))
 ```
 
 ### Using Plugins with Type Safety
@@ -214,12 +253,13 @@ const cli = await createCLI({
 // In your commands, the store is fully typed!
 cli.command({
   name: 'deploy',
+  description: 'Deploy the application',
   handler: async ({ context }) => {
     // TypeScript knows about all plugin stores!
-    if (!context?.store.isAuthenticated) {
+    if (!context || !context.getStoreValue('isAuthenticated')) {
       throw new Error('Not authenticated')
     }
-    console.log(`Deploying as ${context.store.user?.name}`)
+    console.log(`Deploying as ${context.getStoreValue('user')?.name}`)
   }
 })
 ```
@@ -232,7 +272,6 @@ Bunli provides utilities for plugin development and testing:
 import { 
   createTestPlugin, 
   composePlugins, 
-  createMockPluginContext,
   testPluginHooks,
   assertPluginBehavior 
 } from '@bunli/core/plugin'
@@ -242,17 +281,17 @@ const testPlugin = createTestPlugin(
   { count: 0, message: '' },
   {
     beforeCommand(context) {
-      context.store.count++
-      console.log(`Count: ${context.store.count}`)
+      const count = context.getStoreValue('count')
+      context.setStoreValue('count', count + 1)
+      console.log(`Count: ${context.getStoreValue('count')}`)
     }
   }
 )
 
 // Compose multiple plugins
 const composedPlugin = composePlugins(
-  authPlugin({ provider: 'github' }),
-  loggingPlugin({ level: 'debug' }),
-  metricsPlugin({ enabled: true })
+  testPlugin,
+  createTestPlugin({ enabled: true }, { name: 'metrics' })
 )
 
 // Test plugin behavior
@@ -271,7 +310,7 @@ assertPluginBehavior(results, {
 Plugins can extend Bunli's interfaces:
 
 ```typescript
-declare module '@bunli/core' {
+declare module '@bunli/core/plugin' {
   interface EnvironmentInfo {
     isCI: boolean
     ciProvider?: string
@@ -371,11 +410,12 @@ import {
   createValidator,
   createBatchValidator 
 } from '@bunli/core'
+import { z } from 'zod'
 
 // Validate a single value
 const result = await validateValue(
   'hello', 
-  z.string().min(1).schema, 
+  z.string().min(1), 
   { option: 'message', command: 'greet' }
 )
 
@@ -383,22 +423,23 @@ const result = await validateValue(
 const validated = await validateValues(
   { name: 'John', age: 25 },
   { 
-    name: z.string().schema, 
-    age: z.number().schema 
+    name: z.string(), 
+    age: z.number() 
   },
   'user'
 )
 
 // Check value types
+const value: unknown = 'hello'
 if (isValueOfType(value, 'string')) {
   console.log('Value is a string')
 }
 
 // Create reusable validators
-const nameValidator = createValidator(z.string().min(1).schema)
+const nameValidator = createValidator(z.string().min(1))
 const userValidator = createBatchValidator({
-  name: z.string().schema,
-  age: z.number().schema
+  name: z.string(),
+  age: z.number()
 })
 ```
 
@@ -407,16 +448,13 @@ const userValidator = createBatchValidator({
 Bunli exports advanced TypeScript type utilities for complex type manipulation, especially useful when working with generated types:
 
 ```typescript
-import { 
+import type {
   UnionToIntersection, 
   MergeAll, 
   Expand,
   DeepPartial,
   Constrain,
-  NonEmptyArray,
-  IsNever,
-  IsAny,
-  IsUnknown
+  IsAny
 } from '@bunli/core'
 ```
 

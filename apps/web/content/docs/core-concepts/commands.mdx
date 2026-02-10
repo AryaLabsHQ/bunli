@@ -31,7 +31,7 @@ export default defineCommand({
 Add typed options to your commands using the `option()` helper with Zod schemas:
 
 ```typescript
-import { option } from '@bunli/core'
+import { defineCommand, option } from '@bunli/core'
 import { z } from 'zod'
 
 export default defineCommand({
@@ -257,6 +257,8 @@ export default defineCommand({
     
 	    ```typescript
 	    // src/commands/serve.ts
+	    import { defineCommand } from '@bunli/core'
+	    
 	    export default defineCommand({
 	      name: 'serve',
 	      description: 'Start the server',
@@ -264,6 +266,8 @@ export default defineCommand({
 	    })
 	    
 	    // src/commands/build.ts
+	    import { defineCommand } from '@bunli/core'
+	    
 	    export default defineCommand({
 	      name: 'build',
 	      description: 'Build the project',

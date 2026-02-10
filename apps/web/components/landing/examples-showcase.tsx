@@ -71,8 +71,11 @@ const cli = await createCLI({
   name: 'my-tool',
   version: '1.0.0',
   description: 'My awesome CLI tool',
-  commands: [dev, build, test]
 })
+
+cli.command(dev)
+cli.command(build)
+cli.command(test)
 
 await cli.run(process.argv.slice(2))`
   },
