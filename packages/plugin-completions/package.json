@@ -14,9 +14,9 @@
     "src"
   ],
   "scripts": {
-    "build": "node ./scripts/fix-tab-types.cjs && bun run scripts/build.ts && bun run tsc",
+    "build": "bun run scripts/build.ts && bun run tsc",
     "postinstall": "node ./scripts/fix-tab-types.cjs",
-    "typecheck": "node ./scripts/fix-tab-types.cjs && tsc --noEmit"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@bomb.sh/tab": "0.0.13",

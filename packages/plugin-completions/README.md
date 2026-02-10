@@ -82,3 +82,5 @@ my-cli completions powershell | Out-String | Invoke-Expression
 ### `@bomb.sh/tab` types workaround
 
 As of `@bomb.sh/tab@0.0.13`, the published package references `dist/t.d.ts` but ships only `dist/t-<hash>.d.ts`. This package includes a `postinstall` script (`scripts/fix-tab-types.cjs`) that copies the hashed `.d.ts` to `dist/t.d.ts` when needed. It is a no-op once upstream fixes packaging.
+
+For Bunli development in this monorepo, we also commit a Bun patch (see `patches/@bomb.sh%2Ftab@0.0.13.patch` and root `package.json` `patchedDependencies`) so `bun install` applies the fix in a git-friendly way.
