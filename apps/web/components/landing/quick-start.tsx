@@ -7,19 +7,19 @@ import { ArrowRight, Check, Copy } from 'lucide-react';
 
 const steps = [
   {
-    title: 'Install Bunli',
-    command: 'bun add @bunli/core',
-    description: 'Add Bunli to your project'
+    title: 'Scaffold a CLI',
+    command: 'bunx create-bunli my-cli',
+    description: 'Create a new Bunli CLI project'
   },
   {
-    title: 'Create your first command',
-    command: 'bun create bunli my-cli',
-    description: 'Scaffold a new CLI project'
+    title: 'Enter the project',
+    command: 'cd my-cli',
+    description: 'Move into your new project directory'
   },
   {
-    title: 'Run it',
-    command: 'bun run my-cli',
-    description: 'Start building immediately'
+    title: 'Run dev',
+    command: 'bunli dev',
+    description: 'Run your CLI in watch mode'
   }
 ];
 

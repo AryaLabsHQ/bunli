@@ -41,7 +41,8 @@ const myPlugin = createPlugin({
   },
   
   beforeCommand(context) {
-    context.store.count++ // TypeScript knows the type!
+    const count = context.getStoreValue('count')
+    context.setStoreValue('count', count + 1)
   }
 })
 ```
@@ -58,16 +59,21 @@ interface MyPluginOptions {
   verbose?: boolean
 }
 
-const myPlugin = createPlugin((options: MyPluginOptions) => ({
+interface MyPluginStore {
+  messages: string[]
+}
+
+const myPlugin = createPlugin<MyPluginOptions, MyPluginStore>((options) => ({
   name: 'my-plugin',
   
   store: {
     messages: [] as string[]
   },
   
-  beforeCommand({ store }) {
+  beforeCommand(context) {
     const message = `${options.prefix}: Command starting`
-    store.messages.push(message)
+    const messages = context.getStoreValue('messages')
+    context.setStoreValue('messages', [...messages, message])
     
     if (options.verbose) {
       console.log(message)
@@ -100,6 +106,7 @@ setup(context) {
   // Register a command
   context.registerCommand(defineCommand({
     name: 'plugin-command',
+    description: 'A command registered by a plugin',
     handler: async () => {
       console.log('Command from plugin!')
     }
@@ -125,9 +132,6 @@ The `beforeCommand` hook runs before each command execution:
 beforeCommand(context) {
   console.log(`Running command: ${context.command}`)
   console.log(`Arguments: ${context.args.join(', ')}`)
-  
-  // Access and modify store
-  context.store.lastCommand = context.command
 }
 ```
 
@@ -165,13 +169,14 @@ const timingPlugin = createPlugin<TimingStore>({
     duration: null
   },
   
-  beforeCommand({ store }) {
-    store.startTime = Date.now() // Type-safe!
+  beforeCommand(context) {
+    context.setStoreValue('startTime', Date.now())
   },
   
-  afterCommand({ store }) {
-    if (store.startTime) {
-      store.duration = Date.now() - store.startTime
+  afterCommand(context) {
+    const startTime = context.getStoreValue('startTime')
+    if (startTime != null) {
+      context.setStoreValue('duration', Date.now() - startTime)
     }
   }
 })
@@ -182,15 +187,19 @@ const timingPlugin = createPlugin<TimingStore>({
 ```typescript
 const cli = await createCLI({
   name: 'my-cli',
-  plugins: [timingPlugin()] as const // Use 'as const' for better inference
+  plugins: [timingPlugin] as const // Use 'as const' for better inference
 })
 
 cli.command(defineCommand({
   name: 'info',
+  description: 'Show timing information (if available)',
   handler: async ({ context }) => {
     // TypeScript knows about startTime and duration!
-    if (context?.store.startTime) {
-      console.log(`Started at: ${new Date(context.store.startTime)}`)
+    if (context) {
+      const startTime = context.getStoreValue('startTime')
+      if (startTime != null) {
+        console.log(`Started at: ${new Date(startTime)}`)
+      }
     }
   }
 }))
@@ -204,9 +213,9 @@ When using multiple plugins, their stores are automatically merged:
 const cli = await createCLI({
   name: 'my-cli',
   plugins: [
-    pluginA(), // store: { foo: string }
-    pluginB(), // store: { bar: number }
-    pluginC()  // store: { baz: boolean }
+    pluginA, // store: { foo: string }
+    pluginB, // store: { bar: number }
+    pluginC  // store: { baz: boolean }
   ] as const
 })
 
@@ -282,9 +291,11 @@ const cli = await createCLI({
 
 // In commands:
 cli.command(defineCommand({
+  name: 'info',
+  description: 'Show AI agent detection info',
   handler: async ({ context }) => {
-    if (context?.env.isAIAgent) {
-      console.log(`AI agents: ${context.store.aiAgents.join(', ')}`)
+    if (context && context.getStoreValue('isAIAgent')) {
+      console.log(`AI agents: ${context.getStoreValue('aiAgents').join(', ')}`)
     }
   }
 }))
@@ -378,20 +389,26 @@ export interface MyPluginOptions {
 Plugins can be loaded in various ways:
 
 ```typescript
+import { createCLI } from '@bunli/core'
+import { createPlugin } from '@bunli/core/plugin'
+
+const myPlugin = createPlugin({
+  name: 'my-plugin'
+})
+
+const myPluginFactory = createPlugin<{ verbose?: boolean }, {}>((options) => ({
+  name: 'my-plugin',
+  version: options.verbose ? 'debug' : undefined
+}))
+
 const cli = await createCLI({
   plugins: [
     // Plugin object
     myPlugin,
     
     // Plugin factory
-    myPlugin({ verbose: true }),
-    
-    // Path to plugin file
-    './plugins/custom.js',
-    
-    // Plugin with options as tuple
-    [myPlugin, { verbose: true }]
-  ]
+    myPluginFactory({ verbose: true }),
+  ] as const
 })
 ```
 
@@ -415,14 +432,18 @@ const analyticsPlugin = createPlugin<AnalyticsStore>({
     commandHistory: []
   },
   
-  beforeCommand({ store, command }) {
-    store.commandCount++
-    store.commandHistory.push(command)
+  beforeCommand(context) {
+    const commandCount = context.getStoreValue('commandCount')
+    context.setStoreValue('commandCount', commandCount + 1)
+
+    const commandHistory = context.getStoreValue('commandHistory')
+    context.setStoreValue('commandHistory', [...commandHistory, context.command])
   },
   
-  afterCommand({ store }) {
-    if (store.commandCount % 10 === 0) {
-      console.log(`🎉 You've run ${store.commandCount} commands!`)
+  afterCommand(context) {
+    const commandCount = context.getStoreValue('commandCount')
+    if (commandCount % 10 === 0) {
+      console.log(`You've run ${commandCount} commands!`)
     }
   }
 })
@@ -447,10 +468,9 @@ const envPlugin = createPlugin<EnvStore>({
   },
   
   setup(context) {
-    if (context.store.isDevelopment) {
+    if (process.env.NODE_ENV === 'development') {
       context.updateConfig({
-        // Enable debug features in development
-        debug: true
+        description: 'Development mode'
       })
     }
   }

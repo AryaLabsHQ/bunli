@@ -117,7 +117,7 @@ bunli init my-cli --template advanced
 bunli init --name my-cli --dir ./projects
 
 # Skip git/install
-bunli init --no-git --no-install
+bunli init --git false --install false
 ```
 
 Init options:

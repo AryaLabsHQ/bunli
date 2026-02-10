@@ -89,13 +89,13 @@ Update your main CLI file:
 // src/index.ts
 import { createCLI } from '@bunli/core'
 
-const cli = createCLI({
+const cli = await createCLI({
   name: 'todo',
   version: '1.0.0',
   description: 'Simple todo list manager'
 })
 
-// The CLI will auto-discover commands in src/commands/
+// Register commands explicitly, or use a manifest via `await cli.load(...)`.
 await cli.run()
 ```
 
@@ -248,10 +248,10 @@ Build your CLI for distribution:
 bunli build
 
 # Build for all platforms
-bunli build --all
+bunli build --targets all
 
-# Build standalone executable
-bunli build --compile
+# Build a standalone executable for your platform
+bunli build --targets native
 ```
 
 ## Adding Tests
@@ -397,7 +397,7 @@ When you're ready to share your CLI:
 
 1. **Build for all platforms:**
    ```bash
-   bunli build --all
+   bunli build --targets all
    ```
 
 2. **Create a release:**

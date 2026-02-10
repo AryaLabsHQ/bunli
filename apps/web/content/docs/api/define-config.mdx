@@ -190,7 +190,7 @@ export default defineConfig({
 Configure command loading:
 
 - `manifest` - Path to command manifest file for lazy loading
-- `directory` - Directory to auto-discover commands (not recommended for production)
+- `directory` - Directory used by the toolchain/codegen (runtime loading uses a manifest or manual registration)
 
 Example manifest:
 ```typescript
@@ -266,7 +266,7 @@ Command-line flags override config values:
 
 ```bash
 # Overrides build.minify
-bunli build --no-minify
+bunli build --minify false
 
 # Overrides dev.port
 bunli dev --port 3000

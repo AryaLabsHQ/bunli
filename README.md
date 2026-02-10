@@ -18,7 +18,9 @@ Bunli is a minimal, type-safe CLI framework designed specifically for Bun. It le
 
 ### Plugins
 - **[@bunli/plugin-ai-detect](./packages/plugin-ai-detect)** - Detect AI coding assistants
+- **[@bunli/plugin-completions](./packages/plugin-completions)** - Generate shell completions for your CLI
 - **[@bunli/plugin-config](./packages/plugin-config)** - Configuration file loading and merging
+- **[@bunli/plugin-mcp](./packages/plugin-mcp)** - MCP integration for agentic workflows
 
 ## Getting Started
 

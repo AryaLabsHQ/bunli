@@ -90,7 +90,7 @@ bunli dev --inspect
 bunli dev --entry src/cli.ts -- --verbose
 
 # Disable watch mode
-bunli dev --no-watch
+bunli dev --watch false
 ```
 
 ### bunli build
@@ -370,8 +370,8 @@ For monorepos, the CLI supports workspace-aware commands:
 # Run tests in all packages
 bunli test --all
 
-# Build all packages
-bunli build --all
+# Build for all platforms (single package)
+bunli build --targets all
 
 # Release all packages
 bunli release --all

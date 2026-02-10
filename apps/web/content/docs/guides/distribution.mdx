@@ -377,10 +377,10 @@ bunli release
 bunli release --version 2.0.0
 
 # Release without npm publish
-bunli release --no-npm
+bunli release --npm false
 
 # Dry run
-bunli release --dry-run
+bunli release --dry
 ```
 
 ### Release Configuration
@@ -505,7 +505,7 @@ Follow semantic versioning (semver):
 import { createCLI } from '@bunli/core'
 import { version } from '../package.json'
 
-const cli = createCLI({
+const cli = await createCLI({
   name: 'my-cli',
   version, // Automatically shows with --version
   description: 'My awesome CLI'
@@ -555,7 +555,7 @@ chmod +x ./my-cli
 **Missing dependencies:**
 ```bash
 # Bundle all dependencies
-bunli build --targets native --external none
+bunli build --targets native
 ```
 
 **Large binary size:**
