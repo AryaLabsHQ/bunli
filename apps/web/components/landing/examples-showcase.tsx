@@ -63,18 +63,18 @@ export default defineCommand({
   multiCommand: {
     title: 'Multi-Command CLI',
     code: `import { createCLI } from '@bunli/core'
-import dev from './commands/dev'
-import build from './commands/build'
-import test from './commands/test'
+import dev from './commands/dev.js'
+import build from './commands/build.js'
+import test from './commands/test.js'
 
-const cli = createCLI({
+const cli = await createCLI({
   name: 'my-tool',
   version: '1.0.0',
   description: 'My awesome CLI tool',
   commands: [dev, build, test]
 })
 
-cli.run()`
+await cli.run(process.argv.slice(2))`
   },
   testing: {
     title: 'Testing Your CLI',
