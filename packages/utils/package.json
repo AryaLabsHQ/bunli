@@ -43,6 +43,7 @@
   },
   "homepage": "https://github.com/AryaLabsHQ/bunli#readme",
   "dependencies": {
+    "@clack/prompts": "^0.10.0",
     "@standard-schema/spec": "^1.1.0",
     "@standard-schema/utils": "^0.3.0"
   },

@@ -33,35 +33,44 @@ console.log(colors.bold('Bold text'))
 console.log(colors.dim('Dimmed text'))
 ```
 
-### Prompts
+### Prompts (Clack-backed)
 
-Interactive user input:
+Interactive user input (implemented on top of `@clack/prompts`):
 
 ```typescript
-import { prompt, confirm, select } from '@bunli/utils'
+import { prompt } from '@bunli/utils'
 
 // Text input
-const name = await prompt({
-  message: 'What is your name?',
+const name = await prompt('What is your name?', {
   default: 'Anonymous',
-  validate: (value) => value.length > 0
+  validate: (value) => value.length > 0 || 'Name is required'
 })
 
 // Confirmation
-const proceed = await confirm({
-  message: 'Do you want to continue?',
-  default: true
-})
+const proceed = await prompt.confirm('Do you want to continue?', { default: true })
 
 // Selection
-const choice = await select({
-  message: 'Choose your favorite framework',
+const choice = await prompt.select('Choose your favorite framework', {
   options: [
     { label: 'Bun', value: 'bun' },
     { label: 'Node.js', value: 'node' },
     { label: 'Deno', value: 'deno' }
   ]
 })
+```
+
+Advanced: Clack primitives are available under `prompt.clack` (or from `@bunli/utils`):
+
+```typescript
+import { prompt } from '@bunli/utils'
+
+prompt.clack.intro('Setup')
+const value = await prompt.clack.text({ message: 'Name' })
+if (prompt.clack.isCancel(value)) {
+  prompt.clack.cancel('Cancelled')
+  return
+}
+prompt.clack.outro('Done')
 ```
 
 ### Spinners

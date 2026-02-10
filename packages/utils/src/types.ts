@@ -1,4 +1,5 @@
 import type { StandardSchemaV1 } from '@standard-schema/spec'
+import type { clack as bunliClack } from './prompts/clack.js'
 
 // Prompt types
 export interface PromptOptions {
@@ -17,6 +18,7 @@ export interface SelectOption<T = string> {
   label: string
   value: T
   hint?: string
+  disabled?: boolean
 }
 
 export interface SelectOptions<T = string> {
@@ -28,6 +30,7 @@ export interface SelectOptions<T = string> {
 export interface MultiSelectOptions<T = string> extends SelectOptions<T> {
   min?: number
   max?: number
+  initialValues?: T[]
 }
 
 // Spinner types
@@ -100,6 +103,7 @@ export interface BunliUtils {
     password<T = string>(message: string, options?: PromptOptions): Promise<T>
     text(message: string, options?: PromptOptions): Promise<string>
     multiselect<T = string>(message: string, options: MultiSelectOptions<T>): Promise<T[]>
+    clack: typeof bunliClack
   }
   spinner: (options?: SpinnerOptions | string) => Spinner
   colors: Colors

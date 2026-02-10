@@ -13,6 +13,24 @@ import { createLogger } from './utils/logger.js'
 
 const logger = createLogger('core:cli')
 
+function resolveRendererOptions(
+  configured: Record<string, unknown> | undefined,
+  terminal: TerminalInfo
+): Record<string, unknown> {
+  const bufferModeDefault: 'alternate' | 'standard' =
+    terminal.isInteractive && !terminal.isCI ? 'alternate' : 'standard'
+
+  const configuredBufferMode =
+    (configured?.bufferMode === 'alternate' || configured?.bufferMode === 'standard')
+      ? (configured.bufferMode as 'alternate' | 'standard')
+      : undefined
+
+  return {
+    ...(configured ?? {}),
+    bufferMode: configuredBufferMode ?? bufferModeDefault
+  }
+}
+
 export async function createCLI<
   TPlugins extends readonly BunliPlugin[] = []
 >(
@@ -40,7 +58,7 @@ export async function createCLI<
   }
 
   // Use loaded config or create from override
-  const loadedConfig: BunliConfig = loadedConfigData || (bunliConfigSchema.parse(configOverride || {}) as LoadedConfig)
+  const loadedConfig: BunliConfig = loadedConfigData || bunliConfigSchema.parse(configOverride || {})
   
   // Merge override config on top of loaded config
   const mergedConfig = {
@@ -141,7 +159,8 @@ export async function createCLI<
       conventionalCommits: true
     },
     plugins: fullConfig.plugins || [],
-    help: fullConfig.help
+    help: fullConfig.help,
+    tui: fullConfig.tui
   }
   
   // Run configResolved hooks
@@ -462,6 +481,10 @@ export async function createCLI<
           colors,
           terminal: terminalInfo,
           runtime: runtimeInfo,
+          rendererOptions: resolveRendererOptions(
+            (resolvedConfig.tui?.renderer ?? {}) as Record<string, unknown>,
+            terminalInfo
+          ),
           ...(context ? { context } : {})
         })
       } else {
@@ -488,6 +511,17 @@ export async function createCLI<
         )
       }
     } catch (error) {
+      const { PromptCancelledError } = await import('@bunli/utils')
+      if (error instanceof PromptCancelledError) {
+        if (mergedConfig.plugins && mergedConfig.plugins.length > 0 && context) {
+          await pluginManager.runAfterCommand(
+            context,
+            { exitCode: 0 }
+          )
+        }
+        return
+      }
+
       if (mergedConfig.plugins && mergedConfig.plugins.length > 0 && context) {
         await pluginManager.runAfterCommand(
           context,
@@ -653,19 +687,33 @@ export async function createCLI<
         const terminalInfo = getTerminalInfo()
         
         if (command.handler) {
-        await command.handler({
-          flags: parsed.flags,
-          positional: [],
-          shell: Bun.$,
-          env: process.env,
-          cwd: process.cwd(),
-          prompt,
-          spinner,
-          colors,
-          terminal: terminalInfo,
-          runtime: runtimeInfo,
-          ...(context ? { context } : {})
-        })
+          try {
+            await command.handler({
+              flags: parsed.flags,
+              positional: [],
+              shell: Bun.$,
+              env: process.env,
+              cwd: process.cwd(),
+              prompt,
+              spinner,
+              colors,
+              terminal: terminalInfo,
+              runtime: runtimeInfo,
+              ...(context ? { context } : {})
+            })
+          } catch (error) {
+            const { PromptCancelledError } = await import('@bunli/utils')
+            if (error instanceof PromptCancelledError) {
+              if (mergedConfig.plugins && mergedConfig.plugins.length > 0 && context) {
+                await pluginManager.runAfterCommand(
+                  context,
+                  { exitCode: 0 }
+                )
+              }
+              return
+            }
+            throw error
+          }
         }
         
         // Run afterCommand hooks if plugins are loaded

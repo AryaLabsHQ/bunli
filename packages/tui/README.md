@@ -51,6 +51,28 @@ cli.command(myCommand)
 await cli.run()
 ```
 
+## Buffer Modes (Alternate vs Standard)
+
+OpenTUI can render using either the alternate screen buffer (full-screen TUI) or the standard terminal buffer (leaves output in scrollback).
+
+Configure this in `createCLI()` config:
+
+```typescript
+const cli = await createCLI({
+  name: 'my-app',
+  version: '1.0.0',
+  tui: {
+    renderer: {
+      bufferMode: 'alternate' // or 'standard'
+    }
+  }
+})
+```
+
+Notes:
+- `bufferMode: 'alternate'` is the default for interactive terminals.
+- `bufferMode: 'standard'` is the default for non-interactive / CI environments when TUI is forced via `--tui`.
+
 ## Usage
 
 ### Basic TUI Component
