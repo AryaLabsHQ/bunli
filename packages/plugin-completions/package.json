@@ -15,7 +15,6 @@
   ],
   "scripts": {
     "build": "bun run scripts/build.ts && bun run tsc",
-    "postinstall": "node ./scripts/fix-tab-types.cjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
