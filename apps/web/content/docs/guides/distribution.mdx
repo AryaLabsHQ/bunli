@@ -505,7 +505,7 @@ Follow semantic versioning (semver):
 import { createCLI } from '@bunli/core'
 import { version } from '../package.json'
 
-const cli = createCLI({
+const cli = await createCLI({
   name: 'my-cli',
   version, // Automatically shows with --version
   description: 'My awesome CLI'

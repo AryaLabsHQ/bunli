@@ -43,14 +43,14 @@ Create a new CLI instance with configuration:
 ```typescript
 import { createCLI } from '@bunli/core'
 
-const cli = createCLI({
+const basicCli = await createCLI({
   name: 'my-cli',
   version: '1.0.0',
   description: 'My awesome CLI tool'
 })
 
 // With command manifest for lazy loading
-const cli = createCLI({
+const manifestCli = await createCLI({
   name: 'my-cli',
   version: '1.0.0',
   description: 'My awesome CLI tool',
@@ -351,9 +351,10 @@ export default {
 import { createCLI } from '@bunli/core'
 import manifest from './commands/manifest.js'
 
-const cli = createCLI({
+const cli = await createCLI({
   name: 'my-cli',
-  version: '1.0.0'
+  version: '1.0.0',
+  description: 'My CLI'
 })
 
 // Load commands from manifest

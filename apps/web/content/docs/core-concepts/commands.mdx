@@ -226,81 +226,86 @@ export default defineCommand({
   <Tab value="single" label="Single File">
     For simple CLIs, define all commands in one file:
     
-    ```typescript
-    // src/index.ts
-    import { createCLI } from '@bunli/core'
+	    ```typescript
+	    // src/index.ts
+	    import { createCLI } from '@bunli/core'
+	    
+	    const cli = await createCLI({
+	      name: 'my-cli',
+	      version: '1.0.0',
+	      description: 'My CLI'
+	    })
+	    
+	    cli.command({
+	      name: 'serve',
+	      description: 'Start the server',
+	      handler: async () => { /* ... */ }
+	    })
+	    
+	    cli.command({
+	      name: 'build',
+	      description: 'Build the project',
+	      handler: async () => { /* ... */ }
+	    })
+	    
+	    await cli.run()
+	    ```
+	  </Tab>
+	  
+	  <Tab value="separate" label="Separate Files">
+	    For larger CLIs, organize commands in separate files:
     
-    const cli = createCLI({
-      name: 'my-cli',
-      version: '1.0.0'
-    })
+	    ```typescript
+	    // src/commands/serve.ts
+	    export default defineCommand({
+	      name: 'serve',
+	      description: 'Start the server',
+	      handler: async () => { /* ... */ }
+	    })
+	    
+	    // src/commands/build.ts
+	    export default defineCommand({
+	      name: 'build',
+	      description: 'Build the project',
+	      handler: async () => { /* ... */ }
+	    })
+	    
+	    // src/index.ts
+	    import { createCLI } from '@bunli/core'
+	    import serve from './commands/serve.js'
+	    import build from './commands/build.js'
+	    
+	    const cli = await createCLI({ name: 'my-cli', description: 'My CLI' })
+	    cli.command(serve)
+	    cli.command(build)
+	    await cli.run()
+	    ```
+	  </Tab>
+	  
+	  <Tab value="manifest" label="Command Manifest">
+	    Use a manifest for lazy loading:
     
-    cli.command({
-      name: 'serve',
-      handler: async () => { /* ... */ }
-    })
-    
-    cli.command({
-      name: 'build',
-      handler: async () => { /* ... */ }
-    })
-    
-    cli.run()
-    ```
-  </Tab>
-  
-  <Tab value="separate" label="Separate Files">
-    For larger CLIs, organize commands in separate files:
-    
-    ```typescript
-    // src/commands/serve.ts
-    export default defineCommand({
-      name: 'serve',
-      handler: async () => { /* ... */ }
-    })
-    
-    // src/commands/build.ts
-    export default defineCommand({
-      name: 'build',
-      handler: async () => { /* ... */ }
-    })
-    
-    // src/index.ts
-    import { createCLI } from '@bunli/core'
-    import serve from './commands/serve'
-    import build from './commands/build'
-    
-    const cli = createCLI({ name: 'my-cli' })
-    cli.command(serve)
-    cli.command(build)
-    cli.run()
-    ```
-  </Tab>
-  
-  <Tab value="manifest" label="Command Manifest">
-    Use a manifest for lazy loading:
-    
-    ```typescript
-    // src/commands/index.ts
-    export default {
-      serve: () => import('./serve'),
-      build: () => import('./build'),
-      db: {
-        migrate: () => import('./db/migrate'),
-        seed: () => import('./db/seed')
-      }
-    }
-    
-    // src/index.ts
-    import { createCLI } from '@bunli/core'
-    import manifest from './commands/index.js'
-    
-    const cli = createCLI({ name: 'my-cli' })
-    await cli.load(manifest)
-    await cli.run()
-    ```
-  </Tab>
-</Tabs>
+	    ```typescript
+	    // src/commands/index.ts
+	    export default {
+	      serve: () => import('./serve.js'),
+	      build: () => import('./build.js'),
+	      db: {
+	        migrate: () => import('./db/migrate.js'),
+	        seed: () => import('./db/seed.js')
+	      }
+	    }
+	    
+	    // src/index.ts
+	    import { createCLI } from '@bunli/core'
+	    import manifest from './commands/index.js'
+	    
+	    const cli = await createCLI({ name: 'my-cli', description: 'My CLI' })
+	    await cli.load(manifest)
+	    await cli.run()
+	    ```
+	  </Tab>
+	</Tabs>
 
 ## Command Aliases
 

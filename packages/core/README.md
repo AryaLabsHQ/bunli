@@ -95,11 +95,11 @@ Create complex CLIs with multiple commands:
 
 ```typescript
 import { createCLI } from '@bunli/core'
-import build from './commands/build'
-import deploy from './commands/deploy'
-import test from './commands/test'
+import build from './commands/build.js'
+import deploy from './commands/deploy.js'
+import test from './commands/test.js'
 
-const cli = createCLI({
+const cli = await createCLI({
   name: 'my-tool',
   version: '1.0.0',
   description: 'My awesome CLI tool',
@@ -134,7 +134,7 @@ Bunli provides a powerful plugin system with compile-time type safety:
 ### Basic Plugin
 
 ```typescript
-import { BunliPlugin, createPlugin } from '@bunli/core'
+import type { BunliPlugin } from '@bunli/core/plugin'
 
 interface MyPluginStore {
   apiKey: string
@@ -181,7 +181,7 @@ const myPlugin: BunliPlugin<MyPluginStore> = {
 Use `createPlugin` for better ergonomics:
 
 ```typescript
-import { createPlugin } from '@bunli/core'
+import { createPlugin } from '@bunli/core/plugin'
 
 export const authPlugin = createPlugin((options: AuthOptions) => {
   return {

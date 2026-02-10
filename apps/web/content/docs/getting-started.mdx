@@ -125,7 +125,7 @@ Create optimized binaries for distribution:
 bunli build
 
 # Build for all platforms
-bunli build --all
+bunli build --targets all
 ```
 
 </Steps>
@@ -223,7 +223,7 @@ bun add bunli @bunli/core
 // src/index.ts
 import { createCLI } from '@bunli/core'
 
-const cli = createCLI({
+const cli = await createCLI({
   name: 'my-cli',
   version: '1.0.0',
   description: 'My awesome CLI'
@@ -237,7 +237,7 @@ cli.command({
   }
 })
 
-cli.run()
+await cli.run()
 ```
 
 ### Add to package.json
