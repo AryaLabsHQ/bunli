@@ -77,7 +77,7 @@ cli.command(dev)
 cli.command(build)
 cli.command(test)
 
-await cli.run(process.argv.slice(2))`
+await cli.run()`
   },
   testing: {
     title: 'Testing Your CLI',
