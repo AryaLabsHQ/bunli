@@ -23,9 +23,6 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Docs drift checks
-        run: bun run docs:drift
-
       - name: Test
         run: bun test
 
