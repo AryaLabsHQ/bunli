@@ -32,7 +32,7 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
         Skip to content
       </a>
 
-      <header className="border-b border-border/60">
+      <header className="sticky top-0 z-50 border-b border-border/60 bg-background/70 backdrop-blur">
         <div className="marketing-container flex items-center justify-between px-6 py-4">
           <Link href="/" className="flex items-center gap-2 font-semibold">
             <BunliMark />
@@ -90,4 +90,3 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
     </div>
   );
 }
-
