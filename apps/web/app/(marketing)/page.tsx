@@ -3,7 +3,6 @@ import { FeaturesGrid } from '@/components/landing/features-grid';
 import { CodeComparison } from '@/components/landing/code-comparison';
 import { QuickStart } from '@/components/landing/quick-start';
 import { ExamplesShowcase } from '@/components/landing/examples-showcase';
-import { Testimonials } from '@/components/landing/testimonials';
 import { CTASection } from '@/components/landing/cta-section';
 
 export default function HomePage() {
@@ -14,8 +13,8 @@ export default function HomePage() {
       <CodeComparison />
       <QuickStart />
       <ExamplesShowcase />
-      {/* <Testimonials /> */}
       <CTASection />
     </main>
   );
 }
+
