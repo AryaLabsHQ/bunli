@@ -1,0 +1,135 @@
+@import "tailwindcss";
+@import "fumadocs-ui/css/neutral.css";
+@import "fumadocs-ui/css/preset.css";
+@import "tw-animate-css";
+
+:root {
+  --radius: 12px;
+  --workbench-bg: #0b1020;
+  --workbench-panel: #111933;
+  --workbench-border: #26345e;
+  --workbench-text: #d8e2ff;
+  --workbench-muted: #90a0d0;
+  --workbench-accent: #49d4a7;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  font-family: "Geist", "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  background: radial-gradient(1200px circle at 5% -10%, #1c2952, transparent 50%),
+    radial-gradient(900px circle at 120% 20%, #213a57, transparent 45%),
+    var(--workbench-bg);
+  color: var(--workbench-text);
+}
+
+.workbench-shell {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(280px, 1fr) minmax(320px, 1fr);
+}
+
+.workbench-card {
+  border: 1px solid var(--workbench-border);
+  background: linear-gradient(165deg, rgba(28, 42, 84, 0.5), rgba(10, 16, 36, 0.72));
+  border-radius: var(--radius);
+  backdrop-filter: blur(6px);
+}
+
+.workbench-header {
+  border-bottom: 1px solid rgba(56, 80, 138, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.65rem 0.9rem;
+  background: rgba(8, 14, 32, 0.72);
+}
+
+.workbench-meta {
+  font-size: 0.75rem;
+  color: var(--workbench-muted);
+}
+
+.workbench-editor {
+  min-height: 420px;
+  flex: 1;
+}
+
+.workbench-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.65rem 0.9rem;
+  border-bottom: 1px solid rgba(56, 80, 138, 0.45);
+  background: rgba(13, 21, 48, 0.7);
+}
+
+.workbench-terminal {
+  min-height: 360px;
+  flex: 1;
+  background: rgba(8, 12, 26, 0.95);
+  padding: 0.4rem;
+}
+
+.workbench-footer {
+  border-top: 1px solid rgba(56, 80, 138, 0.45);
+  padding: 0.5rem 0.9rem;
+  font-size: 0.75rem;
+  color: var(--workbench-muted);
+  background: rgba(8, 14, 32, 0.72);
+}
+
+.workbench-select,
+.workbench-btn,
+.workbench-link {
+  border-radius: 999px;
+  border: 1px solid rgba(95, 126, 196, 0.58);
+  background: rgba(15, 28, 64, 0.82);
+  color: var(--workbench-text);
+  font-size: 0.8rem;
+  line-height: 1;
+  padding: 0.53rem 0.78rem;
+  text-decoration: none;
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+}
+
+.workbench-select {
+  min-width: 170px;
+}
+
+.workbench-btn:hover,
+.workbench-link:hover,
+.workbench-select:hover {
+  background: rgba(25, 40, 84, 0.95);
+  border-color: rgba(133, 169, 247, 0.8);
+}
+
+.workbench-btn:disabled {
+  opacity: 0.52;
+  cursor: not-allowed;
+}
+
+.workbench-btn-accent {
+  background: linear-gradient(130deg, #2bbf93, #4bc9f3);
+  color: #061324;
+  border-color: rgba(94, 216, 255, 0.95);
+  font-weight: 700;
+}
+
+.workbench-btn-accent:hover {
+  transform: translateY(-1px);
+}
+
+@media (max-width: 940px) {
+  .workbench-shell {
+    grid-template-columns: 1fr;
+  }
+}
