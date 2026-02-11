@@ -8,6 +8,7 @@ This directory contains example Bunli CLI applications demonstrating various fea
 The absolute simplest possible Bunli CLI with a single command. Perfect starting point to understand the basics.
 - Basic command definition
 - Simple flag handling
+- OpenTUI `render` + CLI `handler` dual mode
 - Minimal configuration
 - Type generation for enhanced DX
 
@@ -117,8 +118,34 @@ Create engaging CLI experiences with built-in prompts:
 
 ```typescript
 const name = await prompt.text('What is your name?')
-const color = await prompt.select('Favorite color?', ['red', 'green', 'blue'])
+const color = await prompt.select('Favorite color?', {
+  options: [
+    { label: 'Red', value: 'red' },
+    { label: 'Green', value: 'green' },
+    { label: 'Blue', value: 'blue' }
+  ]
+})
 const confirmed = await prompt.confirm('Continue?')
+
+prompt.clack.intro('Setup')
+prompt.clack.outro('Done')
+```
+
+### OpenTUI Rendering
+Use `render` for interactive terminal UI and global flags for mode selection:
+
+```typescript
+import { registerTuiRenderer } from '@bunli/tui'
+
+registerTuiRenderer()
+
+const command = defineCommand({
+  name: 'greet',
+  render: ({ flags }) => <GreetProgress name={String(flags.name)} />,
+  handler: async ({ flags }) => {
+    console.log(`Hello, ${flags.name}!`)
+  }
+})
 ```
 
 ### Plugin System

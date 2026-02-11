@@ -12,10 +12,13 @@
   },
   "dependencies": {
     "@bunli/core": "workspace:*",
+    "@bunli/tui": "workspace:*",
+    "react": "^19.2.4",
     "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/node": "24.10.1",
+    "@types/react": "19.2.10",
     "bunli": "workspace:*",
     "typescript": "^5.8.3"
   }

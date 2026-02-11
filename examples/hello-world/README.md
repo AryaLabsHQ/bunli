@@ -13,6 +13,12 @@ bun cli.ts greet --name "World" --loud
 
 # Or with short flags
 bun cli.ts greet -n "Bunli" -l -t 3
+
+# Force TUI mode (OpenTUI render path)
+bun cli.ts greet --name "TUI" --tui
+
+# Force non-TUI mode (handler path)
+bun cli.ts greet --name "CLI" --no-tui
 ```
 
 ## What This Example Shows
@@ -22,6 +28,7 @@ bun cli.ts greet -n "Bunli" -l -t 3
 - **Type coercion** (string → boolean, string → number)
 - **Default values** and **short flags**
 - **Colored output** with built-in utilities
+- **OpenTUI integration** with `render` + global TUI flags
 
 ## The Command
 
@@ -30,7 +37,10 @@ const greetCommand = defineCommand({
   name: 'greet' as const,
   description: 'A minimal greeting CLI',
   options: {
-    name: option(z.string().default('world')),
+    name: option(z.string().default('world'), {
+      short: 'n',
+      description: 'Who to greet'
+    }),
     loud: option(z.coerce.boolean().default(false), { 
       short: 'l', 
       description: 'Shout the greeting' 
@@ -40,6 +50,13 @@ const greetCommand = defineCommand({
       description: 'Number of times to greet' 
     })
   },
+  render: ({ flags }) => (
+    <GreetProgress
+      name={String(flags.name)}
+      loud={Boolean(flags.loud)}
+      times={Number(flags.times)}
+    />
+  ),
   handler: async ({ flags, colors }) => {
     const greeting = `Hello, ${flags.name}!`
     const message = flags.loud ? greeting.toUpperCase() : greeting
@@ -56,7 +73,22 @@ const greetCommand = defineCommand({
 1. **`defineCommand`** - Creates a command with options and handler
 2. **`option()`** - Wraps Zod schemas with CLI metadata (short flags, descriptions)
 3. **Type coercion** - `z.coerce.boolean()` converts strings to booleans
-4. **Handler context** - Access to `flags`, `colors`, `spinner`, etc.
+4. **Dual execution path** - `render` for TUI, `handler` for non-TUI
+5. **Handler context** - Access to `flags`, `colors`, `spinner`, etc.
+
+## TUI Buffer Mode
+
+This example configures:
+
+```typescript
+tui: {
+  renderer: {
+    bufferMode: 'standard'
+  }
+}
+```
+
+So `--tui` renders in the main terminal buffer (scrollback-friendly).
 
 ## Development
 
@@ -98,7 +130,7 @@ Ready for more? Try the **[task-runner](../task-runner/README.md)** example to l
 hello-world/
 ├── cli.ts              # CLI entry point
 ├── commands/           # Command definitions
-│   └── greet.ts        # Greet command
+│   └── greet.tsx       # Greet command (handler + TUI render)
 ├── .bunli/            # Generated files (auto-created)
 │   └── commands.gen.ts # Generated TypeScript types
 ├── bunli.config.ts     # Configuration
