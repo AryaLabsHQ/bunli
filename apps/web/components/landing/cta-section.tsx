@@ -1,9 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Github, Star } from 'lucide-react';
+
+interface GitHubRepoResponse {
+  stargazers_count?: number;
+}
 
 export function CTASection() {
   const [stars, setStars] = useState<number | null>(null);
@@ -11,7 +14,7 @@ export function CTASection() {
   useEffect(() => {
     // Fetch GitHub stars count
     fetch('https://api.github.com/repos/AryaLabsHQ/bunli')
-      .then(res => res.json())
+      .then(res => res.json() as Promise<GitHubRepoResponse>)
       .then(data => {
         if (data.stargazers_count) {
           setStars(data.stargazers_count);
@@ -34,18 +37,18 @@ export function CTASection() {
           </p>
           
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link href="/docs/getting-started">
-              <Button size="lg" className="gap-2">
+            <Button asChild size="lg" className="gap-2">
+              <a href="/docs/getting-started">
                 Get Started
                 <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
-            <Link href="https://github.com/AryaLabsHQ/bunli">
-              <Button size="lg" variant="outline" className="gap-2">
+              </a>
+            </Button>
+            <Button asChild size="lg" variant="outline" className="gap-2">
+              <a href="https://github.com/AryaLabsHQ/bunli" target="_blank" rel="noreferrer">
                 <Github className="h-4 w-4" />
                 View on GitHub
-              </Button>
-            </Link>
+              </a>
+            </Button>
           </div>
 
           {stars && (

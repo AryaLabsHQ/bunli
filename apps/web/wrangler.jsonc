@@ -1,0 +1,56 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "bunli-web",
+  "main": "./src/server.ts",
+  "compatibility_date": "2026-02-11",
+  "compatibility_flags": ["nodejs_compat", "nodejs_compat_populate_process_env"],
+  "dev": {
+    "port": 3000
+  },
+  "vars": {
+    "SITE_URL": "http://localhost:3000",
+    "BETTER_AUTH_BASE_URL": "http://localhost:3000",
+    "WORKBENCH_WORKSPACE_DIR": "/workspace/demo",
+    "WORKBENCH_BUN_VERSION": "1.2.2",
+    "WORKBENCH_BUNLI_VERSION": "0.5.3",
+    "WORKBENCH_SANDBOX_NETWORK": "off"
+  },
+  "observability": {
+    "enabled": true,
+    "logs": {
+      "enabled": true
+    },
+    "traces": {
+      "enabled": true
+    }
+  },
+  "containers": [
+    {
+      "class_name": "Sandbox",
+      "image": "./Dockerfile",
+      "instance_type": "lite",
+      "max_instances": 20
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "Sandbox",
+        "class_name": "Sandbox"
+      },
+      {
+        "name": "WORKBENCH_LIMITER",
+        "class_name": "WorkbenchLimiter"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["Sandbox", "WorkbenchLimiter"]
+    }
+  ],
+  "version_metadata": {
+    "binding": "CF_VERSION_METADATA"
+  }
+}
