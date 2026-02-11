@@ -4,13 +4,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite dev --port 3000",
+    "dev": "vite dev --port 3080",
     "build": "vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "bun run cf-typegen && tsc --noEmit",
     "test": "bun test",
-    "cf-typegen": "wrangler types src/env.d.ts --env-interface Env",
-    "deploy": "bun run build && bun scripts/deploy.ts"
+    "cf-typegen": "wrangler types --env-interface Env",
+    "deploy": "bun run build && bun scripts/deploy.ts",
+    "postinstall": "bun run cf-typegen"
   },
   "dependencies": {
     "@cloudflare/sandbox": "^0.7.1",
@@ -40,6 +41,7 @@
     "@types/react": "19.2.10",
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
+    "react-grab": "^0.1.11",
     "typescript": "^5.8.3",
     "vite": "^7.3.0",
     "vite-tsconfig-paths": "^5.1.4",

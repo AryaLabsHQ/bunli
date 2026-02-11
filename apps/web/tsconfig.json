@@ -27,7 +27,8 @@
     "content/**/*.mdx",
     "content/**/*.json",
     "scripts/**/*.ts",
-    "vite.config.ts"
+    "vite.config.ts",
+    "worker-configuration.d.ts"
   ],
   "exclude": ["node_modules", "dist", ".wrangler", "app", "components", "hooks", "lib"]
 }

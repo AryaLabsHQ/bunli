@@ -14,6 +14,7 @@ export default defineConfig(async ({ mode }) => {
 
   return {
     server: {
+      port: 3080,
       allowedHosts: ["localhost", "127.0.0.1"],
     },
     resolve: {
