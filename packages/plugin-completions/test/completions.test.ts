@@ -4,6 +4,20 @@ import { completionsPlugin } from '../src/index.js'
 import { resolve } from 'node:path'
 
 const EXAMPLE_DIR = resolve(import.meta.dir, '../../../examples/task-runner')
+const SHELLS = ['bash', 'zsh', 'fish', 'powershell'] as const
+
+async function createTestCLI() {
+  return createCLI({
+    name: 'my-cli',
+    version: '1.0.0',
+    plugins: [
+      completionsPlugin({
+        commandName: 'my-cli',
+        executable: 'my-cli'
+      })
+    ] as const
+  })
+}
 
 function captureConsole() {
   const stdout: string[] = []
@@ -12,8 +26,8 @@ function captureConsole() {
   const originalLog = console.log
   const originalError = console.error
 
-  console.log = (...args: any[]) => stdout.push(args.join(' '))
-  console.error = (...args: any[]) => stderr.push(args.join(' '))
+  console.log = (...args: unknown[]) => stdout.push(args.map(String).join(' '))
+  console.error = (...args: unknown[]) => stderr.push(args.map(String).join(' '))
 
   return {
     restore() {
@@ -41,39 +55,23 @@ describe('completions/complete command (Tab protocol)', () => {
     process.chdir(cwd)
   })
 
-  test('completions zsh outputs a script that calls back into `complete --`', async () => {
-    const cli = await createCLI({
-      name: 'my-cli',
-      version: '1.0.0',
-      plugins: [
-        completionsPlugin({
-          commandName: 'my-cli',
-          executable: 'my-cli'
-        })
-      ] as const
+  for (const shell of SHELLS) {
+    test(`completions ${shell} outputs a script that calls back into \`complete --\``, async () => {
+      const cli = await createTestCLI()
+
+      const cap = captureConsole()
+      try {
+        await cli.run(['completions', shell])
+      } finally {
+        cap.restore()
+      }
+
+      expect(cap.stdout()).toMatch(/complete\s+['"]?--['"]?/)
     })
-
-    const cap = captureConsole()
-    try {
-      await cli.run(['completions', 'zsh'])
-    } finally {
-      cap.restore()
-    }
-
-    expect(cap.stdout()).toContain('complete --')
-  })
+  }
 
   test('protocol output ends with a :N directive line', async () => {
-    const cli = await createCLI({
-      name: 'my-cli',
-      version: '1.0.0',
-      plugins: [
-        completionsPlugin({
-          commandName: 'my-cli',
-          executable: 'my-cli'
-        })
-      ] as const
-    })
+    const cli = await createTestCLI()
 
     const cap = captureConsole()
     try {
@@ -89,16 +87,7 @@ describe('completions/complete command (Tab protocol)', () => {
   })
 
   test('ends-with-space sentinel is preserved via runtime.args (trailing empty string)', async () => {
-    const cli = await createCLI({
-      name: 'my-cli',
-      version: '1.0.0',
-      plugins: [
-        completionsPlugin({
-          commandName: 'my-cli',
-          executable: 'my-cli'
-        })
-      ] as const
-    })
+    const cli = await createTestCLI()
 
     const cap = captureConsole()
     try {
@@ -111,5 +100,22 @@ describe('completions/complete command (Tab protocol)', () => {
     // When Tab sees the trailing '', it treats it as "ends with space" and should not suggest "deploy" itself.
     expect(out).not.toContain('deploy\t')
     expect(out).toMatch(/^:\d+$/)
+  })
+
+  test('task-runner example works end-to-end for completions zsh', async () => {
+    const proc = Bun.spawn({
+      cmd: ['bun', 'cli.ts', 'completions', 'zsh'],
+      cwd: EXAMPLE_DIR,
+      stdout: 'pipe',
+      stderr: 'pipe'
+    })
+
+    const stdout = await new Response(proc.stdout).text()
+    const stderr = await new Response(proc.stderr).text()
+    const code = await proc.exited
+
+    expect(code).toBe(0)
+    expect(stderr.trim()).toBe('')
+    expect(stdout).toContain('complete --')
   })
 })

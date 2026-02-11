@@ -79,6 +79,10 @@ my-cli completions powershell | Out-String | Invoke-Expression
 
 ## Notes
 
+### Runtime packaging
+
+`@bunli/plugin-completions` publishes a bundled runtime (`dist/index.js`) that already includes Tab. Downstream consumers only install `@bunli/plugin-completions` and do not need a separate runtime dependency on `@bomb.sh/tab`.
+
 ### `@bomb.sh/tab` types note
 
 As of `@bomb.sh/tab@0.0.13`, the published package references `dist/t.d.ts` but ships only `dist/t-<hash>.d.ts`. Bunli’s monorepo uses `bun patch` during development/CI to keep TypeScript builds unblocked until upstream fixes packaging.
