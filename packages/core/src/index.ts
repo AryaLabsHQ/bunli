@@ -21,6 +21,7 @@ export type {
   HandlerArgs,
   RenderArgs,
   RenderFunction,
+  TuiRenderOptions,
   Options,
   CLIOption,
   CommandManifest,

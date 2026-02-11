@@ -5,49 +5,9 @@ import { createLogger } from './utils/logger.js'
 
 const logger = createLogger('core:config')
 
-// Type for loaded config with defaults applied by Zod
-export type LoadedConfig = {
-  name?: string
-  version?: string
-  description?: string
-  commands?: {
-    manifest?: string
-    directory?: string
-    generateReport?: boolean
-  }
-  // Zod applies defaults, so these objects are never undefined
-  build: {
-    entry?: string | string[]
-    outdir?: string
-    targets: string[]  // Always has default ['native']
-    compress: boolean  // Always has default false
-    minify: boolean  // Always has default false
-    external?: string[]
-    sourcemap: boolean  // Always has default true
-  }
-  dev: {
-    watch: boolean  // Always has default true
-    inspect: boolean  // Always has default false
-    port?: number
-  }
-  test: {
-    pattern: string | string[]  // Always has default ['**/*.test.ts', '**/*.spec.ts']
-    coverage: boolean  // Always has default false
-    watch: boolean  // Always has default false
-  }
-  workspace: {
-    packages?: string[]
-    shared?: any
-    versionStrategy: 'fixed' | 'independent'  // Always has default 'fixed'
-  }
-  release: {
-    npm: boolean  // Always has default true
-    github: boolean  // Always has default false
-    tagFormat: string  // Always has default 'v{{version}}'
-    conventionalCommits: boolean  // Always has default true
-  }
-  plugins: any[]  // Always has default []
-}
+// Loaded config with defaults applied by Zod.
+// Keep this in lockstep with bunliConfigSchema by reusing its inferred type.
+export type LoadedConfig = BunliConfig
 
 // Config file names to search for
 const CONFIG_NAMES = [
@@ -78,7 +38,6 @@ export async function loadConfig(cwd = process.cwd()): Promise<LoadedConfig> {
     `No configuration file found. Please create one of: ${CONFIG_NAMES.join(', ')}`
   )
 }
-
 
 
 

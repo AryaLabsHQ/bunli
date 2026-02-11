@@ -83,7 +83,16 @@ export const bunliConfigSchema = z.object({
   // Help output configuration
   help: z.object({
     renderer: z.any().optional()
-  }).optional()
+  }).optional(),
+
+  // TUI configuration (applies to `command.render` path)
+  tui: z.object({
+    renderer: z.object({
+      bufferMode: z.enum(['alternate', 'standard']).optional()
+    }).catchall(z.unknown()).default({})
+  }).default({
+    renderer: {}
+  })
 })
 
 /**

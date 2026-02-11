@@ -8,5 +8,11 @@ export default defineConfig({
   plugins: [],
   commands: {
     directory: './commands'
+  },
+  tui: {
+    renderer: {
+      // Keep output in the main terminal buffer for easier local demo/testing.
+      bufferMode: 'standard'
+    }
   }
 })

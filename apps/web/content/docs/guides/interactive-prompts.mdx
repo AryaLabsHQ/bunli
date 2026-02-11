@@ -22,14 +22,30 @@ export default defineCommand({
     
     // Selection
     const choice = await prompt.select('Choose an option', {
-      choices: [
-        { value: 'a', label: 'Option A' },
-        { value: 'b', label: 'Option B' }
+      options: [
+        { label: 'Option A', value: 'a' },
+        { label: 'Option B', value: 'b' }
       ]
     })
     
     // Password input
     const password = await prompt.password('Enter password:')
+  }
+})
+```
+
+Bunli prompts are implemented on top of `@clack/prompts`. For advanced primitives (like `intro/outro`), use `prompt.clack`:
+
+```typescript
+export default defineCommand({
+  handler: async ({ prompt }) => {
+    prompt.clack.intro('Setup')
+    const name = await prompt.clack.text({ message: 'Name' })
+    if (prompt.clack.isCancel(name)) {
+      prompt.clack.cancel('Cancelled')
+      return
+    }
+    prompt.clack.outro('Done')
   }
 })
 ```
@@ -60,6 +76,8 @@ export default defineCommand({
 
 ### Multi-line Input
 
+Note: Bunli's `prompt()` currently captures a single line of input.
+
 ```typescript
 export default defineCommand({
   name: 'note',
@@ -89,17 +107,17 @@ export default defineCommand({
       }
     })
     
-    const age = await prompt('Age:', {
+    const ageStr = await prompt('Age:', {
       validate: (value) => {
         const num = parseInt(value, 10)
         if (isNaN(num)) return 'Please enter a number'
         if (num < 18) return 'You must be 18 or older'
         if (num > 150) return 'Please enter a valid age'
         return true
-      },
-      transform: (value) => parseInt(value, 10)
+      }
     })
     
+    const age = parseInt(ageStr, 10)
     console.log(`Registered: ${email}, age ${age}`)
   }
 })

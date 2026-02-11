@@ -116,7 +116,10 @@ export async function testPluginHooks<TStore = {}>(
         tagFormat: 'v{{version}}',
         conventionalCommits: true
       },
-      plugins: []
+      plugins: [],
+      tui: {
+        renderer: {}
+      }
     }
     try {
       await plugin.configResolved(config)

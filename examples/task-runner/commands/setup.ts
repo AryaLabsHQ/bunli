@@ -17,6 +17,9 @@ export default defineCommand({
   },
   
   handler: async ({ flags, colors, prompt, spinner }) => {
+    prompt.clack.intro('Project Setup Wizard')
+    prompt.clack.note('Press Ctrl+C at any step to cancel the wizard.', 'Tip')
+
     console.log(colors.bold('🎯 Project Setup Wizard'))
     console.log(colors.dim('Let\'s configure your project step by step\n'))
     
@@ -63,6 +66,7 @@ export default defineCommand({
       console.log(`  TypeScript: ${colors.cyan(config.typescript ? 'Yes' : 'No')}`)
       console.log(`  Git: ${colors.cyan(config.git ? 'Yes' : 'No')}`)
       console.log(`  Features: ${colors.cyan(config.features.join(', ') || 'None')}`)
+      prompt.clack.outro(`Preset "${flags.preset}" ready`)
       return
     }
     
@@ -73,6 +77,7 @@ export default defineCommand({
       framework?: string
       typescript?: boolean
       git?: boolean
+      telemetry?: boolean
       installDeps?: boolean
       features?: string[]
     } = {}
@@ -116,6 +121,16 @@ export default defineCommand({
     config.git = await prompt.confirm('Initialize Git repository?', {
       default: true
     })
+
+    const telemetry = await prompt.clack.confirm({
+      message: 'Enable anonymous setup analytics?',
+      initialValue: false
+    })
+    if (prompt.clack.isCancel(telemetry)) {
+      prompt.clack.cancel('Setup cancelled')
+      return
+    }
+    config.telemetry = telemetry
     
     // Features
     const availableFeatures = [
@@ -141,6 +156,7 @@ export default defineCommand({
     console.log(`  Framework: ${colors.cyan(config.framework)}`)
     console.log(`  TypeScript: ${colors.cyan(config.typescript ? 'Yes' : 'No')}`)
     console.log(`  Git: ${colors.cyan(config.git ? 'Yes' : 'No')}`)
+    console.log(`  Telemetry: ${colors.cyan(config.telemetry ? 'Enabled' : 'Disabled')}`)
     console.log(`  Features: ${colors.cyan(config.features.join(', ') || 'None')}`)
     console.log(`  Install deps: ${colors.cyan(config.installDeps ? 'Yes' : 'No')}`)
     
@@ -150,7 +166,7 @@ export default defineCommand({
     })
     
     if (!confirmed) {
-      console.log(colors.yellow('Setup cancelled'))
+      prompt.clack.cancel('Setup cancelled')
       return
     }
     
@@ -197,10 +213,12 @@ export default defineCommand({
       console.log(`  ${colors.cyan('cd')} ${config.name}`)
       console.log(`  ${colors.cyan('bun run dev')} # Start development`)
       console.log(`  ${colors.cyan('bun run build')} # Build for production`)
+      prompt.clack.outro(`Project "${config.name}" is ready`)
       
     } catch (error) {
       spin.fail('Project creation failed')
       console.error(colors.red(`Error: ${error instanceof Error ? error.message : String(error)}`))
+      prompt.clack.outro('Setup finished with errors')
     }
   }
 })
