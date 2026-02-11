@@ -183,6 +183,9 @@ Release options:
 - `--dry, -d` - Dry run - show what would be done
 - `--all` - Release all packages (workspace mode)
 
+Note: `bunli release` automates version bumps/tags and npm publishing. For standalone binaries, stable
+release asset naming, `checksums.txt`, and Homebrew tap updates, use the `bunli-releaser` GitHub Action.
+
 ### Build Options
 
 The `build` command supports several options:
