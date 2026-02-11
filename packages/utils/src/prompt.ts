@@ -135,7 +135,7 @@ export async function password<T = string>(message: string, options: PromptOptio
       message,
       validate: options.validate
         ? (v) => {
-            const input = (v ?? '').trim()
+            const input = v ?? ''
             const res = options.validate?.(input)
             if (res === true) return undefined
             if (typeof res === 'string') return res
@@ -146,7 +146,7 @@ export async function password<T = string>(message: string, options: PromptOptio
 
     if (clack.isCancel(value)) cancelAndThrow()
 
-    const input = (value ?? '').trim()
+    const input = value ?? ''
 
     if (options.schema) {
       try {

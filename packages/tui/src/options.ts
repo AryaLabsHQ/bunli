@@ -12,3 +12,20 @@ export function getUseAlternateScreen(options: TuiRenderOptions | undefined): bo
   return true
 }
 
+export type OpenTuiRendererOptions = {
+  exitOnCtrlC: boolean
+  targetFps: number
+  enableMouseMovement: boolean
+  useAlternateScreen: boolean
+} & TuiRenderOptions
+
+export function resolveOpenTuiRendererOptions(options: TuiRenderOptions | undefined): OpenTuiRendererOptions {
+  const value = options ?? {}
+  return {
+    ...value,
+    exitOnCtrlC: value.exitOnCtrlC ?? true,
+    targetFps: value.targetFps ?? 30,
+    enableMouseMovement: value.enableMouseMovement ?? true,
+    useAlternateScreen: getUseAlternateScreen(value)
+  }
+}
