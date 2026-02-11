@@ -221,10 +221,10 @@
       "name": "@bunli/plugin-completions",
       "version": "0.2.2",
       "dependencies": {
-        "@bomb.sh/tab": "0.0.13",
         "@bunli/core": "workspace:*",
       },
       "devDependencies": {
+        "@bomb.sh/tab": "0.0.13",
         "typescript": "^5.8.3",
       },
     },
