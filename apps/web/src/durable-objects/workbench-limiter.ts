@@ -7,6 +7,7 @@ import {
   cleanupExpiredInflight,
   type LimiterState,
 } from "./limiter-logic";
+import { DurableObject } from "cloudflare:workers";
 
 const STATE_KEY = "limiter:state";
 

@@ -19,6 +19,14 @@ export interface WorkbenchSessionResult {
   created: boolean;
 }
 
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return "Unknown sandbox error";
+}
+
 export class WorkbenchRateLimitError extends Error {
   readonly code = "RATE_LIMITED" as const;
   readonly retryAfterMs?: number;
@@ -87,18 +95,34 @@ export async function getOrCreateWorkbenchSession(
     }
   }
 
+  const preferredOptions = {
+    id: ids.sessionId,
+    cwd: WORKBENCH_WORKSPACE,
+    env: {
+      WORKBENCH_BUN_VERSION: env.WORKBENCH_BUN_VERSION,
+      WORKBENCH_BUNLI_VERSION: env.WORKBENCH_BUNLI_VERSION,
+      WORKBENCH_SANDBOX_NETWORK: env.WORKBENCH_SANDBOX_NETWORK,
+    },
+  };
+
   try {
-    const createdSession = await sandbox.createSession({
-      id: ids.sessionId,
-      cwd: WORKBENCH_WORKSPACE,
-      env: {
-        WORKBENCH_BUN_VERSION: env.WORKBENCH_BUN_VERSION,
-        WORKBENCH_BUNLI_VERSION: env.WORKBENCH_BUNLI_VERSION,
-        WORKBENCH_SANDBOX_NETWORK: env.WORKBENCH_SANDBOX_NETWORK,
-      },
-      name: `bunli-${ids.userId}`,
-      isolation: false,
-    });
+    let createdSession: ExecutionSession;
+    try {
+      createdSession = await sandbox.createSession(preferredOptions);
+    } catch (preferredError) {
+      console.warn(
+        "workbench session create (preferred options) failed; retrying minimal options",
+        {
+          sandboxId: ids.sandboxId,
+          sessionId: ids.sessionId,
+          error: getErrorMessage(preferredError),
+        }
+      );
+
+      createdSession = await sandbox.createSession({
+        id: ids.sessionId,
+      });
+    }
 
     await ensureWorkspace(createdSession);
     return {
@@ -106,10 +130,10 @@ export async function getOrCreateWorkbenchSession(
       session: createdSession,
       created: true,
     };
-  } catch {
+  } catch (error) {
     const recoveredSession = await resolveSession(sandbox, ids.sessionId);
     if (!recoveredSession) {
-      throw new Error("Sandbox session unavailable");
+      throw new Error(`Sandbox session unavailable: ${getErrorMessage(error)}`);
     }
 
     await ensureWorkspace(recoveredSession);

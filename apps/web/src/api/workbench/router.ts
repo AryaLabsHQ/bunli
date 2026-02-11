@@ -120,6 +120,13 @@ function isRateLimitedError(
   );
 }
 
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+  return "Unknown workbench error";
+}
+
 export function createWorkbenchRouter(deps: WorkbenchDeps = defaultDeps) {
   const app = new Hono<WorkbenchEnv>();
 
@@ -349,7 +356,22 @@ export function createWorkbenchRouter(deps: WorkbenchDeps = defaultDeps) {
       );
     }
 
-    console.error("Unhandled workbench API error", error);
+    const message = getErrorMessage(error);
+    console.error("Unhandled workbench API error", {
+      message,
+      error,
+    });
+
+    if (message.toLowerCase().includes("invalid argument")) {
+      return c.json(
+        workbenchError(
+          "SANDBOX_NOT_READY",
+          "Sandbox session could not start with current settings. Retry in a few seconds."
+        ),
+        503
+      );
+    }
+
     return c.json(
       workbenchError("SANDBOX_FAILED", "Workbench backend failed to process the request"),
       500
