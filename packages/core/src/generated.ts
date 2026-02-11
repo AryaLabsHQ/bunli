@@ -10,9 +10,21 @@ export interface GeneratedOptionMeta {
   default?: unknown
   description?: string
   short?: string
-  // NEW: Enhanced schema information
+  // Enhanced schema information (emitted by @bunli/generator)
   schema?: any
   validator?: string
+  // Completion-specific metadata (emitted by @bunli/generator)
+  enumValues?: ReadonlyArray<string | number>
+  literalValue?: string | number | boolean
+  minLength?: number
+  maxLength?: number
+  pattern?: string
+  min?: number
+  max?: number
+  isArray?: boolean
+  isTransform?: boolean
+  isRefine?: boolean
+  fileType?: 'file' | 'directory' | 'path'
 }
 
 export interface GeneratedCommandMeta {
@@ -221,4 +233,3 @@ export function createGeneratedHelpers<
 
   return store
 }
-

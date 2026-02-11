@@ -6,23 +6,21 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "default": "./src/index.ts"
+      "default": "./dist/index.js"
     }
   },
   "files": [
-    "dist",
-    "src"
+    "dist"
   ],
   "scripts": {
     "build": "bun run scripts/build.ts && bun run tsc",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@bunli/core": "workspace:*",
-    "@bunli/generator": "workspace:*",
-    "zod": "^4.3.6"
+    "@bunli/core": "workspace:*"
   },
   "devDependencies": {
+    "@bomb.sh/tab": "0.0.13",
     "typescript": "^5.8.3"
   },
   "keywords": [

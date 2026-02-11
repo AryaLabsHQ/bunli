@@ -8,7 +8,7 @@ export const completionsPlugin = createPlugin<CompletionsPluginOptions>(
     name: 'completions',
 
     setup(context: PluginContext) {
-      // Register the completions command
+      // Register the completion protocol command
       const command = completionsCommand(options)
       context.registerCommand(command)
     }

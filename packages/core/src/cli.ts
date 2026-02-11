@@ -427,7 +427,8 @@ export async function createCLI<
   async function runCommandInternal(
     command: Command<any, any>,
     argv: string[],
-    providedFlags?: Record<string, unknown>
+    providedFlags?: Record<string, unknown>,
+    invokedCommandName?: string
   ) {
     let context: CommandContext<any> | undefined
     try {
@@ -456,7 +457,7 @@ export async function createCLI<
       const runtimeInfo: RuntimeInfo = {
         startTime: Date.now(),
         args: providedFlags ? [] : argv,
-        command: command.name
+        command: invokedCommandName ?? command.name
       }
 
       let render = false
@@ -623,7 +624,10 @@ export async function createCLI<
       if (command.handler || command.render) {
         // Combine remaining args from command parsing with passthrough args
         const allArgs = [...remainingArgs, ...passthroughArgs]
-        await runCommandInternal(command, allArgs)
+        const invokedCommandName = commandArgs
+          .slice(0, commandArgs.length - remainingArgs.length)
+          .join(' ')
+        await runCommandInternal(command, allArgs, undefined, invokedCommandName || command.name)
       }
     },
     
@@ -681,7 +685,7 @@ export async function createCLI<
         const runtimeInfo: RuntimeInfo = {
           startTime: Date.now(),
           args: [],
-          command: command.name
+          command: commandName.replace(/\//g, ' ').trim() || command.name
         }
         
         const terminalInfo = getTerminalInfo()
@@ -734,7 +738,7 @@ export async function createCLI<
       
       // Execute the command using the same logic as the run method
       if (foundCommand.handler || foundCommand.render) {
-        await runCommandInternal(foundCommand, finalArgsToUse)
+        await runCommandInternal(foundCommand, finalArgsToUse, undefined, commandName.replace(/\//g, ' ').trim())
       }
     }
   }
