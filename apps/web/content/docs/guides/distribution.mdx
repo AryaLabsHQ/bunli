@@ -76,7 +76,9 @@ export default defineConfig({
       'linux-x64',
       'windows-x64'
     ],
-    compress: true // Create .tar.gz archives
+    // Optional: create `dist/<target>.tar.gz` archives (for manual distribution).
+    // If you're using bunli-releaser, keep this disabled (it expects per-target output dirs).
+    compress: true
   }
 })
 ```
@@ -193,9 +195,22 @@ codesign --verify --verbose dist/darwin-arm64/my-cli
 
 ## Distribution Methods
 
-### 1. Direct Download
+### 1. GitHub Releases (Recommended)
 
-Provide pre-built binaries on your website or GitHub releases:
+For standalone binaries, checksums, and Homebrew updates, the recommended path is to use the
+`bunli-releaser` GitHub Action.
+
+Official starter template:
+- [AryaLabsHQ/bunli-starter-template](https://github.com/AryaLabsHQ/bunli-starter-template)
+
+It will:
+- Build cross-platform standalone binaries from a single Ubuntu runner
+- Upload stable, per-target archives plus `checksums.txt` (sha256) to the GitHub Release for the tag
+- Update a Homebrew tap formula (macOS/Linux only)
+
+<Callout type="warning">
+  If you use `bunli-releaser`, keep `build.compress` disabled in `bunli.config.ts`. The action expects per-target build output directories.
+</Callout>
 
 ```yaml
 # .github/workflows/release.yml
@@ -204,27 +219,44 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'
+      - "v*.*.*"
+
+permissions:
+  contents: write
 
 jobs:
-  build:
+  release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v1
-      
-      - name: Install dependencies
-        run: bun install
-        
-      - name: Build for all platforms
-        run: bunli build --targets all
-        
-      - name: Create Release
-        uses: softprops/action-gh-release@v1
+
+      - name: Build and publish binaries
+        uses: AryaLabsHQ/bunli-releaser@v1
         with:
-          files: dist/*
-          generate_release_notes: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+          # Optional Homebrew update:
+          # provide both brew-tap and brew-token to enable tap automation
+          # brew-tap: <owner>/<homebrew-tap>
+          # brew-token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          # brew-pr: "true"
+
+          # Optional:
+          # workdir: "."
+          # targets: "all"
+          # artifact-name: "my-cli"
+          # existing-assets: "fail" # or "skip"
 ```
+
+Published assets use stable naming:
+- Unix: `${name}-${version}-${os}-${arch}.tar.gz`
+- Windows: `${name}-${version}-${os}-${arch}.zip`
+- `checksums.txt` (sha256)
+
+Notes:
+- v1 only supports tags in the format `vX.Y.Z` (strict).
+- Existing release asset handling defaults to `existing-assets: "fail"`.
+- Use `existing-assets: "skip"` to allow reruns without re-uploading already existing assets.
 
 ### 2. npm Distribution
 
@@ -259,7 +291,8 @@ bunx my-cli
 
 ### 3. Homebrew (macOS/Linux)
 
-Create a Homebrew formula:
+If you're using `bunli-releaser`, it will generate/update your Homebrew formula for you.
+This is the expected URL and filename shape (derived from the published GitHub Release assets):
 
 ```ruby
 # Formula/my-cli.rb
@@ -267,19 +300,25 @@ class MyCli < Formula
   desc "Description of my CLI"
   homepage "https://github.com/username/my-cli"
   version "1.0.0"
-  
-  if OS.mac? && Hardware::CPU.arm?
-    url "https://github.com/username/my-cli/releases/download/v1.0.0/darwin-arm64.tar.gz"
-    sha256 "abc123..."
-  elsif OS.mac?
-    url "https://github.com/username/my-cli/releases/download/v1.0.0/darwin-x64.tar.gz"
-    sha256 "def456..."
-  elsif OS.linux? && Hardware::CPU.arm?
-    url "https://github.com/username/my-cli/releases/download/v1.0.0/linux-arm64.tar.gz"
-    sha256 "ghi789..."
-  else
-    url "https://github.com/username/my-cli/releases/download/v1.0.0/linux-x64.tar.gz"
-    sha256 "jkl012..."
+
+  on_macos do
+    if Hardware::CPU.arm?
+      url "https://github.com/username/my-cli/releases/download/v1.0.0/my-cli-1.0.0-darwin-arm64.tar.gz"
+      sha256 "abc123..."
+    else
+      url "https://github.com/username/my-cli/releases/download/v1.0.0/my-cli-1.0.0-darwin-x64.tar.gz"
+      sha256 "def456..."
+    end
+  end
+
+  on_linux do
+    if Hardware::CPU.arm?
+      url "https://github.com/username/my-cli/releases/download/v1.0.0/my-cli-1.0.0-linux-arm64.tar.gz"
+      sha256 "ghi789..."
+    else
+      url "https://github.com/username/my-cli/releases/download/v1.0.0/my-cli-1.0.0-linux-x64.tar.gz"
+      sha256 "jkl012..."
+    end
   end
   
   def install
@@ -336,7 +375,7 @@ docker run username/my-cli --help
   "license": "MIT",
   "architecture": {
     "64bit": {
-      "url": "https://github.com/username/my-cli/releases/download/v1.0.0/windows-x64.tar.gz",
+      "url": "https://github.com/username/my-cli/releases/download/v1.0.0/my-cli-1.0.0-windows-x64.zip",
       "hash": "sha256:abc123..."
     }
   },
@@ -355,8 +394,8 @@ pkgdesc="Description of my CLI"
 arch=('x86_64' 'aarch64')
 url="https://github.com/username/my-cli"
 license=('MIT')
-source_x86_64=("$url/releases/download/v$pkgver/linux-x64.tar.gz")
-source_aarch64=("$url/releases/download/v$pkgver/linux-arm64.tar.gz")
+source_x86_64=("$url/releases/download/v$pkgver/my-cli-$pkgver-linux-x64.tar.gz")
+source_aarch64=("$url/releases/download/v$pkgver/my-cli-$pkgver-linux-arm64.tar.gz")
 
 package() {
   install -Dm755 my-cli "$pkgdir/usr/bin/my-cli"
@@ -365,9 +404,47 @@ package() {
 
 ## Automated Releases
 
-### Using bunli release
+### Using bunli-releaser (Binaries + Homebrew)
 
-Bunli provides a release command that automates the release process:
+If you want GitHub Release assets (stable per-target archives + `checksums.txt`) and Homebrew
+automation, use `bunli-releaser` on tag pushes:
+
+```yaml
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: AryaLabsHQ/bunli-releaser@v1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+          # Optional Homebrew update (macOS/Linux):
+          # brew-tap: <owner>/<homebrew-tap>
+          # brew-token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          # brew-pr: "true"
+          # existing-assets: "fail" # or "skip"
+```
+
+<Callout type="warning">
+  Keep `build.compress` disabled when using `bunli-releaser`.
+</Callout>
+
+### Using bunli release (npm + tags)
+
+Bunli also provides a `bunli release` command for automating version bumps, git tags, and npm
+publishing. It does not build or upload standalone binaries.
 
 ```bash
 # Create a new release
@@ -389,55 +466,22 @@ bunli release --dry
 // bunli.config.ts
 export default defineConfig({
   release: {
-    npm: true,              // Publish to npm
-    github: true,           // Create GitHub release
-    tagFormat: 'v${version}', // Git tag format
-    conventionalCommits: true, // Use conventional commits
-    
-    // Pre-release script
-    beforeRelease: async (version) => {
-      // Update changelog, docs, etc.
-    },
-    
-    // Post-release script
-    afterRelease: async (version) => {
-      // Notify users, update website, etc.
-    }
+    npm: true,               // Publish to npm
+    github: true,            // Create a GitHub Release entry (notes only; no assets)
+    tagFormat: 'v${version}' // Git tag format
   }
 })
 ```
 
 ### Release Workflow
 
-1. **Version Bump**
-   ```bash
-   # Automatic version based on commits
-   bunli release
-   
-   # Manual version
-   bunli release --version 2.0.0
-   ```
+At a high level, `bunli release`:
 
-2. **Build All Platforms**
-   ```bash
-   bunli build --targets all
-   ```
-
-3. **Create Git Tag**
-   ```bash
-   git tag v2.0.0
-   git push origin v2.0.0
-   ```
-
-4. **GitHub Release**
-   - Upload built artifacts
-   - Generate release notes
-   - Publish release
-
-5. **Publish to npm**
-   ```bash
-   npm publish
-   ```
+- Runs tests and your build script
+- Updates `package.json` version
+- Commits, tags, and pushes
+- Publishes to npm (unless disabled)
+- Optionally creates a GitHub Release entry via `gh` (no assets)
 
 ## Installation Scripts
 
@@ -453,6 +497,7 @@ set -e
 
 VERSION="1.0.0"
 REPO="username/my-cli"
+NAME="my-cli"
 
 # Detect OS and architecture
 OS=$(uname -s | tr '[:upper:]' '[:lower:]')
@@ -470,17 +515,21 @@ case "$ARCH" in
   *) echo "Unsupported architecture: $ARCH"; exit 1 ;;
 esac
 
-# Download URL
-URL="https://github.com/$REPO/releases/download/v$VERSION/$OS-$ARCH.tar.gz"
+# bunli-releaser asset naming:
+# - Unix: ${NAME}-${VERSION}-${OS}-${ARCH}.tar.gz
+# - Windows: ${NAME}-${VERSION}-${OS}-${ARCH}.zip
+ASSET="${NAME}-${VERSION}-${OS}-${ARCH}.tar.gz"
+URL="https://github.com/$REPO/releases/download/v$VERSION/$ASSET"
 
 # Download and install
-echo "Downloading my-cli..."
-curl -fsSL "$URL" | tar -xz -C /tmp
-sudo mv /tmp/my-cli /usr/local/bin/
-sudo chmod +x /usr/local/bin/my-cli
+echo "Downloading $NAME..."
+tmp="$(mktemp -d)"
+curl -fsSL "$URL" | tar -xz -C "$tmp"
+sudo mv "$tmp/$NAME" /usr/local/bin/
+sudo chmod +x /usr/local/bin/"$NAME"
 
 echo "my-cli installed successfully!"
-my-cli --version
+"$NAME" --version
 ```
 
 Users install with:
@@ -503,14 +552,18 @@ Follow semantic versioning (semver):
 ```typescript
 // src/index.ts
 import { createCLI } from '@bunli/core'
-import { version } from '../package.json'
+import pkg from '../package.json' with { type: 'json' }
 
 const cli = await createCLI({
   name: 'my-cli',
-  version, // Automatically shows with --version
+  version: pkg.version, // Automatically shows with --version
   description: 'My awesome CLI'
 })
 ```
+
+<Callout type="info">
+  For compiled binaries, prefer embedding the version (like importing `package.json` as above) rather than reading a runtime env var.
+</Callout>
 
 ### Update Notifications
 

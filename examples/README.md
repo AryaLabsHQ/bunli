@@ -219,7 +219,10 @@ The Bunli CLI handles:
 - Hot reload in development (`bunli dev`)
 - Standalone executable creation with Bun's `--compile` flag
 - Multi-platform builds
-- Automatic compression for releases
+- Optional compression for manual distribution (`build.compress`)
+
+For stable, release-ready archives + `checksums.txt` and Homebrew automation, use the
+`bunli-releaser` GitHub Action instead of uploading `dist/` directly.
 
 ## Learn More
 

@@ -229,7 +229,7 @@ bunli release
 - Automated version bumping following semver
 - Git tag creation and pushing
 - npm publishing with proper build step
-- GitHub release creation with assets
+- GitHub release creation (notes only; no build artifacts)
 - Workspace support for monorepos
 - Dry run mode for testing
 
@@ -457,7 +457,9 @@ export default defineConfig({
 
 ### Continuous Integration
 
-Example GitHub Actions workflow:
+Example GitHub Actions workflows:
+
+**CI (build + test):**
 
 ```yaml
 name: Build and Test
@@ -479,13 +481,44 @@ jobs:
         
       - name: Build for all platforms
         run: bunli build --targets all
-        
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: builds
-          path: dist/*.tar.gz
 ```
+
+<Callout type="info">
+  `bunli build` can optionally compress multi-target builds into `dist/&lt;target&gt;.tar.gz`. For stable, release-ready archives and checksums, use `bunli-releaser`.
+</Callout>
+
+**Release (binaries + checksums + Homebrew via bunli-releaser):**
+
+```yaml
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: AryaLabsHQ/bunli-releaser@v1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          # Optional Homebrew update:
+          # brew-tap: <owner>/<homebrew-tap>
+          # brew-token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          # brew-pr: "true"
+          # existing-assets: "fail" # or "skip"
+```
+
+<Callout type="warning">
+  If you're using `bunli-releaser`, keep `build.compress` disabled in `bunli.config.ts`.
+</Callout>
 
 ## Troubleshooting
 
