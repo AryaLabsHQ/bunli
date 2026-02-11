@@ -86,6 +86,21 @@ describe('completions/complete command (Tab protocol)', () => {
     expect(last).toMatch(/^:\d+$/)
   })
 
+  test('completions without shell shows usage guidance instead of protocol output', async () => {
+    const cli = await createTestCLI()
+
+    const cap = captureConsole()
+    try {
+      await cli.run(['completions'])
+    } finally {
+      cap.restore()
+    }
+
+    expect(cap.stderr()).toContain('Missing or invalid shell name')
+    expect(cap.stderr()).toContain('completions <bash|zsh|fish|powershell>')
+    expect(cap.stdout().trim()).toBe('')
+  })
+
   test('matched command includes both global and command-specific flags', async () => {
     const cli = await createTestCLI()
 

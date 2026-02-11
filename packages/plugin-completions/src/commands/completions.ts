@@ -14,18 +14,27 @@ export default function completionsCommand(pluginOptions: CompletionsPluginOptio
   return defineCommand({
     name: 'completions',
     alias: ['complete'], // Tab's generated scripts call back into `complete -- ...`
-    description: 'Generate shell completion scripts (Tab protocol) or handle dynamic completions',
+    description: 'Generate shell completion scripts and handle completion protocol callbacks',
 
     handler: async ({ runtime, colors }) => {
       const argv = runtime.args
+      const invokedCommand = runtime.command.split(/\s+/).at(-1) ?? 'completions'
+      const isProtocolCommand = invokedCommand === 'complete'
 
-      // Script generation: "my-cli completions zsh|bash|fish|powershell"
-      const first = argv[0]
-      if (argv.length === 1 && typeof first === 'string' && isShell(first)) {
-        const shell = first
-        const { commandName, executable } = await resolveCliInfo(pluginOptions)
-        const root = new RootCommand()
-        root.setup(commandName, executable, shell)
+      if (!isProtocolCommand) {
+        // Script generation: "my-cli completions zsh|bash|fish|powershell"
+        const first = argv[0]
+        if (argv.length === 1 && typeof first === 'string' && isShell(first)) {
+          const shell = first
+          const { commandName, executable } = await resolveCliInfo(pluginOptions)
+          const root = new RootCommand()
+          root.setup(commandName, executable, shell)
+          return
+        }
+
+        console.error(colors.red('Missing or invalid shell name for completions script generation.'))
+        console.error(colors.dim('Usage: <cli> completions <bash|zsh|fish|powershell>'))
+        console.error(colors.dim('Protocol callback form: <cli> complete -- <args...>'))
         return
       }
 
@@ -50,4 +59,3 @@ export default function completionsCommand(pluginOptions: CompletionsPluginOptio
     }
   })
 }
-
