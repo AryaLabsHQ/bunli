@@ -86,6 +86,41 @@ describe('completions/complete command (Tab protocol)', () => {
     expect(last).toMatch(/^:\d+$/)
   })
 
+  test('matched command includes both global and command-specific flags', async () => {
+    const cli = await createTestCLI()
+
+    const cap = captureConsole()
+    try {
+      await cli.run(['complete', '--', 'deploy', '--'])
+    } finally {
+      cap.restore()
+    }
+
+    const output = cap.stdout()
+    expect(output).toContain('--help')
+    expect(output).toContain('--environment')
+    const last = output.trim().split('\n').at(-1) ?? ''
+    expect(last).toMatch(/^:\d+$/)
+  })
+
+  test('enum-valued options return value candidates via option handlers', async () => {
+    const cli = await createTestCLI()
+
+    const cap = captureConsole()
+    try {
+      await cli.run(['complete', '--', 'deploy', '--environment', ''])
+    } finally {
+      cap.restore()
+    }
+
+    const output = cap.stdout()
+    expect(output).toContain('development\t')
+    expect(output).toContain('staging\t')
+    expect(output).toContain('production\t')
+    const last = output.trim().split('\n').at(-1) ?? ''
+    expect(last).toMatch(/^:\d+$/)
+  })
+
   test('ends-with-space sentinel is preserved via runtime.args (trailing empty string)', async () => {
     const cli = await createTestCLI()
 
