@@ -1,6 +1,7 @@
 import Editor from "@monaco-editor/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { Button } from "../../../components/ui/button";
 import { DEFAULT_SOURCE_FILE, type RunPreset } from "../../api/workbench/constants";
 import type {
   WorkbenchErrorResponse,
@@ -20,6 +21,7 @@ interface SessionState {
 type ConnectionState = "disconnected" | "connecting" | "connected";
 
 const decoder = new TextDecoder();
+const PTY_CONNECT_TIMEOUT_MS = 12_000;
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => {
@@ -34,7 +36,11 @@ async function parseResponse<T>(response: Response): Promise<T> {
   return (await response.json()) as T;
 }
 
-export function WorkbenchPage() {
+interface WorkbenchPageProps {
+  embedded?: boolean;
+}
+
+export function WorkbenchPage({ embedded = false }: WorkbenchPageProps = {}) {
   const { data: authState } = useSession();
   const isAuthenticated = Boolean(authState?.user?.id);
 
@@ -204,6 +210,17 @@ export function WorkbenchPage() {
       setConnectionState("connecting");
 
       return await new Promise<boolean>((resolve) => {
+        let settled = false;
+        let opened = false;
+
+        const settle = (ok: boolean) => {
+          if (settled) {
+            return;
+          }
+          settled = true;
+          resolve(ok);
+        };
+
         const wsUrl = new URL("/api/workbench/pty", window.location.origin);
         wsUrl.protocol = wsUrl.protocol === "https:" ? "wss:" : "ws:";
         wsUrl.searchParams.set("sessionId", sessionId);
@@ -217,11 +234,26 @@ export function WorkbenchPage() {
         const socket = new WebSocket(wsUrl);
         socket.binaryType = "arraybuffer";
         wsRef.current = socket;
+        const timeoutId = window.setTimeout(() => {
+          appendLine(`[pty] connect timeout after ${PTY_CONNECT_TIMEOUT_MS}ms`);
+          if (wsRef.current === socket) {
+            wsRef.current = null;
+          }
+          setConnectionState("disconnected");
+          try {
+            socket.close(1000, "connect-timeout");
+          } catch {
+            // ignore close failure
+          }
+          settle(false);
+        }, PTY_CONNECT_TIMEOUT_MS);
 
         socket.onopen = () => {
+          opened = true;
+          window.clearTimeout(timeoutId);
           setConnectionState("connected");
           appendLine("[pty] websocket connected");
-          resolve(true);
+          settle(true);
         };
 
         socket.onmessage = (event) => {
@@ -243,22 +275,40 @@ export function WorkbenchPage() {
         };
 
         socket.onerror = () => {
+          window.clearTimeout(timeoutId);
           appendLine("[pty] websocket error");
+          if (wsRef.current === socket) {
+            wsRef.current = null;
+          }
+          setConnectionState("disconnected");
+          try {
+            socket.close(1011, "socket-error");
+          } catch {
+            // ignore close failure
+          }
+          settle(false);
         };
 
         socket.onclose = () => {
+          window.clearTimeout(timeoutId);
           const disconnectedSessionId = sessionIdRef.current;
-          wsRef.current = null;
+          if (wsRef.current === socket) {
+            wsRef.current = null;
+          }
           setConnectionState("disconnected");
-          appendLine("[pty] websocket disconnected");
-          void notifyPtyDisconnect(disconnectedSessionId);
+          if (opened) {
+            appendLine("[pty] websocket disconnected");
+            void notifyPtyDisconnect(disconnectedSessionId);
 
-          const runId = activeRunIdRef.current;
-          if (runId) {
-            void finishRun(runId);
+            const runId = activeRunIdRef.current;
+            if (runId) {
+              void finishRun(runId);
+            }
+          } else {
+            appendLine("[pty] websocket closed before ready");
           }
 
-          resolve(false);
+          settle(false);
         };
       });
     },
@@ -387,6 +437,7 @@ export function WorkbenchPage() {
     setRunBusy(true);
 
     try {
+      terminal.focus();
       const readySession = await ensureSession();
       if (!readySession) {
         return;
@@ -507,41 +558,35 @@ export function WorkbenchPage() {
   };
 
   return (
-    <main className="mx-auto w-full max-w-[1400px] px-4 py-6 md:px-8 md:py-10">
-      <section className="workbench-card mb-5 flex flex-wrap items-center justify-between gap-4 p-4 md:p-5">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">bunli workbench</h1>
-          <p className="mt-1 text-sm text-[var(--workbench-muted)]">
-            Monaco + Ghostty terminal on a single Cloudflare Worker with mounted Hono APIs.
-          </p>
-        </div>
-
+    <div className={embedded ? "w-full" : "mx-auto w-full max-w-[1400px] px-4 py-6 md:px-8 md:py-10"}>
+      <section className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card/80 p-3">
+        <p className="text-sm text-muted-foreground">
+          Monaco + Ghostty terminal on a single Cloudflare Worker with mounted Hono APIs.
+        </p>
         <div className="flex flex-wrap items-center gap-2">
-          <a className="workbench-link" href="/docs" target="_blank" rel="noreferrer">
-            Docs
-          </a>
+          <Button asChild variant="outline" size="sm">
+            <a href="/docs">Docs</a>
+          </Button>
           {isAuthenticated ? (
-            <button className="workbench-btn" type="button" onClick={handleSignOut}>
+            <Button variant="outline" size="sm" type="button" onClick={handleSignOut}>
               Sign out
-            </button>
+            </Button>
           ) : (
-            <button className="workbench-btn" type="button" onClick={handleGithubSignIn}>
+            <Button variant="outline" size="sm" type="button" onClick={handleGithubSignIn}>
               Sign in with GitHub
-            </button>
+            </Button>
           )}
         </div>
       </section>
 
-      <section className="workbench-shell">
-        <article className="workbench-card flex min-h-[540px] flex-col overflow-hidden">
-          <header className="workbench-header">
-            <div>
-              <strong>src/index.ts</strong>
-            </div>
-            <div className="workbench-meta">/workspace/demo/src/index.ts</div>
+      <section className="grid gap-4 lg:grid-cols-2">
+        <article className="flex min-h-[540px] flex-col overflow-hidden rounded-xl border bg-card shadow-sm">
+          <header className="flex items-center justify-between border-b bg-muted/30 px-4 py-3">
+            <strong className="text-sm">src/index.ts</strong>
+            <div className="text-xs text-muted-foreground">/workspace/demo/src/index.ts</div>
           </header>
 
-          <div className="workbench-editor">
+          <div className="min-h-[420px] flex-1">
             <Editor
               height="100%"
               language="typescript"
@@ -560,32 +605,31 @@ export function WorkbenchPage() {
           </div>
         </article>
 
-        <article className="workbench-card flex min-h-[540px] flex-col overflow-hidden">
-          <header className="workbench-header">
-            <div>
-              <strong>Terminal</strong>
-            </div>
-            <div className="workbench-meta">
+        <article className="flex min-h-[540px] flex-col overflow-hidden rounded-xl border bg-card shadow-sm">
+          <header className="flex items-center justify-between border-b bg-muted/30 px-4 py-3">
+            <strong className="text-sm">Terminal</strong>
+            <div className="text-xs text-muted-foreground">
               {isAuthenticated ? "Authenticated" : "Scripted demo"} • {connectionLabel}
             </div>
           </header>
 
-          <div className="workbench-controls">
+          <div className="flex flex-wrap gap-2 border-b bg-muted/20 px-3 py-2">
             <select
               value={preset}
               onChange={(event) => setPreset(event.target.value as RunPreset)}
-              className="workbench-select"
+              className="h-8 min-w-[160px] rounded-md border bg-background px-2 text-xs text-foreground"
             >
               <option value="framework">Framework preset</option>
               <option value="toolchain">Toolchain preset</option>
             </select>
 
-            <button className="workbench-btn" type="button" onClick={() => terminal.clear()}>
+            <Button variant="outline" size="sm" type="button" onClick={() => terminal.clear()}>
               Clear
-            </button>
+            </Button>
 
-            <button
-              className="workbench-btn"
+            <Button
+              variant="outline"
+              size="sm"
               type="button"
               onClick={() => {
                 void syncSourceFile();
@@ -593,10 +637,11 @@ export function WorkbenchPage() {
               disabled={!isAuthenticated || saving}
             >
               {saving ? "Syncing..." : "Sync file"}
-            </button>
+            </Button>
 
-            <button
-              className="workbench-btn"
+            <Button
+              variant="outline"
+              size="sm"
               type="button"
               onClick={() => {
                 void ensureSession();
@@ -604,10 +649,11 @@ export function WorkbenchPage() {
               disabled={!isAuthenticated || sessionBusy}
             >
               {sessionBusy ? "Session..." : "Init session"}
-            </button>
+            </Button>
 
-            <button
-              className="workbench-btn"
+            <Button
+              variant="outline"
+              size="sm"
               type="button"
               onClick={() => {
                 if (sessionState) {
@@ -617,10 +663,10 @@ export function WorkbenchPage() {
               disabled={!isAuthenticated || !sessionState || connectionState === "connecting"}
             >
               {connectionState === "connecting" ? "Connecting..." : "Connect PTY"}
-            </button>
+            </Button>
 
-            <button
-              className="workbench-btn workbench-btn-accent"
+            <Button
+              size="sm"
               type="button"
               onClick={() => {
                 void runPreset();
@@ -632,12 +678,12 @@ export function WorkbenchPage() {
                 : activeRunId
                   ? "Run in progress"
                   : "Run preset"}
-            </button>
+            </Button>
           </div>
 
-          <div ref={terminal.containerRef} className="workbench-terminal" />
+          <div ref={terminal.containerRef} className="min-h-[360px] flex-1 bg-zinc-950 p-1" />
 
-          <footer className="workbench-footer">
+          <footer className="border-t bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
             <span>
               {terminal.ready ? "Terminal ready" : "Starting terminal..."}
               {sessionState ? ` • session ${sessionState.sessionId}` : ""}
@@ -645,6 +691,6 @@ export function WorkbenchPage() {
           </footer>
         </article>
       </section>
-    </main>
+    </div>
   );
 }
