@@ -40,6 +40,11 @@ const AI_AGENTS: AIAgentInfo[] = [
     envVars: ['CODEX_CI', 'CODEX_THREAD_ID', 'CODEX_SANDBOX'],
     detect: (env) => !!env.CODEX_CI || !!env.CODEX_THREAD_ID || !!env.CODEX_SANDBOX
   },
+  {
+    name: 'amp',
+    envVars: ['AMP_CURRENT_THREAD_ID', 'AGENT'],
+    detect: (env) => !!env.AMP_CURRENT_THREAD_ID || env.AGENT === 'amp'
+  },
 ]
 
 export interface AIDetectPluginOptions {
