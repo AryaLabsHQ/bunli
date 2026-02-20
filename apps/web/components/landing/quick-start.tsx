@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Check, Copy } from 'lucide-react';
 
@@ -69,12 +68,12 @@ export function QuickStart() {
           </div>
 
           <div className="mt-12 text-center">
-            <Link href="/docs/getting-started">
-              <Button size="lg" variant="outline" className="gap-2">
+            <Button asChild size="lg" variant="outline" className="gap-2">
+              <a href="/docs/getting-started">
                 Read the Full Guide
                 <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
+              </a>
+            </Button>
           </div>
         </div>
       </div>
