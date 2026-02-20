@@ -45,6 +45,11 @@ const AI_AGENTS: AIAgentInfo[] = [
     envVars: ['AMP_CURRENT_THREAD_ID', 'AGENT'],
     detect: (env) => !!env.AMP_CURRENT_THREAD_ID || env.AGENT === 'amp'
   },
+  {
+    name: 'gemini',
+    envVars: ['GEMINI_CLI'],
+    detect: (env) => !!env.GEMINI_CLI
+  },
 ]
 
 export interface AIDetectPluginOptions {
