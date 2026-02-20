@@ -27,13 +27,18 @@ interface AIAgentInfo {
 const AI_AGENTS: AIAgentInfo[] = [
   {
     name: 'claude',
-    envVars: ['CLAUDECODE'],
-    detect: (env) => !!env.CLAUDECODE
+    envVars: ['CLAUDECODE', 'CLAUDE_CODE'],
+    detect: (env) => !!env.CLAUDECODE || !!env.CLAUDE_CODE
   },
   {
     name: 'cursor',
     envVars: ['CURSOR_AGENT'],
     detect: (env) => !!env.CURSOR_AGENT
+  },
+  {
+    name: 'codex',
+    envVars: ['CODEX_CI', 'CODEX_THREAD_ID', 'CODEX_SANDBOX'],
+    detect: (env) => !!env.CODEX_CI || !!env.CODEX_THREAD_ID || !!env.CODEX_SANDBOX
   },
 ]
 
