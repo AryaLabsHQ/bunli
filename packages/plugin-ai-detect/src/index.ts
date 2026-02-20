@@ -50,6 +50,11 @@ const AI_AGENTS: AIAgentInfo[] = [
     envVars: ['GEMINI_CLI'],
     detect: (env) => !!env.GEMINI_CLI
   },
+  {
+    name: 'opencode',
+    envVars: ['OPENCODE'],
+    detect: (env) => env.OPENCODE === '1'
+  },
 ]
 
 export interface AIDetectPluginOptions {
