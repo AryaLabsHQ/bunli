@@ -1,6 +1,6 @@
 {
   "name": "@bunli/plugin-completions",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Shell completions plugin for Bunli CLI framework",
   "type": "module",
   "exports": {

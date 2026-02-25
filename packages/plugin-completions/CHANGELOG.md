@@ -1,5 +1,12 @@
 # @bunli/plugin-completions
 
+## 0.2.4
+
+### Patch Changes
+
+- Updated dependencies [454d869]
+  - @bunli/core@0.5.6
+
 ## 0.2.3
 
 ### Patch Changes
