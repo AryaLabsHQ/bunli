@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowRight, Sparkles } from 'lucide-react';
@@ -52,17 +51,17 @@ Hello, World!`;
             with zero configuration and full TypeScript support.
           </p>
           <div className="mt-10 flex items-center justify-center gap-x-6">
-            <Link href="/docs/getting-started">
-              <Button size="lg" className="gap-2">
+            <Button asChild size="lg" className="gap-2">
+              <a href="/docs/getting-started">
                 Start Building
                 <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
-            <Link href="/docs">
-              <Button variant="outline" size="lg">
+              </a>
+            </Button>
+            <Button asChild variant="outline" size="lg">
+              <a href="/docs">
                 View Docs
-              </Button>
-            </Link>
+              </a>
+            </Button>
           </div>
         </div>
 
