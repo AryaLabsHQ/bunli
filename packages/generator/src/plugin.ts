@@ -1,4 +1,4 @@
-import type { BuildOutput, BunPlugin, OnLoadArgs, OnResolveArgs } from 'bun'
+import type { BuildOutput, BunPlugin } from 'bun'
 import { Generator } from './generator.js'
 import type { GeneratorConfig } from './types.js'
 import type { Build } from 'bun'
@@ -53,25 +53,6 @@ export function bunliCodegenPlugin(options: BunliCodegenPluginOptions = {}): Bun
             logger.debug('Failed to generate command types: %s', error instanceof Error ? error.message : String(error))
           }
         }
-      })
-
-      // Hook into file resolution to watch command files
-      build.onResolve({ filter: /^\.\/commands\// }, async (args: OnResolveArgs) => {
-        // This ensures command files are tracked by the bundler
-        return {
-          path: args.path,
-          namespace: 'file'
-        }
-      })
-
-      // Hook into load to process command files
-      build.onLoad({ filter: /\.(ts|tsx|js|jsx)$/, namespace: 'file' }, async (args: OnLoadArgs) => {
-        // Check if this is a command file
-        if (args.path.includes(commandsDir)) {
-          // Let Bun handle the file normally, but we've already generated types
-          return undefined
-        }
-        return undefined
       })
 
       // Hook into end to ensure types are up to date
