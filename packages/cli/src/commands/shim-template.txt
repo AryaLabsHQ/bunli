@@ -1,0 +1,23 @@
+#!/usr/bin/env node
+import { execFileSync } from 'node:child_process'
+import { createRequire } from 'node:module'
+
+const require = createRequire(import.meta.url)
+const map = __PLATFORM_MAP__
+const key = process.platform + '-' + process.arch
+const pkg = map[key]
+
+if (!pkg) {
+  console.error('Unsupported platform: ' + key)
+  process.exit(1)
+}
+
+const ext = process.platform === 'win32' ? '.exe' : ''
+
+try {
+  const bin = require.resolve(`${pkg}/bin/__CLI_BIN_NAME__${ext}`)
+  execFileSync(bin, process.argv.slice(2), { stdio: 'inherit' })
+} catch {
+  console.error('Binary not found. Try reinstalling ' + pkg + '.')
+  process.exit(1)
+}
