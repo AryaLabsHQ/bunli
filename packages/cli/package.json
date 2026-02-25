@@ -1,6 +1,6 @@
 {
   "name": "bunli",
-  "version": "0.5.5",
+  "version": "0.5.6",
   "type": "module",
   "description": "The Bunli CLI toolchain for developing, building, and distributing CLIs",
   "bin": {

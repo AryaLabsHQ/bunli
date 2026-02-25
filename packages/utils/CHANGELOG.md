@@ -1,5 +1,11 @@
 # @bunli/utils
 
+## 0.3.3
+
+### Patch Changes
+
+- ff041df: fix(utils): prompts
+
 ## 0.3.2
 
 ### Patch Changes

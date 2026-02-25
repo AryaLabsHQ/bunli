@@ -1,5 +1,12 @@
 # @bunli/core
 
+## 0.5.7
+
+### Patch Changes
+
+- Updated dependencies [ff041df]
+  - @bunli/utils@0.3.3
+
 ## 0.5.6
 
 ### Patch Changes
