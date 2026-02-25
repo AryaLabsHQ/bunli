@@ -165,7 +165,16 @@ export const myPlugin = createPlugin({
 
 ## Building for Distribution
 
-All examples use `bunli.config.ts` for build configuration:
+Examples now intentionally cover different build configurations:
+
+| Example | Build Mode | Key Settings |
+|---------|------------|--------------|
+| `hello-world` | JS bundle mode | `targets: []`, `minify: true`, `sourcemap: true` |
+| `task-runner` | Native standalone binary | `targets: ['native']`, `sourcemap: true` |
+| `git-tool` | Multi-target compressed binaries | `targets: ['darwin-arm64', 'darwin-x64']`, `compress: true`, `minify: true` |
+| `dev-server` | Native optimized binary | `targets: ['native']`, `minify: true`, `sourcemap: false` |
+
+A reference config shape:
 
 ```typescript
 // bunli.config.ts
@@ -205,6 +214,9 @@ Build commands:
 # Build for current platform
 bun run build
 
+# Bundle mode (no compile): set targets: [] in bunli.config.ts, then run
+bun run build
+
 # Build for specific platforms
 bunli build --targets darwin-arm64,linux-x64
 
@@ -220,6 +232,38 @@ The Bunli CLI handles:
 - Standalone executable creation with Bun's `--compile` flag
 - Multi-platform builds
 - Optional compression for manual distribution (`build.compress`)
+
+## Release Configuration Matrix
+
+Release permutations to test in example projects:
+
+```typescript
+release: {
+  npm: true,                 // or false / --npm=false
+  github: false,             // or true / --github=true
+  tagFormat: 'v{{version}}', // shared by git + GitHub release tags
+  conventionalCommits: true,
+  binary: {
+    packageNameFormat: '{{name}}-{{platform}}',
+    shimPath: 'bin/run.mjs'
+  }
+}
+```
+
+CLI release examples:
+
+```bash
+# Dry run
+bunli release --dry
+
+# Note: when npm publish is enabled, --dry executes npm publish in dry-run mode.
+
+# Disable npm publish
+bunli release --npm=false
+
+# Create GitHub release entry
+bunli release --github=true
+```
 
 For stable, release-ready archives + `checksums.txt` and Homebrew automation, use the
 `bunli-releaser` GitHub Action instead of uploading `dist/` directly.

@@ -8,7 +8,7 @@
     "dev": "bunli dev",
     "build": "bunli build",
     "generate": "bunli generate",
-    "start": "bun run dist/cli.js",
+    "start": "./dist/cli",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

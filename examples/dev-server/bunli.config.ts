@@ -11,10 +11,11 @@ export default defineConfig({
   build: {
     entry: 'cli.ts',
     outdir: 'dist',
+    // Native standalone binary optimized for local usage
     targets: ['native'],
     compress: false,
-    minify: false,
-    sourcemap: true
+    minify: true,
+    sourcemap: false
   },
   dev: {
     watch: true,

@@ -11,10 +11,11 @@ export default defineConfig({
   build: {
     entry: './cli.ts',
     outdir: './dist',
-    targets: ['native'],
-    compress: false,
-    minify: false,
-    sourcemap: true
+    // Multi-target standalone binaries + compressed archives
+    targets: ['darwin-arm64', 'darwin-x64'],
+    compress: true,
+    minify: true,
+    sourcemap: false
   },
   dev: {
     watch: true,
