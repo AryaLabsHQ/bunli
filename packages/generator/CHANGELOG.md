@@ -1,5 +1,11 @@
 # @bunli/generator
 
+## 0.5.5
+
+### Patch Changes
+
+- @bunli/core@0.5.7
+
 ## 0.5.4
 
 ### Patch Changes
