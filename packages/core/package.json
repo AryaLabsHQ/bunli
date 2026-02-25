@@ -1,6 +1,6 @@
 {
   "name": "@bunli/core",
-  "version": "0.5.5",
+  "version": "0.5.6",
   "type": "module",
   "description": "Minimal, type-safe CLI framework for Bun",
   "module": "./dist/index.js",

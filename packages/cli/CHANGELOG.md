@@ -1,5 +1,13 @@
 # bunli
 
+## 0.5.5
+
+### Patch Changes
+
+- Updated dependencies [454d869]
+  - @bunli/core@0.5.6
+  - @bunli/generator@0.5.4
+
 ## 0.5.4
 
 ### Patch Changes

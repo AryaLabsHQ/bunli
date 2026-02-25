@@ -1,6 +1,6 @@
 {
   "name": "@bunli/plugin-mcp",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "type": "module",
   "description": "MCP (Model Context Protocol) plugin for Bunli - create CLI commands from MCP tool schemas",
   "keywords": [
