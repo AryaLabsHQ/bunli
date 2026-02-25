@@ -42,12 +42,7 @@ async function ensureNpmAuth() {
 
 async function versionExistsOnNpm(name: string, version: string): Promise<boolean> {
   const url = `${REGISTRY}/${encodeURIComponent(name)}/${encodeURIComponent(version)}`
-  const res = await fetch(url, {
-    headers: {
-      // Faster payload shape and less metadata.
-      accept: 'application/vnd.npm.install-v1+json'
-    }
-  })
+  const res = await fetch(url)
 
   if (res.status === 404) return false
   if (res.ok) return true
