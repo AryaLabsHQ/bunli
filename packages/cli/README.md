@@ -171,20 +171,24 @@ bunli release --version 2.0.0
 # Dry run
 bunli release --dry
 
-# Release all workspace packages
-bunli release --all
+# Disable npm publish explicitly
+bunli release --npm=false
+
+# Create GitHub release entry
+bunli release --github=true
 ```
 
 Release options:
 - `--version, -v` - Version to release (patch/minor/major/x.y.z)
 - `--tag, -t` - Git tag format
-- `--npm` - Publish to npm
-- `--github` - Create GitHub release
-- `--dry, -d` - Dry run - show what would be done
-- `--all` - Release all packages (workspace mode)
+- `--npm` - Publish to npm (`--npm=false` to disable)
+- `--github` - Create GitHub release (`--github=true` to enable)
+- `--dry, -d` - Dry run (runs npm publish with `--dry-run` when npm publish is enabled)
+- `--all` - Workspace release mode (currently not implemented; exits with error)
 
-Note: `bunli release` automates version bumps/tags and npm publishing. For standalone binaries, stable
-release asset naming, `checksums.txt`, and Homebrew tap updates, use the `bunli-releaser` GitHub Action.
+Note: `bunli release` supports npm package release flows, including binary package distribution via `release.binary`
+(`optionalDependencies` + shim launcher). For standalone GitHub release assets, checksums, and Homebrew automation,
+use the `bunli-releaser` GitHub Action.
 
 ### Build Options
 

@@ -73,6 +73,10 @@ interface BunliConfig {
     github?: boolean
     tagFormat?: string
     conventionalCommits?: boolean
+    binary?: {
+      packageNameFormat?: string
+      shimPath?: string
+    }
   }
   
   // Workspace configuration
@@ -232,12 +236,14 @@ Configure testing:
 
 ### release
 
-Configure releases (planned feature):
+Configure releases:
 
 - `npm` - Publish to npm
 - `github` - Create GitHub releases
 - `tagFormat` - Git tag format
 - `conventionalCommits` - Use conventional commits
+- `binary.packageNameFormat` - Naming template for per-platform npm packages
+- `binary.shimPath` - Path to generated ESM shim file (default: `bin/run.mjs`)
 
 ### workspace
 

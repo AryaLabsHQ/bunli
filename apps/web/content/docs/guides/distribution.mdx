@@ -444,7 +444,9 @@ jobs:
 ### Using bunli release (npm + tags)
 
 Bunli also provides a `bunli release` command for automating version bumps, git tags, and npm
-publishing. It does not build or upload standalone binaries.
+publishing. It can also publish binary packages to npm via `release.binary`
+(`optionalDependencies` + generated shim). For GitHub release assets/checksums/Homebrew automation,
+use `bunli-releaser`.
 
 ```bash
 # Create a new release
@@ -454,11 +456,13 @@ bunli release
 bunli release --version 2.0.0
 
 # Release without npm publish
-bunli release --npm false
+bunli release --npm=false
 
 # Dry run
 bunli release --dry
 ```
+
+When npm publishing is enabled, `--dry` runs `npm publish --dry-run`.
 
 ### Release Configuration
 
@@ -468,7 +472,11 @@ export default defineConfig({
   release: {
     npm: true,               // Publish to npm
     github: true,            // Create a GitHub Release entry (notes only; no assets)
-    tagFormat: 'v${version}' // Git tag format
+    tagFormat: 'v{{version}}', // Git tag format used for both git + GitHub tags
+    binary: {
+      packageNameFormat: '{{name}}-{{platform}}',
+      shimPath: 'bin/run.mjs'
+    }
   }
 })
 ```

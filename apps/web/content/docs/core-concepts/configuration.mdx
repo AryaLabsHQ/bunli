@@ -237,10 +237,16 @@ export default defineConfig({
     github: true,
     
     // Git tag format
-    tagFormat: 'v${version}',
+    tagFormat: 'v{{version}}',
     
     // Use conventional commits
-    conventionalCommits: true
+    conventionalCommits: true,
+
+    // Optional: npm binary package mode
+    binary: {
+      packageNameFormat: '{{name}}-{{platform}}',
+      shimPath: 'bin/run.mjs'
+    }
   }
 })
 ```

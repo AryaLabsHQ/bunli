@@ -219,10 +219,10 @@ bunli release
 **Options:**
 - `--version, -v` - Version to release (patch/minor/major/x.y.z)
 - `--tag, -t` - Git tag format
-- `--npm` - Publish to npm (default: true)
-- `--github` - Create GitHub release
-- `--dry, -d` - Dry run - show what would be done
-- `--all` - Release all packages (workspace mode)
+- `--npm` - Publish to npm (`--npm=false` to disable)
+- `--github` - Create GitHub release (`--github=true` to enable)
+- `--dry, -d` - Dry run (runs npm publish with `--dry-run` when npm publish is enabled)
+- `--all` - Workspace release mode (currently not implemented)
 
 **Features:**
 - Interactive version selection
@@ -230,7 +230,7 @@ bunli release
 - Git tag creation and pushing
 - npm publishing with proper build step
 - GitHub release creation (notes only; no build artifacts)
-- Workspace support for monorepos
+- Workspace release mode placeholder (`--all` currently not implemented)
 - Dry run mode for testing
 
 **Examples:**
@@ -247,8 +247,8 @@ bunli release --version major --github
 # Dry run to preview changes
 bunli release --dry
 
-# Release all workspace packages
-bunli release --all
+# Disable npm publish
+bunli release --npm=false
 ```
 
 ## Configuration
@@ -298,8 +298,12 @@ export default defineConfig({
   release: {
     npm: true,
     github: true,
-    tagFormat: 'v${version}',
-    conventionalCommits: true
+    tagFormat: 'v{{version}}',
+    conventionalCommits: true,
+    binary: {
+      packageNameFormat: '{{name}}-{{platform}}',
+      shimPath: 'bin/run.mjs'
+    }
   },
   
   // Workspace configuration (monorepos)
@@ -373,8 +377,8 @@ bunli test --all
 # Build for all platforms (single package)
 bunli build --targets all
 
-# Release all packages
-bunli release --all
+# Workspace release mode is currently not implemented
+# bunli release --all
 
 # Run dev in specific package
 cd packages/my-package && bunli dev
