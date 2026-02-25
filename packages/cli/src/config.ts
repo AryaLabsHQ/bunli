@@ -45,6 +45,10 @@ export type LoadedConfig = {
     github: boolean  // Always has default false
     tagFormat: string  // Always has default 'v{{version}}'
     conventionalCommits: boolean  // Always has default true
+    binary?: {
+      packageNameFormat: string
+      shimPath: string
+    }
   }
   plugins: any[]  // Always has default []
 }

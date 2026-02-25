@@ -69,7 +69,13 @@ export const bunliConfigSchema = z.object({
     npm: z.boolean().default(true),
     github: z.boolean().default(false),
     tagFormat: z.string().default('v{{version}}'),
-    conventionalCommits: z.boolean().default(true)
+    conventionalCommits: z.boolean().default(true),
+    // Binary mode: publish per-platform packages using optionalDependencies pattern.
+    // Platforms are derived from build.targets.
+    binary: z.object({
+      packageNameFormat: z.string().default('{{name}}-{{platform}}'),
+      shimPath: z.string().default('bin/run.mjs'),
+    }).optional()
   }).default({
     npm: true,
     github: false,
