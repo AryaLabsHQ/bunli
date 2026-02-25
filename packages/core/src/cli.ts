@@ -3,6 +3,7 @@ import { bunliConfigStrictSchema, bunliConfigSchema } from './config.js'
 import { loadConfig, type LoadedConfig } from './config-loader.js'
 import { parseArgs } from './parser.js'
 import { SchemaError, getDotPath } from '@standard-schema/utils'
+import { PromptCancelledError } from '@bunli/utils'
 import { PluginManager } from './plugin/manager.js'
 import type { BunliPlugin, MergeStores, PluginConfig } from './plugin/types.js'
 import { CommandContext, createEnvironmentInfo } from './plugin/context.js'
@@ -512,7 +513,6 @@ export async function createCLI<
         )
       }
     } catch (error) {
-      const { PromptCancelledError } = await import('@bunli/utils')
       if (error instanceof PromptCancelledError) {
         if (mergedConfig.plugins && mergedConfig.plugins.length > 0 && context) {
           await pluginManager.runAfterCommand(
@@ -706,7 +706,6 @@ export async function createCLI<
               ...(context ? { context } : {})
             })
           } catch (error) {
-            const { PromptCancelledError } = await import('@bunli/utils')
             if (error instanceof PromptCancelledError) {
               if (mergedConfig.plugins && mergedConfig.plugins.length > 0 && context) {
                 await pluginManager.runAfterCommand(
