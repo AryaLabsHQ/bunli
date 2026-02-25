@@ -1,5 +1,20 @@
 # bunli
 
+## 0.5.4
+
+### Patch Changes
+
+- 5186a7d: feat: add binary release support for npm package publishing
+
+  - Add release.binary config for per-platform npm packages
+  - Generate ESM shim that dispatches to correct platform binary
+  - Improve boolean flag handling (--flag=false form)
+  - Add unit and E2E tests for release command
+
+- Updated dependencies [5186a7d]
+  - @bunli/core@0.5.5
+  - @bunli/generator@0.5.3
+
 ## 0.5.3
 
 ### Patch Changes

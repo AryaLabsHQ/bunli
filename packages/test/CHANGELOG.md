@@ -1,5 +1,12 @@
 # @bunli/test
 
+## 0.3.3
+
+### Patch Changes
+
+- Updated dependencies [5186a7d]
+  - @bunli/core@0.5.5
+
 ## 0.3.2
 
 ### Patch Changes
