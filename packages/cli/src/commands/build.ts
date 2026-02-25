@@ -213,7 +213,9 @@ export default defineCommand({
           if (output.path.endsWith('.js')) {
             const content = await output.text()
             const runtime = flags.runtime === 'node' ? 'node' : 'bun'
-            const executableContent = `#!/usr/bin/env ${runtime}\n${content}`
+            // Avoid invalid output when the bundled source already contained a shebang.
+            const withoutShebang = content.replace(/^#![^\n]*\n/, '')
+            const executableContent = `#!/usr/bin/env ${runtime}\n${withoutShebang}`
             await Bun.write(output.path, executableContent)
             await $`chmod +x ${output.path}`
           }

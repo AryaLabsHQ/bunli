@@ -1,15 +1,11 @@
 #!/usr/bin/env bun
 import { createCLI } from '@bunli/core'
-import { loadConfig } from '@bunli/core'
 
 const cli = await createCLI({
   name: 'bunli',
   version: '0.1.0',
   description: 'The Bunli CLI toolchain for developing, building, and distributing CLIs'
 })
-
-// Load configuration
-const config = await loadConfig()
 
 // Load commands from manifest
 await cli.load({
