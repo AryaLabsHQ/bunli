@@ -1,6 +1,8 @@
 import { join, relative, extname } from 'node:path'
+import { Result } from 'better-result'
 import type { CommandMetadata } from './types.js'
 import { createLogger } from '@bunli/core/utils'
+import { ScanCommandFileError, ScanCommandsError } from './errors.js'
 
 const logger = createLogger('generator:scanner')
 
@@ -25,86 +27,104 @@ export class CommandScanner {
   /**
    * Scan for command files using Bun.Transpiler for fast filtering
    */
-  async scanCommands(commandsDir: string): Promise<string[]> {
-    try {
-      // Use Bun's native Glob for file scanning
-      const glob = new Bun.Glob('**/*.{ts,tsx,js,jsx}')
-      const files = await Array.fromAsync(glob.scan({ cwd: commandsDir }))
-      
-      const commandFiles: string[] = []
-      
-      // Process files in parallel for better performance
-      const fileChecks = files.map(async (file) => {
-        const fullPath = join(commandsDir, file)
-        
-        // Quick file extension check
-        const ext = extname(file)
-        if (!['.ts', '.tsx', '.js', '.jsx'].includes(ext)) {
+  async scanCommands(commandsDir: string): Promise<Result<string[], ScanCommandsError>> {
+    return Result.tryPromise({
+      try: async () => {
+        // Use Bun's native Glob for file scanning
+        const glob = new Bun.Glob('**/*.{ts,tsx,js,jsx}')
+        const files = await Array.fromAsync(glob.scan({ cwd: commandsDir }))
+
+        const commandFiles: string[] = []
+
+        // Process files in parallel for better performance
+        const fileChecks = files.map(async (file) => {
+          const fullPath = join(commandsDir, file)
+
+          // Quick file extension check
+          const ext = extname(file)
+          if (!['.ts', '.tsx', '.js', '.jsx'].includes(ext)) {
+            return null
+          }
+
+          // Skip test files and other non-command files
+          if (this.isNonCommandFile(file)) {
+            return null
+          }
+
+          // Use Bun.Transpiler to quickly check if this is a command file
+          const fileResult = await this.isCommandFile(fullPath)
+          if (Result.isError(fileResult)) {
+            logger.debug('Could not inspect command file %s: %O', fullPath, fileResult.error)
+            return null
+          }
+
+          if (fileResult.value) {
+            return fullPath
+          }
+
           return null
+        })
+
+        const results = await Promise.all(fileChecks)
+
+        // Filter out null results
+        for (const result of results) {
+          if (result) {
+            commandFiles.push(result)
+          }
         }
-        
-        // Skip test files and other non-command files
-        if (this.isNonCommandFile(file)) {
-          return null
-        }
-        
-        // Use Bun.Transpiler to quickly check if this is a command file
-        if (await this.isCommandFile(fullPath)) {
-          return fullPath
-        }
-        
-        return null
-      })
-      
-      const results = await Promise.all(fileChecks)
-      
-      // Filter out null results
-      for (const result of results) {
-        if (result) {
-          commandFiles.push(result)
-        }
+
+        return commandFiles
+      },
+      catch: (cause) => {
+        const error = new ScanCommandsError({
+          commandsDir,
+          message: `Could not scan commands directory ${commandsDir}`,
+          cause
+        })
+        logger.debug('Could not scan commands directory %s: %O', commandsDir, error)
+        return error
       }
-      
-      return commandFiles
-    } catch (error) {
-      logger.debug('Could not scan commands directory %s: %O', commandsDir, error)
-      return []
-    }
+    })
   }
 
   /**
    * Check if a file is likely a command file using Bun.Transpiler
    */
-  private async isCommandFile(filePath: string): Promise<boolean> {
-    try {
-      const file = Bun.file(filePath)
-      const content = await file.text()
-      
-      // Use Bun.Transpiler to quickly scan for command indicators
-      const scanResult = this.transpiler.scan(content)
-      
-      // Check for command-related exports
-      const hasCommandExport = scanResult.exports.some(exp => 
-        exp === 'default' || 
-        exp.includes('Command') ||
-        exp.includes('defineCommand')
-      )
-      
-      // Check for command-related imports
-      const hasCommandImports = scanResult.imports.some(imp => 
-        imp.path.includes('@bunli/core') ||
-        imp.path.includes('defineCommand')
-      )
-      
-      
-      // Check for defineCommand usage in the content
-      const hasDefineCommand = content.includes('defineCommand(')
-      
-      return hasCommandExport && (hasCommandImports || hasDefineCommand)
-    } catch (error) {
-      // If we can't read or parse the file, assume it's not a command
-      return false
-    }
+  private async isCommandFile(filePath: string): Promise<Result<boolean, ScanCommandFileError>> {
+    return Result.tryPromise({
+      try: async () => {
+        const file = Bun.file(filePath)
+        const content = await file.text()
+
+        // Use Bun.Transpiler to quickly scan for command indicators
+        const scanResult = this.transpiler.scan(content)
+
+        // Check for command-related exports
+        const hasCommandExport = scanResult.exports.some(exp =>
+          exp === 'default' ||
+          exp.includes('Command') ||
+          exp.includes('defineCommand')
+        )
+
+        // Check for command-related imports
+        const hasCommandImports = scanResult.imports.some(imp =>
+          imp.path.includes('@bunli/core') ||
+          imp.path.includes('defineCommand')
+        )
+
+        // Check for defineCommand usage in the content
+        const hasDefineCommand = content.includes('defineCommand(')
+
+        return hasCommandExport && (hasCommandImports || hasDefineCommand)
+      },
+      catch: (cause) =>
+        new ScanCommandFileError({
+          filePath,
+          message: `Could not inspect command file ${filePath}`,
+          cause
+        })
+    })
   }
 
   /**

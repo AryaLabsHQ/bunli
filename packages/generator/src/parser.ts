@@ -1,8 +1,10 @@
 import { parse } from '@babel/parser'
 const traverse = require('@babel/traverse').default
 import path from 'node:path'
+import { Result } from 'better-result'
 import type { CommandMetadata, OptionMetadata } from './types.js'
 import { createLogger } from '@bunli/core/utils'
+import { ParseCommandError } from './errors.js'
 
 const logger = createLogger('generator:parser')
 
@@ -54,73 +56,83 @@ export async function parseCommand(
   filePath: string,
   commandsDir: string,
   outputFile: string
-): Promise<CommandMetadata | null> {
-  try {
-    // Use Bun's native file reading
-    const file = Bun.file(filePath)
-    const content = await file.text()
-    
-    // First, use Bun.Transpiler to quickly scan for defineCommand usage
-    const transpiler = new Bun.Transpiler({ loader: 'tsx' })
-    const scanResult = transpiler.scan(content)
-    
-    // Check if this file exports a command (look for Command in exports or defineCommand usage)
-    const hasCommandExport = scanResult.exports.some(exp => 
-      exp.includes('Command') || exp === 'default'
-    )
-    
-    
-    if (!hasCommandExport) {
-      return null
-    }
-    
-    // Use Babel for detailed parsing only if we found a command
-    const ast = parse(content, {
-      sourceType: 'module',
-      plugins: ['typescript', 'jsx', 'decorators-legacy']
-    })
+): Promise<Result<CommandMetadata | null, ParseCommandError>> {
+  const parseResult = await Result.tryPromise({
+    try: async () => {
+      // Use Bun's native file reading
+      const file = Bun.file(filePath)
+      const content = await file.text()
 
-    let commandMetadata: CommandMetadata | null = null
+      // First, use Bun.Transpiler to quickly scan for defineCommand usage
+      const transpiler = new Bun.Transpiler({ loader: 'tsx' })
+      const scanResult = transpiler.scan(content)
 
-    traverse(ast, {
-      CallExpression(path: any) {
-        // Look for defineCommand calls
-        if (
-          path.node.callee.type === 'Identifier' &&
-          path.node.callee.name === 'defineCommand'
-        ) {
-          const args = path.node.arguments
-          if (args.length > 0 && args[0]?.type === 'ObjectExpression') {
-            commandMetadata = extractCommandMetadata(
-              args[0],
-              filePath,
-              commandsDir,
-              outputFile
-            )
-          }
-        } else if (
-          path.node.callee.type === 'MemberExpression' &&
-          path.node.callee.property.type === 'Identifier' &&
-          path.node.callee.property.name === 'defineCommand'
-        ) {
-          const args = path.node.arguments
-          if (args.length > 0 && args[0]?.type === 'ObjectExpression') {
-            commandMetadata = extractCommandMetadata(
-              args[0],
-              filePath,
-              commandsDir,
-              outputFile
-            )
+      // Check if this file exports a command (look for Command in exports or defineCommand usage)
+      const hasCommandExport = scanResult.exports.some(exp =>
+        exp.includes('Command') || exp === 'default'
+      )
+
+      if (!hasCommandExport) {
+        return null
+      }
+
+      // Use Babel for detailed parsing only if we found a command
+      const ast = parse(content, {
+        sourceType: 'module',
+        plugins: ['typescript', 'jsx', 'decorators-legacy']
+      })
+
+      let commandMetadata: CommandMetadata | null = null
+
+      traverse(ast, {
+        CallExpression(path: any) {
+          // Look for defineCommand calls
+          if (
+            path.node.callee.type === 'Identifier' &&
+            path.node.callee.name === 'defineCommand'
+          ) {
+            const args = path.node.arguments
+            if (args.length > 0 && args[0]?.type === 'ObjectExpression') {
+              commandMetadata = extractCommandMetadata(
+                args[0],
+                filePath,
+                commandsDir,
+                outputFile
+              )
+            }
+          } else if (
+            path.node.callee.type === 'MemberExpression' &&
+            path.node.callee.property.type === 'Identifier' &&
+            path.node.callee.property.name === 'defineCommand'
+          ) {
+            const args = path.node.arguments
+            if (args.length > 0 && args[0]?.type === 'ObjectExpression') {
+              commandMetadata = extractCommandMetadata(
+                args[0],
+                filePath,
+                commandsDir,
+                outputFile
+              )
+            }
           }
         }
-      }
-    })
+      })
 
-    return commandMetadata
-  } catch (error) {
-    logger.debug('Could not parse command file %s: %O', filePath, error)
-    return null
+      return commandMetadata
+    },
+    catch: (cause) =>
+      new ParseCommandError({
+        filePath,
+        message: `Could not parse command file ${filePath}`,
+        cause
+      })
+  })
+
+  if (Result.isError(parseResult)) {
+    logger.debug('Could not parse command file %s: %O', filePath, parseResult.error)
   }
+
+  return parseResult
 }
 
 function extractCommandMetadata(
@@ -573,11 +585,14 @@ function extractConstraints(schema: any): Partial<OptionMetadata> {
       if (callee.object) {
         const parentConstraints = extractConstraints(callee.object)
         // Merge constraints, current call takes precedence
-        Object.keys(parentConstraints).forEach(key => {
+        for (const key of Object.keys(parentConstraints) as Array<keyof OptionMetadata>) {
           if (!(key in constraints)) {
-            (constraints as any)[key] = (parentConstraints as any)[key]
+            const value = parentConstraints[key]
+            if (value !== undefined) {
+              constraints[key] = value
+            }
           }
-        })
+        }
       }
     }
   }
@@ -626,4 +641,3 @@ function detectFileType(optionConfig: any, description?: string): 'file' | 'dire
 
   return undefined
 }
-
