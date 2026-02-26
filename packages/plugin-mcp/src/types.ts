@@ -5,7 +5,7 @@
  */
 
 import type { Command, Handler, CLIOption, Options } from '@bunli/core'
-import type { CommandContext } from '@bunli/core/plugin'
+import type { IPluginContext } from '@bunli/core/plugin'
 import type { z } from 'zod'
 
 /**
@@ -130,7 +130,7 @@ export interface McpPluginOptions<TStore = Record<string, unknown>> {
    * Async function to get tools from your MCP client(s)
    * Called during plugin setup
    */
-  toolsProvider: (context: CommandContext<TStore>) => Promise<MCPToolGroup[]>
+  toolsProvider: (context: IPluginContext) => Promise<MCPToolGroup[]>
 
   /**
    * Factory function to create handlers for each tool
@@ -189,4 +189,4 @@ export interface GeneratedMCPCommandMeta {
 /**
  * Result of createCommandsFromMCPTools
  */
-export type MCPCommand = Command<Options, Record<string, unknown>>
+export type MCPCommand<TStore = Record<string, unknown>> = Command<Options, TStore>

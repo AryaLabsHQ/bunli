@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+import { Result } from 'better-result'
 import { createCommandsFromMCPTools, extractCommandMetadata } from '../src/converter.js'
 import {
   createIssueTool,
@@ -10,12 +11,19 @@ import {
 
 describe('createCommandsFromMCPTools', () => {
   const mockHandler = () => async () => {}
+  const unwrapCommands = (result: ReturnType<typeof createCommandsFromMCPTools>) => {
+    expect(Result.isOk(result)).toBe(true)
+    if (Result.isError(result)) {
+      throw result.error
+    }
+    return result.value
+  }
 
   describe('command creation', () => {
     test('creates command from simple tool', () => {
-      const commands = createCommandsFromMCPTools([createIssueTool], {
+      const commands = unwrapCommands(createCommandsFromMCPTools([createIssueTool], {
         createHandler: mockHandler
-      })
+      }))
 
       expect(commands).toHaveLength(1)
       expect(commands[0]!.name).toBe('create-issue')
@@ -23,27 +31,27 @@ describe('createCommandsFromMCPTools', () => {
     })
 
     test('creates commands from multiple tools', () => {
-      const commands = createCommandsFromMCPTools(mockTools, {
+      const commands = unwrapCommands(createCommandsFromMCPTools(mockTools, {
         createHandler: mockHandler
-      })
+      }))
 
       expect(commands).toHaveLength(mockTools.length)
     })
 
     test('applies namespace prefix', () => {
-      const commands = createCommandsFromMCPTools([createIssueTool], {
+      const commands = unwrapCommands(createCommandsFromMCPTools([createIssueTool], {
         namespace: 'linear',
         createHandler: mockHandler
-      })
+      }))
 
       expect(commands[0]!.name).toBe('linear:create-issue')
     })
 
     test('uses custom command name transformer', () => {
-      const commands = createCommandsFromMCPTools([createIssueTool], {
+      const commands = unwrapCommands(createCommandsFromMCPTools([createIssueTool], {
         commandName: (name) => `custom-${name.toLowerCase()}`,
         createHandler: mockHandler
-      })
+      }))
 
       expect(commands[0]!.name).toBe('custom-create_issue')
     })
@@ -51,9 +59,9 @@ describe('createCommandsFromMCPTools', () => {
 
   describe('option conversion', () => {
     test('creates options from inputSchema properties', () => {
-      const commands = createCommandsFromMCPTools([createIssueTool], {
+      const commands = unwrapCommands(createCommandsFromMCPTools([createIssueTool], {
         createHandler: mockHandler
-      })
+      }))
 
       const options = commands[0]!.options
       expect(options).toBeDefined()
@@ -63,27 +71,27 @@ describe('createCommandsFromMCPTools', () => {
     })
 
     test('converts property names to kebab-case', () => {
-      const commands = createCommandsFromMCPTools([createIssueTool], {
+      const commands = unwrapCommands(createCommandsFromMCPTools([createIssueTool], {
         createHandler: mockHandler
-      })
+      }))
 
       const options = commands[0]!.options
       expect(options!['assignee-id']).toBeDefined() // assigneeId → assignee-id
     })
 
     test('preserves option descriptions', () => {
-      const commands = createCommandsFromMCPTools([createIssueTool], {
+      const commands = unwrapCommands(createCommandsFromMCPTools([createIssueTool], {
         createHandler: mockHandler
-      })
+      }))
 
       const titleOption = commands[0]!.options!['title']
       expect(titleOption.description).toBe('Issue title')
     })
 
     test('extracts short option from description', () => {
-      const commands = createCommandsFromMCPTools([searchTool], {
+      const commands = unwrapCommands(createCommandsFromMCPTools([searchTool], {
         createHandler: mockHandler
-      })
+      }))
 
       const queryOption = commands[0]!.options!['query']
       expect(queryOption.short).toBe('q')
@@ -99,12 +107,12 @@ describe('createCommandsFromMCPTools', () => {
     test('calls createHandler with tool name', () => {
       const handlerCalls: string[] = []
 
-      createCommandsFromMCPTools([createIssueTool, updateStatusTool], {
+      unwrapCommands(createCommandsFromMCPTools([createIssueTool, updateStatusTool], {
         createHandler: (toolName) => {
           handlerCalls.push(toolName)
           return async () => {}
         }
-      })
+      }))
 
       expect(handlerCalls).toContain('create_issue')
       expect(handlerCalls).toContain('update_status')
@@ -113,9 +121,9 @@ describe('createCommandsFromMCPTools', () => {
 
   describe('schema validation', () => {
     test('required fields are validated', async () => {
-      const commands = createCommandsFromMCPTools([createIssueTool], {
+      const commands = unwrapCommands(createCommandsFromMCPTools([createIssueTool], {
         createHandler: mockHandler
-      })
+      }))
 
       const titleOption = commands[0]!.options!['title']
       const result = titleOption.schema['~standard'].validate('Test Title')
@@ -123,9 +131,9 @@ describe('createCommandsFromMCPTools', () => {
     })
 
     test('optional fields accept undefined', async () => {
-      const commands = createCommandsFromMCPTools([createIssueTool], {
+      const commands = unwrapCommands(createCommandsFromMCPTools([createIssueTool], {
         createHandler: mockHandler
-      })
+      }))
 
       const descriptionOption = commands[0]!.options!['description']
       const result = descriptionOption.schema['~standard'].validate(undefined)
@@ -133,9 +141,9 @@ describe('createCommandsFromMCPTools', () => {
     })
 
     test('enum options validate against allowed values', async () => {
-      const commands = createCommandsFromMCPTools([updateStatusTool], {
+      const commands = unwrapCommands(createCommandsFromMCPTools([updateStatusTool], {
         createHandler: mockHandler
-      })
+      }))
 
       const statusOption = commands[0]!.options!['status']
 
@@ -144,9 +152,9 @@ describe('createCommandsFromMCPTools', () => {
     })
 
     test('number options with constraints validate correctly', async () => {
-      const commands = createCommandsFromMCPTools([createIssueTool], {
+      const commands = unwrapCommands(createCommandsFromMCPTools([createIssueTool], {
         createHandler: mockHandler
-      })
+      }))
 
       const priorityOption = commands[0]!.options!['priority']
 
@@ -162,9 +170,9 @@ describe('createCommandsFromMCPTools', () => {
 
   describe('default values', () => {
     test('applies default values from schema', async () => {
-      const commands = createCommandsFromMCPTools([listIssuesTool], {
+      const commands = unwrapCommands(createCommandsFromMCPTools([listIssuesTool], {
         createHandler: mockHandler
-      })
+      }))
 
       // Verify that fields with defaults accept undefined (they're effectively optional)
       const includeArchivedOption = commands[0]!.options!['include-archived']
@@ -181,6 +189,24 @@ describe('createCommandsFromMCPTools', () => {
 
       const explicitLimitResult = limitOption.schema['~standard'].validate(25)
       expect(explicitLimitResult.value).toBe(25)
+    })
+
+    test('returns Err when input schema conversion fails', () => {
+      const badTool = {
+        ...createIssueTool,
+        inputSchema: {
+          ...createIssueTool.inputSchema,
+          properties: {
+            title: { type: 'string', pattern: '[' }
+          },
+          required: ['title']
+        }
+      }
+
+      const commands = createCommandsFromMCPTools([badTool], {
+        createHandler: mockHandler
+      })
+      expect(Result.isError(commands)).toBe(true)
     })
   })
 })

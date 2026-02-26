@@ -6,7 +6,9 @@
  */
 
 import { option, type Command, type CLIOption, type Options } from '@bunli/core'
+import { Result } from 'better-result'
 import type { MCPTool, ConvertOptions, MCPCommand } from './types.js'
+import { ConvertToolsError } from './errors.js'
 import { jsonSchemaToZodSchema } from './schema-to-zod.js'
 import { toCommandName, toFlagName } from './utils.js'
 
@@ -36,8 +38,18 @@ import { toCommandName, toFlagName } from './utils.js'
 export function createCommandsFromMCPTools<TStore = Record<string, unknown>>(
   tools: MCPTool[],
   options: ConvertOptions<TStore>
-): MCPCommand[] {
-  return tools.map(tool => convertToolToCommand(tool, options))
+): Result<MCPCommand<TStore>[], ConvertToolsError> {
+  const commands: MCPCommand<TStore>[] = []
+
+  for (const tool of tools) {
+    const converted = convertToolToCommand(tool, options)
+    if (Result.isError(converted)) {
+      return converted
+    }
+    commands.push(converted.value)
+  }
+
+  return Result.ok(commands)
 }
 
 /**
@@ -46,7 +58,7 @@ export function createCommandsFromMCPTools<TStore = Record<string, unknown>>(
 function convertToolToCommand<TStore>(
   tool: MCPTool,
   options: ConvertOptions<TStore>
-): MCPCommand {
+): Result<MCPCommand<TStore>, ConvertToolsError> {
   const {
     namespace,
     createHandler,
@@ -60,40 +72,55 @@ function convertToolToCommand<TStore>(
     : toCommandName(tool.name, namespace)
 
   // Convert input schema to Bunli options
-  const bunliOptions = convertInputSchemaToOptions(
+  const bunliOptionsResult = convertInputSchemaToOptions(
+    tool.name,
     tool.inputSchema,
     customFlagName || toFlagName
   )
+  if (Result.isError(bunliOptionsResult)) {
+    return bunliOptionsResult
+  }
 
   // Create the command
-  const command: MCPCommand = {
+  const command: MCPCommand<TStore> = {
     name: commandName,
     description: tool.description || `Invoke MCP tool: ${tool.name}`,
-    options: bunliOptions,
+    options: bunliOptionsResult.value,
     handler: createHandler(tool.name)
   }
 
-  return command
+  return Result.ok(command)
 }
 
 /**
  * Convert MCP inputSchema to Bunli options
  */
 function convertInputSchemaToOptions(
+  toolName: string,
   inputSchema: MCPTool['inputSchema'],
   flagNameTransform: (name: string) => string
-): Options {
+): Result<Options, ConvertToolsError> {
   const bunliOptions: Options = {}
 
   if (!inputSchema?.properties) {
-    return bunliOptions
+    return Result.ok(bunliOptions)
   }
 
   const requiredFields = new Set(inputSchema.required || [])
 
   for (const [propName, propSchema] of Object.entries(inputSchema.properties)) {
     // Convert JSON Schema to Zod
-    let zodSchema = jsonSchemaToZodSchema(propSchema, { coerce: true })
+    const schemaResult = jsonSchemaToZodSchema(propSchema, { coerce: true })
+    if (Result.isError(schemaResult)) {
+      return Result.err(
+        new ConvertToolsError({
+          toolName,
+          message: `Failed to convert input schema field "${propName}" for tool "${toolName}"`,
+          cause: schemaResult.error
+        })
+      )
+    }
+    let zodSchema = schemaResult.value
 
     // Apply default if present
     if (propSchema.default !== undefined) {
@@ -122,7 +149,7 @@ function convertInputSchemaToOptions(
     })
   }
 
-  return bunliOptions
+  return Result.ok(bunliOptions)
 }
 
 /**

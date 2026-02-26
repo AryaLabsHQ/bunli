@@ -5,7 +5,9 @@
  * for use in Bunli CLI options.
  */
 
+import { Result } from 'better-result'
 import { z, type ZodTypeAny } from 'zod'
+import { SchemaConversionError } from './errors.js'
 import type { JSONSchema7 } from './types.js'
 
 /**
@@ -27,31 +29,35 @@ export interface SchemaConversionOptions {
  * - Primitive types: string, number, integer, boolean
  * - Enums and literals
  * - Arrays with item schemas
- * - Objects (converted to z.record for simplicity)
+ * - Objects
  * - Constraints: min/max, minLength/maxLength, pattern
  * - Default values
  *
- * @example
- * const zodSchema = jsonSchemaToZodSchema({
- *   type: 'string',
- *   enum: ['low', 'medium', 'high']
- * })
- * // Returns z.enum(['low', 'medium', 'high'])
+ * Returns `Err<SchemaConversionError>` for invalid runtime schema values
+ * (for example, malformed regex patterns).
  */
 export function jsonSchemaToZodSchema(
   schema: JSONSchema7 | undefined,
   options: SchemaConversionOptions = {}
-): ZodTypeAny {
+): Result<ZodTypeAny, SchemaConversionError> {
+  return convertSchema(schema, options, '$')
+}
+
+function convertSchema(
+  schema: JSONSchema7 | undefined,
+  options: SchemaConversionOptions,
+  path: string
+): Result<ZodTypeAny, SchemaConversionError> {
   const { coerce = true } = options
 
   // Handle undefined/null schema
   if (!schema || typeof schema !== 'object') {
-    return z.unknown()
+    return Result.ok(z.unknown())
   }
 
   // Handle const (literal value)
   if (schema.const !== undefined) {
-    return z.literal(schema.const as string | number | boolean)
+    return Result.ok(z.literal(schema.const as string | number | boolean))
   }
 
   // Handle enum
@@ -60,28 +66,29 @@ export function jsonSchemaToZodSchema(
     const enumValues = schema.enum.filter((v): v is string | number => v !== null)
     if (enumValues.length > 0) {
       if (enumValues.every((v): v is string => typeof v === 'string')) {
-        return z.enum(enumValues as [string, ...string[]])
+        return Result.ok(z.enum(enumValues as [string, ...string[]]))
       }
-      // For mixed or numeric enums, use union of literals
+
       const literals = enumValues.map(v => z.literal(v))
-      if (literals.length === 1) {
-        return literals[0]!
-      }
-      return z.union(literals as unknown as [ZodTypeAny, ZodTypeAny, ...ZodTypeAny[]])
+      return unionFromSchemas(literals, path)
     }
   }
 
   // Handle anyOf/oneOf (union types)
   if (schema.anyOf && schema.anyOf.length > 0) {
-    const schemas = schema.anyOf.map(s => jsonSchemaToZodSchema(s, options))
-    if (schemas.length === 1) return schemas[0]!
-    return z.union(schemas as [ZodTypeAny, ZodTypeAny, ...ZodTypeAny[]])
+    const schemas = mapSchemas(schema.anyOf, options, `${path}.anyOf`)
+    if (Result.isError(schemas)) {
+      return schemas
+    }
+    return unionFromSchemas(schemas.value, `${path}.anyOf`)
   }
 
   if (schema.oneOf && schema.oneOf.length > 0) {
-    const schemas = schema.oneOf.map(s => jsonSchemaToZodSchema(s, options))
-    if (schemas.length === 1) return schemas[0]!
-    return z.union(schemas as [ZodTypeAny, ZodTypeAny, ...ZodTypeAny[]])
+    const schemas = mapSchemas(schema.oneOf, options, `${path}.oneOf`)
+    if (Result.isError(schemas)) {
+      return schemas
+    }
+    return unionFromSchemas(schemas.value, `${path}.oneOf`)
   }
 
   // Handle type-based conversion
@@ -89,40 +96,43 @@ export function jsonSchemaToZodSchema(
 
   switch (schemaType) {
     case 'string':
-      return buildStringSchema(schema)
+      return buildStringSchema(schema, path)
 
     case 'number':
     case 'integer':
-      return buildNumberSchema(schema, coerce)
+      return Result.ok(buildNumberSchema(schema, coerce))
 
     case 'boolean':
-      return buildBooleanSchema(coerce)
+      return Result.ok(buildBooleanSchema())
 
     case 'array':
-      return buildArraySchema(schema, options)
+      return buildArraySchema(schema, options, path)
 
     case 'object':
-      return buildObjectSchema(schema, options)
+      return buildObjectSchema(schema, options, path)
 
     case 'null':
-      return z.null()
+      return Result.ok(z.null())
 
     default:
       // No type specified - try to infer from other properties
       if (schema.properties) {
-        return buildObjectSchema(schema, options)
+        return buildObjectSchema(schema, options, path)
       }
       if (schema.items) {
-        return buildArraySchema(schema, options)
+        return buildArraySchema(schema, options, path)
       }
-      return z.unknown()
+      return Result.ok(z.unknown())
   }
 }
 
 /**
  * Build Zod string schema with constraints
  */
-function buildStringSchema(schema: JSONSchema7): z.ZodString {
+function buildStringSchema(
+  schema: JSONSchema7,
+  path: string
+): Result<z.ZodString, SchemaConversionError> {
   let zodSchema = z.string()
 
   // Apply constraints
@@ -133,11 +143,22 @@ function buildStringSchema(schema: JSONSchema7): z.ZodString {
     zodSchema = zodSchema.max(schema.maxLength)
   }
   if (schema.pattern) {
-    try {
-      zodSchema = zodSchema.regex(new RegExp(schema.pattern))
-    } catch {
-      // Invalid regex, skip
+    const pattern = schema.pattern
+    const regexResult = Result.try({
+      try: () => new RegExp(pattern),
+      catch: (cause) =>
+        new SchemaConversionError({
+          path,
+          message: `Invalid regex pattern "${pattern}"`,
+          cause
+        })
+    })
+
+    if (Result.isError(regexResult)) {
+      return regexResult
     }
+
+    zodSchema = zodSchema.regex(regexResult.value)
   }
 
   // Apply format validations
@@ -163,7 +184,7 @@ function buildStringSchema(schema: JSONSchema7): z.ZodString {
     }
   }
 
-  return zodSchema
+  return Result.ok(zodSchema)
 }
 
 /**
@@ -203,22 +224,37 @@ function buildNumberSchema(
 /**
  * Build Zod boolean schema
  */
-function buildBooleanSchema(coerce: boolean): z.ZodBoolean {
-  // For CLI, we often want to coerce string 'true'/'false' to boolean
-  // But z.coerce.boolean() converts any truthy value, which may not be desired
-  // Keep it simple for now
+function buildBooleanSchema(): z.ZodBoolean {
   return z.boolean()
 }
 
 /**
  * Build Zod array schema
  */
-function buildArraySchema(schema: JSONSchema7, options: SchemaConversionOptions): ZodTypeAny {
-  const itemSchema = schema.items
-    ? Array.isArray(schema.items)
-      ? jsonSchemaToZodSchema(schema.items[0], options) // Tuple - take first for simplicity
-      : jsonSchemaToZodSchema(schema.items, options)
-    : z.unknown()
+function buildArraySchema(
+  schema: JSONSchema7,
+  options: SchemaConversionOptions,
+  path: string
+): Result<ZodTypeAny, SchemaConversionError> {
+  let itemSchema: ZodTypeAny = z.unknown()
+
+  if (schema.items) {
+    if (Array.isArray(schema.items)) {
+      if (schema.items.length > 0) {
+        const itemResult = convertSchema(schema.items[0], options, `${path}.items[0]`)
+        if (Result.isError(itemResult)) {
+          return itemResult
+        }
+        itemSchema = itemResult.value
+      }
+    } else {
+      const itemResult = convertSchema(schema.items, options, `${path}.items`)
+      if (Result.isError(itemResult)) {
+        return itemResult
+      }
+      itemSchema = itemResult.value
+    }
+  }
 
   let zodSchema = z.array(itemSchema)
 
@@ -230,21 +266,20 @@ function buildArraySchema(schema: JSONSchema7, options: SchemaConversionOptions)
     zodSchema = zodSchema.max(schema.maxItems)
   }
 
-  return zodSchema
+  return Result.ok(zodSchema)
 }
 
 /**
  * Build Zod object schema
- *
- * For nested objects in MCP tools, we use z.record for simplicity.
- * Full object schemas with required/optional fields are handled at the
- * top level by the converter.
  */
-function buildObjectSchema(schema: JSONSchema7, options: SchemaConversionOptions): ZodTypeAny {
+function buildObjectSchema(
+  schema: JSONSchema7,
+  options: SchemaConversionOptions,
+  path: string
+): Result<ZodTypeAny, SchemaConversionError> {
   // For nested objects without properties, use record
   if (!schema.properties) {
-    // Zod v4 requires an explicit key schema for record().
-    return z.record(z.string(), z.unknown())
+    return Result.ok(z.record(z.string(), z.unknown()))
   }
 
   // Build object shape
@@ -252,7 +287,12 @@ function buildObjectSchema(schema: JSONSchema7, options: SchemaConversionOptions
   const requiredFields = new Set(schema.required || [])
 
   for (const [propName, propSchema] of Object.entries(schema.properties)) {
-    let propZodSchema = jsonSchemaToZodSchema(propSchema, options)
+    const propResult = convertSchema(propSchema, options, `${path}.properties.${propName}`)
+    if (Result.isError(propResult)) {
+      return propResult
+    }
+
+    let propZodSchema = propResult.value
 
     // Apply default if present
     if (propSchema.default !== undefined) {
@@ -267,7 +307,51 @@ function buildObjectSchema(schema: JSONSchema7, options: SchemaConversionOptions
     shape[propName] = propZodSchema
   }
 
-  return z.object(shape)
+  return Result.ok(z.object(shape))
+}
+
+function mapSchemas(
+  schemas: JSONSchema7[],
+  options: SchemaConversionOptions,
+  path: string
+): Result<ZodTypeAny[], SchemaConversionError> {
+  const zodSchemas: ZodTypeAny[] = []
+
+  for (let index = 0; index < schemas.length; index += 1) {
+    const converted = convertSchema(schemas[index], options, `${path}[${index}]`)
+    if (Result.isError(converted)) {
+      return converted
+    }
+    zodSchemas.push(converted.value)
+  }
+
+  return Result.ok(zodSchemas)
+}
+
+function unionFromSchemas(
+  schemas: ZodTypeAny[],
+  path: string
+): Result<ZodTypeAny, SchemaConversionError> {
+  if (schemas.length === 0) {
+    return Result.err(
+      new SchemaConversionError({
+        path,
+        message: `Cannot create union from an empty schema set at ${path}`,
+        cause: new Error('Empty schema union')
+      })
+    )
+  }
+
+  if (schemas.length === 1) {
+    return Result.ok(schemas[0]!)
+  }
+
+  let unionSchema: ZodTypeAny = z.union([schemas[0]!, schemas[1]!])
+  for (let index = 2; index < schemas.length; index += 1) {
+    unionSchema = z.union([unionSchema, schemas[index]!])
+  }
+
+  return Result.ok(unionSchema)
 }
 
 /**
