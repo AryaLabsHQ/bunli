@@ -5,9 +5,6 @@ import { existsSync } from 'node:fs'
 
 const logger = createLogger('cli:config')
 
-// Type for loaded config with defaults applied by Zod
-export type LoadedConfig = BunliConfig
-
 // Config file names to search for
 const CONFIG_NAMES = [
   'bunli.config.ts',
@@ -15,7 +12,7 @@ const CONFIG_NAMES = [
   'bunli.config.mjs'
 ]
 
-export async function loadConfig(cwd = process.cwd()): Promise<LoadedConfig> {
+export async function loadConfig(cwd = process.cwd()): Promise<BunliConfig> {
   // Look for config file
   for (const configName of CONFIG_NAMES) {
     const configPath = path.join(cwd, configName)

@@ -1,26 +1,20 @@
-# Examples
+# examples
 
-**Working CLI examples demonstrating Bunli patterns.**
+**Working example CLIs.**
 
-## AVAILABLE EXAMPLES
+## EXAMPLES
 
-| Example | Purpose | Key Patterns |
-|---------|---------|--------------|
-| `hello-world` | Minimal CLI | Basic command, flag options |
-| `dev-server` | Server management | Multiple commands, plugin usage |
-| `git-tool` | Git integration | Shell execution, prompts |
-| `task-runner` | Task automation | Complex option validation |
+| Example | Description |
+|---------|-------------|
+| `hello-world` | Minimal CLI |
+| `dev-server` | Development server |
+| `git-tool` | Git utilities |
+| `task-runner` | Task automation |
 
-## RUNNING EXAMPLES
+## RUNNING
 
 ```bash
-cd examples/[example-name]
-bun run src/index.ts [command] --[flags]
+# Run an example
+cd examples/hello-world
+bun run dev
 ```
-
-## TEMPLATES
-
-See `packages/create-bunli/templates/` for project scaffolds:
-- `basic/` - Minimal CLI setup
-- `advanced/` - Full-featured with plugins
-- `monorepo/` - Multi-package setup

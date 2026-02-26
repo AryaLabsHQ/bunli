@@ -17,10 +17,6 @@ export class ConfigLoadError extends TaggedError('ConfigLoadError')<{
   cause: unknown
 }>() {}
 
-// Loaded config with defaults applied by Zod.
-// Keep this in lockstep with bunliConfigSchema by reusing its inferred type.
-export type LoadedConfig = BunliConfig
-
 // Config file names to search for
 const CONFIG_NAMES = [
   'bunli.config.ts',
@@ -30,7 +26,7 @@ const CONFIG_NAMES = [
 
 export async function loadConfigResult(
   cwd = process.cwd()
-): Promise<Result<LoadedConfig, ConfigNotFoundError | ConfigLoadError>> {
+): Promise<Result<BunliConfig, ConfigNotFoundError | ConfigLoadError>> {
   // Look for config file
   for (const configName of CONFIG_NAMES) {
     const configPath = path.join(cwd, configName)
@@ -38,7 +34,7 @@ export async function loadConfigResult(
       try {
         const module = await import(configPath)
         // Zod parse automatically applies all defaults
-        const config = bunliConfigSchema.parse(module.default || module) as LoadedConfig
+        const config = bunliConfigSchema.parse(module.default || module)
         return Result.ok(config)
       } catch (error) {
         logger.debug('Error loading config from %s: %O', configPath, error)
@@ -57,7 +53,7 @@ export async function loadConfigResult(
   }))
 }
 
-export async function loadConfig(cwd = process.cwd()): Promise<LoadedConfig> {
+export async function loadConfig(cwd = process.cwd()): Promise<BunliConfig> {
   const result = await loadConfigResult(cwd)
   if (result.isOk()) {
     return result.value

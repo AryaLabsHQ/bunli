@@ -11,7 +11,7 @@ import type {
   RuntimeInfo
 } from './types.js'
 import { bunliConfigStrictSchema, bunliConfigSchema } from './config.js'
-import { ConfigLoadError, ConfigNotFoundError, loadConfigResult, type LoadedConfig } from './config-loader.js'
+import { ConfigLoadError, ConfigNotFoundError, loadConfigResult } from './config-loader.js'
 import { parseArgs } from './parser.js'
 import { SchemaError, getDotPath } from '@standard-schema/utils'
 import { PromptCancelledError, colors, prompt, spinner } from '@bunli/utils'
@@ -79,7 +79,7 @@ export async function createCLI<
   type TStore = MergeStores<TPlugins>
   
   // Auto-load config from bunli.config.ts
-  let loadedConfigData: LoadedConfig | null = null
+  let loadedConfigData: BunliConfig | null = null
   const loadedConfigResult = await loadConfigResult()
   if (loadedConfigResult.isOk()) {
     loadedConfigData = loadedConfigResult.value
