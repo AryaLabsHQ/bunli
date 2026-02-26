@@ -12,15 +12,13 @@ const tryAsync = <TValue, TError>(
   fn: () => Promise<TValue>,
   mapError: (cause: unknown) => TError
 ) =>
-  Result.tryPromise(fn).then((result) =>
-    result.mapError((error) => mapError(error.cause))
-  )
+  Result.tryPromise({ try: fn, catch: mapError })
 
 const trySync = <TValue, TError>(
   fn: () => Awaited<TValue>,
   mapError: (cause: unknown) => TError
 ) =>
-  Result.try(fn).mapError((error) => mapError(error.cause))
+  Result.try({ try: fn, catch: mapError })
 
 type PublishedPackage = { name: string; version: string }
 type PublishablePackage = { dir: string; name: string; version: string }

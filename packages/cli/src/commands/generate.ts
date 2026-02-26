@@ -118,13 +118,12 @@ async function runGenerate(
       } catch (err) {
         if (aborted || signal.aborted) {
           console.log(colors.dim('Watcher stopped'))
-          process.off('SIGINT', stopWatching)
-          process.off('SIGTERM', stopWatching)
           return Result.ok(undefined)
         }
+        return failGenerate(err instanceof Error ? err.message : String(err), err)
+      } finally {
         process.off('SIGINT', stopWatching)
         process.off('SIGTERM', stopWatching)
-        return failGenerate(err instanceof Error ? err.message : String(err), err)
       }
     }
     return Result.ok(undefined)

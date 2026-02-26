@@ -80,8 +80,8 @@ async function runDev(
     }
 
     // Generate types if codegen is enabled
-    const generateTypes = async () => {
-      if (!typedFlags.generate) return true
+    const generateTypes = async (): Promise<Result<void, DevCommandErrorType>> => {
+      if (!typedFlags.generate) return Result.ok(undefined)
 
       const generator = new Generator({
         commandsDir: typedFlags.commandsDir,
@@ -94,19 +94,18 @@ async function runDev(
       if (Result.isError(generationResult)) {
         return failDev(`Failed to generate types: ${generationResult.error.message}`, generationResult.error)
       }
-      return true
+      return Result.ok(undefined)
     }
 
     // Initial type generation
     if (typedFlags.generate) {
       const spin = spinner('Generating command types...')
       const generationResult = await generateTypes()
-      if (generationResult === true) {
-        spin.succeed('Types generated')
-      } else {
+      if (generationResult.isErr()) {
         spin.fail('Failed to generate types')
         return generationResult
       }
+      spin.succeed('Types generated')
     }
 
     // 2. Find entry point
@@ -184,10 +183,11 @@ async function runDev(
               console.log(colors.dim(`\n[${new Date().toLocaleTimeString()}] Command file changed: ${event.filename}`))
               const spin = spinner('Regenerating types...')
               const generationResult = await generateTypes()
-              if (generationResult === true) {
-                spin.succeed('Types regenerated')
-              } else {
+              if (generationResult.isErr()) {
                 spin.fail('Failed to regenerate types')
+                console.error(colors.red(generationResult.error.message))
+              } else {
+                spin.succeed('Types regenerated')
               }
             }
           } catch (err) {
@@ -214,7 +214,9 @@ async function runDev(
     })
 
     let terminatedBySignal = false
+    let forceKillTimer: ReturnType<typeof setTimeout> | undefined
     const handleExit = () => {
+      if (terminatedBySignal) return
       terminatedBySignal = true
       console.log(colors.dim('\n\nStopping dev server...'))
       // Abort file watcher if it exists
@@ -223,12 +225,22 @@ async function runDev(
       }
       // Kill the spawned process
       proc.kill()
+      forceKillTimer = setTimeout(() => {
+        try {
+          proc.kill('SIGKILL')
+        } catch {
+          // Process already exited
+        }
+      }, 3000)
     }
     process.on('SIGINT', handleExit)
     process.on('SIGTERM', handleExit)
 
     // Wait for process to exit
     const exitCode = await proc.exited
+    if (forceKillTimer) {
+      clearTimeout(forceKillTimer)
+    }
     // Abort file watcher if it exists
     if (ac) {
       ac.abort()
