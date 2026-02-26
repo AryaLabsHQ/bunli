@@ -193,11 +193,11 @@ options: {
     { description: 'Test types to run' }
   ),
   coverage: option(
-    z.boolean().default(false),
+    z.coerce.boolean().default(false),
     { description: 'Generate coverage report' }
   ),
   threshold: option(
-    z.number().min(0).max(100).default(80),
+    z.coerce.number().min(0).max(100).default(80),
     { description: 'Coverage threshold percentage' }
   )
 }
