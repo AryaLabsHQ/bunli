@@ -2,7 +2,7 @@
 export { createCLI } from './cli.js'
 export { defineCommand, option } from './types.js'
 export { defineConfig, bunliConfigSchema, type BunliConfig } from './config.js'
-export { loadConfig, type LoadedConfig } from './config-loader.js'
+export { loadConfig, loadConfigResult, type LoadedConfig } from './config-loader.js'
 export {
   createGeneratedHelpers,
   registerGeneratedStore,
@@ -80,3 +80,31 @@ export type {
   Assign,
   IntersectAssign
 } from './utils/type-helpers.js'
+
+// Export Result utilities
+export {
+  Result,
+  Ok,
+  Err,
+  TaggedError,
+  UnhandledException,
+  matchError,
+  matchErrorPartial
+} from 'better-result'
+export type { TaggedErrorClass, TaggedErrorInstance } from 'better-result'
+export {
+  ConfigNotFoundError,
+  ConfigLoadError
+} from './config-loader.js'
+export {
+  InvalidConfigError,
+  CommandNotFoundError,
+  CommandExecutionError,
+  OptionValidationError
+} from './cli.js'
+export {
+  PluginLoadError,
+  PluginValidationError,
+  PluginHookError,
+  toErrorMessage
+} from './plugin/errors.js'

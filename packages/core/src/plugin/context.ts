@@ -23,7 +23,7 @@ export class PluginContext implements IPluginContext {
   
   constructor(
     public readonly config: Partial<BunliConfig>,
-    public readonly store: Map<string, any>,
+    public readonly store: Map<string, unknown>,
     public readonly logger: Logger,
     public readonly paths: PathInfo
   ) {}
@@ -62,9 +62,9 @@ export class CommandContext<TStore = {}> implements ICommandContext<TStore> {
   
   constructor(
     public readonly command: string,
-    public readonly commandDef: any,
+    public readonly commandDef: CommandDefinition,
     public readonly args: string[],
-    public readonly flags: Record<string, any>,
+    public readonly flags: Record<string, unknown>,
     public readonly env: EnvironmentInfo,
     initialStore: TStore
   ) {
@@ -76,9 +76,10 @@ export class CommandContext<TStore = {}> implements ICommandContext<TStore> {
    * Provides compile-time type checking for store properties
    */
   getStoreValue<K extends keyof TStore>(key: K): TStore[K]
-  getStoreValue(key: string | number | symbol): any
-  getStoreValue(key: keyof TStore | string | number | symbol): any {
-    return (this.store as any)[key]
+  getStoreValue(key: string | number | symbol): unknown
+  getStoreValue(key: keyof TStore | string | number | symbol): unknown {
+    const storeRecord = this.store as Record<string | number | symbol, unknown>
+    return storeRecord[key]
   }
   
   /**
@@ -86,9 +87,10 @@ export class CommandContext<TStore = {}> implements ICommandContext<TStore> {
    * Provides compile-time type checking for store property updates
    */
   setStoreValue<K extends keyof TStore>(key: K, value: TStore[K]): void
-  setStoreValue(key: string | number | symbol, value: any): void
-  setStoreValue(key: keyof TStore | string | number | symbol, value: any): void {
-    (this.store as any)[key] = value
+  setStoreValue(key: string | number | symbol, value: unknown): void
+  setStoreValue(key: keyof TStore | string | number | symbol, value: unknown): void {
+    const storeRecord = this.store as Record<string | number | symbol, unknown>
+    storeRecord[key] = value
   }
   
   /**

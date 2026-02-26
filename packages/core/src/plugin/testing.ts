@@ -11,7 +11,7 @@ import { createLogger } from '../utils/logger.js'
  */
 export function createMockPluginContext(
   config: Partial<BunliConfig> = {},
-  store: Map<string, any> = new Map()
+  store: Map<string, unknown> = new Map()
 ): PluginContext {
   return {
     config,
@@ -34,21 +34,25 @@ export function createMockPluginContext(
 export function createMockCommandContext<TStore = {}>(
   command: string = 'test',
   args: string[] = [],
-  flags: Record<string, any> = {},
+  flags: Record<string, unknown> = {},
   store: TStore = {} as TStore
 ): CommandContext<TStore> {
   return {
     command,
-    commandDef: {} as any,
+    commandDef: {
+      name: command,
+      description: `${command} command`,
+      handler: async () => {}
+    },
     args,
     flags,
     env: {
       isCI: false
     },
     store,
-    getStoreValue: (key: keyof TStore) => (store as any)[key],
-    setStoreValue: (key: keyof TStore, value: any) => {
-      (store as any)[key] = value
+    getStoreValue: (key: keyof TStore) => (store as Record<string | number | symbol, unknown>)[key as string | number | symbol] as TStore[keyof TStore],
+    setStoreValue: (key: keyof TStore, value: TStore[keyof TStore]) => {
+      ;(store as Record<string | number | symbol, unknown>)[key as string | number | symbol] = value
     },
     hasStoreValue: (key: keyof TStore) => key in (store as object)
   }
@@ -64,7 +68,7 @@ export async function testPluginHooks<TStore = {}>(
     store?: TStore
     command?: string
     args?: string[]
-    flags?: Record<string, any>
+    flags?: Record<string, unknown>
   } = {}
 ) {
   const results: {
@@ -135,7 +139,7 @@ export async function testPluginHooks<TStore = {}>(
       options.command || 'test',
       options.args || [],
       options.flags || {},
-      options.store || {} as TStore
+      options.store || ({} as TStore)
     )
     try {
       await plugin.beforeCommand(context)
@@ -151,10 +155,10 @@ export async function testPluginHooks<TStore = {}>(
       options.command || 'test',
       options.args || [],
       options.flags || {},
-      options.store || {} as TStore
+      options.store || ({} as TStore)
     )
     try {
-      await plugin.afterCommand(context as any)
+      await plugin.afterCommand({ ...context, exitCode: 0 })
       results.afterCommand = { success: true, context }
     } catch (error) {
       results.afterCommand = { success: false, error }

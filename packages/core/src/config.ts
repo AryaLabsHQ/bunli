@@ -1,5 +1,30 @@
 import { z } from 'zod'
-import type { PluginConfig } from './plugin/types.js'
+import type { BunliPlugin, PluginConfig } from './plugin/types.js'
+
+function isPluginObject(value: unknown): value is BunliPlugin {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'name' in value &&
+    typeof (value as { name?: unknown }).name === 'string'
+  )
+}
+
+function isPluginConfig(value: unknown): value is PluginConfig {
+  if (typeof value === 'string') return true
+  if (typeof value === 'function') return true
+  if (isPluginObject(value)) return true
+
+  return (
+    Array.isArray(value) &&
+    value.length === 2 &&
+    typeof value[0] === 'function'
+  )
+}
+
+const pluginConfigSchema = z.custom<PluginConfig>(isPluginConfig, {
+  message: 'Invalid plugin configuration'
+})
 
 /**
  * Comprehensive Bunli configuration schema
@@ -58,7 +83,7 @@ export const bunliConfigSchema = z.object({
   // Workspace configuration
   workspace: z.object({
     packages: z.array(z.string()).optional(),
-    shared: z.any().optional(),
+    shared: z.unknown().optional(),
     versionStrategy: z.enum(['fixed', 'independent']).default('fixed')
   }).default({
     versionStrategy: 'fixed' as const
@@ -84,11 +109,11 @@ export const bunliConfigSchema = z.object({
   }),
   
   // Plugins configuration
-  plugins: z.array(z.any()).default([]),
+  plugins: z.array(pluginConfigSchema).default([]),
 
   // Help output configuration
   help: z.object({
-    renderer: z.any().optional()
+    renderer: z.unknown().optional()
   }).optional(),
 
   // TUI configuration (applies to `command.render` path)
