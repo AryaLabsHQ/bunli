@@ -768,8 +768,7 @@ export async function createCLI<
         finalArgs = argsOrOptions
       }
 
-      const args = finalArgs.length > 0 ? finalArgs : (argsOrOptions as string[] | undefined) || []
-      const finalArgsToUse = [...remainingArgs, ...args]
+      const finalArgsToUse = [...remainingArgs, ...finalArgs]
       const providedFlags = Object.keys(finalOptions).length > 0 ? finalOptions : undefined
 
       if (command.handler || command.render) {

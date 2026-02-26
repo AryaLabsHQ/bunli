@@ -92,9 +92,11 @@ export async function create(
   })
 
   if (Result.isError(projectResult)) {
-    if (!CreateProjectUserCancelledError.is(projectResult.error)) {
-      console.error(colors.red(projectResult.error.message))
+    if (CreateProjectUserCancelledError.is(projectResult.error)) {
+      return Result.err(new UserCancelledError(projectResult.error.message))
     }
+
+    console.error(colors.red(projectResult.error.message))
     return projectResult
   }
 
