@@ -1,5 +1,9 @@
 import type { HandlerArgs } from '@bunli/core'
-import { createProject, type CreateProjectError } from './create-project.js'
+import {
+  createProject,
+  type CreateProjectError,
+  UserCancelledError as CreateProjectUserCancelledError
+} from './create-project.js'
 import path from 'node:path'
 import { Result, TaggedError } from 'better-result'
 
@@ -20,7 +24,7 @@ class InvalidProjectNameError extends TaggedError('InvalidProjectNameError')<{
   }
 }
 
-class UserCancelledError extends TaggedError('UserCancelledError')<{
+export class UserCancelledError extends TaggedError('UserCancelledError')<{
   message: string
 }>() {
   constructor(message: string) {
@@ -88,7 +92,7 @@ export async function create(
   })
 
   if (Result.isError(projectResult)) {
-    if (projectResult.error._tag !== 'UserCancelledError') {
+    if (!CreateProjectUserCancelledError.is(projectResult.error)) {
       console.error(colors.red(projectResult.error.message))
     }
     return projectResult

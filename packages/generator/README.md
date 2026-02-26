@@ -16,19 +16,24 @@ The Bunli command type generator that creates TypeScript definitions from your C
 
 ```typescript
 import { Generator } from '@bunli/generator'
+import { Result } from 'better-result'
 
 const generator = new Generator({
   commandsDir: './commands',
   outputFile: './commands.gen.ts'
 })
 
-await generator.run()
+const runResult = await generator.run()
+if (Result.isError(runResult)) {
+  console.error(runResult.error.message)
+}
 ```
 
 ### With Watch Mode
 
 ```typescript
 import { Generator } from '@bunli/generator'
+import { Result } from 'better-result'
 
 const generator = new Generator({
   commandsDir: './commands',
@@ -36,7 +41,10 @@ const generator = new Generator({
 })
 
 // Initial generation
-await generator.run()
+const runResult = await generator.run()
+if (Result.isError(runResult)) {
+  console.error(runResult.error.message)
+}
 
 // Watch for changes (integrated with Bun's watch mode)
 // This is handled automatically by bunli dev
@@ -129,7 +137,7 @@ export default defineConfig({
 ```typescript
 class Generator {
   constructor(config: GeneratorConfig)
-  async run(event?: GeneratorEvent): Promise<void>
+  async run(event?: GeneratorEvent): Promise<Result<void, GeneratorRunError>>
   getConfig(): GeneratorConfig
   updateConfig(updates: Partial<GeneratorConfig>): void
 }

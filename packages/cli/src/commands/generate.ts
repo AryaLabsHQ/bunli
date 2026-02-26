@@ -116,7 +116,7 @@ async function runGenerate(
           }
         }
       } catch (err) {
-        if (err instanceof Error && err.name === 'AbortError' && aborted) {
+        if (aborted || signal.aborted) {
           console.log(colors.dim('Watcher stopped'))
           process.off('SIGINT', stopWatching)
           process.off('SIGTERM', stopWatching)

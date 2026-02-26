@@ -43,7 +43,7 @@ export class PluginManager<TStore = {}> {
   async loadPlugins(configs: PluginConfig[]): Promise<void> {
     const result = await this.loadPluginsResult(configs)
     if (result.isErr()) {
-      throw new Error(result.error.message)
+      throw result.error
     }
   }
 
@@ -109,7 +109,7 @@ export class PluginManager<TStore = {}> {
   async runSetup(config: Partial<BunliConfig>): Promise<PluginSetupResult> {
     const result = await this.runSetupResult(config)
     if (result.isErr()) {
-      throw new Error(result.error.message)
+      throw result.error
     }
     return result.value
   }
@@ -186,7 +186,7 @@ export class PluginManager<TStore = {}> {
   ): Promise<CommandContext<TStore>> {
     const result = await this.runBeforeCommandResult(command, commandDef, args, flags)
     if (result.isErr()) {
-      throw new Error(result.error.message)
+      throw result.error
     }
     return result.value
   }

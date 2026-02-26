@@ -17,7 +17,7 @@ export class PluginLoader {
       return result.value
     }
 
-    throw new Error(result.error.message)
+    throw result.error
   }
 
   async loadPluginResult(config: PluginConfig): Promise<Result<BunliPlugin, PluginLoadError>> {
@@ -128,7 +128,7 @@ export class PluginLoader {
   validatePlugin(plugin: BunliPlugin): void {
     const result = this.validatePluginResult(plugin)
     if (result.isErr()) {
-      throw new Error(result.error.message)
+      throw result.error
     }
   }
 

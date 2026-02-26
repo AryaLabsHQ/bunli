@@ -21,7 +21,7 @@ interface CreateProjectOptions extends CreateOptions {
   shell: typeof Bun.$
 }
 
-class UserCancelledError extends TaggedError('UserCancelledError')<{
+export class UserCancelledError extends TaggedError('UserCancelledError')<{
   message: string
 }>() {
   constructor(message: string) {

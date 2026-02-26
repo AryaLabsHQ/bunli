@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 import { createCLI, defineCommand, option } from '@bunli/core'
 import { z } from 'zod'
-import { create } from './create.js'
+import { create, UserCancelledError } from './create.js'
 import { Result } from 'better-result'
 
 async function run(): Promise<void> {
@@ -47,7 +47,7 @@ async function run(): Promise<void> {
     },
     handler: async (context) => {
       const result = await create(context)
-      if (Result.isError(result) && result.error._tag !== 'UserCancelledError') {
+      if (Result.isError(result) && !UserCancelledError.is(result.error)) {
         process.exitCode = 1
       }
     }

@@ -3,7 +3,7 @@ import { bunliConfigStrictSchema, bunliConfigSchema } from './config.js'
 import { ConfigLoadError, ConfigNotFoundError, loadConfigResult, type LoadedConfig } from './config-loader.js'
 import { parseArgs } from './parser.js'
 import { SchemaError, getDotPath } from '@standard-schema/utils'
-import { PromptCancelledError } from '@bunli/utils'
+import { PromptCancelledError, colors, prompt, spinner } from '@bunli/utils'
 import { PluginManager } from './plugin/manager.js'
 import type { BunliPlugin, MergeStores } from './plugin/types.js'
 import type { CommandContext } from './plugin/context.js'
@@ -81,7 +81,7 @@ export async function createCLI<
       )
     }
     if (loadedConfigResult.error instanceof ConfigLoadError) {
-      throw new Error(loadedConfigResult.error.message)
+      throw loadedConfigResult.error
     }
   }
 
@@ -438,7 +438,6 @@ export async function createCLI<
   }
 
   async function renderValidationError(error: SchemaError) {
-    const { colors } = await import('@bunli/utils')
     console.error(colors.red('Validation Error:'))
     const generalErrors: string[] = []
     const fieldErrors: Record<string, string[]> = {}
@@ -533,7 +532,6 @@ export async function createCLI<
         parsed.flags = mergeResult.value
       }
 
-      const { prompt, spinner, colors } = await import('@bunli/utils')
       if (mergedConfig.plugins && mergedConfig.plugins.length > 0) {
         const beforeResult = await pluginManager.runBeforeCommandResult(
           command.name,
@@ -642,7 +640,6 @@ export async function createCLI<
   }
 
   async function printRunCommandError(error: RunCommandError): Promise<void> {
-    const { colors } = await import('@bunli/utils')
     if (error instanceof SchemaError) {
       await renderValidationError(error)
       return

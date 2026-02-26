@@ -191,7 +191,7 @@ async function runDev(
               }
             }
           } catch (err) {
-            if (!(err instanceof Error) || err.name !== 'AbortError') {
+            if (!signal.aborted) {
               throw err
             }
           }

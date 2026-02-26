@@ -63,5 +63,5 @@ export async function loadConfig(cwd = process.cwd()): Promise<LoadedConfig> {
     return result.value
   }
 
-  throw new Error(result.error.message)
+  throw result.error
 }
