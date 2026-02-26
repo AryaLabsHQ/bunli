@@ -47,13 +47,13 @@ export const bunliConfigSchema = z.object({
   build: z.object({
     entry: z.string().or(z.array(z.string())).optional(),
     outdir: z.string().optional(),
-    targets: z.array(z.string()).default(['native']),  // Sensible default
+    targets: z.array(z.string()).default([]),
     compress: z.boolean().default(false),
     minify: z.boolean().default(false),
     external: z.array(z.string()).optional(),
     sourcemap: z.boolean().default(true)  // Always include sourcemaps for debugging
   }).default({
-    targets: ['native'],
+    targets: [],
     compress: false,
     minify: false,
     sourcemap: true

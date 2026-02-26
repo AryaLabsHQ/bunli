@@ -177,7 +177,7 @@ export async function createCLI<
     description: fullConfig.description || '',
     commands: fullConfig.commands || {},
     build: fullConfig.build || {
-      targets: ['native'],
+      targets: [],
       compress: false,
       minify: false,
       sourcemap: true

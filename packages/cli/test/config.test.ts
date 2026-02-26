@@ -1,5 +1,5 @@
 import { test, expect } from 'bun:test'
-import { defineConfig, bunliConfigSchema } from '@bunli/core'
+import { defineConfig, bunliConfigSchema } from '../../core/src/config.js'
 
 test('defineConfig - parses config and applies defaults', () => {
   const config = {
@@ -13,7 +13,7 @@ test('defineConfig - parses config and applies defaults', () => {
   expect(result.name).toBe('test-cli')
   expect(result.build.entry).toBe('src/cli.ts')
   // Defaults should be applied
-  expect(result.build.targets).toEqual(['native'])
+  expect(result.build.targets).toEqual([])
   expect(result.build.minify).toBe(false)
   expect(result.dev.watch).toBe(true)
 })

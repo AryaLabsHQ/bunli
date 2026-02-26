@@ -89,7 +89,7 @@ export default defineConfig({
   build: {
     entry: './cli.ts',
     outdir: './dist',
-    targets: ['native'],  // Default target
+    targets: ['native'],  // Example target
     compress: false,      // Default: false
     minify: false,        // Default: false
     sourcemap: true       // Default: true
@@ -146,7 +146,7 @@ export default defineConfig({
     // Output directory (default: './dist')
     outdir: './dist',
     
-    // Target platforms (default: ['native'])
+    // Target platforms (default: [])
     targets: ['native'],  // Native for current platform
     // or specific platforms:
     // targets: ['darwin-arm64', 'linux-x64', 'windows-x64'],

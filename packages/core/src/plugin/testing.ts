@@ -97,7 +97,7 @@ export async function testPluginHooks<TStore = {}>(
       description: 'Test CLI',
       commands: {},
       build: {
-        targets: ['native'],
+        targets: [],
         compress: false,
         minify: false,
         sourcemap: true
