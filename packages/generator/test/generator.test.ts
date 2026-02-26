@@ -186,4 +186,23 @@ export default defineCommand({
 
     await rm(testDir, { recursive: true, force: true })
   })
+
+  test('treats missing commands directory as empty command set', async () => {
+    await rm(testDir, { recursive: true, force: true })
+
+    const missingCommandsDir = join(testDir, 'commands')
+    const outputForMissingDir = join(testDir, 'commands.gen.ts')
+    const generator = new Generator({
+      commandsDir: missingCommandsDir,
+      outputFile: outputForMissingDir
+    })
+
+    const generation = await generator.run()
+    expect(Result.isOk(generation)).toBe(true)
+
+    const output = await Bun.file(outputForMissingDir).text()
+    expect(output).toContain('const modules: Record<GeneratedNames, Command<any>> = {')
+
+    await rm(testDir, { recursive: true, force: true })
+  })
 })

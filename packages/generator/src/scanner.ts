@@ -6,6 +6,10 @@ import { ScanCommandFileError, ScanCommandsError } from './errors.js'
 
 const logger = createLogger('generator:scanner')
 
+function isMissingDirectoryError(cause: unknown): boolean {
+  return cause instanceof Error && (cause as NodeJS.ErrnoException).code === 'ENOENT'
+}
+
 /**
  * Fast command scanner using Bun.Transpiler for optimal performance
  * 
@@ -28,64 +32,70 @@ export class CommandScanner {
    * Scan for command files using Bun.Transpiler for fast filtering
    */
   async scanCommands(commandsDir: string): Promise<Result<string[], ScanCommandsError>> {
-    return Result.tryPromise({
-      try: async () => {
-        // Use Bun's native Glob for file scanning
-        const glob = new Bun.Glob('**/*.{ts,tsx,js,jsx}')
-        const files = await Array.fromAsync(glob.scan({ cwd: commandsDir }))
-
-        const commandFiles: string[] = []
-
-        // Process files in parallel for better performance
-        const fileChecks = files.map(async (file) => {
-          const fullPath = join(commandsDir, file)
-
-          // Quick file extension check
-          const ext = extname(file)
-          if (!['.ts', '.tsx', '.js', '.jsx'].includes(ext)) {
-            return null
-          }
-
-          // Skip test files and other non-command files
-          if (this.isNonCommandFile(file)) {
-            return null
-          }
-
-          // Use Bun.Transpiler to quickly check if this is a command file
-          const fileResult = await this.isCommandFile(fullPath)
-          if (Result.isError(fileResult)) {
-            logger.debug('Could not inspect command file %s: %O', fullPath, fileResult.error)
-            return null
-          }
-
-          if (fileResult.value) {
-            return fullPath
-          }
-
-          return null
-        })
-
-        const results = await Promise.all(fileChecks)
-
-        // Filter out null results
-        for (const result of results) {
-          if (result) {
-            commandFiles.push(result)
-          }
-        }
-
-        return commandFiles
-      },
-      catch: (cause) => {
-        const error = new ScanCommandsError({
-          commandsDir,
-          message: `Could not scan commands directory ${commandsDir}`,
-          cause
-        })
-        logger.debug('Could not scan commands directory %s: %O', commandsDir, error)
-        return error
-      }
+    // Use Bun's native Glob for file scanning
+    const glob = new Bun.Glob('**/*.{ts,tsx,js,jsx}')
+    const filesResult = await Result.tryPromise({
+      try: async () => Array.fromAsync(glob.scan({ cwd: commandsDir })),
+      catch: (cause) => cause
     })
+
+    if (Result.isError(filesResult)) {
+      if (isMissingDirectoryError(filesResult.error)) {
+        logger.debug('Commands directory %s does not exist; treating as empty', commandsDir)
+        return Result.ok([])
+      }
+
+      const error = new ScanCommandsError({
+        commandsDir,
+        message: `Could not scan commands directory ${commandsDir}`,
+        cause: filesResult.error
+      })
+      logger.debug('Could not scan commands directory %s: %O', commandsDir, error)
+      return Result.err(error)
+    }
+
+    const files = filesResult.value
+    const commandFiles: string[] = []
+
+    // Process files in parallel for better performance
+    const fileChecks = files.map(async (file) => {
+      const fullPath = join(commandsDir, file)
+
+      // Quick file extension check
+      const ext = extname(file)
+      if (!['.ts', '.tsx', '.js', '.jsx'].includes(ext)) {
+        return null
+      }
+
+      // Skip test files and other non-command files
+      if (this.isNonCommandFile(file)) {
+        return null
+      }
+
+      // Use Bun.Transpiler to quickly check if this is a command file
+      const fileResult = await this.isCommandFile(fullPath)
+      if (Result.isError(fileResult)) {
+        logger.debug('Could not inspect command file %s: %O', fullPath, fileResult.error)
+        return null
+      }
+
+      if (fileResult.value) {
+        return fullPath
+      }
+
+      return null
+    })
+
+    const results = await Promise.all(fileChecks)
+
+    // Filter out null results
+    for (const result of results) {
+      if (result) {
+        commandFiles.push(result)
+      }
+    }
+
+    return Result.ok(commandFiles)
   }
 
   /**
