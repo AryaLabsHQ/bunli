@@ -181,8 +181,8 @@ export function defineCommand<TOptions extends Options = Options, TStore = {}, T
 }
 
 // Import configuration types from schema
-import type { BunliConfig } from './config.js'
-export type { BunliConfig } from './config.js'
+import type { BunliConfig, BunliConfigInput } from './config.js'
+export type { BunliConfig, BunliConfigInput } from './config.js'
 export { bunliConfigSchema } from './config.js'
 export type {
   GeneratedStore,

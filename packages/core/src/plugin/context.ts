@@ -9,7 +9,7 @@ import type {
   EnvironmentInfo,
   Middleware
 } from './types.js'
-import type { BunliConfig } from '../types.js'
+import type { BunliConfigInput } from '../types.js'
 import type { CommandDefinition } from './types.js'
 import type { Logger } from '../utils/logger.js'
 
@@ -17,18 +17,18 @@ import type { Logger } from '../utils/logger.js'
  * Plugin context implementation for setup phase
  */
 export class PluginContext implements IPluginContext {
-  private configUpdates: Partial<BunliConfig>[] = []
+  private configUpdates: Partial<BunliConfigInput>[] = []
   private commands: CommandDefinition[] = []
   private middlewares: Middleware[] = []
   
   constructor(
-    public readonly config: Partial<BunliConfig>,
+    public readonly config: BunliConfigInput,
     public readonly store: Map<string, unknown>,
     public readonly logger: Logger,
     public readonly paths: PathInfo
   ) {}
   
-  updateConfig(partial: Partial<BunliConfig>): void {
+  updateConfig(partial: Partial<BunliConfigInput>): void {
     this.configUpdates.push(partial)
   }
   
@@ -41,7 +41,7 @@ export class PluginContext implements IPluginContext {
   }
   
   // Internal methods for framework use
-  _getConfigUpdates(): Partial<BunliConfig>[] {
+  _getConfigUpdates(): Partial<BunliConfigInput>[] {
     return this.configUpdates
   }
   

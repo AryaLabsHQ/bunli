@@ -1,4 +1,15 @@
-import type { CLI, Command, BunliConfig, CommandManifest, CommandLoader, ResolvedConfig, CLIOption, TerminalInfo, RuntimeInfo } from './types.js'
+import type {
+  CLI,
+  Command,
+  BunliConfig,
+  BunliConfigInput,
+  CommandManifest,
+  CommandLoader,
+  ResolvedConfig,
+  CLIOption,
+  TerminalInfo,
+  RuntimeInfo
+} from './types.js'
 import { bunliConfigStrictSchema, bunliConfigSchema } from './config.js'
 import { ConfigLoadError, ConfigNotFoundError, loadConfigResult, type LoadedConfig } from './config-loader.js'
 import { parseArgs } from './parser.js'
@@ -60,7 +71,7 @@ function resolveRendererOptions(
 export async function createCLI<
   TPlugins extends readonly BunliPlugin[] = []
 >(
-  configOverride?: Partial<BunliConfig> & { 
+  configOverride?: BunliConfigInput & {
     plugins?: TPlugins 
     generated?: string | boolean  // Optional, defaults to true
   }

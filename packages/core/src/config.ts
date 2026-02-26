@@ -130,7 +130,7 @@ export const bunliConfigSchema = z.object({
  * Inferred TypeScript type from the schema (output type with defaults applied)
  * This ensures runtime validation matches compile-time types
  */
-export type BunliConfig = z.infer<typeof bunliConfigSchema>
+export type BunliConfig = z.output<typeof bunliConfigSchema>
 
 /**
  * Input type for config (fields with defaults are optional)

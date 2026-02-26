@@ -1,7 +1,7 @@
 // Note: createCLI is now async and returns Promise<CLI>
 export { createCLI } from './cli.js'
 export { defineCommand, option } from './types.js'
-export { defineConfig, bunliConfigSchema, type BunliConfig } from './config.js'
+export { defineConfig, bunliConfigSchema, type BunliConfig, type BunliConfigInput } from './config.js'
 export { loadConfig, loadConfigResult, type LoadedConfig } from './config-loader.js'
 export {
   createGeneratedHelpers,

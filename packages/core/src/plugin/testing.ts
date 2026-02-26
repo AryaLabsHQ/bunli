@@ -3,14 +3,14 @@
  */
 
 import type { BunliPlugin, CommandContext, PluginContext } from './types.js'
-import type { BunliConfig, ResolvedConfig } from '../types.js'
+import type { BunliConfigInput, ResolvedConfig } from '../types.js'
 import { createLogger } from '../utils/logger.js'
 
 /**
  * Mock plugin context for testing
  */
 export function createMockPluginContext(
-  config: Partial<BunliConfig> = {},
+  config: Partial<BunliConfigInput> = {},
   store: Map<string, unknown> = new Map()
 ): PluginContext {
   return {
@@ -64,7 +64,7 @@ export function createMockCommandContext<TStore = {}>(
 export async function testPluginHooks<TStore = {}>(
   plugin: BunliPlugin<TStore>,
   options: {
-    config?: Partial<BunliConfig>
+    config?: Partial<BunliConfigInput>
     store?: TStore
     command?: string
     args?: string[]

@@ -2,7 +2,7 @@
  * Core plugin types and interfaces for Bunli
  */
 
-import type { BunliConfig, ResolvedConfig } from '../types.js'
+import type { BunliConfigInput, ResolvedConfig } from '../types.js'
 import type { Command } from '../types.js'
 import type { Logger } from '../utils/logger.js'
 import type { Result } from 'better-result'
@@ -106,10 +106,10 @@ export type PluginConfig =
  */
 export interface PluginContext {
   /** Current configuration (being built) */
-  readonly config: Partial<BunliConfig>
+  readonly config: BunliConfigInput
   
   /** Update configuration */
-  updateConfig(partial: Partial<BunliConfig>): void
+  updateConfig(partial: Partial<BunliConfigInput>): void
   
   /** Register a new command */
   registerCommand(command: CommandDefinition): void

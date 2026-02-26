@@ -22,11 +22,11 @@ import type {
   CommandDefinition,
   Middleware
 } from './types.js'
-import type { BunliConfig, ResolvedConfig } from '../types.js'
+import type { BunliConfigInput, ResolvedConfig } from '../types.js'
 import type { Command } from '../types.js'
 
 export interface PluginSetupResult {
-  config: Partial<BunliConfig>
+  config: BunliConfigInput
   commands: CommandDefinition[]
   middlewares: Middleware[]
 }
@@ -106,7 +106,7 @@ export class PluginManager<TStore = {}> {
   /**
    * Run setup hooks for all plugins
    */
-  async runSetup(config: Partial<BunliConfig>): Promise<PluginSetupResult> {
+  async runSetup(config: BunliConfigInput): Promise<PluginSetupResult> {
     const result = await this.runSetupResult(config)
     if (result.isErr()) {
       throw result.error
@@ -115,7 +115,7 @@ export class PluginManager<TStore = {}> {
   }
 
   async runSetupResult(
-    config: Partial<BunliConfig>
+    config: BunliConfigInput
   ): Promise<Result<PluginSetupResult, PluginHookError>> {
     const context = new PluginContext(
       config,
