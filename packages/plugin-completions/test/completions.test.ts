@@ -2,18 +2,20 @@ import { describe, test, expect, beforeEach, afterEach } from 'bun:test'
 import { createCLI } from '@bunli/core'
 import { completionsPlugin } from '../src/index.js'
 import { resolve } from 'node:path'
+import type { CompletionsPluginOptions } from '../src/types.js'
 
 const EXAMPLE_DIR = resolve(import.meta.dir, '../../../examples/task-runner')
 const SHELLS = ['bash', 'zsh', 'fish', 'powershell'] as const
 
-async function createTestCLI() {
+async function createTestCLI(overrides: CompletionsPluginOptions = {}) {
   return createCLI({
     name: 'my-cli',
     version: '1.0.0',
     plugins: [
       completionsPlugin({
         commandName: 'my-cli',
-        executable: 'my-cli'
+        executable: 'my-cli',
+        ...overrides
       })
     ] as const
   })
@@ -167,5 +169,19 @@ describe('completions/complete command (Tab protocol)', () => {
     expect(code).toBe(0)
     expect(stderr.trim()).toBe('')
     expect(stdout).toContain('complete --')
+  })
+
+  test('missing generated metadata returns :1 directive without stack trace', async () => {
+    const cli = await createTestCLI({ generatedPath: '.bunli/does-not-exist.ts' })
+    const cap = captureConsole()
+
+    try {
+      await cli.run(['complete', '--', 'deploy'])
+    } finally {
+      cap.restore()
+    }
+
+    expect(cap.stdout().trim()).toBe(':1')
+    expect(cap.stderr().trim()).toBe('')
   })
 })

@@ -1,5 +1,30 @@
 import { z } from 'zod'
-import type { PluginConfig } from './plugin/types.js'
+import type { BunliPlugin, PluginConfig } from './plugin/types.js'
+
+function isPluginObject(value: unknown): value is BunliPlugin {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'name' in value &&
+    typeof (value as { name?: unknown }).name === 'string'
+  )
+}
+
+function isPluginConfig(value: unknown): value is PluginConfig {
+  if (typeof value === 'string') return true
+  if (typeof value === 'function') return true
+  if (isPluginObject(value)) return true
+
+  return (
+    Array.isArray(value) &&
+    value.length === 2 &&
+    typeof value[0] === 'function'
+  )
+}
+
+const pluginConfigSchema = z.custom<PluginConfig>(isPluginConfig, {
+  message: 'Invalid plugin configuration'
+})
 
 /**
  * Comprehensive Bunli configuration schema
@@ -22,13 +47,13 @@ export const bunliConfigSchema = z.object({
   build: z.object({
     entry: z.string().or(z.array(z.string())).optional(),
     outdir: z.string().optional(),
-    targets: z.array(z.string()).default(['native']),  // Sensible default
+    targets: z.array(z.string()).default([]),
     compress: z.boolean().default(false),
     minify: z.boolean().default(false),
     external: z.array(z.string()).optional(),
     sourcemap: z.boolean().default(true)  // Always include sourcemaps for debugging
   }).default({
-    targets: ['native'],
+    targets: [],
     compress: false,
     minify: false,
     sourcemap: true
@@ -58,7 +83,7 @@ export const bunliConfigSchema = z.object({
   // Workspace configuration
   workspace: z.object({
     packages: z.array(z.string()).optional(),
-    shared: z.any().optional(),
+    shared: z.unknown().optional(),
     versionStrategy: z.enum(['fixed', 'independent']).default('fixed')
   }).default({
     versionStrategy: 'fixed' as const
@@ -84,11 +109,11 @@ export const bunliConfigSchema = z.object({
   }),
   
   // Plugins configuration
-  plugins: z.array(z.any()).default([]),
+  plugins: z.array(pluginConfigSchema).default([]),
 
   // Help output configuration
   help: z.object({
-    renderer: z.any().optional()
+    renderer: z.unknown().optional()
   }).optional(),
 
   // TUI configuration (applies to `command.render` path)
@@ -105,7 +130,7 @@ export const bunliConfigSchema = z.object({
  * Inferred TypeScript type from the schema (output type with defaults applied)
  * This ensures runtime validation matches compile-time types
  */
-export type BunliConfig = z.infer<typeof bunliConfigSchema>
+export type BunliConfig = z.output<typeof bunliConfigSchema>
 
 /**
  * Input type for config (fields with defaults are optional)

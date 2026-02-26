@@ -32,7 +32,7 @@ import { option } from '@bunli/core'
 
 // Use Zod schemas with the option helper
 const portOption = option(
-  z.number().min(1).max(65535)
+  z.coerce.number().min(1).max(65535)
 )
 ```
 

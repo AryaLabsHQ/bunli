@@ -3,6 +3,7 @@ import { Generator } from './generator.js'
 import type { GeneratorConfig } from './types.js'
 import type { Build } from 'bun'
 import { createLogger } from '@bunli/core/utils'
+import { Result } from 'better-result'
 
 const logger = createLogger('generator:plugin')
 
@@ -45,13 +46,16 @@ export function bunliCodegenPlugin(options: BunliCodegenPluginOptions = {}): Bun
       // Hook into the build start to generate types
       build.onStart(async () => {
         if (generator) {
-          try {
-            logger.debug('Generating command types...')
-            await generator.run()
-            logger.debug('Command types generated')
-          } catch (error) {
-            logger.debug('Failed to generate command types: %s', error instanceof Error ? error.message : String(error))
+          logger.debug('Generating command types...')
+          const generation = await generator.run()
+          if (Result.isError(generation)) {
+            logger.warn(
+              'Failed to generate command types: %s',
+              generation.error.message
+            )
+            return
           }
+          logger.debug('Command types generated')
         }
       })
 
@@ -59,10 +63,9 @@ export function bunliCodegenPlugin(options: BunliCodegenPluginOptions = {}): Bun
       build.onEnd(async (result: BuildOutput) => {
         if (result.success && generator) {
           // Regenerate types if build was successful
-          try {
-            await generator.run()
-          } catch (error) {
-            logger.debug('Failed to regenerate types: %s', error instanceof Error ? error.message : String(error))
+          const regeneration = await generator.run()
+          if (Result.isError(regeneration)) {
+            logger.warn('Failed to regenerate types: %s', regeneration.error.message)
           }
         }
       })

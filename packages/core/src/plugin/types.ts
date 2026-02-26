@@ -2,9 +2,10 @@
  * Core plugin types and interfaces for Bunli
  */
 
-import type { BunliConfig, ResolvedConfig } from '../types.js'
+import type { BunliConfigInput, ResolvedConfig } from '../types.js'
 import type { Command } from '../types.js'
 import type { Logger } from '../utils/logger.js'
+import type { Result } from 'better-result'
 
 // Command definition type for plugins
 export type CommandDefinition = Command<any>
@@ -75,17 +76,17 @@ export type MergeStores<Plugins extends readonly BunliPlugin[]> =
 /**
  * Plugin factory function type
  */
-export type PluginFactory<TOptions = any, TStore = {}> = (options?: TOptions) => BunliPlugin<TStore>
+export type PluginFactory<TOptions = unknown, TStore = {}> = (options?: TOptions) => BunliPlugin<TStore>
 
 /**
  * Command execution result
  */
 export interface CommandResult {
   /** Command return value */
-  result?: any
+  result?: unknown
   
   /** Error if command failed */
-  error?: Error
+  error?: unknown
   
   /** Exit code */
   exitCode?: number
@@ -98,17 +99,17 @@ export type PluginConfig =
   | string                    // Path to plugin
   | BunliPlugin              // Plugin object
   | PluginFactory            // Plugin factory function
-  | [PluginFactory, any]     // Plugin with options
+  | [PluginFactory, unknown]     // Plugin with options
 
 /**
  * Plugin context available during setup
  */
 export interface PluginContext {
   /** Current configuration (being built) */
-  readonly config: Partial<BunliConfig>
+  readonly config: BunliConfigInput
   
   /** Update configuration */
-  updateConfig(partial: Partial<BunliConfig>): void
+  updateConfig(partial: Partial<BunliConfigInput>): void
   
   /** Register a new command */
   registerCommand(command: CommandDefinition): void
@@ -117,7 +118,7 @@ export interface PluginContext {
   use(middleware: Middleware): void
   
   /** Shared storage between plugins */
-  readonly store: Map<string, any>
+  readonly store: Map<string, unknown>
   
   /** Plugin logger */
   readonly logger: Logger
@@ -140,7 +141,7 @@ export interface CommandContext<TStore = {}> {
   readonly args: string[]
   
   /** Parsed flags/options */
-  readonly flags: Record<string, any>
+  readonly flags: Record<string, unknown>
   
   /** Environment information */
   readonly env: EnvironmentInfo
@@ -150,11 +151,11 @@ export interface CommandContext<TStore = {}> {
   
   /** Type-safe store value access */
   getStoreValue<K extends keyof TStore>(key: K): TStore[K]
-  getStoreValue(key: string | number | symbol): any
+  getStoreValue(key: string | number | symbol): unknown
   
   /** Type-safe store value update */
   setStoreValue<K extends keyof TStore>(key: K, value: TStore[K]): void
-  setStoreValue(key: string | number | symbol, value: any): void
+  setStoreValue(key: string | number | symbol, value: unknown): void
   
   /** Check if a store property exists */
   hasStoreValue<K extends keyof TStore>(key: K): boolean
@@ -186,7 +187,9 @@ export interface EnvironmentInfo {
 /**
  * Middleware function type
  */
-export type Middleware = (context: CommandContext, next: () => Promise<any>) => Promise<any>
+export type Middleware = (context: CommandContext, next: () => Promise<unknown>) => Promise<unknown>
+
+export type PluginRuntimeResult<T> = Result<T, unknown>
 
 /**
  * Module augmentation for plugin extensions

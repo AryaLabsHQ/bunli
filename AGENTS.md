@@ -1,11 +1,11 @@
 # PROJECT KNOWLEDGE BASE
 
-**Generated:** 2026-01-29
-**Type:** Bun monorepo (workspace + Turbo)
+**Generated:** 2026-02-27
+**Commit:** ab23dd0
 
 ## OVERVIEW
 
-Minimal, type-safe CLI framework for Bun with advanced plugin system. Uses Zod for command validation, Bun Shell for execution, and Turborepo for builds.
+Minimal, type-safe CLI framework for Bun with advanced plugin system. Uses Zod for command validation, Bun Shell for execution, Turborepo for builds, and better-result for error handling.
 
 ## STRUCTURE
 
@@ -18,8 +18,11 @@ Minimal, type-safe CLI framework for Bun with advanced plugin system. Uses Zod f
 │   ├── test/           # CLI testing utilities
 │   ├── generator/      # TypeScript type generation
 │   ├── create-bunli/   # Project scaffolding
-│   ├── plugin-*/       # ai-detect, config, completions
-│   └── tui/            # Terminal UI components
+│   ├── plugin-ai-detect/
+│   ├── plugin-completions/
+│   ├── plugin-config/
+│   ├── plugin-mcp/
+│   └── tui/
 ├── examples/           # 4 working examples
 ├── apps/web/           # Next.js docs site
 └── scripts/            # Build/release automation
@@ -43,6 +46,7 @@ Minimal, type-safe CLI framework for Bun with advanced plugin system. Uses Zod f
 | `option()` | `packages/core/src/option/` | Flag definition |
 | `createPlugin` | `packages/core/src/plugin/` | Plugin factory |
 | `createCLI` | `packages/core/src/cli.ts` | CLI entry point |
+| `TaggedError` | `better-result` | Error class pattern |
 
 ## CONVENTIONS
 
@@ -52,6 +56,7 @@ Minimal, type-safe CLI framework for Bun with advanced plugin system. Uses Zod f
 - **Zod validation**: All command options use Zod schemas
 - **Plugin store**: Typed via generics, accessed via context
 - **Test files**: `.test.ts` suffix in `packages/*/test/`
+- **Error handling**: Use `better-result` with `TaggedError` pattern
 
 ## ANTI-PATTERNS (THIS PROJECT)
 
@@ -98,4 +103,4 @@ bun run release
 | `packages/tui/` | TUI components |
 | `packages/create-bunli/` | Scaffolding patterns |
 | `examples/*/` | Example-specific patterns |
-| `apps/web/` | Web app documentation |
+| `apps/web/` | Next.js docs site |

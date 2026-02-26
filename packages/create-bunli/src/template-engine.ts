@@ -25,10 +25,13 @@ export async function processTemplate(options: TemplateOptions) {
     const sourceDir = source.startsWith('/') ? source : join(process.cwd(), source)
     
     // Copy template files to destination
-    await Bun.spawn(['cp', '-r', sourceDir + '/.', dir], {
+    const copyExitCode = await Bun.spawn(['cp', '-r', sourceDir + '/.', dir], {
       stdout: 'inherit',
       stderr: 'inherit'
     }).exited
+    if (copyExitCode !== 0) {
+      throw new Error(`Failed to copy local template from ${sourceDir}`)
+    }
     
     templateDir = dir
   } else {
@@ -78,13 +81,13 @@ async function loadTemplateManifest(dir: string): Promise<TemplateManifest | nul
       if (path.endsWith('.json')) {
         const manifest = JSON.parse(content)
         // Remove the manifest file after reading
-        try {
-          await Bun.spawn(['rm', '-f', path], {
-            stdout: 'ignore',
-            stderr: 'ignore'
-          }).exited
-        } catch {
-          // Ignore removal errors
+        const removeExitCode = await Bun.spawn(['rm', '-f', path], {
+          stdout: 'ignore',
+          stderr: 'ignore'
+        }).exited
+
+        if (removeExitCode !== 0) {
+          console.warn(`Warning: failed to remove template manifest ${path}`)
         }
         return manifest
       }
@@ -198,7 +201,10 @@ async function runPostInstallHooks(dir: string, hooks: string[]) {
       stdout: 'inherit',
       stderr: 'inherit'
     })
-    await proc.exited
+    const exitCode = await proc.exited
+    if (exitCode !== 0) {
+      throw new Error(`Post-install hook failed: ${hook}`)
+    }
   }
 }
 

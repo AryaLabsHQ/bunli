@@ -196,7 +196,7 @@ export default defineConfig({
   build: {
     entry: './cli.ts',
     outdir: './dist',
-    targets: ['native'],  // Default target
+    targets: ['native'],  // Example target
     compress: false,      // Default: false
     minify: false,        // Default: false
     sourcemap: true       // Default: true

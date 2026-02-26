@@ -1,10 +1,23 @@
 import { defineCommand, option } from '@bunli/core'
+import { Result, TaggedError } from 'better-result'
 import { Generator } from '@bunli/generator'
 import { z } from 'zod'
 import { loadConfig } from '@bunli/core'
 import { findEntry } from '../utils/find-entry.js'
 import path from 'node:path'
 import { existsSync } from 'node:fs'
+import { watch } from 'node:fs/promises'
+import type { BunliUtils } from '@bunli/utils'
+
+
+const DevCommandError = TaggedError('DevCommandError')<{
+  message: string
+  cause?: unknown
+}>()
+type DevCommandErrorType = InstanceType<typeof DevCommandError>
+
+const failDev = (message: string, cause?: unknown): Result<never, DevCommandErrorType> =>
+  Result.err(new DevCommandError({ message, cause }))
 
 export default defineCommand({
   name: 'dev',
@@ -41,77 +54,92 @@ export default defineCommand({
     )
   },
   handler: async ({ flags, positional, spinner, colors }) => {
+    const result = await runDev(flags as Record<string, unknown>, positional, spinner, colors)
+    if (result.isErr()) {
+      throw result.error
+    }
+  }
+})
+
+async function runDev(
+  flags: Record<string, unknown>,
+  positional: string[],
+  spinner: BunliUtils['spinner'],
+  colors: BunliUtils['colors']
+): Promise<Result<void, DevCommandErrorType>> {
     const config = await loadConfig()
+    const typedFlags = flags as {
+      entry?: string
+      commandsDir: string
+      generate: boolean
+      clearScreen: boolean
+      watch: boolean
+      inspect: boolean
+      port?: number
+    }
 
     // Generate types if codegen is enabled
-    const generateTypes = async () => {
-      if (!flags.generate) return
+    const generateTypes = async (): Promise<Result<void, DevCommandErrorType>> => {
+      if (!typedFlags.generate) return Result.ok(undefined)
 
       const generator = new Generator({
-        commandsDir: flags.commandsDir,
+        commandsDir: typedFlags.commandsDir,
         outputFile: './.bunli/commands.gen.ts',
         config,
         generateReport: config.commands?.generateReport
       })
 
-      try {
-        await generator.run()
-        return true
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error)
-        console.error(colors.red(`Failed to generate types: ${message}`))
-        return false
+      const generationResult = await generator.run()
+      if (Result.isError(generationResult)) {
+        return failDev(`Failed to generate types: ${generationResult.error.message}`, generationResult.error)
       }
+      return Result.ok(undefined)
     }
 
     // Initial type generation
-    if (flags.generate) {
+    if (typedFlags.generate) {
       const spin = spinner('Generating command types...')
-      const success = await generateTypes()
-      if (success) {
-        spin.succeed('Types generated')
-      } else {
+      const generationResult = await generateTypes()
+      if (generationResult.isErr()) {
         spin.fail('Failed to generate types')
-        process.exit(1)
+        return generationResult
       }
+      spin.succeed('Types generated')
     }
 
     // 2. Find entry point
-    const entry = flags.entry || config.build?.entry || await findEntry()
+    const entry = typedFlags.entry || config.build?.entry || await findEntry()
     if (!entry) {
-      console.error(colors.red('No entry file found. Please specify with --entry or in bunli.config.ts'))
-      process.exit(1)
+      return failDev('No entry file found. Please specify with --entry or in bunli.config.ts')
     }
 
     const entryFile = Array.isArray(entry) ? entry[0] : entry
     if (!entryFile) {
-      console.error(colors.red('Entry file is required'))
-      process.exit(1)
+      return failDev('Entry file is required')
     }
 
     const entryPath = path.resolve(entryFile)
     if (!existsSync(entryPath)) {
-      console.error(colors.red(`Entry file not found: ${entryPath}`))
-      process.exit(1)
+      return failDev(`Entry file not found: ${entryPath}`)
     }
 
     // Build bun command args
     const bunArgs: string[] = []
     
     // Use --hot for hot reload (Bun's native hot reload)
-    if (flags.watch ?? config.dev?.watch ?? true) {
+    if (typedFlags.watch ?? config.dev?.watch ?? true) {
       bunArgs.push('--hot')
     }
 
     // Add inspect flag if enabled
-    if (flags.inspect) {
+    if (typedFlags.inspect) {
       bunArgs.push('--inspect')
-      if (flags.port) {
-        bunArgs.push(`--inspect-port=${flags.port}`)
+      if (typedFlags.port) {
+        bunArgs.push(`--inspect-port=${typedFlags.port}`)
       }
-    } else if (flags.port) {
+    } else if (typedFlags.port) {
       // If port is specified without inspect, still add it
-      bunArgs.push(`--inspect-port=${flags.port}`)
+      bunArgs.push(`--inspect-port=${typedFlags.port}`)
     }
 
     // Add the entry file
@@ -123,16 +151,15 @@ export default defineCommand({
     }
 
     console.log(colors.cyan('\n👀 Starting dev mode...\n'))
-    if (flags.watch ?? config.dev?.watch ?? true) {
+    if (typedFlags.watch ?? config.dev?.watch ?? true) {
       console.log(colors.dim(`Running: bun ${bunArgs.join(' ')}\n`))
     }
 
     // Watch for changes in commands directory to regenerate types
     let ac: AbortController | null = null
-    if (flags.watch ?? config.dev?.watch ?? true) {
-      const commandsDir = path.resolve(flags.commandsDir)
-      if (existsSync(commandsDir) && flags.generate) {
-        const { watch } = await import('node:fs/promises')
+    if (typedFlags.watch ?? config.dev?.watch ?? true) {
+      const commandsDir = path.resolve(typedFlags.commandsDir)
+      if (existsSync(commandsDir) && typedFlags.generate) {
         ac = new AbortController()
         const { signal } = ac
 
@@ -154,15 +181,16 @@ export default defineCommand({
 
               console.log(colors.dim(`\n[${new Date().toLocaleTimeString()}] Command file changed: ${event.filename}`))
               const spin = spinner('Regenerating types...')
-              const success = await generateTypes()
-              if (success) {
-                spin.succeed('Types regenerated')
-              } else {
+              const generationResult = await generateTypes()
+              if (generationResult.isErr()) {
                 spin.fail('Failed to regenerate types')
+                console.error(colors.red(generationResult.error.message))
+              } else {
+                spin.succeed('Types regenerated')
               }
             }
-          } catch (err: any) {
-            if (err.name !== 'AbortError') {
+          } catch (err) {
+            if (!signal.aborted) {
               throw err
             }
           }
@@ -184,7 +212,11 @@ export default defineCommand({
       }
     })
 
+    let terminatedBySignal = false
+    let forceKillTimer: ReturnType<typeof setTimeout> | undefined
     const handleExit = () => {
+      if (terminatedBySignal) return
+      terminatedBySignal = true
       console.log(colors.dim('\n\nStopping dev server...'))
       // Abort file watcher if it exists
       if (ac) {
@@ -192,17 +224,34 @@ export default defineCommand({
       }
       // Kill the spawned process
       proc.kill()
-      process.exit(0)
+      forceKillTimer = setTimeout(() => {
+        try {
+          proc.kill('SIGKILL')
+        } catch {
+          // Process already exited
+        }
+      }, 3000)
     }
     process.on('SIGINT', handleExit)
     process.on('SIGTERM', handleExit)
 
     // Wait for process to exit
-    await proc.exited
+    const exitCode = await proc.exited
+    if (forceKillTimer) {
+      clearTimeout(forceKillTimer)
+    }
     // Abort file watcher if it exists
     if (ac) {
       ac.abort()
     }
-    process.exit(proc.exitCode ?? 0)
-  }
-})
+    process.off('SIGINT', handleExit)
+    process.off('SIGTERM', handleExit)
+
+    if (terminatedBySignal) {
+      return Result.ok(undefined)
+    }
+    if (exitCode !== 0) {
+      return failDev(`Dev process exited with code ${exitCode}`)
+    }
+    return Result.ok(undefined)
+}

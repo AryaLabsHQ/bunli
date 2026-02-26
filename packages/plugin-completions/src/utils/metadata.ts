@@ -2,6 +2,7 @@ import type { GeneratedCommandMeta } from '@bunli/core'
 import { resolve } from 'node:path'
 import { readFile } from 'node:fs/promises'
 import { pathToFileURL } from 'node:url'
+import { Result, TaggedError } from 'better-result'
 import type { CompletionsPluginOptions } from '../types.js'
 
 export interface ResolvedCliInfo {
@@ -12,6 +13,17 @@ export interface ResolvedCliInfo {
 export interface LoadedCommandMetadata {
   commands: GeneratedCommandMeta[]
 }
+
+class PackageJsonReadError extends TaggedError('PackageJsonReadError')<{
+  message: string
+  cause: unknown
+}>() {}
+
+export class LoadGeneratedMetadataError extends TaggedError('LoadGeneratedMetadataError')<{
+  generatedPath: string
+  message: string
+  cause: unknown
+}>() {}
 
 function stripScope(name: string): string {
   // "@scope/name" -> "name"
@@ -24,14 +36,8 @@ export async function resolveCliInfo(options: CompletionsPluginOptions = {}): Pr
     return { commandName: options.commandName, executable: options.executable }
   }
 
-  let pkg: any | null = null
-  try {
-    const pkgPath = resolve(process.cwd(), 'package.json')
-    const pkgContent = await readFile(pkgPath, 'utf-8')
-    pkg = JSON.parse(pkgContent)
-  } catch {
-    pkg = null
-  }
+  const packageJsonResult = await readProjectPackageJson()
+  const pkg = Result.isOk(packageJsonResult) ? packageJsonResult.value : null
 
   const pkgName: string | undefined = typeof pkg?.name === 'string' ? pkg.name : undefined
   const pkgNameStripped = pkgName ? stripScope(pkgName) : undefined
@@ -57,23 +63,45 @@ export async function resolveCliInfo(options: CompletionsPluginOptions = {}): Pr
 
 export async function loadGeneratedMetadata(
   options: CompletionsPluginOptions = {}
-): Promise<LoadedCommandMetadata> {
+): Promise<Result<LoadedCommandMetadata, LoadGeneratedMetadataError>> {
   const generatedPath = options.generatedPath ?? '.bunli/commands.gen.ts'
   const absolute = resolve(process.cwd(), generatedPath)
 
   // Bun/Node dynamic import of absolute paths is most reliable via file: URL.
   const url = pathToFileURL(absolute).href
 
-  try {
-    const mod = (await import(url)) as {
-      generated?: { list: () => Array<{ metadata: GeneratedCommandMeta }> }
-    }
-    const list = mod.generated?.list?.() ?? []
-    return { commands: list.map((i) => i.metadata) }
-  } catch (error) {
-    throw new Error(
-      `Could not load command metadata from ${generatedPath}. Make sure it exists (run "bunli generate").`
-    )
-  }
+  return await Result.tryPromise({
+    try: async () => {
+      const mod = (await import(url)) as {
+        generated?: { list: () => Array<{ metadata: GeneratedCommandMeta }> }
+      }
+      const list = mod.generated?.list?.() ?? []
+      return { commands: list.map((i) => i.metadata) }
+    },
+    catch: (cause) =>
+      new LoadGeneratedMetadataError({
+        generatedPath,
+        message: `Could not load command metadata from ${generatedPath}. Make sure it exists (run "bunli generate").`,
+        cause
+      })
+  })
 }
 
+async function readProjectPackageJson(): Promise<Result<Record<string, unknown>, PackageJsonReadError>> {
+  return Result.tryPromise({
+    try: async () => {
+      const pkgPath = resolve(process.cwd(), 'package.json')
+      const pkgContent = await readFile(pkgPath, 'utf-8')
+      const parsed = JSON.parse(pkgContent)
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        throw new Error('package.json must be a JSON object')
+      }
+      return parsed as Record<string, unknown>
+    },
+    catch: (cause) =>
+      new PackageJsonReadError({
+        message: 'Could not read project package.json',
+        cause
+      })
+  })
+}

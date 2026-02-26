@@ -1,25 +1,24 @@
 # @bunli/utils
 
-**Shared utilities: colors, prompts, spinners, validation.**
+**Utility functions for Bunli CLIs.**
+
+## OVERVIEW
+
+Provides prompts, spinners, colors, and validation utilities.
 
 ## WHERE TO LOOK
 
 | Task | Location |
 |------|----------|
-| Terminal colors | `src/colors.ts` |
-| Spinner utility | `src/spinner.ts` |
-| Interactive prompts | `src/prompt.ts` |
-| Validation helpers | `src/validation.ts` |
+| Main exports | `src/index.ts` |
+| Prompt utilities | `src/prompt.ts` |
+| Spinner | `src/spinner.ts` |
+| Colors | `src/colors.ts` |
+| Validation | `src/validation.ts` |
 
-## PATTERNS
+## EXPORTS
 
-- Use `colors.info()`, `colors.success()`, `colors.warn()`, `colors.error()`
-- Spinner: `spinner('message').start()` → `.succeed()` or `.fail()`
-- Prompt: `prompt.confirm()`, `prompt.select()`, `prompt.text()`
-- Validation: Zod schemas in `src/validation.ts`
-
-## DEPS
-
-- `@clack/prompts` for UI components
-- `consola` for logging
-- `zod` for validation
+- `prompt`, `confirm`, `select`, `multiselect`, `password` - Interactive prompts
+- `spinner` - Loading spinner
+- `colors` - Terminal colors
+- `validate*` - Validation utilities

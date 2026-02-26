@@ -6,7 +6,7 @@ const startCommand = defineCommand({
   description: 'Start development server with hot reload',
   options: {
     port: option(
-      z.number().min(1000).max(65535).default(3000),
+      z.coerce.number().min(1000).max(65535).default(3000),
       { 
         description: 'Port to run the server on',
         short: 'p'

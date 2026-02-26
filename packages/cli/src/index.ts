@@ -1,5 +1,5 @@
 // Re-export config utilities for use in bunli.config.ts files
-export { loadConfig, type LoadedConfig } from '@bunli/core'
+export { loadConfig } from '@bunli/core'
 export { defineConfig, type BunliConfig } from '@bunli/core'
 
 // Re-export utilities

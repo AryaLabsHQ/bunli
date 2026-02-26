@@ -1,4 +1,5 @@
 import { test, expect, describe } from 'bun:test'
+import { Result } from 'better-result'
 import { Generator } from '../src/generator.js'
 import { CommandScanner } from '../src/scanner.js'
 import { parseCommand } from '../src/parser.js'
@@ -34,9 +35,13 @@ export default defineCommand({
     await Bun.write(join(testDir, 'test-command.ts'), testCommandContent)
 
     const scanner = new CommandScanner()
-    const files = await scanner.scanCommands(testDir)
-    expect(files.length).toBeGreaterThan(0)
-    expect(files.some(f => f.includes('test-command.ts'))).toBe(true)
+    const filesResult = await scanner.scanCommands(testDir)
+    expect(Result.isOk(filesResult)).toBe(true)
+    if (Result.isError(filesResult)) {
+      throw filesResult.error
+    }
+    expect(filesResult.value.length).toBeGreaterThan(0)
+    expect(filesResult.value.some(f => f.includes('test-command.ts'))).toBe(true)
 
     // Cleanup
     await rm(testDir, { recursive: true, force: true })
@@ -67,11 +72,15 @@ export default defineCommand({
 
     const commandFile = join(testDir, 'test-command.ts')
     const outputFile = join(testDir, 'commands.gen.ts')
-    const metadata = await parseCommand(commandFile, testDir, outputFile)
-    
-    expect(metadata).toBeTruthy()
-    expect(metadata?.name).toBe('test-command')
-    expect(metadata?.description).toBe('A test command')
+    const metadataResult = await parseCommand(commandFile, testDir, outputFile)
+
+    expect(Result.isOk(metadataResult)).toBe(true)
+    if (Result.isError(metadataResult)) {
+      throw metadataResult.error
+    }
+    expect(metadataResult.value).toBeTruthy()
+    expect(metadataResult.value?.name).toBe('test-command')
+    expect(metadataResult.value?.description).toBe('A test command')
 
     // Cleanup
     await rm(testDir, { recursive: true, force: true })
@@ -123,7 +132,8 @@ export default defineCommand({
       outputFile
     })
 
-    await generator.run()
+    const generation = await generator.run()
+    expect(Result.isOk(generation)).toBe(true)
 
     // Check that output file was created
     const output = await Bun.file(outputFile).text()
@@ -134,6 +144,65 @@ export default defineCommand({
     expect(output).toContain('export const generated =')
 
     // Cleanup
+    await rm(testDir, { recursive: true, force: true })
+  })
+
+  test('returns Err when command file cannot be parsed', async () => {
+    await mkdir(testDir, { recursive: true })
+    const invalidCommandFile = join(testDir, 'invalid.ts')
+    await Bun.write(invalidCommandFile, `export default defineCommand({ name: 'broken' `)
+
+    const parsed = await parseCommand(invalidCommandFile, testDir, outputFile)
+    expect(Result.isError(parsed)).toBe(true)
+    if (Result.isError(parsed)) {
+      expect(parsed.error.filePath).toContain('invalid.ts')
+    }
+
+    await rm(testDir, { recursive: true, force: true })
+  })
+
+  test('returns Err when output file cannot be written', async () => {
+    await mkdir(testDir, { recursive: true })
+    await Bun.write(
+      join(testDir, 'test-command.ts'),
+      `
+import { defineCommand } from '@bunli/core'
+
+export default defineCommand({
+  name: 'test-command',
+  description: 'A test command',
+  handler: async () => {}
+})
+`
+    )
+
+    const generator = new Generator({
+      commandsDir: testDir,
+      outputFile: '/dev/null/commands.gen.ts'
+    })
+
+    const generation = await generator.run()
+    expect(Result.isError(generation)).toBe(true)
+
+    await rm(testDir, { recursive: true, force: true })
+  })
+
+  test('treats missing commands directory as empty command set', async () => {
+    await rm(testDir, { recursive: true, force: true })
+
+    const missingCommandsDir = join(testDir, 'commands')
+    const outputForMissingDir = join(testDir, 'commands.gen.ts')
+    const generator = new Generator({
+      commandsDir: missingCommandsDir,
+      outputFile: outputForMissingDir
+    })
+
+    const generation = await generator.run()
+    expect(Result.isOk(generation)).toBe(true)
+
+    const output = await Bun.file(outputForMissingDir).text()
+    expect(output).toContain('const modules: Record<GeneratedNames, Command<any>> = {')
+
     await rm(testDir, { recursive: true, force: true })
   })
 })

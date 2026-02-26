@@ -8,6 +8,13 @@ import { PluginLoader } from './loader.js'
 import { PluginContext, CommandContext, createEnvironmentInfo } from './context.js'
 import { deepMerge } from '../utils/merge.js'
 import { createLogger } from '../utils/logger.js'
+import { Result } from 'better-result'
+import {
+  PluginLoadError,
+  PluginHookError,
+  PluginValidationError,
+  toErrorMessage
+} from './errors.js'
 import type { 
   BunliPlugin, 
   PluginConfig, 
@@ -15,10 +22,11 @@ import type {
   CommandDefinition,
   Middleware
 } from './types.js'
-import type { BunliConfig, ResolvedConfig } from '../types.js'
+import type { BunliConfigInput, ResolvedConfig } from '../types.js'
+import type { Command } from '../types.js'
 
 export interface PluginSetupResult {
-  config: Partial<BunliConfig>
+  config: BunliConfigInput
   commands: CommandDefinition[]
   middlewares: Middleware[]
 }
@@ -33,47 +41,85 @@ export class PluginManager<TStore = {}> {
    * Load and validate plugins
    */
   async loadPlugins(configs: PluginConfig[]): Promise<void> {
+    const result = await this.loadPluginsResult(configs)
+    if (result.isErr()) {
+      throw result.error
+    }
+  }
+
+  async loadPluginsResult(configs: PluginConfig[]): Promise<Result<void, PluginValidationError | PluginLoadError>> {
     // Load all plugins
     const loadPromises = configs.map(async (config) => {
-      try {
-        const plugin = await this.loader.loadPlugin(config)
-        this.loader.validatePlugin(plugin)
-        return plugin
-      } catch (error: any) {
-        this.logger.error(`Failed to load plugin: ${error.message}`)
-        throw error
+      const pluginResult = await this.loader.loadPluginResult(config)
+      if (pluginResult.isErr()) {
+        this.logger.error(`Failed to load plugin: ${pluginResult.error.message}`)
+        return pluginResult
       }
+
+      const plugin = pluginResult.value
+      const validateResult = this.loader.validatePluginResult(plugin)
+      if (validateResult.isErr()) {
+        this.logger.error(`Failed to validate plugin: ${validateResult.error.message}`)
+        return validateResult
+      }
+
+      return Result.ok(plugin)
     })
-    
-    this.plugins = await Promise.all(loadPromises)
+
+    const loaded = await Promise.all(loadPromises)
+    const firstError = loaded.find((result) => result.isErr())
+    if (firstError?.isErr()) {
+      return Result.err(firstError.error)
+    }
+
+    this.plugins = []
+    for (const result of loaded) {
+      if (result.isOk()) {
+        this.plugins.push(result.value)
+      }
+    }
     
     // Validate no duplicate names
     const names = new Set<string>()
     for (const plugin of this.plugins) {
       if (names.has(plugin.name)) {
-        throw new Error(`Duplicate plugin name: ${plugin.name}`)
+        return Result.err(new PluginValidationError({
+          message: `Duplicate plugin name: ${plugin.name}`,
+          plugin: plugin.name
+        }))
       }
       names.add(plugin.name)
     }
     
     // Merge all plugin stores into combined store
-    this.combinedStore = this.plugins.reduce((acc, plugin) => {
+    this.combinedStore = this.plugins.reduce<Record<string, unknown>>((acc, plugin) => {
       if (plugin.store) {
-        return { ...acc, ...plugin.store }
+        return { ...acc, ...(plugin.store as Record<string, unknown>) }
       }
       return acc
-    }, {} as any) as TStore
+    }, {}) as TStore
     
     this.logger.debug(`Loaded ${this.plugins.length} plugins`)
+    return Result.ok(undefined)
   }
   
   /**
    * Run setup hooks for all plugins
    */
-  async runSetup(config: Partial<BunliConfig>): Promise<PluginSetupResult> {
+  async runSetup(config: BunliConfigInput): Promise<PluginSetupResult> {
+    const result = await this.runSetupResult(config)
+    if (result.isErr()) {
+      throw result.error
+    }
+    return result.value
+  }
+
+  async runSetupResult(
+    config: BunliConfigInput
+  ): Promise<Result<PluginSetupResult, PluginHookError>> {
     const context = new PluginContext(
       config,
-      new Map(Object.entries(this.combinedStore as any)),
+      new Map(Object.entries(this.combinedStore as Record<string, unknown>)),
       createLogger('core:plugins'),
       {
         cwd: process.cwd(),
@@ -88,8 +134,13 @@ export class PluginManager<TStore = {}> {
         this.logger.debug(`Running setup for plugin: ${plugin.name}`)
         try {
           await plugin.setup(context)
-        } catch (error: any) {
-          throw new Error(`Plugin ${plugin.name} setup failed: ${error.message}`)
+        } catch (error) {
+          return Result.err(new PluginHookError({
+            message: `Plugin ${plugin.name} setup failed: ${toErrorMessage(error)}`,
+            plugin: plugin.name,
+            hook: 'setup',
+            cause: error
+          }))
         }
       }
     }
@@ -100,11 +151,11 @@ export class PluginManager<TStore = {}> {
       ? deepMerge(config, ...configUpdates)
       : config
     
-    return {
+    return Result.ok({
       config: mergedConfig,
       commands: context._getCommands(),
       middlewares: context._getMiddlewares()
-    }
+    })
   }
   
   /**
@@ -116,9 +167,9 @@ export class PluginManager<TStore = {}> {
         this.logger.debug(`Running configResolved for plugin: ${plugin.name}`)
         try {
           await plugin.configResolved(config)
-        } catch (error: any) {
+        } catch (error) {
           // Log but don't fail - config is already resolved
-          this.logger.error(`Plugin ${plugin.name} configResolved error: ${error.message}`)
+          this.logger.error(`Plugin ${plugin.name} configResolved error: ${toErrorMessage(error)}`)
         }
       }
     }
@@ -129,10 +180,23 @@ export class PluginManager<TStore = {}> {
    */
   async runBeforeCommand(
     command: string,
-    commandDef: any,
+    commandDef: Command<any, TStore>,
     args: string[],
-    flags: Record<string, any>
+    flags: Record<string, unknown>
   ): Promise<CommandContext<TStore>> {
+    const result = await this.runBeforeCommandResult(command, commandDef, args, flags)
+    if (result.isErr()) {
+      throw result.error
+    }
+    return result.value
+  }
+
+  async runBeforeCommandResult(
+    command: string,
+    commandDef: Command<any, TStore>,
+    args: string[],
+    flags: Record<string, unknown>
+  ): Promise<Result<CommandContext<TStore>, PluginHookError>> {
     // Create a mutable copy of the combined store for this command
     const commandStore = { ...this.combinedStore }
     
@@ -150,14 +214,19 @@ export class PluginManager<TStore = {}> {
       if (plugin.beforeCommand) {
         this.logger.debug(`Running beforeCommand for plugin: ${plugin.name}`)
         try {
-          await plugin.beforeCommand(context as any)
-        } catch (error: any) {
-          throw new Error(`Plugin ${plugin.name} beforeCommand failed: ${error.message}`)
+          await plugin.beforeCommand(context)
+        } catch (error) {
+          return Result.err(new PluginHookError({
+            message: `Plugin ${plugin.name} beforeCommand failed: ${toErrorMessage(error)}`,
+            plugin: plugin.name,
+            hook: 'beforeCommand',
+            cause: error
+          }))
         }
       }
     }
     
-    return context
+    return Result.ok(context)
   }
   
   /**
@@ -167,17 +236,20 @@ export class PluginManager<TStore = {}> {
     context: CommandContext<TStore>,
     result: CommandResult
   ): Promise<void> {
-    const fullContext = Object.assign(context, result)
+    const fullContext = Object.assign(
+      context,
+      result
+    ) as CommandContext<TStore> & CommandResult
     
     // Run all afterCommand hooks
     for (const plugin of this.plugins) {
       if (plugin.afterCommand) {
         this.logger.debug(`Running afterCommand for plugin: ${plugin.name}`)
         try {
-          await plugin.afterCommand(fullContext as any)
-        } catch (error: any) {
+          await plugin.afterCommand(fullContext)
+        } catch (error) {
           // Log error but don't fail - command already executed
-          this.logger.error(`Plugin ${plugin.name} afterCommand error: ${error.message}`)
+          this.logger.error(`Plugin ${plugin.name} afterCommand error: ${toErrorMessage(error)}`)
         }
       }
     }

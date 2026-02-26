@@ -79,6 +79,12 @@ export { generateMCPTypes } from './codegen.js'
 // Schema conversion
 export { jsonSchemaToZodSchema, extractSchemaMetadata } from './schema-to-zod.js'
 export type { SchemaConversionOptions, SchemaMetadata } from './schema-to-zod.js'
+export {
+  SchemaConversionError,
+  ConvertToolsError,
+  GenerateMCPTypesError,
+  McpToolsProviderError
+} from './errors.js'
 
 // Naming utilities
 export {

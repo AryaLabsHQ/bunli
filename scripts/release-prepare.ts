@@ -6,6 +6,22 @@ import { existsSync } from 'node:fs'
 import { join } from 'path'
 import { randomBytes } from 'crypto'
 import { generateChangesetSummary } from './ai.js'
+import { Result, TaggedError } from 'better-result'
+
+const toErrorMessage = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error)
+
+const tryAsync = <TValue, TError>(
+  fn: () => Promise<TValue>,
+  mapError: (cause: unknown) => TError
+) =>
+  Result.tryPromise({ try: fn, catch: mapError })
+
+const trySync = <TValue, TError>(
+  fn: () => Awaited<TValue>,
+  mapError: (cause: unknown) => TError
+) =>
+  Result.try({ try: fn, catch: mapError })
 
 type VersionBump = 'major' | 'minor' | 'patch'
 
@@ -36,11 +52,59 @@ type Options = {
   ai: boolean
 }
 
-const COMMIT_TYPE_REGEX = /^(\w+)(?:\(([^)]*)\))?(!)?:\s*(.+)$/
+class UsageError extends TaggedError('UsageError')<{
+  message: string
+}>() {
+  constructor(message: string) {
+    super({ message })
+  }
+}
 
+class HelpRequested extends TaggedError('HelpRequested')<{
+  message: string
+}>() {
+  constructor() {
+    super({ message: 'Help requested' })
+  }
+}
+
+class UserCancelled extends TaggedError('UserCancelled')<{
+  message: string
+}>() {
+  constructor(message = 'Release prepare cancelled') {
+    super({ message })
+  }
+}
+
+class IoError extends TaggedError('IoError')<{
+  message: string
+  cause: unknown
+}>() {
+  constructor(step: string, cause: unknown) {
+    super({ message: `I/O error while ${step}: ${toErrorMessage(cause)}`, cause })
+  }
+}
+
+class CommandError extends TaggedError('CommandError')<{
+  message: string
+  command: string
+  cause: unknown
+}>() {
+  constructor(command: string, cause: unknown) {
+    super({ message: `Command failed (${command}): ${toErrorMessage(cause)}`, command, cause })
+  }
+}
+
+type ReleasePrepareError = UsageError | HelpRequested | UserCancelled | IoError | CommandError
+
+const COMMIT_TYPE_REGEX = /^(\w+)(?:\(([^)]*)\))?(!)?:\s*(.+)$/
 const PATCH_TYPES = ['fix', 'refactor', 'chore', 'docs', 'test', 'perf', 'style', 'ci', 'build']
 
-function parseArgs(args: string[]): Options {
+function printHelp(): void {
+  console.log(`\nRelease Prepare (Changesets)\n\nUsage:\n  bun scripts/release-prepare.ts [options]\n\nOptions:\n  --package, -p <name>  Prepare a changeset for one package\n  --all                 Consider all publishable packages\n  --since <tag|commit>   Override the commit range\n  --dry-run, -d          Show output without writing files\n  --pr                   Create a PR with the changeset(s)\n  --yes, -y              Skip confirmation prompts\n  --ai                   Generate summary with AI (optional)\n  --help, -h             Show help\n`)
+}
+
+function parseArgs(args: string[]): Result<Options, ReleasePrepareError> {
   const options: Options = {
     all: false,
     dryRun: false,
@@ -49,31 +113,36 @@ function parseArgs(args: string[]): Options {
     ai: false,
   }
 
-  const requireValue = (flag: string, next: string | undefined): string => {
+  const requireValue = (flag: string, next: string | undefined): Result<string, ReleasePrepareError> => {
     if (!next || next.startsWith('-')) {
-      p.log.error(`Missing value for ${flag}`)
-      printHelp()
-      process.exit(1)
+      return Result.err(new UsageError(`Missing value for ${flag}`))
     }
-    return next
+
+    return Result.ok(next)
   }
 
-  for (let i = 0; i < args.length; i++) {
-    const arg = args[i]
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index]
 
     switch (arg) {
       case '--package':
-      case '-p':
-        options.package = requireValue(arg, args[i + 1])
-        i++
+      case '-p': {
+        const valueResult = requireValue(arg, args[index + 1])
+        if (Result.isError(valueResult)) return valueResult
+        options.package = valueResult.value
+        index += 1
         break
+      }
       case '--all':
         options.all = true
         break
-      case '--since':
-        options.since = requireValue(arg, args[i + 1])
-        i++
+      case '--since': {
+        const valueResult = requireValue(arg, args[index + 1])
+        if (Result.isError(valueResult)) return valueResult
+        options.since = valueResult.value
+        index += 1
         break
+      }
       case '--dry-run':
       case '-d':
         options.dryRun = true
@@ -90,22 +159,15 @@ function parseArgs(args: string[]): Options {
         break
       case '--help':
       case '-h':
-        printHelp()
-        process.exit(0)
+        return Result.err(new HelpRequested())
       default:
-        if (arg.startsWith('-')) {
-          p.log.error(`Unknown option: ${arg}`)
-          printHelp()
-          process.exit(1)
+        if (arg?.startsWith('-')) {
+          return Result.err(new UsageError(`Unknown option: ${arg}`))
         }
     }
   }
 
-  return options
-}
-
-function printHelp(): void {
-  console.log(`\nRelease Prepare (Changesets)\n\nUsage:\n  bun scripts/release-prepare.ts [options]\n\nOptions:\n  --package, -p <name>  Prepare a changeset for one package\n  --all                 Consider all publishable packages\n  --since <tag|commit>   Override the commit range\n  --dry-run, -d          Show output without writing files\n  --pr                   Create a PR with the changeset(s)\n  --yes, -y              Skip confirmation prompts\n  --ai                   Generate summary with AI (optional)\n  --help, -h             Show help\n`)
+  return Result.ok(options)
 }
 
 function parseConventionalCommit(line: string): Commit | null {
@@ -138,105 +200,155 @@ function parseConventionalCommit(line: string): Commit | null {
 function determineVersionBump(commits: Commit[]): VersionBump | null {
   if (commits.length === 0) return null
 
-  if (commits.some((c) => c.breaking)) return 'major'
-  if (commits.some((c) => c.type === 'feat')) return 'minor'
-  if (commits.some((c) => PATCH_TYPES.includes(c.type))) return 'patch'
+  if (commits.some((commit) => commit.breaking)) return 'major'
+  if (commits.some((commit) => commit.type === 'feat')) return 'minor'
+  if (commits.some((commit) => PATCH_TYPES.includes(commit.type))) return 'patch'
 
   return 'patch'
 }
 
-async function getAllPackageConfigs(): Promise<PackageReleaseConfig[]> {
-  const configs: PackageReleaseConfig[] = []
+async function getAllPackageConfigs(): Promise<Result<PackageReleaseConfig[], ReleasePrepareError>> {
   const packagesDir = join(process.cwd(), 'packages')
+  const entriesResult = await tryAsync(
+    () => readdir(packagesDir, { withFileTypes: true }),
+    (cause) => new IoError(`reading ${packagesDir}`, cause)
+  )
 
-  const entries = await readdir(packagesDir, { withFileTypes: true })
+  if (Result.isError(entriesResult)) {
+    return entriesResult
+  }
 
-  for (const entry of entries) {
+  const configs: PackageReleaseConfig[] = []
+
+  for (const entry of entriesResult.value) {
     if (!entry.isDirectory()) continue
 
     const packagePath = join(packagesDir, entry.name)
     const packageJsonPath = join(packagePath, 'package.json')
+    if (!existsSync(packageJsonPath)) continue
 
-    try {
-      const packageJson = JSON.parse(await readFile(packageJsonPath, 'utf-8'))
-      const isPublishable =
-        !packageJson.private &&
-        (packageJson.name.startsWith('@bunli/') ||
-          packageJson.name === 'bunli' ||
-          packageJson.name === 'create-bunli')
+    const packageJsonTextResult = await tryAsync(
+      () => readFile(packageJsonPath, 'utf-8'),
+      (cause) => new IoError(`reading ${packageJsonPath}`, cause)
+    )
 
-      if (!isPublishable) continue
-
-      const shortName = packageJson.name.startsWith('@bunli/')
-        ? packageJson.name.replace('@bunli/', '')
-        : packageJson.name
-
-      configs.push({
-        name: packageJson.name,
-        shortName,
-        version: packageJson.version,
-        path: packagePath,
-        tagPrefix: `${packageJson.name}@`,
-        commitPaths: [`packages/${entry.name}/`],
-        publishable: true,
-      })
-    } catch {
-      // Ignore packages without valid package.json
+    if (Result.isError(packageJsonTextResult)) {
+      p.log.warn(`Skipping ${entry.name}: ${packageJsonTextResult.error.message}`)
+      continue
     }
+
+    const packageJsonResult = trySync(
+      () => JSON.parse(packageJsonTextResult.value) as {
+        private?: boolean
+        name?: string
+        version?: string
+      },
+      (cause) => new IoError(`parsing ${packageJsonPath}`, cause)
+    )
+
+    if (Result.isError(packageJsonResult)) {
+      p.log.warn(`Skipping ${entry.name}: ${packageJsonResult.error.message}`)
+      continue
+    }
+
+    const packageJson = packageJsonResult.value
+    const packageName = packageJson.name
+    if (!packageName) {
+      p.log.warn(`Skipping ${entry.name}: missing package name`)
+      continue
+    }
+
+    const isPublishable =
+      !packageJson.private &&
+      (packageName.startsWith('@bunli/') ||
+        packageName === 'bunli' ||
+        packageName === 'create-bunli')
+
+    if (!isPublishable) continue
+
+    const shortName = packageName.startsWith('@bunli/')
+      ? packageName.replace('@bunli/', '')
+      : packageName
+
+    configs.push({
+      name: packageName,
+      shortName,
+      version: packageJson.version || '0.0.0',
+      path: packagePath,
+      tagPrefix: `${packageName}@`,
+      commitPaths: [`packages/${entry.name}/`],
+      publishable: true,
+    })
   }
 
-  return configs.sort((a, b) => a.name.localeCompare(b.name))
+  return Result.ok(configs.sort((a, b) => a.name.localeCompare(b.name)))
 }
 
 async function getLastTagForPackage(tagPrefix: string): Promise<string | null> {
-  try {
-    const { stdout } = await $`git tag -l ${`${tagPrefix}*`} --sort=-v:refname`.quiet()
-    const tags = stdout.toString().trim().split('\n').filter(Boolean)
-    return tags[0] || null
-  } catch {
+  const result = await $`git tag -l ${`${tagPrefix}*`} --sort=-v:refname`.nothrow()
+  if (result.exitCode !== 0) {
+    p.log.warn(`Could not read tags for ${tagPrefix}: ${result.stderr.toString().trim()}`)
     return null
   }
+
+  const tags = result.stdout.toString().trim().split('\n').filter(Boolean)
+  return tags[0] || null
 }
 
 async function getCommitsSince(
   since: string | null,
   commitPaths: string[]
 ): Promise<Commit[]> {
-  try {
-    const pathArgs = commitPaths.length > 0 ? ['--', ...commitPaths] : []
-    const range = since ? `${since}..HEAD` : 'HEAD'
-    const { stdout } = await $`git log ${range} --pretty=format:"%h|%s" ${pathArgs}`.quiet()
-    const lines = stdout.toString().trim().split('\n').filter(Boolean)
-    return lines.map(parseConventionalCommit).filter((c): c is Commit => c !== null)
-  } catch {
+  const pathArgs = commitPaths.length > 0 ? ['--', ...commitPaths] : []
+  const range = since ? `${since}..HEAD` : 'HEAD'
+
+  const result = await $`git log ${range} --pretty=format:"%h|%s" ${pathArgs}`.nothrow()
+  if (result.exitCode !== 0) {
+    p.log.warn(`Could not collect commits for range ${range}: ${result.stderr.toString().trim()}`)
     return []
   }
+
+  const lines = result.stdout.toString().trim().split('\n').filter(Boolean)
+  return lines.map(parseConventionalCommit).filter((commit): commit is Commit => commit !== null)
 }
 
 async function getFilesChangedSince(
   since: string | null,
   commitPaths: string[]
 ): Promise<string[]> {
-  try {
-    if (!since) return []
-    const pathArgs = commitPaths.length > 0 ? ['--', ...commitPaths] : []
-    const range = since ? `${since}..HEAD` : 'HEAD'
-    const { stdout } = await $`git diff --name-only ${range} ${pathArgs}`.quiet()
-    return stdout.toString().trim().split('\n').filter(Boolean)
-  } catch {
+  if (!since) return []
+
+  const pathArgs = commitPaths.length > 0 ? ['--', ...commitPaths] : []
+  const range = `${since}..HEAD`
+  const result = await $`git diff --name-only ${range} ${pathArgs}`.nothrow()
+
+  if (result.exitCode !== 0) {
+    p.log.warn(`Could not collect changed files for range ${range}: ${result.stderr.toString().trim()}`)
     return []
   }
+
+  return result.stdout.toString().trim().split('\n').filter(Boolean)
 }
 
-async function ensureCleanWorkingTree(options: Options): Promise<void> {
-  if (options.dryRun) return
+async function ensureCleanWorkingTree(options: Options): Promise<Result<void, ReleasePrepareError>> {
+  if (options.dryRun) return Result.ok(undefined)
 
-  const status = await $`git status --porcelain`.text()
-  if (!status.trim()) return
+  const statusResult = await tryAsync(
+    () => $`git status --porcelain`.text(),
+    (cause) => new CommandError('git status --porcelain', cause)
+  )
+
+  if (Result.isError(statusResult)) {
+    return statusResult
+  }
+
+  if (!statusResult.value.trim()) {
+    return Result.ok(undefined)
+  }
 
   if (options.yes) {
     p.log.warn('Working tree is not clean; proceeding because --yes was provided.')
-    return
+    return Result.ok(undefined)
   }
 
   const confirmed = await p.confirm({
@@ -245,21 +357,34 @@ async function ensureCleanWorkingTree(options: Options): Promise<void> {
   })
 
   if (p.isCancel(confirmed) || !confirmed) {
-    p.cancel('Release prepare cancelled')
-    process.exit(0)
+    return Result.err(new UserCancelled())
   }
+
+  return Result.ok(undefined)
 }
 
-async function main() {
-  const options = parseArgs(process.argv.slice(2))
+async function main(): Promise<Result<void, ReleasePrepareError>> {
+  const parseResult = parseArgs(process.argv.slice(2))
+  if (Result.isError(parseResult)) {
+    return parseResult
+  }
+
+  const options = parseResult.value
   p.intro('Release Prepare')
 
-  await ensureCleanWorkingTree(options)
+  const cleanWorkingTreeResult = await ensureCleanWorkingTree(options)
+  if (Result.isError(cleanWorkingTreeResult)) {
+    return cleanWorkingTreeResult
+  }
 
-  const allConfigs = await getAllPackageConfigs()
+  const configResult = await getAllPackageConfigs()
+  if (Result.isError(configResult)) {
+    return configResult
+  }
+
+  const allConfigs = configResult.value
   if (allConfigs.length === 0) {
-    p.log.error('No publishable packages found')
-    process.exit(1)
+    return Result.err(new UsageError('No publishable packages found'))
   }
 
   let configsToConsider = allConfigs
@@ -274,9 +399,13 @@ async function main() {
     )
 
     if (!found) {
-      p.log.error(`Package "${options.package}" not found`)
-      p.log.info(`Available packages: ${allConfigs.map((c) => c.shortName).join(', ')}`)
-      process.exit(1)
+      return Result.err(
+        new UsageError(
+          `Package "${options.package}" not found. Available packages: ${allConfigs
+            .map((config) => config.shortName)
+            .join(', ')}`
+        )
+      )
     }
 
     configsToConsider = [found]
@@ -293,19 +422,16 @@ async function main() {
   )
 
   const modifiedPackages = packagesWithCommits.filter((pkg) => pkg.commits.length > 0)
-
   let selectedPackages = packagesWithCommits
 
   if (!options.package && !options.all) {
     if (modifiedPackages.length === 0) {
       p.log.info('No packages have commits since their last tag')
       p.outro('Nothing to prepare')
-      return
+      return Result.ok(undefined)
     }
 
-    if (options.yes) {
-      selectedPackages = modifiedPackages
-    } else if (modifiedPackages.length === 1) {
+    if (options.yes || modifiedPackages.length === 1) {
       selectedPackages = modifiedPackages
     } else {
       const selected = await p.multiselect({
@@ -319,8 +445,7 @@ async function main() {
       })
 
       if (p.isCancel(selected)) {
-        p.cancel('Release prepare cancelled')
-        process.exit(0)
+        return Result.err(new UserCancelled())
       }
 
       selectedPackages = modifiedPackages.filter((pkg) => (selected as string[]).includes(pkg.config.name))
@@ -330,13 +455,14 @@ async function main() {
   if (selectedPackages.length === 0) {
     p.log.info('No packages selected')
     p.outro('Nothing to prepare')
-    return
+    return Result.ok(undefined)
   }
 
   const entries: Array<{ name: string; bump: VersionBump; commits: Commit[]; filesChanged: string[] }> = []
 
   for (const pkg of selectedPackages) {
     if (pkg.commits.length === 0) continue
+
     const bump = determineVersionBump(pkg.commits)
     if (!bump) continue
 
@@ -351,13 +477,13 @@ async function main() {
   if (entries.length === 0) {
     p.log.info('No changesets needed based on commits')
     p.outro('Nothing to prepare')
-    return
+    return Result.ok(undefined)
   }
 
-  const packageNames = entries.map((e) => e.name)
-  const allCommits = entries.flatMap((e) => e.commits.map((c) => c.message))
+  const packageNames = entries.map((entry) => entry.name)
+  const allCommits = entries.flatMap((entry) => entry.commits.map((commit) => commit.message))
   const uniqueCommits = Array.from(new Set(allCommits))
-  const allFiles = entries.flatMap((e) => e.filesChanged)
+  const allFiles = entries.flatMap((entry) => entry.filesChanged)
   const uniqueFiles = Array.from(new Set(allFiles))
 
   const bumpTypes = entries.reduce<Record<string, VersionBump>>((acc, entry) => {
@@ -368,24 +494,28 @@ async function main() {
   let summary = `Release updates for ${packageNames.join(', ')}.`
 
   if (uniqueCommits.length > 0) {
-    const highlights = uniqueCommits.slice(0, 3).join('; ')
-    summary += ` Changes: ${highlights}.`
+    summary += ` Changes: ${uniqueCommits.slice(0, 3).join('; ')}.`
   }
 
   if (options.ai) {
-    const hasKey = Boolean(process.env.AI_GATEWAY_API_KEY)
-    if (!hasKey) {
+    if (!process.env.AI_GATEWAY_API_KEY) {
       p.log.warn('AI_GATEWAY_API_KEY not set; using deterministic summary.')
     } else {
-      try {
-        summary = await generateChangesetSummary({
-          packageNames,
-          bumpTypes,
-          commits: uniqueCommits,
-          filesChanged: uniqueFiles,
-        })
-      } catch (error) {
-        p.log.warn(`AI summary failed: ${error instanceof Error ? error.message : String(error)}`)
+      const summaryResult = await tryAsync(
+        () =>
+          generateChangesetSummary({
+            packageNames,
+            bumpTypes,
+            commits: uniqueCommits,
+            filesChanged: uniqueFiles,
+          }),
+        (cause) => new CommandError('generateChangesetSummary', cause)
+      )
+
+      if (Result.isOk(summaryResult)) {
+        summary = summaryResult.value
+      } else {
+        p.log.warn(`AI summary failed: ${summaryResult.error.message}`)
         p.log.info('Falling back to deterministic summary')
       }
     }
@@ -406,15 +536,22 @@ async function main() {
     p.log.info('Dry run enabled; no files will be written.')
     console.log('\n' + content)
     p.outro('Dry run complete')
-    return
+    return Result.ok(undefined)
   }
 
   if (!existsSync(join(process.cwd(), '.changeset'))) {
-    p.log.error('Missing .changeset directory. Run changeset init first.')
-    process.exit(1)
+    return Result.err(new UsageError('Missing .changeset directory. Run changeset init first.'))
   }
 
-  await writeFile(changesetPath, content)
+  const writeResult = await tryAsync(
+    () => writeFile(changesetPath, content),
+    (cause) => new IoError(`writing ${changesetPath}`, cause)
+  )
+
+  if (Result.isError(writeResult)) {
+    return writeResult
+  }
+
   p.log.success('Changeset written')
 
   if (options.pr) {
@@ -426,44 +563,80 @@ async function main() {
 
       if (p.isCancel(confirmPr) || !confirmPr) {
         p.outro('Changeset prepared without PR')
-        return
+        return Result.ok(undefined)
       }
     }
 
-    try {
-      await $`gh --version`.quiet()
-    } catch {
-      p.log.error('GitHub CLI (gh) not found. Install it to use --pr.')
-      process.exit(1)
+    const ghCheck = await $`gh --version`.nothrow()
+    if (ghCheck.exitCode !== 0) {
+      return Result.err(new UsageError('GitHub CLI (gh) not found. Install it to use --pr.'))
     }
 
-    const { stdout: beforeBranchStdout } = await $`git branch --show-current`.quiet()
-    const beforeBranch = beforeBranchStdout.toString().trim() || null
+    const beforeBranchResult = await $`git branch --show-current`.nothrow()
+    if (beforeBranchResult.exitCode !== 0) {
+      return Result.err(new CommandError('git branch --show-current', beforeBranchResult.stderr.toString()))
+    }
 
+    const beforeBranch = beforeBranchResult.stdout.toString().trim() || null
     const branchName = `release/${Date.now()}`
-    const title = `chore: release prep`
-    const body = `## Release changeset\n\nPackages:\n${packageNames.map((name) => `- ${name}`).join('\n')}\n\nSummary:\n${summary}`
+    const title = 'chore: release prep'
+    const body = `## Release changeset\n\nPackages:\n${packageNames
+      .map((name) => `- ${name}`)
+      .join('\n')}\n\nSummary:\n${summary}`
 
-    try {
-      await $`git checkout -b ${branchName}`
-      await $`git add .changeset/${changesetId}.md`
-      await $`git commit -m ${`chore: add changeset for ${packageNames.join(', ')}`}`
-      await $`git push -u origin ${branchName}`
-      await $`gh pr create --title ${title} --body ${body}`
-    } finally {
-      if (beforeBranch) {
-        await $`git checkout ${beforeBranch}`
+    const createPrResult = await tryAsync(
+      async () => {
+        await $`git checkout -b ${branchName}`
+        await $`git add .changeset/${changesetId}.md`
+        await $`git commit -m ${`chore: add changeset for ${packageNames.join(', ')}`}`
+        await $`git push -u origin ${branchName}`
+        await $`gh pr create --title ${title} --body ${body}`
+      },
+      (cause) => new CommandError('creating PR branch and GitHub PR', cause)
+    )
+
+    if (beforeBranch) {
+      const checkoutBackResult = await $`git checkout ${beforeBranch}`.nothrow()
+      if (checkoutBackResult.exitCode !== 0) {
+        p.log.warn(`Failed to checkout ${beforeBranch}: ${checkoutBackResult.stderr.toString().trim()}`)
       }
+    }
+
+    if (Result.isError(createPrResult)) {
+      return createPrResult
     }
 
     p.outro('PR created')
-    return
+    return Result.ok(undefined)
   }
 
   p.outro('Changeset prepared')
+  return Result.ok(undefined)
 }
 
-main().catch((error) => {
-  p.log.error(`Release prepare failed: ${error instanceof Error ? error.message : String(error)}`)
+try {
+  const result = await main()
+  if (Result.isError(result)) {
+    if (result.error instanceof HelpRequested) {
+      printHelp()
+      process.exit(0)
+    }
+
+    if (result.error instanceof UserCancelled) {
+      p.cancel(result.error.message)
+      process.exit(0)
+    }
+
+    if (result.error instanceof UsageError) {
+      p.log.error(result.error.message)
+      printHelp()
+      process.exit(1)
+    }
+
+    p.log.error(`Release prepare failed: ${result.error.message}`)
+    process.exit(1)
+  }
+} catch (error) {
+  p.log.error(`Release prepare failed: ${toErrorMessage(error)}`)
   process.exit(1)
-})
+}

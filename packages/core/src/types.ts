@@ -77,6 +77,13 @@ interface BaseCommand<TOptions extends Options = Options, TStore = {}, TName ext
   render?: RenderFunction<InferOptions<TOptions>, TStore>
 }
 
+type CommandGroup<TOptions extends Options = Options, TStore = {}, TName extends string = string> =
+  BaseCommand<TOptions, TStore, TName> & {
+    commands: Command<any, TStore, any>[]
+    handler?: undefined
+    render?: undefined
+  }
+
 export type Command<TOptions extends Options = Options, TStore = {}, TName extends string = string> =
   | (BaseCommand<TOptions, TStore, TName> & { handler: Handler<InferOptions<TOptions>, TStore, TName> })
   | (BaseCommand<TOptions, TStore, TName> & { render: RenderFunction<InferOptions<TOptions>, TStore> })
@@ -84,6 +91,7 @@ export type Command<TOptions extends Options = Options, TStore = {}, TName exten
       handler: Handler<InferOptions<TOptions>, TStore, TName>
       render: RenderFunction<InferOptions<TOptions>, TStore>
     })
+  | CommandGroup<TOptions, TStore, TName>
 
 // Type helper to extract output types from StandardSchemaV1
 type InferSchema<T> = T extends StandardSchemaV1<any, infer Out>
@@ -114,7 +122,7 @@ export interface HandlerArgs<TFlags = Record<string, unknown>, TStore = {}, TCom
   spinner: typeof import('@bunli/utils').spinner
   colors: typeof import('@bunli/utils').colors
   // Plugin context (if plugins are loaded)
-  context?: import('./plugin/types.js').CommandContext<any>
+  context?: import('./plugin/types.js').CommandContext<Record<string, unknown>>
   // Terminal information
   terminal: TerminalInfo
   // Runtime information
@@ -173,8 +181,8 @@ export function defineCommand<TOptions extends Options = Options, TStore = {}, T
 }
 
 // Import configuration types from schema
-import type { BunliConfig } from './config.js'
-export type { BunliConfig } from './config.js'
+import type { BunliConfig, BunliConfigInput } from './config.js'
+export type { BunliConfig, BunliConfigInput } from './config.js'
 export { bunliConfigSchema } from './config.js'
 export type {
   GeneratedStore,

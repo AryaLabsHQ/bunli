@@ -13,7 +13,7 @@ const logsCommand = defineCommand({
       }
     ),
     lines: option(
-      z.number().min(1).max(1000).default(50),
+      z.coerce.number().min(1).max(1000).default(50),
       { 
         description: 'Number of lines to show',
         short: 'n'
