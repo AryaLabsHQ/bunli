@@ -1,5 +1,20 @@
 # create-bunli
 
+## 0.6.0
+
+### Minor Changes
+
+- 8eff145: Adopt `better-result` for typed error handling with `Result` and `TaggedError`.
+
+  Also split config input/output types and fix CLI cancellation, `execute(commandName, options)`, and generator behavior when `commands/` is missing.
+
+### Patch Changes
+
+- Updated dependencies [8eff145]
+  - @bunli/utils@0.4.0
+  - @bunli/core@0.6.0
+  - @bunli/test@0.4.0
+
 ## 0.5.5
 
 ### Patch Changes
