@@ -1,77 +1,150 @@
 import { defineCommand, option } from '@bunli/core'
+import { Result, TaggedError } from 'better-result'
 import { z } from 'zod'
 import { loadConfig, saveConfig, getConfigPath } from '../utils/config.js'
+import { DEFAULT_CONFIG } from '../utils/constants.js'
+
+const toErrorMessage = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error)
+
+class ConfigCommandError extends TaggedError('ConfigCommandError')<{
+  message: string
+  cause?: unknown
+}>() {
+  constructor(message: string, cause?: unknown) {
+    super(cause === undefined ? { message } : { message, cause })
+  }
+}
 
 const configCommand = defineCommand({
   name: 'config',
   description: 'Manage configuration',
-  subcommands: [
+  commands: [
     defineCommand({
       name: 'get',
       description: 'Get a config value',
-      args: z.tuple([z.string()]).describe('Config key to get'),
-      handler: async ({ args, colors }) => {
-        const [key] = args
-        
-        try {
-          const config = await loadConfig()
-          const value = getNestedValue(config, key)
-          
-          if (value === undefined) {
-            console.log(colors.yellow(`Config key '${key}' not found`))
-          } else {
-            console.log(JSON.stringify(value, null, 2))
-          }
-        } catch (error) {
-          console.error(colors.red(`Failed to load config: ${error}`))
-          process.exit(1)
+      handler: async ({ positional, colors }) => {
+        const key = positional[0]
+        if (!key) {
+          console.error(colors.red('Usage: config get <key>'))
+          process.exitCode = 1
+          return
+        }
+
+        const configResult = await Result.tryPromise({
+          try: () => loadConfig(),
+          catch: (cause) => new ConfigCommandError(`Failed to load config: ${toErrorMessage(cause)}`, cause)
+        })
+
+        if (Result.isError(configResult)) {
+          console.error(colors.red(configResult.error.message))
+          process.exitCode = 1
+          return
+        }
+
+        const value = getNestedValue(configResult.value as Record<string, unknown>, key)
+
+        if (value === undefined) {
+          console.log(colors.yellow(`Config key '${key}' not found`))
+        } else {
+          console.log(JSON.stringify(value, null, 2))
         }
       }
     }),
-    
+
     defineCommand({
       name: 'set',
       description: 'Set a config value',
-      args: z.tuple([z.string(), z.string()]).describe('Config key and value'),
-      handler: async ({ args, colors, spinner }) => {
-        const [key, value] = args
-        
+      handler: async ({ positional, colors, spinner }) => {
+        const key = positional[0]
+        const rawValue = positional[1]
+
+        if (!key || rawValue === undefined) {
+          console.error(colors.red('Usage: config set <key> <json-value>'))
+          process.exitCode = 1
+          return
+        }
+
         const spin = spinner('Updating config...')
         spin.start()
-        
-        try {
-          const config = await loadConfig()
-          setNestedValue(config, key, JSON.parse(value))
-          await saveConfig(config)
-          
-          spin.succeed(`Config '${key}' updated`)
-        } catch (error) {
+
+        const configResult = await Result.tryPromise({
+          try: () => loadConfig(),
+          catch: (cause) => new ConfigCommandError(`Failed to load config: ${toErrorMessage(cause)}`, cause)
+        })
+
+        if (Result.isError(configResult)) {
           spin.fail('Failed to update config')
-          console.error(colors.red(String(error)))
-          process.exit(1)
+          console.error(colors.red(configResult.error.message))
+          process.exitCode = 1
+          return
         }
+
+        const parsedValue = Result.try({
+          try: () => JSON.parse(rawValue),
+          catch: (cause) =>
+            new ConfigCommandError(`Failed to parse value as JSON: ${toErrorMessage(cause)}`, cause)
+        })
+
+        if (Result.isError(parsedValue)) {
+          spin.fail('Failed to update config')
+          console.error(colors.red(parsedValue.error.message))
+          process.exitCode = 1
+          return
+        }
+
+        const nextConfig = configResult.value as Record<string, unknown>
+        setNestedValue(nextConfig, key, parsedValue.value)
+
+        const saveResult = await Result.tryPromise({
+          try: () => saveConfig(nextConfig),
+          catch: (cause) => new ConfigCommandError(`Failed to save config: ${toErrorMessage(cause)}`, cause)
+        })
+
+        if (Result.isError(saveResult)) {
+          spin.fail('Failed to update config')
+          console.error(colors.red(saveResult.error.message))
+          process.exitCode = 1
+          return
+        }
+
+        spin.succeed(`Config '${key}' updated`)
       }
     }),
-    
+
     defineCommand({
       name: 'list',
       description: 'List all config values',
       handler: async ({ colors }) => {
-        try {
-          const config = await loadConfig()
-          const configPath = await getConfigPath()
-          
-          console.log(colors.bold('Configuration:'))
-          console.log(colors.dim(`  File: ${configPath}`))
-          console.log()
-          console.log(JSON.stringify(config, null, 2))
-        } catch (error) {
-          console.error(colors.red(`Failed to load config: ${error}`))
-          process.exit(1)
+        const configResult = await Result.tryPromise({
+          try: () => loadConfig(),
+          catch: (cause) => new ConfigCommandError(`Failed to load config: ${toErrorMessage(cause)}`, cause)
+        })
+
+        if (Result.isError(configResult)) {
+          console.error(colors.red(configResult.error.message))
+          process.exitCode = 1
+          return
         }
+
+        const configPathResult = await Result.tryPromise({
+          try: () => getConfigPath(),
+          catch: (cause) => new ConfigCommandError(`Failed to resolve config path: ${toErrorMessage(cause)}`, cause)
+        })
+
+        if (Result.isError(configPathResult)) {
+          console.error(colors.red(configPathResult.error.message))
+          process.exitCode = 1
+          return
+        }
+
+        console.log(colors.bold('Configuration:'))
+        console.log(colors.dim(`  File: ${configPathResult.value}`))
+        console.log()
+        console.log(JSON.stringify(configResult.value, null, 2))
       }
     }),
-    
+
     defineCommand({
       name: 'reset',
       description: 'Reset config to defaults',
@@ -90,57 +163,66 @@ const configCommand = defineCommand({
             'This will reset all config to defaults. Continue?',
             { default: false }
           )
-          
+
           if (!confirmed) {
             console.log(colors.yellow('Reset cancelled'))
             return
           }
         }
-        
+
         const spin = spinner('Resetting config...')
         spin.start()
-        
-        try {
-          const { DEFAULT_CONFIG } = await import('../utils/constants.js')
-          await saveConfig(DEFAULT_CONFIG)
-          
-          spin.succeed('Config reset to defaults')
-        } catch (error) {
+
+        const saveResult = await Result.tryPromise({
+          try: () => saveConfig(DEFAULT_CONFIG),
+          catch: (cause) => new ConfigCommandError(`Failed to save config: ${toErrorMessage(cause)}`, cause)
+        })
+
+        if (Result.isError(saveResult)) {
           spin.fail('Failed to reset config')
-          console.error(colors.red(String(error)))
-          process.exit(1)
+          console.error(colors.red(saveResult.error.message))
+          process.exitCode = 1
+          return
         }
+
+        spin.succeed('Config reset to defaults')
       }
     })
   ]
 })
 
-function getNestedValue(obj: any, path: string): any {
+function getNestedValue(obj: Record<string, unknown>, path: string): unknown {
   const keys = path.split('.')
-  let current = obj
-  
+  let current: unknown = obj
+
   for (const key of keys) {
-    if (current === null || current === undefined) {
+    if (!current || typeof current !== 'object') {
       return undefined
     }
-    current = current[key]
+
+    current = (current as Record<string, unknown>)[key]
   }
-  
+
   return current
 }
 
-function setNestedValue(obj: any, path: string, value: any): void {
+function setNestedValue(obj: Record<string, unknown>, path: string, value: unknown): void {
   const keys = path.split('.')
-  const lastKey = keys.pop()!
-  let current = obj
-  
+  const lastKey = keys.pop()
+  if (!lastKey) {
+    return
+  }
+
+  let current: Record<string, unknown> = obj
+
   for (const key of keys) {
-    if (!(key in current) || typeof current[key] !== 'object') {
+    const next = current[key]
+    if (!next || typeof next !== 'object' || Array.isArray(next)) {
       current[key] = {}
     }
-    current = current[key]
+    current = current[key] as Record<string, unknown>
   }
-  
+
   current[lastKey] = value
 }
 

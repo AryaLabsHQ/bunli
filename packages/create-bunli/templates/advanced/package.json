@@ -21,6 +21,7 @@
   "dependencies": {
     "@bunli/core": "latest",
     "@bunli/utils": "latest",
+    "better-result": "^2.7.0",
     "zod": "^3.22.0"
   },
   "devDependencies": {
