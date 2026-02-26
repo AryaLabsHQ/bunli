@@ -68,7 +68,6 @@ export default defineCommand({
   handler: async ({ flags, spinner, colors }) => {
     const result = await runBuild(flags, spinner, colors)
     if (result.isErr()) {
-      console.error(colors.red(result.error.message))
       throw result.error
     }
   }

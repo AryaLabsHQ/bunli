@@ -56,7 +56,6 @@ export default defineCommand({
   handler: async ({ flags, positional, spinner, colors }) => {
     const result = await runDev(flags as Record<string, unknown>, positional, spinner, colors)
     if (result.isErr()) {
-      console.error(colors.red(result.error.message))
       throw result.error
     }
   }

@@ -38,7 +38,6 @@ export default defineCommand({
   async handler({ flags, colors, spinner }) {
     const result = await runGenerate(flags as Record<string, unknown>, colors, spinner)
     if (result.isErr()) {
-      console.error(colors.red(result.error.message))
       throw result.error
     }
   }
