@@ -73,6 +73,7 @@ describe('doctor completions', () => {
     const result = await runCli(fixtureDir, ['doctor', 'completions'])
 
     expect(result.exitCode).toBe(0)
+    expect(result.stdout).toContain('Completion protocol round-trip passed')
     expect(result.stdout).toContain('Loaded 1 generated command entries')
     expect(result.stderr).not.toContain('Error:')
   })
@@ -83,6 +84,7 @@ describe('doctor completions', () => {
     const result = await runCli(fixtureDir, ['doctor', 'completions'])
 
     expect(result.exitCode).toBe(0)
+    expect(result.stdout).toContain('Completion protocol round-trip passed')
     expect(result.stdout).toContain('No commands found in generated metadata.')
     expect(result.stdout).toContain('Loaded 0 generated command entries')
   })

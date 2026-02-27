@@ -49,6 +49,7 @@
   "dependencies": {
     "@bunli/core": "workspace:^",
     "@bunli/generator": "workspace:^",
+    "@bunli/plugin-completions": "workspace:^",
     "@bunli/utils": "workspace:^",
     "better-result": "catalog:",
     "zod": "^4.3.6"
