@@ -5,12 +5,13 @@ A React-based Terminal User Interface library for Bunli CLI framework, powered b
 ## Features
 
 - **React-based Components**: Build TUIs using familiar React patterns and JSX
-- **Component Library**: Pre-built form components like `Form`, `FormField`, `SelectField`, and `ProgressBar`
+- **Component Library**: Form, layout, feedback, data-display, and chart components for alternate-buffer TUIs
 - **OpenTUI Integration**: Full access to OpenTUI's React hooks and components
 - **Type Safety**: Complete TypeScript support with proper type inference
 - **Animation Support**: Built-in timeline system for smooth animations
 - **Keyboard Handling**: Easy keyboard event management with `useKeyboard`
 - **First-Class TUI Support**: TUI rendering is a first-class feature, not a plugin
+- **Theme System**: Preset themes with token overrides via `ThemeProvider`/`createTheme`
 
 ## Installation
 
@@ -191,6 +192,15 @@ function InteractiveTUI({ command }) {
 
 ## Component Library
 
+Interactive components are available from `@bunli/tui/interactive` and root exports.
+
+Included primitives:
+- Form: `Form`, `SchemaForm`, `FormField`, `SelectField`
+- Layout: `Stack`, `Panel`, `Card`, `Divider`
+- Feedback: `Alert`, `Badge`, `ProgressBar`
+- Data display: `List`, `Table`, `KeyValueList`, `Stat`, `Markdown`, `Diff`
+- Charts: `BarChart`, `LineChart`, `Sparkline` from `@bunli/tui/charts`
+
 ### Form
 
 A schema-driven container for controlled interactive forms.
@@ -298,6 +308,32 @@ A progress bar component for showing completion status.
 - `value: number` - Progress value (0-100)
 - `label?: string` - Progress label
 - `color?: string` - Progress bar color
+
+### ThemeProvider and Tokens
+
+Use `ThemeProvider` to apply a built-in theme preset or token overrides.
+
+```typescript
+import { ThemeProvider, createTheme } from '@bunli/tui/interactive'
+
+const customTheme = createTheme({
+  preset: 'dark',
+  tokens: {
+    accent: '#3ec7ff',
+    textSuccess: '#3cd89b'
+  }
+})
+
+function App() {
+  return (
+    <ThemeProvider theme={customTheme}>
+      <Panel title="Deploy status">
+        <Alert tone="success" message="Ready to ship" />
+      </Panel>
+    </ThemeProvider>
+  )
+}
+```
 
 ## OpenTUI Hooks
 

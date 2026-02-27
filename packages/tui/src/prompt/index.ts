@@ -1,6 +1,7 @@
-import { SchemaError } from '@standard-schema/utils'
-import type { StandardSchemaV1 } from '@standard-schema/spec'
+import { emitKeypressEvents } from 'node:readline'
 import { createInterface } from 'node:readline/promises'
+import type { StandardSchemaV1 } from '@standard-schema/spec'
+import { SchemaError } from '@standard-schema/utils'
 
 export type PromptMode = 'inline' | 'interactive'
 
@@ -43,6 +44,14 @@ export interface MultiSelectOptions<T = string> extends BasePromptOptions<T[]> {
 
 export const CANCEL = Symbol.for('bunli:prompt_cancel')
 export type Cancel = typeof CANCEL | symbol
+
+interface KeypressEvent {
+  name?: string
+  sequence?: string
+  ctrl?: boolean
+  shift?: boolean
+  meta?: boolean
+}
 
 function isCIEnvironment(): boolean {
   return Boolean(
@@ -135,6 +144,336 @@ async function askLine(message: string, defaultValue?: string): Promise<string> 
   }
 }
 
+function isPrintableKey(event: KeypressEvent): boolean {
+  if (!event.sequence) return false
+  if (event.ctrl || event.meta) return false
+  return event.sequence.length === 1 && event.sequence >= ' '
+}
+
+function isCancelKey(key: KeypressEvent): boolean {
+  return (key.ctrl && key.name === 'c') || key.name === 'escape'
+}
+
+function isSubmitKey(key: KeypressEvent): boolean {
+  return key.name === 'return' || key.name === 'enter' || key.name === 'linefeed'
+}
+
+function isPasswordRevealToggleKey(key: KeypressEvent): boolean {
+  return Boolean(key.ctrl && key.name === 'r')
+}
+
+function isMultiSelectToggleKey(key: KeypressEvent): boolean {
+  return key.name === 'space'
+}
+
+function writeStatusLine(text: string) {
+  process.stdout.write(`\r\x1b[2K${text}`)
+}
+
+function initialSelectableIndex<T>(options: SelectOption<T>[], preferred?: T): number {
+  if (preferred !== undefined) {
+    const preferredIndex = options.findIndex((option) => option.value === preferred && !option.disabled)
+    if (preferredIndex >= 0) return preferredIndex
+  }
+
+  const firstEnabled = options.findIndex((option) => !option.disabled)
+  return firstEnabled >= 0 ? firstEnabled : 0
+}
+
+function moveSelectableIndex<T>(
+  options: SelectOption<T>[],
+  currentIndex: number,
+  delta: number
+): number {
+  if (options.length === 0) return 0
+
+  for (let steps = 0; steps < options.length; steps += 1) {
+    const next = (currentIndex + delta * (steps + 1) + options.length) % options.length
+    if (!options[next]?.disabled) return next
+  }
+
+  return currentIndex
+}
+
+function shortcutIndexFromKey(key: KeypressEvent): number | null {
+  if (!key.sequence) return null
+  if (!/^[1-9]$/.test(key.sequence)) return null
+  return Number.parseInt(key.sequence, 10) - 1
+}
+
+function resolveShortcutOption<T>(
+  key: KeypressEvent,
+  options: SelectOption<T>[]
+): SelectOption<T> | undefined {
+  const index = shortcutIndexFromKey(key)
+  if (index === null) return undefined
+  return options[index]
+}
+
+function buildSelectedSummary<T>(selected: Set<T>, options: SelectOption<T>[]): string {
+  const labels = options
+    .filter((option) => selected.has(option.value))
+    .map((option) => option.label)
+
+  return labels.length > 0 ? labels.join(', ') : 'none'
+}
+
+function toggleSelection<T>(selected: Set<T>, option: SelectOption<T>) {
+  if (selected.has(option.value)) {
+    selected.delete(option.value)
+  } else {
+    selected.add(option.value)
+  }
+}
+
+async function withRawKeyboard<T>(run: (readKey: () => Promise<KeypressEvent>) => Promise<T>): Promise<T> {
+  const stdin = process.stdin
+  if (!stdin.isTTY || typeof stdin.setRawMode !== 'function') {
+    throw new Error('Raw keyboard input requires a TTY terminal.')
+  }
+
+  emitKeypressEvents(stdin)
+  const wasRaw = Boolean((stdin as unknown as { isRaw?: boolean }).isRaw)
+  stdin.setRawMode(true)
+  stdin.resume()
+
+  const readKey = () =>
+    new Promise<KeypressEvent>((resolve) => {
+      const onKeypress = (sequence: string, key: KeypressEvent) => {
+        stdin.off('keypress', onKeypress)
+        resolve(key ?? { sequence })
+      }
+      stdin.on('keypress', onKeypress)
+    })
+
+  try {
+    return await run(readKey)
+  } finally {
+    stdin.setRawMode(wasRaw)
+    if (!wasRaw) {
+      stdin.pause()
+    }
+  }
+}
+
+async function askPasswordWithReveal(args: {
+  message: string
+  validate?: (value: string) => string | undefined
+}): Promise<string | Cancel> {
+  process.stdout.write(`${args.message}\n`)
+  process.stdout.write('Press Ctrl+R to toggle reveal\n')
+
+  const chars: string[] = []
+  let revealed = false
+
+  const render = () => {
+    const display = revealed ? chars.join('') : '*'.repeat(chars.length)
+    writeStatusLine(`Password: ${display}`)
+  }
+
+  return withRawKeyboard(async (readKey) => {
+    render()
+
+    while (true) {
+      const key = await readKey()
+
+      if (isCancelKey(key)) {
+        process.stdout.write('\n')
+        return CANCEL
+      }
+
+      if (isPasswordRevealToggleKey(key)) {
+        revealed = !revealed
+        render()
+        continue
+      }
+
+      if (key.name === 'backspace' || key.name === 'delete') {
+        chars.pop()
+        render()
+        continue
+      }
+
+      if (isSubmitKey(key)) {
+        const value = chars.join('')
+        const validationError = args.validate?.(value)
+        if (validationError) {
+          process.stdout.write('\n')
+          console.error(validationError)
+          chars.length = 0
+          render()
+          continue
+        }
+        process.stdout.write('\n')
+        return value
+      }
+
+      if (isPrintableKey(key)) {
+        chars.push(key.sequence as string)
+        render()
+      }
+    }
+  })
+}
+
+async function askSelectWithKeyboard<T>(args: {
+  message: string
+  options: SelectOption<T>[]
+  initialValue?: T
+}): Promise<T | Cancel> {
+  const enabledCount = args.options.filter((option) => !option.disabled).length
+  if (enabledCount === 0) {
+    console.error('No selectable options available.')
+    return CANCEL
+  }
+
+  let selectedIndex = initialSelectableIndex(args.options, args.initialValue)
+  process.stdout.write(`${args.message}\n`)
+  args.options.forEach((option, index) => {
+    const disabled = option.disabled ? ' (disabled)' : ''
+    const hint = option.hint ? ` - ${option.hint}` : ''
+    process.stdout.write(`  ${index + 1}) ${option.label}${hint}${disabled}\n`)
+  })
+
+  return withRawKeyboard(async (readKey) => {
+    const render = () => {
+      const current = args.options[selectedIndex]
+      writeStatusLine(`Use ↑/↓ + Enter, or 1-${args.options.length}. Current: ${current?.label ?? 'none'}`)
+    }
+
+    render()
+
+    while (true) {
+      const key = await readKey()
+
+      if (isCancelKey(key)) {
+        process.stdout.write('\n')
+        return CANCEL
+      }
+
+      const shortcutOption = resolveShortcutOption(key, args.options)
+      if (shortcutOption && !shortcutOption.disabled) {
+        process.stdout.write('\n')
+        return shortcutOption.value
+      }
+
+      if (key.name === 'up' || key.name === 'k') {
+        selectedIndex = moveSelectableIndex(args.options, selectedIndex, -1)
+        render()
+        continue
+      }
+
+      if (key.name === 'down' || key.name === 'j') {
+        selectedIndex = moveSelectableIndex(args.options, selectedIndex, 1)
+        render()
+        continue
+      }
+
+      if (isSubmitKey(key)) {
+        const current = args.options[selectedIndex]
+        if (!current || current.disabled) {
+          render()
+          continue
+        }
+        process.stdout.write('\n')
+        return current.value
+      }
+    }
+  })
+}
+
+async function askMultiSelectWithKeyboard<T>(args: {
+  message: string
+  options: SelectOption<T>[]
+  initialValues?: T[]
+  required?: boolean
+}): Promise<T[] | Cancel> {
+  const enabledCount = args.options.filter((option) => !option.disabled).length
+  if (enabledCount === 0) {
+    console.error('No selectable options available.')
+    return CANCEL
+  }
+
+  let selectedIndex = initialSelectableIndex(args.options)
+  const selected = new Set<T>(
+    args.options
+      .filter((option) => !option.disabled && args.initialValues?.includes(option.value))
+      .map((option) => option.value)
+  )
+
+  process.stdout.write(`${args.message}\n`)
+  args.options.forEach((option, index) => {
+    const disabled = option.disabled ? ' (disabled)' : ''
+    const hint = option.hint ? ` - ${option.hint}` : ''
+    process.stdout.write(`  ${index + 1}) ${option.label}${hint}${disabled}\n`)
+  })
+
+  return withRawKeyboard(async (readKey) => {
+    const render = () => {
+      const current = args.options[selectedIndex]
+      const selectedSummary = buildSelectedSummary(selected, args.options)
+      writeStatusLine(
+        `Use ↑/↓, Space toggle, Enter submit, 1-${args.options.length} toggle. Current: ${
+          current?.label ?? 'none'
+        } | Selected: ${selectedSummary}`
+      )
+    }
+
+    render()
+
+    while (true) {
+      const key = await readKey()
+
+      if (isCancelKey(key)) {
+        process.stdout.write('\n')
+        return CANCEL
+      }
+
+      const shortcutOption = resolveShortcutOption(key, args.options)
+      if (shortcutOption && !shortcutOption.disabled) {
+        toggleSelection(selected, shortcutOption)
+        render()
+        continue
+      }
+
+      if (key.name === 'up' || key.name === 'k') {
+        selectedIndex = moveSelectableIndex(args.options, selectedIndex, -1)
+        render()
+        continue
+      }
+
+      if (key.name === 'down' || key.name === 'j') {
+        selectedIndex = moveSelectableIndex(args.options, selectedIndex, 1)
+        render()
+        continue
+      }
+
+      if (isMultiSelectToggleKey(key)) {
+        const current = args.options[selectedIndex]
+        if (current && !current.disabled) {
+          toggleSelection(selected, current)
+        }
+        render()
+        continue
+      }
+
+      if (isSubmitKey(key)) {
+        const values = args.options
+          .filter((option) => selected.has(option.value))
+          .map((option) => option.value)
+
+        if (args.required && values.length === 0) {
+          writeStatusLine('Select at least one option.')
+          continue
+        }
+
+        process.stdout.write('\n')
+        return values
+      }
+    }
+  })
+}
+
 interface RawSpinner {
   start(text?: string): void
   stop(text?: string): void
@@ -195,6 +534,10 @@ const defaultDriver: PromptDriver = {
   },
 
   async password(args) {
+    if (process.stdin.isTTY && process.stdout.isTTY) {
+      return askPasswordWithReveal(args)
+    }
+
     while (true) {
       const value = await askLine(args.message)
       const validationError = args.validate?.(value)
@@ -220,6 +563,10 @@ const defaultDriver: PromptDriver = {
   },
 
   async select<T>(args: { message: string; options: SelectOption<T>[]; initialValue?: T }): Promise<T | Cancel> {
+    if (process.stdin.isTTY && process.stdout.isTTY) {
+      return askSelectWithKeyboard(args)
+    }
+
     console.log(args.message)
     args.options.forEach((option, index) => {
       const disabled = option.disabled ? ' (disabled)' : ''
@@ -250,6 +597,10 @@ const defaultDriver: PromptDriver = {
     initialValues?: T[]
     required?: boolean
   }): Promise<T[] | Cancel> {
+    if (process.stdin.isTTY && process.stdout.isTTY) {
+      return askMultiSelectWithKeyboard(args)
+    }
+
     console.log(args.message)
     args.options.forEach((option, index) => {
       const disabled = option.disabled ? ' (disabled)' : ''
@@ -365,6 +716,20 @@ export function __setPromptRuntimeForTests(overrides: Partial<PromptDriver>): ()
     bypassTerminalCheckForTests = originalBypass
     Object.assign(runtime, original)
   }
+}
+
+export const __promptInternalsForTests = {
+  shortcutIndexFromKey,
+  moveSelectableIndex,
+  initialSelectableIndex,
+  resolveShortcutOption,
+  buildSelectedSummary,
+  toggleSelection,
+  isCancelKey,
+  isSubmitKey,
+  isPasswordRevealToggleKey,
+  isMultiSelectToggleKey,
+  canPrompt
 }
 
 async function validateWithSchema<TOut = unknown>(value: string, options: PromptOptions): Promise<TOut> {

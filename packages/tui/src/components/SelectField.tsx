@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from 'react'
 import type { SelectOption } from '@opentui/core'
 import { useFormField } from './form-context.js'
+import { useTuiTheme } from './theme.js'
 
 export interface SelectFieldProps {
   label: string
@@ -21,6 +22,7 @@ export function SelectField({
   defaultValue,
   onChange
 }: SelectFieldProps) {
+  const { tokens } = useTuiTheme()
   const initialValue = defaultValue ?? options[0]?.value
 
   const field = useFormField<SelectOption['value']>(name, {
@@ -43,9 +45,13 @@ export function SelectField({
 
   return (
     <box style={{ flexDirection: 'column', marginBottom: 1, gap: 1 }}>
-      <text content={`${label}${required ? ' *' : ''}`} />
-      {description ? <text content={description} fg="#8892b0" /> : null}
-      <box border height={8} style={{ marginTop: 0.5 }}>
+      <text content={`${label}${required ? ' *' : ''}`} fg={tokens.textPrimary} />
+      {description ? <text content={description} fg={tokens.textMuted} /> : null}
+      <box
+        border
+        height={8}
+        style={{ marginTop: 0.5, borderColor: field.error ? tokens.textDanger : tokens.borderMuted }}
+      >
         <select
           options={options}
           selectedIndex={selectedIndex}
@@ -53,7 +59,7 @@ export function SelectField({
           focused={field.focused}
         />
       </box>
-      {field.error ? <text content={field.error} fg="#ff6b6b" /> : null}
+      {field.error ? <text content={field.error} fg={tokens.textDanger} /> : null}
     </box>
   )
 }

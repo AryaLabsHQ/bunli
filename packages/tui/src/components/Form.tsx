@@ -3,6 +3,7 @@ import { useKeyboard } from '@opentui/react'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import { FormContext, type FormFieldRegistration } from './form-context.js'
 import { validateFormValues, type FormErrors } from './form-engine.js'
+import { useTuiTheme } from './theme.js'
 
 export interface FormProps<TSchema extends StandardSchemaV1 = StandardSchemaV1> {
   title: string
@@ -33,6 +34,7 @@ export function Form<TSchema extends StandardSchemaV1>({
   submitHint,
   children
 }: FormProps<TSchema>) {
+  const { tokens } = useTuiTheme()
   const [values, setValues] = useState<Record<string, unknown>>(
     () => ({ ...(initialValues as Record<string, unknown> | undefined) })
   )
@@ -193,13 +195,25 @@ export function Form<TSchema extends StandardSchemaV1>({
 
   return (
     <FormContext.Provider value={contextValue}>
-      <box title={title} border padding={2} style={{ flexDirection: 'column' }}>
+      <box
+        title={title}
+        border
+        padding={2}
+        style={{
+          flexDirection: 'column',
+          borderColor: tokens.border,
+          backgroundColor: tokens.background
+        }}
+      >
         {children}
         <box style={{ flexDirection: 'row', gap: 2, marginTop: 2 }}>
           {errors._form ? (
-            <text content={`Validation error: ${errors._form}`} fg="#ff7675" />
+            <text content={`Validation error: ${errors._form}`} fg={tokens.textDanger} />
           ) : (
-            <text content={submitHint ?? 'Tab: next field | Enter: submit | Esc: cancel | Ctrl+S: submit'} />
+            <text
+              content={submitHint ?? 'Tab: next field | Enter: submit | Esc: cancel | Ctrl+S: submit'}
+              fg={tokens.textMuted}
+            />
           )}
         </box>
       </box>

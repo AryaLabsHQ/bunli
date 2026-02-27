@@ -1,5 +1,6 @@
 import { useCallback } from 'react'
 import { useFormField } from './form-context.js'
+import { useTuiTheme } from './theme.js'
 
 export interface FormFieldProps {
   label: string
@@ -22,6 +23,7 @@ export function FormField({
   onChange,
   onSubmit
 }: FormFieldProps) {
+  const { tokens } = useTuiTheme()
   const field = useFormField<string>(name, {
     defaultValue,
     submitOnEnter: true
@@ -40,19 +42,26 @@ export function FormField({
 
   return (
     <box style={{ flexDirection: 'column', marginBottom: 1, gap: 1 }}>
-      <text content={`${label}${required ? ' *' : ''}`} />
-      {description ? <text content={description} fg="#8892b0" /> : null}
-      <box title={label} border height={3} style={{ marginTop: 0.5 }}>
+      <text content={`${label}${required ? ' *' : ''}`} fg={tokens.textPrimary} />
+      {description ? <text content={description} fg={tokens.textMuted} /> : null}
+      <box
+        title={label}
+        border
+        height={3}
+        style={{ marginTop: 0.5, borderColor: field.error ? tokens.textDanger : tokens.borderMuted }}
+      >
         <input
           value={field.value ?? ''}
           placeholder={placeholder}
           onInput={handleInput}
           onSubmit={handleSubmit}
           focused={field.focused}
-          style={{ focusedBackgroundColor: '#000000' }}
+          style={{
+            focusedBackgroundColor: tokens.backgroundMuted
+          }}
         />
       </box>
-      {field.error ? <text content={field.error} fg="#ff6b6b" /> : null}
+      {field.error ? <text content={field.error} fg={tokens.textDanger} /> : null}
     </box>
   )
 }
