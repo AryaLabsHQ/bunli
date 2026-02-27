@@ -247,6 +247,10 @@ function resolveImportPath(fromFile: string, specifier: string): string | null {
   const candidates: string[] = []
 
   if (ext) {
+    if (!SUPPORTED_EXTENSIONS.includes(ext)) {
+      return null
+    }
+
     candidates.push(base)
     if (ext === '.js' || ext === '.mjs' || ext === '.cjs') {
       const stem = base.slice(0, -ext.length)

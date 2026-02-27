@@ -342,6 +342,10 @@ export class CommandScanner {
 
     const extension = extname(base)
     if (extension) {
+      if (!SUPPORTED_EXTENSIONS.includes(extension)) {
+        return null
+      }
+
       candidatePaths.push(base)
 
       if (extension === '.js' || extension === '.mjs' || extension === '.cjs') {

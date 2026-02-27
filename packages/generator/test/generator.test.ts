@@ -103,6 +103,45 @@ cli.command(aliasedCommand)
     await rm(testDir, { recursive: true, force: true })
   })
 
+  test('scanner ignores non-code relative imports while traversing entry graph', async () => {
+    await mkdir(testDir, { recursive: true })
+
+    await Bun.write(join(testDir, 'data.json'), '{"ok":true}')
+    await Bun.write(join(testDir, 'json-import-command.ts'), `
+import { defineCommand } from '@bunli/core'
+
+export default defineCommand({
+  name: 'json-import-command',
+  description: 'Command with sibling json import in entry',
+  handler: async () => {}
+})
+`)
+
+    await Bun.write(join(testDir, 'cli.ts'), `
+import { createCLI } from '@bunli/core'
+import './data.json'
+import jsonImportCommand from './json-import-command.js'
+
+const cli = await createCLI({
+  name: 'json-import-cli',
+  version: '0.0.0'
+})
+
+cli.command(jsonImportCommand)
+`)
+
+    const scanner = new CommandScanner()
+    const filesResult = await scanner.scanCommands(join(testDir, 'cli.ts'))
+    expect(Result.isOk(filesResult)).toBe(true)
+    if (Result.isError(filesResult)) {
+      throw filesResult.error
+    }
+
+    expect(filesResult.value.some((file) => file.endsWith('json-import-command.ts'))).toBe(true)
+
+    await rm(testDir, { recursive: true, force: true })
+  })
+
   test('should parse command metadata', async () => {
     // Ensure test directory exists
     await mkdir(testDir, { recursive: true })
@@ -239,6 +278,37 @@ export const namedOnly = defineCommand({
     if (Result.isError(parsed)) {
       expect(parsed.error.message).toContain('Could not parse command file')
     }
+
+    await rm(testDir, { recursive: true, force: true })
+  })
+
+  test('parser ignores non-code imports when resolving nested command identifiers', async () => {
+    await mkdir(testDir, { recursive: true })
+
+    await Bun.write(join(testDir, 'data.json'), '{"nested":true}')
+    const parentCommandFile = join(testDir, 'parent-command.ts')
+    await Bun.write(
+      parentCommandFile,
+      `
+import { defineGroup } from '@bunli/core'
+import jsonData from './data.json'
+
+export default defineGroup({
+  name: 'parent-command',
+  description: 'Parent command',
+  commands: [jsonData]
+})
+`
+    )
+
+    const parsed = await parseCommand(parentCommandFile, testDir, outputFile)
+    expect(Result.isOk(parsed)).toBe(true)
+    if (Result.isError(parsed)) {
+      throw parsed.error
+    }
+
+    expect(parsed.value?.name).toBe('parent-command')
+    expect(parsed.value?.commands).toBeUndefined()
 
     await rm(testDir, { recursive: true, force: true })
   })
