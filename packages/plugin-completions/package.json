@@ -18,7 +18,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@bunli/core": "workspace:*",
+    "@bunli/core": "workspace:^",
     "better-result": "^2.7.0"
   },
   "devDependencies": {

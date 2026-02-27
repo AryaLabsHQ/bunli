@@ -18,8 +18,8 @@
   },
   "dependencies": {
     "@bunli/core": "latest",
-    "@{{name}}/core": "workspace:*",
-    "@{{name}}/utils": "workspace:*"
+    "@{{name}}/core": "workspace:^",
+    "@{{name}}/utils": "workspace:^"
   },
   "devDependencies": {
     "@bunli/test": "latest",

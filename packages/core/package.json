@@ -66,7 +66,7 @@
     "bun": ">=1.0.0"
   },
   "dependencies": {
-    "@bunli/utils": "workspace:*",
+    "@bunli/utils": "workspace:^",
     "@standard-schema/spec": "^1.1.0",
     "@standard-schema/utils": "^0.3.0",
     "better-result": "catalog:",

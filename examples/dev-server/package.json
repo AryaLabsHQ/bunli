@@ -12,14 +12,14 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@bunli/core": "workspace:*",
-    "@bunli/plugin-ai-detect": "workspace:*",
-    "@bunli/plugin-config": "workspace:*",
+    "@bunli/core": "workspace:^",
+    "@bunli/plugin-ai-detect": "workspace:^",
+    "@bunli/plugin-config": "workspace:^",
     "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/node": "24.10.1",
-    "bunli": "workspace:*",
+    "bunli": "workspace:^",
     "typescript": "^5.8.3"
   }
 }

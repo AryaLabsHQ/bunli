@@ -32,7 +32,7 @@
     "test": "bun test"
   },
   "dependencies": {
-    "@bunli/core": "workspace:*",
+    "@bunli/core": "workspace:^",
     "better-result": "^2.7.0"
   },
   "peerDependencies": {

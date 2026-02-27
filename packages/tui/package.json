@@ -16,7 +16,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@bunli/core": "workspace:*",
+    "@bunli/core": "workspace:^",
     "@opentui/core": "^0.1.75",
     "@opentui/react": "^0.1.75"
   },
