@@ -107,7 +107,7 @@ bun cli.ts setup --preset full
 - Input validation with custom messages
 - Preset configurations
 - Feature selection with multiselect
-- Direct `prompt.clack` usage (`intro`, `note`, `outro`, cancel checks)
+- Direct prompt lifecycle usage (`intro`, `note`, `outro`, cancel checks)
 - Progress simulation
 
 ## Key Concepts
@@ -157,17 +157,10 @@ const name = await prompt.text('Project name:', {
   validate: (val) => val.length >= 2 || 'Name too short'
 })
 
-// Advanced Clack primitives under the Bunli namespace
-prompt.clack.intro('Project Setup Wizard')
-const telemetry = await prompt.clack.confirm({
-  message: 'Enable anonymous setup analytics?',
-  initialValue: false
-})
-if (prompt.clack.isCancel(telemetry)) {
-  prompt.clack.cancel('Setup cancelled')
-  return
-}
-prompt.clack.outro('Setup complete')
+// Prompt lifecycle helpers
+prompt.intro('Project Setup Wizard')
+const telemetry = await prompt.confirm('Enable anonymous setup analytics?', { default: false })
+prompt.outro('Setup complete')
 ```
 
 ### Progress Indicators

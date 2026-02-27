@@ -17,8 +17,8 @@ export default defineCommand({
   },
   
   handler: async ({ flags, colors, prompt, spinner }) => {
-    prompt.clack.intro('Project Setup Wizard')
-    prompt.clack.note('Press Ctrl+C at any step to cancel the wizard.', 'Tip')
+    prompt.intro('Project Setup Wizard')
+    prompt.note('Press Ctrl+C at any step to cancel the wizard.', 'Tip')
 
     console.log(colors.bold('🎯 Project Setup Wizard'))
     console.log(colors.dim('Let\'s configure your project step by step\n'))
@@ -66,7 +66,7 @@ export default defineCommand({
       console.log(`  TypeScript: ${colors.cyan(config.typescript ? 'Yes' : 'No')}`)
       console.log(`  Git: ${colors.cyan(config.git ? 'Yes' : 'No')}`)
       console.log(`  Features: ${colors.cyan(config.features.join(', ') || 'None')}`)
-      prompt.clack.outro(`Preset "${flags.preset}" ready`)
+      prompt.outro(`Preset "${flags.preset}" ready`)
       return
     }
     
@@ -122,15 +122,9 @@ export default defineCommand({
       default: true
     })
 
-    const telemetry = await prompt.clack.confirm({
-      message: 'Enable anonymous setup analytics?',
-      initialValue: false
+    config.telemetry = await prompt.confirm('Enable anonymous setup analytics?', {
+      default: false
     })
-    if (prompt.clack.isCancel(telemetry)) {
-      prompt.clack.cancel('Setup cancelled')
-      return
-    }
-    config.telemetry = telemetry
     
     // Features
     const availableFeatures = [
@@ -166,7 +160,7 @@ export default defineCommand({
     })
     
     if (!confirmed) {
-      prompt.clack.cancel('Setup cancelled')
+      prompt.cancel('Setup cancelled')
       return
     }
     
@@ -213,12 +207,12 @@ export default defineCommand({
       console.log(`  ${colors.cyan('cd')} ${config.name}`)
       console.log(`  ${colors.cyan('bun run dev')} # Start development`)
       console.log(`  ${colors.cyan('bun run build')} # Build for production`)
-      prompt.clack.outro(`Project "${config.name}" is ready`)
+      prompt.outro(`Project "${config.name}" is ready`)
       
     } catch (error) {
       spin.fail('Project creation failed')
       console.error(colors.red(`Error: ${error instanceof Error ? error.message : String(error)}`))
-      prompt.clack.outro('Setup finished with errors')
+      prompt.outro('Setup finished with errors')
     }
   }
 })

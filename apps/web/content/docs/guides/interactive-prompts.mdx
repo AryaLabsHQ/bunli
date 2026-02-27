@@ -12,6 +12,8 @@ Create engaging CLI experiences with interactive prompts, confirmations, and sel
 Bunli provides several built-in prompt utilities through the handler context:
 
 ```typescript
+import { PromptCancelledError } from '@bunli/tui/prompt'
+
 export default defineCommand({
   handler: async ({ prompt }) => {
     // Text input
@@ -34,18 +36,14 @@ export default defineCommand({
 })
 ```
 
-Bunli prompts are implemented on top of `@clack/prompts`. For advanced primitives (like `intro/outro`), use `prompt.clack`:
+Bunli prompt primitives are provided by `@bunli/tui/prompt`, and the handler `prompt` utility exposes lifecycle helpers like `intro/outro/note/cancel`:
 
 ```typescript
 export default defineCommand({
   handler: async ({ prompt }) => {
-    prompt.clack.intro('Setup')
-    const name = await prompt.clack.text({ message: 'Name' })
-    if (prompt.clack.isCancel(name)) {
-      prompt.clack.cancel('Cancelled')
-      return
-    }
-    prompt.clack.outro('Done')
+    prompt.intro('Setup')
+    const name = await prompt.text('Name:')
+    prompt.outro('Done')
   }
 })
 ```
@@ -504,7 +502,7 @@ export default defineCommand({
       const input = await prompt('Enter value:')
       // Process input
     } catch (error) {
-      if (error.message === 'Prompt cancelled') {
+      if (error instanceof PromptCancelledError) {
         console.log(colors.yellow('\nOperation cancelled'))
         process.exit(0)
       }
@@ -583,4 +581,4 @@ test('interactive setup', async () => {
 - [Type Generation Guide](/docs/guides/type-generation) - Learn about code generation
 - [Testing](/docs/guides/testing) - Test interactive commands
 - [Building Your First CLI](/docs/guides/building-your-first-cli) - Complete example
-- [@bunli/utils](/docs/packages/utils) - Utility functions reference
+- [@bunli/tui](/docs/packages/tui) - TUI and prompt runtime reference

@@ -39,20 +39,16 @@ export default defineCommand({
   prompts: {
     title: 'Interactive Prompts',
     code: `import { defineCommand } from '@bunli/core'
-import { prompt, confirm } from '@bunli/utils'
+import { prompt } from '@bunli/tui/prompt'
 
 export default defineCommand({
   name: 'init',
   handler: async () => {
-    const name = await prompt({
-      message: 'Project name:',
+    const name = await prompt('Project name:', {
       validate: (value) => value.length > 0
     })
     
-    const typescript = await confirm({
-      message: 'Use TypeScript?',
-      default: true
-    })
+    const typescript = await prompt.confirm('Use TypeScript?', { default: true })
     
     console.log(\`Creating \${name} with \${
       typescript ? 'TypeScript' : 'JavaScript'

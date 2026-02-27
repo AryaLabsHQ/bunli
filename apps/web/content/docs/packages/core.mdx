@@ -186,8 +186,8 @@ interface HandlerArgs<T> {
   // Current working directory
   cwd: string
   
-  // Utility functions from @bunli/utils (auto-imported)
-  prompt: typeof import('@bunli/utils').prompt
+  // Utility functions auto-injected by Bunli
+  prompt: typeof import('@bunli/tui/prompt').prompt
   spinner: typeof import('@bunli/utils').spinner
   colors: typeof import('@bunli/utils').colors
   

@@ -102,36 +102,45 @@ export const myCommand = defineCommand({
 
 ```typescript
 import { defineCommand } from '@bunli/core'
-import { FormField, SelectField } from '@bunli/tui'
+import { SchemaForm } from '@bunli/tui'
 import type { SelectOption } from '@opentui/core'
-import { useState } from 'react'
+import { z } from 'zod'
+
+const configSchema = z.object({
+  apiUrl: z.string().url('Enter a valid URL'),
+  region: z.enum(['us-east', 'us-west'])
+})
 
 function ConfigTUI() {
-  const [apiUrl, setApiUrl] = useState('')
-  const [region, setRegion] = useState('us-east')
-
   const regions: SelectOption[] = [
     { name: 'US East', value: 'us-east', description: 'US East region' },
     { name: 'US West', value: 'us-west', description: 'US West region' }
   ]
 
   return (
-    <box title="Configure Settings" border padding={2} style={{ flexDirection: 'column' }}>
-      <FormField
-        label="API URL"
-        name="apiUrl"
-        placeholder="https://api.example.com"
-        required
-        value={apiUrl}
-        onChange={setApiUrl}
-      />
-      <SelectField
-        label="Region"
-        name="region"
-        options={regions}
-        onChange={setRegion}
-      />
-    </box>
+    <SchemaForm
+      title="Configure Settings"
+      schema={configSchema}
+      fields={[
+        {
+          kind: 'text',
+          name: 'apiUrl',
+          label: 'API URL',
+          placeholder: 'https://api.example.com',
+          required: true
+        },
+        {
+          kind: 'select',
+          name: 'region',
+          label: 'Region',
+          options: regions
+        }
+      ]}
+      onSubmit={(values) => {
+        console.log('Validated form values:', values)
+      }}
+      onCancel={() => process.exit(0)}
+    />
   )
 }
 
@@ -184,11 +193,12 @@ function InteractiveTUI({ command }) {
 
 ### Form
 
-A container component for building forms with keyboard navigation.
+A schema-driven container for controlled interactive forms.
 
 ```typescript
 <Form 
   title="My Form"
+  schema={schema}
   onSubmit={(values) => console.log(values)}
   onCancel={() => process.exit(0)}
 >
@@ -198,12 +208,33 @@ A container component for building forms with keyboard navigation.
 
 **Props:**
 - `title: string` - Form title
-- `onSubmit: (values: Record<string, any>) => void` - Submit handler
+- `schema: StandardSchemaV1` - Validation schema (Zod and other Standard Schema adapters supported)
+- `onSubmit: (values) => void | Promise<void>` - Submit handler with schema-validated values
 - `onCancel?: () => void` - Cancel handler (optional)
+- `onValidationError?: (errors: Record<string, string>) => void` - Validation error callback
+- `initialValues?: Partial<InferOutput<schema>>` - Initial controlled values
+- `validateOnChange?: boolean` - Validate while typing/selecting (default `true`)
+- `submitHint?: string` - Footer hint override
+
+### SchemaForm
+
+A higher-level schema form builder that renders fields from descriptors.
+
+```typescript
+<SchemaForm
+  title="Deploy"
+  schema={schema}
+  fields={[
+    { kind: 'text', name: 'service', label: 'Service' },
+    { kind: 'select', name: 'env', label: 'Environment', options: envOptions }
+  ]}
+  onSubmit={(values) => console.log(values)}
+/>
+```
 
 ### FormField
 
-A text input field with label and validation.
+A controlled text field bound to form context.
 
 ```typescript
 <FormField
@@ -211,9 +242,7 @@ A text input field with label and validation.
   name="username"
   placeholder="Enter username"
   required
-  value={username}
-  onChange={setUsername}
-  onSubmit={handleSubmit}
+  defaultValue=""
 />
 ```
 
@@ -222,13 +251,14 @@ A text input field with label and validation.
 - `name: string` - Field name
 - `placeholder?: string` - Placeholder text
 - `required?: boolean` - Whether field is required
-- `value?: string` - Current value
+- `description?: string` - Helper text
+- `defaultValue?: string` - Initial value for form state
 - `onChange?: (value: string) => void` - Change handler
 - `onSubmit?: (value: string) => void` - Submit handler
 
 ### SelectField
 
-A dropdown selection field.
+A controlled select field bound to form context.
 
 ```typescript
 <SelectField
@@ -238,6 +268,7 @@ A dropdown selection field.
     { name: 'Development', value: 'dev', description: 'Development environment' },
     { name: 'Production', value: 'prod', description: 'Production environment' }
   ]}
+  defaultValue="dev"
   onChange={setEnvironment}
 />
 ```
@@ -247,7 +278,9 @@ A dropdown selection field.
 - `name: string` - Field name
 - `options: SelectOption[]` - Available options
 - `required?: boolean` - Whether field is required
-- `onChange?: (value: string) => void` - Change handler
+- `description?: string` - Helper text
+- `defaultValue?: SelectOption['value']` - Initial selected value
+- `onChange?: (value: SelectOption['value']) => void` - Change handler
 
 ### ProgressBar
 

@@ -8,10 +8,10 @@ import { Callout } from 'fumadocs-ui/components/callout';
 
 # @bunli/utils
 
-Shared utilities for building beautiful, interactive CLI applications. Includes prompts, spinners, colors, and validation helpers.
+Shared utilities for building CLI applications. Includes spinners, colors, and validation helpers.
 
 <Callout type="info">
-  @bunli/utils has **zero dependencies** and provides a custom ANSI-based implementation for all features. It respects NO_COLOR and CI environment variables automatically.
+  Prompt primitives now live in `@bunli/tui/prompt`.
 </Callout>
 
 ## Installation
@@ -40,91 +40,22 @@ Shared utilities for building beautiful, interactive CLI applications. Includes 
 
 ## Prompts
 
-Interactive prompts for user input with built-in validation.
-
-### Text Input
+Prompt APIs are provided by `@bunli/tui/prompt`:
 
 ```typescript
-import { prompt } from '@bunli/utils'
+import { prompt } from '@bunli/tui/prompt'
 
-// Simple text input
 const name = await prompt('What is your name?')
-
-// With default value
-const host = await prompt('Host:', { 
-  default: 'localhost' 
-})
-
-// With validation
-const email = await prompt('Email:', {
-  validate: (value) => {
-    if (!value.includes('@')) {
-      return 'Please enter a valid email'
-    }
-  }
-})
-
-// With schema validation
-import { z } from 'zod'
-const url = await prompt('URL:', {
-  schema: z.string().url()
-})
-```
-
-### Confirmation
-
-```typescript
-// Simple yes/no
-const proceed = await prompt.confirm('Continue?')
-
-// With default
-const install = await prompt.confirm('Install dependencies?', { 
-  default: true 
-})
-```
-
-### Selection
-
-```typescript
-// Simple select
-const color = await prompt.select('Choose a color:', {
-  options: ['red', 'green', 'blue']
-})
-
-// With labels and hints
+const proceed = await prompt.confirm('Continue?', { default: true })
 const env = await prompt.select('Select environment:', {
   options: [
-    { value: 'dev', label: 'Development', hint: 'Local development' },
-    { value: 'staging', label: 'Staging', hint: 'Pre-production' },
-    { value: 'prod', label: 'Production', hint: 'Live environment' }
-  ],
-  default: 'dev'
-})
-```
-
-<Callout type="note">
-  Multi-select is not yet implemented in the current version of @bunli/utils. Use multiple confirm prompts or select prompts as a workaround.
-</Callout>
-
-### Password Input
-
-```typescript
-// Basic password (input is masked)
-const password = await prompt.password('Enter password:')
-
-// With validation
-const securePassword = await prompt.password('Password:', {
-  validate: (value) => {
-    if (value.length < 8) {
-      return 'Password must be at least 8 characters'
-    }
-  }
+    { value: 'dev', label: 'Development' },
+    { value: 'prod', label: 'Production' }
+  ]
 })
 
-// With schema validation
-const apiKey = await prompt.password('API Key:', {
-  schema: z.string().min(32).regex(/^[A-Za-z0-9-_]+$/)
-})
+prompt.intro('Setup')
+prompt.outro('Done')
 ```
 
 ## Spinners

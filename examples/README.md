@@ -127,8 +127,8 @@ const color = await prompt.select('Favorite color?', {
 })
 const confirmed = await prompt.confirm('Continue?')
 
-prompt.clack.intro('Setup')
-prompt.clack.outro('Done')
+prompt.intro('Setup')
+prompt.outro('Done')
 ```
 
 ### OpenTUI Rendering
