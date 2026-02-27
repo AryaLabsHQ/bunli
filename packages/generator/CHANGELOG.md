@@ -1,5 +1,14 @@
 # @bunli/generator
 
+## 0.6.1
+
+### Patch Changes
+
+- b481746: chore(deps): use workspace:^ for internal package references instead of workspace:\*
+- Updated dependencies [98fccfb]
+- Updated dependencies [b481746]
+  - @bunli/core@0.6.1
+
 ## 0.6.0
 
 ### Minor Changes

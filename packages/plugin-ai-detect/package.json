@@ -1,6 +1,6 @@
 {
   "name": "@bunli/plugin-ai-detect",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "type": "module",
   "description": "AI agent detection plugin for Bunli - detects Claude, Cursor, Copilot and other AI coding assistants",
   "keywords": [
