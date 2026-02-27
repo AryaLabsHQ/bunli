@@ -1,5 +1,6 @@
 {
   "lockfileVersion": 1,
+  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "bunli-monorepo",
@@ -8,7 +9,7 @@
         "@clack/prompts": "^1.0.0",
         "@types/bun": "1.3.7",
         "ai": "^6.0.72",
-        "better-result": "2.7.0",
+        "better-result": "catalog:",
         "oxlint": "1.50.0",
         "turbo": "^2.8.0",
         "typescript": "^5.8.3",
@@ -58,7 +59,7 @@
         "lucide-react": "^0.556.0",
         "next": "16.0.7",
         "next-themes": "^0.4.6",
-        "react": "19.2.1",
+        "react": "^19.2.4",
         "react-day-picker": "^9.12.0",
         "react-dom": "19.2.1",
         "react-hook-form": "^7.68.0",
@@ -149,7 +150,7 @@
         "@bunli/core": "workspace:*",
         "@bunli/generator": "workspace:*",
         "@bunli/utils": "workspace:*",
-        "better-result": "^2.7.0",
+        "better-result": "catalog:",
         "zod": "^4.3.6",
       },
       "devDependencies": {
@@ -165,8 +166,8 @@
         "@bunli/utils": "workspace:*",
         "@standard-schema/spec": "^1.1.0",
         "@standard-schema/utils": "^0.3.0",
-        "better-result": "^2.7.0",
-        "debug": "^4.4.0",
+        "better-result": "catalog:",
+        "debug": "^4.4.3",
         "zod": "^4.3.6",
       },
       "devDependencies": {
@@ -185,7 +186,7 @@
         "@bunli/core": "workspace:*",
         "@bunli/test": "workspace:*",
         "@bunli/utils": "workspace:*",
-        "better-result": "2.7.0",
+        "better-result": "catalog:",
         "giget": "^2.0.0",
         "zod": "^4.3.6",
       },
@@ -201,7 +202,7 @@
         "@babel/parser": "^7.28.6",
         "@babel/traverse": "^7.28.6",
         "@bunli/core": "workspace:*",
-        "better-result": "^2.7.0",
+        "better-result": "catalog:",
         "debug": "^4.4.3",
         "zod": "^4.3.6",
       },
@@ -289,7 +290,7 @@
       "devDependencies": {
         "@types/bun": "1.3.7",
         "@types/react": "19.2.10",
-        "react": "19.2.4",
+        "react": "^19.2.4",
         "typescript": "^5.8.3",
       },
       "peerDependencies": {
@@ -301,7 +302,7 @@
       "name": "@bunli/utils",
       "version": "0.4.0",
       "dependencies": {
-        "@clack/prompts": "^0.10.0",
+        "@clack/prompts": "^1.0.0",
         "@standard-schema/spec": "^1.1.0",
         "@standard-schema/utils": "^0.3.0",
         "better-result": "^2.7.0",
@@ -317,6 +318,9 @@
   },
   "patchedDependencies": {
     "@bomb.sh/tab@0.0.13": "patches/@bomb.sh%2Ftab@0.0.13.patch",
+  },
+  "catalog": {
+    "better-result": "^2.7.0",
   },
   "packages": {
     "@ai-sdk/gateway": ["@ai-sdk/gateway@3.0.35", "", { "dependencies": { "@ai-sdk/provider": "3.0.7", "@ai-sdk/provider-utils": "4.0.13", "@vercel/oidc": "3.1.0" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-9aRTVM1P1u4yUIjBpco/WCF1WXr/DgWKuDYgLLHdENS8kiEuxDOPJuGbc/6+7EwQ6ZqSh0UOgeqvHfGJfU23Qg=="],
@@ -1881,8 +1885,6 @@
 
     "@babel/traverse/@babel/types": ["@babel/types@7.28.6", "", { "dependencies": { "@babel/helper-string-parser": "^7.27.1", "@babel/helper-validator-identifier": "^7.28.5" } }, "sha512-0ZrskXVEHSWIqZM/sQZ4EV3jZJXRkio/WCxaqKZP1g//CEWEPSfeZFcms4XeKBCHU0ZKnIkdJeU/kF+eRp5lBg=="],
 
-    "@bunli/utils/@clack/prompts": ["@clack/prompts@0.10.1", "", { "dependencies": { "@clack/core": "0.4.2", "picocolors": "^1.0.0", "sisteransi": "^1.0.5" } }, "sha512-Q0T02vx8ZM9XSv9/Yde0jTmmBQufZhPJfYAg2XrrrxWWaZgq1rr8nU8Hv710BQ1dhoP8rtY7YUdpGej2Qza/cw=="],
-
     "@jimp/plugin-blit/zod": ["zod@3.25.76", "", {}, "sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ=="],
 
     "@jimp/plugin-circle/zod": ["zod@3.25.76", "", {}, "sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ=="],
@@ -1993,8 +1995,6 @@
 
     "read-yaml-file/js-yaml": ["js-yaml@3.14.2", "", { "dependencies": { "argparse": "^1.0.7", "esprima": "^4.0.0" }, "bin": { "js-yaml": "bin/js-yaml.js" } }, "sha512-PMSmkqxr106Xa156c2M265Z+FTrPl+oxd/rgOQy2tijQeK5TxQ43psO1ZCwhVOSdnn+RzkzlRz/eY4BgJBYVpg=="],
 
-    "web/react": ["react@19.2.1", "", {}, "sha512-DGrYcCWK7tvYMnWh79yrPHt+vdx9tY+1gPZa7nJQtO/p8bLTDaHp4dzwEhQB7pZ4Xe3ok4XKuEPrVuc+wlpkmw=="],
-
     "@babel/generator/@babel/types/@babel/helper-validator-identifier": ["@babel/helper-validator-identifier@7.28.5", "", {}, "sha512-qSs4ifwzKJSV39ucNjsvc6WVHs6b7S03sOh2OcHF9UHfVPqWWALUsNUVzhSBiItjRZoLHx7nIarVjqKVusUZ1Q=="],
 
     "@babel/parser/@babel/types/@babel/helper-validator-identifier": ["@babel/helper-validator-identifier@7.28.5", "", {}, "sha512-qSs4ifwzKJSV39ucNjsvc6WVHs6b7S03sOh2OcHF9UHfVPqWWALUsNUVzhSBiItjRZoLHx7nIarVjqKVusUZ1Q=="],
@@ -2002,8 +2002,6 @@
     "@babel/template/@babel/types/@babel/helper-validator-identifier": ["@babel/helper-validator-identifier@7.28.5", "", {}, "sha512-qSs4ifwzKJSV39ucNjsvc6WVHs6b7S03sOh2OcHF9UHfVPqWWALUsNUVzhSBiItjRZoLHx7nIarVjqKVusUZ1Q=="],
 
     "@babel/traverse/@babel/types/@babel/helper-validator-identifier": ["@babel/helper-validator-identifier@7.28.5", "", {}, "sha512-qSs4ifwzKJSV39ucNjsvc6WVHs6b7S03sOh2OcHF9UHfVPqWWALUsNUVzhSBiItjRZoLHx7nIarVjqKVusUZ1Q=="],
-
-    "@bunli/utils/@clack/prompts/@clack/core": ["@clack/core@0.4.2", "", { "dependencies": { "picocolors": "^1.0.0", "sisteransi": "^1.0.5" } }, "sha512-NYQfcEy8MWIxrT5Fj8nIVchfRFA26yYKJcvBS7WlUIlw2OmQOY9DhGGXMovyI5J5PpxrCPGkgUi207EBrjpBvg=="],
 
     "better-result/@clack/prompts/@clack/core": ["@clack/core@0.5.0", "", { "dependencies": { "picocolors": "^1.0.0", "sisteransi": "^1.0.5" } }, "sha512-p3y0FIOwaYRUPRcMO7+dlmLh8PSRcrjuTndsiA0WAFbWES0mLZlrjVoBRZ9DzkPFJZG6KGkJmoEAY0ZcVWTkow=="],
 
