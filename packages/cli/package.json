@@ -55,7 +55,7 @@
   },
   "devDependencies": {
     "@bunli/test": "workspace:^",
-    "@types/bun": "1.3.7",
+    "@types/bun": "catalog:",
     "typescript": "^5.8.3"
   }
 }
