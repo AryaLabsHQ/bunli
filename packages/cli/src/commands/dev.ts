@@ -29,7 +29,7 @@ export default defineCommand({
       { short: 'e', description: 'Entry file (defaults to auto-detect)' }
     ),
     commandsDir: option(
-      z.string().default('commands'),
+      z.string().optional(),
       { description: 'Commands directory' }
     ),
     generate: option(
@@ -70,20 +70,21 @@ async function runDev(
     const config = await loadConfig()
     const typedFlags = flags as {
       entry?: string
-      commandsDir: string
+      commandsDir?: string
       generate: boolean
       clearScreen: boolean
       watch: boolean
       inspect: boolean
       port?: number
     }
+    const commandsDir = typedFlags.commandsDir || config.commands?.directory || 'commands'
 
     // Generate types if codegen is enabled
     const generateTypes = async (): Promise<Result<void, DevCommandErrorType>> => {
       if (!typedFlags.generate) return Result.ok(undefined)
 
       const generator = new Generator({
-        commandsDir: typedFlags.commandsDir,
+        commandsDir: commandsDir,
         outputFile: './.bunli/commands.gen.ts',
         config,
         generateReport: config.commands?.generateReport
@@ -158,15 +159,15 @@ async function runDev(
     // Watch for changes in commands directory to regenerate types
     let ac: AbortController | null = null
     if (typedFlags.watch ?? config.dev?.watch ?? true) {
-      const commandsDir = path.resolve(typedFlags.commandsDir)
-      if (existsSync(commandsDir) && typedFlags.generate) {
+      const commandsDirPath = path.resolve(commandsDir)
+      if (existsSync(commandsDirPath) && typedFlags.generate) {
         ac = new AbortController()
         const { signal } = ac
 
         // Watch commands directory for type regeneration
         const watchCommands = async () => {
           try {
-            const watcher = watch(commandsDir, {
+            const watcher = watch(commandsDirPath, {
               recursive: true,
               signal
             })
