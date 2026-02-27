@@ -91,21 +91,26 @@ async function runBuild(
     targets?: string[]
   }
 
-  const configuredEntry = config.commands?.entry || config.build?.entry
-  const configuredEntryFile = Array.isArray(configuredEntry) ? configuredEntry[0] : configuredEntry
-  const entry = typedFlags.entry || configuredEntryFile || await findEntry()
-  if (!entry) {
+  const resolvedBuildEntry = typedFlags.entry || config.build?.entry || await findEntry()
+  if (!resolvedBuildEntry) {
     return failBuild('No entry file found. Please specify with --entry or in bunli.config.ts')
   }
-  const primaryEntry = Array.isArray(entry) ? entry[0] : entry
-  if (!primaryEntry) {
+
+  const buildEntryPoints = Array.isArray(resolvedBuildEntry)
+    ? resolvedBuildEntry
+    : [resolvedBuildEntry]
+  const primaryBuildEntry = buildEntryPoints[0]
+  if (!primaryBuildEntry) {
     return failBuild('Entry file is undefined')
   }
+
+  const configuredCodegenEntry = config.commands?.entry
+  const codegenEntry = configuredCodegenEntry || primaryBuildEntry
 
   {
     const spin = spinner('Generating types...')
     const generator = new Generator({
-      entry: primaryEntry,
+      entry: codegenEntry,
       directory: config.commands?.directory,
       outputFile: './.bunli/commands.gen.ts',
       config,
@@ -121,11 +126,11 @@ async function runBuild(
 
   const targets = typedFlags.targets || config.build?.targets
   const isCompiling = Boolean(targets && targets.length > 0)
-  if (isCompiling && Array.isArray(entry)) {
+  if (isCompiling && buildEntryPoints.length > 1) {
     return failBuild('Compiled builds only support a single entry file')
   }
 
-  const entryFile = primaryEntry
+  const entryFile = primaryBuildEntry
 
   const outdir = typedFlags.outdir || config.build?.outdir || './dist'
   const spin = spinner('Building CLI...')
@@ -189,9 +194,8 @@ async function runBuild(
         }
       }
     } else {
-      const entryFiles = Array.isArray(entry) ? entry : [entry]
       const result = await Bun.build({
-        entrypoints: entryFiles,
+        entrypoints: buildEntryPoints,
         outdir,
         target: typedFlags.runtime || 'bun',
         format: 'esm' as const,
@@ -200,7 +204,7 @@ async function runBuild(
         external: config.build?.external || [],
         plugins: [
           bunliCodegenPlugin({
-            entry: primaryEntry,
+            entry: codegenEntry,
             directory: config.commands?.directory,
             outputFile: './.bunli/commands.gen.ts',
             config

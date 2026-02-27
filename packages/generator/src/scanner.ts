@@ -97,16 +97,32 @@ export class CommandScanner {
         return Result.err(inspectResult.error)
       }
 
-      const { importMap, localRelativeImports, registeredCommandIdentifiers, hasInlineCommandRegistration } = inspectResult.value
+      const {
+        importMap,
+        localRelativeImports,
+        registeredCommandIdentifiers,
+        localIdentifierAliases,
+        locallyDefinedCommandIdentifiers,
+        hasInlineCommandRegistration
+      } = inspectResult.value
 
       if (hasInlineCommandRegistration) {
         commandFiles.add(current)
       }
 
       for (const identifier of registeredCommandIdentifiers) {
-        const commandFile = importMap.get(identifier)
-        if (!commandFile) continue
-        commandFiles.add(commandFile)
+        const resolved = this.resolveRegisteredCommandTarget(
+          identifier,
+          importMap,
+          localIdentifierAliases,
+          locallyDefinedCommandIdentifiers
+        )
+        if (!resolved) continue
+        if (resolved === 'current') {
+          commandFiles.add(current)
+        } else {
+          commandFiles.add(resolved)
+        }
       }
 
       for (const importedFile of localRelativeImports) {
@@ -123,6 +139,8 @@ export class CommandScanner {
     importMap: Map<string, string>
     localRelativeImports: Set<string>
     registeredCommandIdentifiers: Set<string>
+    localIdentifierAliases: Map<string, string>
+    locallyDefinedCommandIdentifiers: Set<string>
     hasInlineCommandRegistration: boolean
   }, ScanCommandFileError>> {
     return Result.tryPromise({
@@ -136,6 +154,8 @@ export class CommandScanner {
         const importMap = new Map<string, string>()
         const localRelativeImports = new Set<string>()
         const registeredCommandIdentifiers = new Set<string>()
+        const localIdentifierAliases = new Map<string, string>()
+        const locallyDefinedCommandIdentifiers = new Set<string>()
         let hasInlineCommandRegistration = false
 
         traverse(ast, {
@@ -149,6 +169,23 @@ export class CommandScanner {
             for (const specifier of path.node.specifiers) {
               if (!specifier?.local?.name) continue
               importMap.set(specifier.local.name, resolved)
+            }
+          },
+          VariableDeclarator: (path: any) => {
+            const id = path.node.id
+            const init = path.node.init
+            if (!id || id.type !== 'Identifier' || !init) return
+
+            if (init.type === 'Identifier') {
+              localIdentifierAliases.set(id.name, init.name)
+              return
+            }
+
+            if (
+              init.type === 'CallExpression' &&
+              this.isCommandFactoryCall(init)
+            ) {
+              locallyDefinedCommandIdentifiers.add(id.name)
             }
           },
           CallExpression: (path: any) => {
@@ -183,6 +220,8 @@ export class CommandScanner {
           importMap,
           localRelativeImports,
           registeredCommandIdentifiers,
+          localIdentifierAliases,
+          locallyDefinedCommandIdentifiers,
           hasInlineCommandRegistration
         }
       },
@@ -231,6 +270,50 @@ export class CommandScanner {
     }
 
     return Result.ok(commandFiles.sort((a, b) => a.localeCompare(b)))
+  }
+
+  private resolveRegisteredCommandTarget(
+    identifier: string,
+    importMap: Map<string, string>,
+    localIdentifierAliases: Map<string, string>,
+    locallyDefinedCommandIdentifiers: Set<string>
+  ): string | 'current' | undefined {
+    let current = identifier
+    const seen = new Set<string>()
+
+    while (true) {
+      if (locallyDefinedCommandIdentifiers.has(current)) {
+        return 'current'
+      }
+
+      const imported = importMap.get(current)
+      if (imported) {
+        return imported
+      }
+
+      if (seen.has(current)) {
+        return undefined
+      }
+      seen.add(current)
+
+      const alias = localIdentifierAliases.get(current)
+      if (!alias) {
+        return undefined
+      }
+      current = alias
+    }
+  }
+
+  private isCommandFactoryCall(node: any): boolean {
+    if (!node || node.type !== 'CallExpression') return false
+    const callee = node.callee
+    if (callee?.type === 'Identifier') {
+      return callee.name === 'defineCommand' || callee.name === 'defineGroup'
+    }
+    if (callee?.type === 'MemberExpression' && callee.property?.type === 'Identifier') {
+      return callee.property.name === 'defineCommand' || callee.property.name === 'defineGroup'
+    }
+    return false
   }
 
   private async isCommandFile(filePath: string): Promise<Result<boolean, ScanCommandFileError>> {

@@ -64,6 +64,45 @@ export default defineCommand({
     await rm(testDir, { recursive: true, force: true })
   })
 
+  test('scanner resolves locally aliased command identifiers to imported modules', async () => {
+    await mkdir(testDir, { recursive: true })
+
+    await Bun.write(join(testDir, 'alias-command.ts'), `
+import { defineCommand } from '@bunli/core'
+
+export default defineCommand({
+  name: 'alias-command',
+  description: 'Alias command',
+  handler: async () => {}
+})
+`)
+
+    await Bun.write(join(testDir, 'cli.ts'), `
+import { createCLI } from '@bunli/core'
+import importedCommand from './alias-command.js'
+
+const aliasedCommand = importedCommand
+
+const cli = await createCLI({
+  name: 'alias-cli',
+  version: '0.0.0'
+})
+
+cli.command(aliasedCommand)
+`)
+
+    const scanner = new CommandScanner()
+    const filesResult = await scanner.scanCommands(join(testDir, 'cli.ts'))
+    expect(Result.isOk(filesResult)).toBe(true)
+    if (Result.isError(filesResult)) {
+      throw filesResult.error
+    }
+
+    expect(filesResult.value.some((file) => file.endsWith('alias-command.ts'))).toBe(true)
+
+    await rm(testDir, { recursive: true, force: true })
+  })
+
   test('should parse command metadata', async () => {
     // Ensure test directory exists
     await mkdir(testDir, { recursive: true })

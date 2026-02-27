@@ -74,6 +74,14 @@ async function parseCommandWithContext(
   context: ParseContext
 ): Promise<Result<CommandMetadata | null, ParseCommandError>> {
   const absoluteFilePath = toAbsolute(filePath)
+  if (context.inProgress.has(absoluteFilePath)) {
+    return Result.err(new ParseCommandError({
+      filePath: absoluteFilePath,
+      message: `Circular command reference detected while parsing ${absoluteFilePath}`,
+      cause: new Error('Circular command reference')
+    }))
+  }
+
   const cached = context.cache.get(absoluteFilePath)
   if (cached) return cached
 
