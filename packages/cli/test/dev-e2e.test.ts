@@ -34,13 +34,12 @@ function writeBaseFixture(fixtureDir: string, configContents: string) {
   }, null, 2))
 
   writeFileSync(path.join(fixtureDir, 'bunli.config.ts'), configContents)
-  writeFileSync(path.join(fixtureDir, 'cli.ts'), "console.log('fixture cli entry')\n")
 }
 
 function writeCommandFile(baseDir: string, commandFile: string, commandName: string) {
-  const fullDir = path.join(baseDir, commandFile)
-  mkdirSync(path.dirname(fullDir), { recursive: true })
-  writeFileSync(fullDir, `
+  const fullFile = path.join(baseDir, commandFile)
+  mkdirSync(path.dirname(fullFile), { recursive: true })
+  writeFileSync(fullFile, `
 import { defineCommand } from '@bunli/core'
 
 export default defineCommand({
@@ -51,7 +50,23 @@ export default defineCommand({
 `)
 }
 
-describe('dev e2e - commandsDir precedence', () => {
+function writeEntryFile(baseDir: string, entryFile: string, importedCommandPath: string) {
+  const fullFile = path.join(baseDir, entryFile)
+  mkdirSync(path.dirname(fullFile), { recursive: true })
+  writeFileSync(fullFile, `
+import { createCLI } from '@bunli/core'
+import registeredCommand from '${importedCommandPath}'
+
+const cli = await createCLI({
+  name: 'fixture',
+  version: '0.0.0'
+})
+
+cli.command(registeredCommand)
+`)
+}
+
+describe('dev e2e - command entry precedence', () => {
   let fixtureDir = ''
 
   beforeEach(() => {
@@ -65,15 +80,17 @@ describe('dev e2e - commandsDir precedence', () => {
     }
   })
 
-  test('uses config.commands.directory when --commandsDir is not provided', async () => {
+  test('uses config.commands.entry when --entry is not provided', async () => {
     writeBaseFixture(
       fixtureDir,
       `export default {
-  build: { entry: './cli.ts' },
-  commands: { directory: './src/commands' }
+  build: { entry: './src/fallback-entry.ts' },
+  commands: { entry: './src/config-entry.ts' }
 }\n`
     )
     writeCommandFile(fixtureDir, 'src/commands/from-config.ts', 'from-config')
+    writeEntryFile(fixtureDir, 'src/config-entry.ts', './commands/from-config.js')
+    writeEntryFile(fixtureDir, 'src/fallback-entry.ts', './commands/from-config.js')
 
     const result = await runCli(fixtureDir, ['dev', '--watch=false'])
     const combinedOutput = `${result.stdout}\n${result.stderr}`
@@ -86,18 +103,21 @@ describe('dev e2e - commandsDir precedence', () => {
     expect(readFileSync(generatedPath, 'utf8')).toContain("'from-config'")
   })
 
-  test('uses --commandsDir value over config.commands.directory', async () => {
+  test('uses --entry value over config.commands.entry', async () => {
     writeBaseFixture(
       fixtureDir,
       `export default {
-  build: { entry: './cli.ts' },
-  commands: { directory: './src/commands' }
+  build: { entry: './src/fallback-entry.ts' },
+  commands: { entry: './src/config-entry.ts' }
 }\n`
     )
     writeCommandFile(fixtureDir, 'src/commands/from-config.ts', 'from-config')
     writeCommandFile(fixtureDir, 'custom/commands/from-flag.ts', 'from-flag')
+    writeEntryFile(fixtureDir, 'src/config-entry.ts', './commands/from-config.js')
+    writeEntryFile(fixtureDir, 'custom/entry-flag.ts', './commands/from-flag.js')
+    writeEntryFile(fixtureDir, 'src/fallback-entry.ts', './commands/from-config.js')
 
-    const result = await runCli(fixtureDir, ['dev', '--watch=false', '--commandsDir=custom/commands'])
+    const result = await runCli(fixtureDir, ['dev', '--watch=false', '--entry=custom/entry-flag.ts'])
     const combinedOutput = `${result.stdout}\n${result.stderr}`
     const generatedPath = path.join(fixtureDir, '.bunli/commands.gen.ts')
     const generated = readFileSync(generatedPath, 'utf8')
@@ -109,14 +129,15 @@ describe('dev e2e - commandsDir precedence', () => {
     expect(generated).not.toContain("'from-config'")
   })
 
-  test('falls back to ./commands when neither flag nor config directory is set', async () => {
+  test('falls back to build.entry when commands.entry is not set', async () => {
     writeBaseFixture(
       fixtureDir,
       `export default {
-  build: { entry: './cli.ts' }
+  build: { entry: './src/build-entry.ts' }
 }\n`
     )
-    writeCommandFile(fixtureDir, 'commands/from-default.ts', 'from-default')
+    writeCommandFile(fixtureDir, 'src/commands/from-build-entry.ts', 'from-build-entry')
+    writeEntryFile(fixtureDir, 'src/build-entry.ts', './commands/from-build-entry.js')
 
     const result = await runCli(fixtureDir, ['dev', '--watch=false'])
     const combinedOutput = `${result.stdout}\n${result.stderr}`
@@ -126,6 +147,6 @@ describe('dev e2e - commandsDir precedence', () => {
     expect(combinedOutput).toContain('Types generated')
     expect(combinedOutput).toContain('Generated types for 1 commands')
     expect(existsSync(generatedPath)).toBe(true)
-    expect(readFileSync(generatedPath, 'utf8')).toContain("'from-default'")
+    expect(readFileSync(generatedPath, 'utf8')).toContain("'from-build-entry'")
   })
 })
