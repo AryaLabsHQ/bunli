@@ -1,13 +1,15 @@
 #!/usr/bin/env bun
 import { createCLI } from '@bunli/core'
+import branchCommand from './commands/branch.js'
+import prCommand from './commands/pr.js'
+import statusCommand from './commands/status.js'
+import syncCommand from './commands/sync.js'
 
 const cli = await createCLI()
 
-await cli.load({
-  branch: () => import('./commands/branch'),
-  pr: () => import('./commands/pr'),
-  sync: () => import('./commands/sync'),
-  status: () => import('./commands/status')
-})
+cli.command(branchCommand)
+cli.command(prCommand)
+cli.command(syncCommand)
+cli.command(statusCommand)
 
 await cli.run()

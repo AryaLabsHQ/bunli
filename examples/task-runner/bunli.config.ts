@@ -8,6 +8,7 @@ export default defineConfig({
 
   plugins: [completionsPlugin],
   commands: {
+    entry: './cli.ts',
     directory: './commands'
   },
   build: {

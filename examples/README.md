@@ -64,8 +64,8 @@ bun cli.ts
 ```
 
 All examples include:
-- `bunli.config.ts` - Configuration with required `commands.directory`
-- `commands/` directory - All command definitions (REQUIRED structure)
+- `bunli.config.ts` - Configuration with `commands.entry` for codegen discovery
+- Command modules registered explicitly via `cli.command(...)`
 - `.bunli/commands.gen.ts` - Generated TypeScript definitions (auto-created)
 - Development scripts using `bunli dev` for hot reload
 - Build scripts using `bunli build` for production
@@ -185,12 +185,13 @@ export default defineConfig({
   version: '1.0.0',
   description: 'My awesome CLI',
   
-  // REQUIRED: commands directory
+  // Command discovery for tooling/codegen
   commands: {
-    directory: './commands'
+    entry: './cli.ts',
+    directory: './commands' // optional fallback hint
   },
   
-  // REQUIRED: plugins array (can be empty)
+  // Plugins are optional (default: [])
   plugins: [],
   
   build: {

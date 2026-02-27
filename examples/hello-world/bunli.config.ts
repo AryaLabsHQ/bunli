@@ -7,6 +7,7 @@ export default defineConfig({
   
   plugins: [],
   commands: {
+    entry: './cli.ts',
     directory: './commands'
   },
   build: {

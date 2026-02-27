@@ -55,7 +55,8 @@ The main class for generating TypeScript definitions:
 import { Generator } from '@bunli/generator'
 
 const generator = new Generator({
-  commandsDir: './commands',
+  entry: './src/cli.ts',
+  directory: './src/commands',
   outputFile: './.bunli/commands.gen.ts',
   config: {}, // Optional config object
   generateReport: false // Optional report generation
@@ -79,7 +80,7 @@ Scans directories for command files:
 import { CommandScanner } from '@bunli/generator'
 
 const scanner = new CommandScanner()
-const files = await scanner.scanCommands('./commands')
+const files = await scanner.scanCommands('./src/cli.ts', './src/commands')
 
 console.log(files) // ['greet.ts', 'deploy.ts', 'test.ts']
 ```
@@ -91,7 +92,7 @@ Parse individual command files:
 ```typescript
 import { parseCommand } from '@bunli/generator'
 
-const commandData = await parseCommand('./commands/greet.ts', './commands', './.bunli/commands.gen.ts')
+const commandData = await parseCommand('./commands/greet.ts', './src', './.bunli/commands.gen.ts')
 console.log(commandData)
 // {
 //   name: 'greet',
@@ -133,8 +134,9 @@ import { bunliCodegenPlugin } from '@bunli/generator'
 export default {
   plugins: [
     bunliCodegenPlugin({
-      commandsDir: './commands',
-      output: './.bunli/commands.gen.ts'
+      entry: './src/cli.ts',
+      directory: './src/commands',
+      outputFile: './.bunli/commands.gen.ts'
     })
   ]
 }
@@ -161,7 +163,8 @@ bunli generate --watch
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `commandsDir` | `string` | `'./commands'` | Directory to scan for command files |
+| `entry` | `string` | `'./cli.ts'` | CLI entry file used for command discovery |
+| `directory` | `string` | `undefined` | Optional fallback directory for command scanning |
 | `outputFile` | `string` | `'./.bunli/commands.gen.ts'` | Output file for generated types |
 | `watch` | `boolean` | `false` | Watch for file changes |
 | `include` | `string[]` | `['**/*.ts', '**/*.js']` | File patterns to include |
@@ -222,7 +225,8 @@ function findCommandsByDescription(searchTerm: string): CommandInfo[]
 import { Generator } from '@bunli/generator'
 
 const generator = new Generator({
-  commandsDir: './src/commands',
+  entry: './src/cli.ts',
+  directory: './src/commands',
   outputFile: './.bunli/commands.gen.ts'
 })
 
@@ -267,7 +271,8 @@ class Generator {
 
 ```typescript
 interface GeneratorOptions {
-  commandsDir: string
+  entry: string
+  directory?: string
   outputFile: string
   config?: any
   generateReport?: boolean
@@ -331,7 +336,8 @@ export default defineConfig({
 import { Generator } from '@bunli/generator'
 
 const generator = new Generator({
-  commandsDir: './src/commands',
+  entry: './src/cli.ts',
+  directory: './src/commands',
   outputFile: './.bunli/commands.gen.ts'
 })
 

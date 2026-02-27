@@ -27,7 +27,7 @@ interface BunliConfig {
   version?: string
   description?: string
   commands?: {
-    manifest?: string
+    entry?: string
     directory?: string
   }
   plugins?: PluginConfig[]
@@ -49,7 +49,6 @@ A `CLI` instance with the following methods:
 ```typescript
 interface CLI {
   command(cmd: Command): void
-  load(manifest: CommandManifest): Promise<void>
   init(): Promise<void>
   run(argv?: string[]): Promise<void>
 }
@@ -90,19 +89,20 @@ export default defineConfig({
 })
 ```
 
-### With Command Manifest
+### With Explicit Registration
 
 ```typescript
 // cli.ts
 import { createCLI } from '@bunli/core'
+import build from './commands/build.js'
+import test from './commands/test.js'
+import deploy from './commands/deploy.js'
 
 const cli = await createCLI()
 
-await cli.load({
-  build: () => import('./commands/build'),
-  test: () => import('./commands/test'),
-  deploy: () => import('./commands/deploy')
-})
+cli.command(build)
+cli.command(test)
+cli.command(deploy)
 
 await cli.run()
 ```
@@ -114,8 +114,9 @@ import { defineConfig } from '@bunli/core'
 export default defineConfig({
   name: 'my-cli',
   version: '1.0.0',
-  description: 'My CLI with lazy-loaded commands',
+  description: 'My CLI with explicit command registration',
   commands: {
+    entry: './cli.ts',
     directory: './commands'
   }
 })
@@ -193,23 +194,9 @@ cli.command({
 })
 ```
 
-### load(manifest)
-
-Load commands from a manifest for lazy loading.
-
-```typescript
-const manifest = {
-  build: () => import('./commands/build.js'),
-  test: () => import('./commands/test.js'),
-  deploy: () => import('./commands/deploy.js')
-}
-
-await cli.load(manifest)
-```
-
 ### init()
 
-Initialize the CLI. This loads commands from the manifest if configured.
+Initialize the CLI.
 
 ```typescript
 await cli.init()
@@ -273,5 +260,4 @@ Unknown command: unknown
 - [defineCommand](/docs/api/define-command) - Define type-safe commands
 - [Plugins](/docs/core-concepts/plugins) - Learn about the plugin system
 - [Plugin API](/docs/api/plugins) - Plugin API reference
-- [Command Manifests](/docs/core-concepts/commands#command-manifests) - Learn about lazy loading
 - [Configuration](/docs/core-concepts/configuration) - CLI configuration options
