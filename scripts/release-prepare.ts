@@ -351,8 +351,7 @@ async function ensureCleanWorkingTree(options: Options): Promise<Result<void, Re
     return Result.ok(undefined)
   }
 
-  const confirmed = await p.confirm({
-    message: 'Working tree is not clean. Continue anyway?',
+  const confirmed = await p.confirm('Working tree is not clean. Continue anyway?', {
     default: false,
   })
 
@@ -434,8 +433,7 @@ async function main(): Promise<Result<void, ReleasePrepareError>> {
     if (options.yes || modifiedPackages.length === 1) {
       selectedPackages = modifiedPackages
     } else {
-      const selected = await p.multiselect({
-        message: 'Select packages to include in the changeset',
+      const selected = await p.multiselect('Select packages to include in the changeset', {
         options: modifiedPackages.map((pkg) => ({
           value: pkg.config.name,
           label: `${pkg.config.name} (${pkg.commits.length} commits)`,
@@ -552,8 +550,7 @@ async function main(): Promise<Result<void, ReleasePrepareError>> {
 
   if (options.pr) {
     if (!options.yes) {
-      const confirmPr = await p.confirm({
-        message: 'Create a PR with this changeset?',
+      const confirmPr = await p.confirm('Create a PR with this changeset?', {
         default: true,
       })
 

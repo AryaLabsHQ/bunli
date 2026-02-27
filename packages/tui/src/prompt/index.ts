@@ -887,7 +887,20 @@ export async function group<T extends Record<string, () => Promise<unknown>>>(
 export const intro = (...args: Parameters<typeof runtime.intro>) => runtime.intro(...args)
 export const outro = (...args: Parameters<typeof runtime.outro>) => runtime.outro(...args)
 export const note = (...args: Parameters<typeof runtime.note>) => runtime.note(...args)
-export const log = runtime.log
+export const log: PromptDriver['log'] = {
+  info(message) {
+    runtime.log.info(message)
+  },
+  success(message) {
+    runtime.log.success(message)
+  },
+  warn(message) {
+    runtime.log.warn(message)
+  },
+  error(message) {
+    runtime.log.error(message)
+  }
+}
 export const cancel = (...args: Parameters<typeof runtime.cancel>) => runtime.cancel(...args)
 export const rawSpinner = (...args: Parameters<typeof runtime.spinner>) => runtime.spinner(...args)
 

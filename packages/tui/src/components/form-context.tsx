@@ -49,33 +49,34 @@ export function useFormField<T = unknown>(
   options: UseFormFieldOptions<T> = {}
 ): UseFormFieldResult<T> {
   const context = useFormContext()
+  const { registerField, unregisterField, setFieldValue, focusField, markTouched } = context
 
   useEffect(() => {
-    context.registerField({
+    registerField({
       name,
       defaultValue: options.defaultValue,
       submitOnEnter: options.submitOnEnter
     })
 
     return () => {
-      context.unregisterField(name)
+      unregisterField(name)
     }
-  }, [context, name, options.defaultValue, options.submitOnEnter])
+  }, [name, options.defaultValue, options.submitOnEnter, registerField, unregisterField])
 
   const setValue = useCallback(
     (value: T) => {
-      context.setFieldValue(name, value)
+      setFieldValue(name, value)
     },
-    [context, name]
+    [name, setFieldValue]
   )
 
   const focus = useCallback(() => {
-    context.focusField(name)
-  }, [context, name])
+    focusField(name)
+  }, [focusField, name])
 
   const blur = useCallback(() => {
-    context.markTouched(name)
-  }, [context, name])
+    markTouched(name)
+  }, [markTouched, name])
 
   const value = (context.values[name] ?? options.defaultValue ?? '') as T
 

@@ -6,6 +6,7 @@ import {
   multiselect,
   password,
   select,
+  log as promptLog,
   CANCEL,
   PromptCancelledError,
   __setPromptRuntimeForTests,
@@ -204,5 +205,29 @@ describe('@bunli/tui prompt adapters', () => {
     expect(__promptInternalsForTests.isSubmitKey({ name: 'return' })).toBe(true)
     expect(__promptInternalsForTests.isSubmitKey({ name: 'linefeed' })).toBe(true)
     expect(__promptInternalsForTests.isSubmitKey({ name: 'space' })).toBe(false)
+  })
+
+  test('log export respects runtime overrides', () => {
+    const messages: string[] = []
+    restoreRuntime = __setPromptRuntimeForTests({
+      log: {
+        info(message) {
+          messages.push(`info:${message}`)
+        },
+        success(message) {
+          messages.push(`success:${message}`)
+        },
+        warn(message) {
+          messages.push(`warn:${message}`)
+        },
+        error(message) {
+          messages.push(`error:${message}`)
+        }
+      }
+    })
+
+    promptLog.info('hello')
+    promptLog.error('oops')
+    expect(messages).toEqual(['info:hello', 'error:oops'])
   })
 })
