@@ -50,7 +50,7 @@
     "@bunli/core": "workspace:*",
     "@bunli/test": "workspace:*",
     "@bunli/utils": "workspace:*",
-    "better-result": "2.7.0",
+    "better-result": "catalog:",
     "giget": "^2.0.0",
     "zod": "^4.3.6"
   },

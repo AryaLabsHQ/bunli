@@ -2,11 +2,6 @@
   "name": "bunli-monorepo",
   "private": true,
   "type": "module",
-  "workspaces": [
-    "packages/*",
-    "examples/*",
-    "apps/*"
-  ],
   "scripts": {
     "build": "turbo run build --filter='./packages/*'",
     "typecheck": "turbo run typecheck --filter='./packages/*'",
@@ -31,7 +26,7 @@
     "@clack/prompts": "^1.0.0",
     "@types/bun": "1.3.7",
     "ai": "^6.0.72",
-    "better-result": "2.7.0",
+    "better-result": "catalog:",
     "oxlint": "1.50.0",
     "turbo": "^2.8.0",
     "typescript": "^5.8.3"
@@ -39,5 +34,15 @@
   "packageManager": "bun@1.2.2",
   "patchedDependencies": {
     "@bomb.sh/tab@0.0.13": "patches/@bomb.sh%2Ftab@0.0.13.patch"
+  },
+  "workspaces": {
+    "packages": [
+      "packages/*",
+      "examples/*",
+      "apps/*"
+    ],
+    "catalog": {
+      "better-result": "^2.7.0"
+    }
   }
 }
