@@ -1,5 +1,5 @@
 import { mkdir } from 'node:fs/promises'
-import { dirname } from 'node:path'
+import { dirname, resolve } from 'node:path'
 import debug from 'debug'
 import { Result } from 'better-result'
 import type { GeneratorConfig, GeneratorEvent, CommandMetadata } from './types.js'
@@ -33,7 +33,7 @@ export class Generator {
     if (Result.isError(commandFilesResult)) {
       return Result.err(
         new GeneratorRunError({
-          message: `Failed to scan commands from ${this.config.commandsDir}`,
+          message: `Failed to scan commands from entry ${this.config.entry}`,
           cause: commandFilesResult.error
         })
       )
@@ -43,8 +43,14 @@ export class Generator {
     // 2. Parse each command file
     const { commands, parseErrors } = await this.parseCommands(commandFiles)
     if (parseErrors.length > 0) {
-      console.warn(
-        `Skipped ${parseErrors.length} command file(s) due to parser errors while generating types.`
+      const details = parseErrors
+        .map(error => `- ${error.filePath}: ${error.message}`)
+        .join('\n')
+      return Result.err(
+        new GeneratorRunError({
+          message: `Failed to parse ${parseErrors.length} command module(s):\n${details}`,
+          cause: parseErrors
+        })
       )
     }
 
@@ -90,7 +96,7 @@ export class Generator {
    * Scan for command files in the commands directory
    */
   private async scanCommands() {
-    return await this.scanner.scanCommands(this.config.commandsDir)
+    return await this.scanner.scanCommands(this.config.entry, this.config.directory)
   }
 
   /**
@@ -104,7 +110,10 @@ export class Generator {
 
     for (const file of files) {
       log(`Parsing file: ${file}`)
-      const commandResult = await parseCommand(file, this.config.commandsDir, this.config.outputFile)
+      const sourceRoot = this.config.directory
+        ? resolve(this.config.directory)
+        : dirname(resolve(this.config.entry))
+      const commandResult = await parseCommand(file, sourceRoot, this.config.outputFile)
       if (Result.isError(commandResult)) {
         parseErrors.push(commandResult.error)
         log(`❌ Failed to parse: ${file}`)

@@ -11,6 +11,22 @@ describe('Generator', () => {
   const testDir = join(import.meta.dir, 'fixtures')
   const outputFile = join(testDir, 'commands.gen.ts')
 
+  async function writeEntryWithCommands(commandImports: string[]) {
+    const importLines = commandImports.map((file, index) => `import command${index} from '${file}'`).join('\n')
+    const registerLines = commandImports.map((_, index) => `cli.command(command${index})`).join('\n')
+    const content = `
+import { createCLI } from '@bunli/core'
+${importLines}
+
+const cli = await createCLI({
+  name: 'test-cli',
+  version: '0.0.0'
+})
+${registerLines}
+`
+    await Bun.write(join(testDir, 'cli.ts'), content)
+  }
+
   test('should scan command files', async () => {
     // Ensure test directory exists
     await mkdir(testDir, { recursive: true })
@@ -33,9 +49,10 @@ export default defineCommand({
 })
 `
     await Bun.write(join(testDir, 'test-command.ts'), testCommandContent)
+    await writeEntryWithCommands(['./test-command.js'])
 
     const scanner = new CommandScanner()
-    const filesResult = await scanner.scanCommands(testDir)
+    const filesResult = await scanner.scanCommands(join(testDir, 'cli.ts'))
     expect(Result.isOk(filesResult)).toBe(true)
     if (Result.isError(filesResult)) {
       throw filesResult.error
@@ -125,10 +142,11 @@ export default defineCommand({
 `
 
     await Bun.write(join(testDir, 'test-command.ts'), testCommandContent)
+    await writeEntryWithCommands(['./test-command.js'])
 
     // Create generator and run it
     const generator = new Generator({
-      commandsDir: testDir,
+      entry: join(testDir, 'cli.ts'),
       outputFile
     })
 
@@ -161,6 +179,31 @@ export default defineCommand({
     await rm(testDir, { recursive: true, force: true })
   })
 
+  test('returns Err when command module does not default-export', async () => {
+    await mkdir(testDir, { recursive: true })
+    const namedOnlyFile = join(testDir, 'named-only.ts')
+    await Bun.write(
+      namedOnlyFile,
+      `
+import { defineCommand } from '@bunli/core'
+
+export const namedOnly = defineCommand({
+  name: 'named-only',
+  description: 'Named only command',
+  handler: async () => {}
+})
+`
+    )
+
+    const parsed = await parseCommand(namedOnlyFile, testDir, outputFile)
+    expect(Result.isError(parsed)).toBe(true)
+    if (Result.isError(parsed)) {
+      expect(parsed.error.message).toContain('Could not parse command file')
+    }
+
+    await rm(testDir, { recursive: true, force: true })
+  })
+
   test('returns Err when output file cannot be written', async () => {
     await mkdir(testDir, { recursive: true })
     await Bun.write(
@@ -175,9 +218,10 @@ export default defineCommand({
 })
 `
     )
+    await writeEntryWithCommands(['./test-command.js'])
 
     const generator = new Generator({
-      commandsDir: testDir,
+      entry: join(testDir, 'cli.ts'),
       outputFile: '/dev/null/commands.gen.ts'
     })
 
@@ -187,13 +231,19 @@ export default defineCommand({
     await rm(testDir, { recursive: true, force: true })
   })
 
-  test('treats missing commands directory as empty command set', async () => {
+  test('treats missing fallback directory as empty command set when no entry registrations are found', async () => {
     await rm(testDir, { recursive: true, force: true })
+    await mkdir(testDir, { recursive: true })
+    await Bun.write(join(testDir, 'cli.ts'), `
+import { createCLI } from '@bunli/core'
+await createCLI({ name: 'empty-cli', version: '0.0.0' })
+`)
 
-    const missingCommandsDir = join(testDir, 'commands')
+    const missingCommandsDir = join(testDir, 'missing-commands')
     const outputForMissingDir = join(testDir, 'commands.gen.ts')
     const generator = new Generator({
-      commandsDir: missingCommandsDir,
+      entry: join(testDir, 'cli.ts'),
+      directory: missingCommandsDir,
       outputFile: outputForMissingDir
     })
 

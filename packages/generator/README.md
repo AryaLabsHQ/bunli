@@ -19,8 +19,9 @@ import { Generator } from '@bunli/generator'
 import { Result } from 'better-result'
 
 const generator = new Generator({
-  commandsDir: './commands',
-  outputFile: './commands.gen.ts'
+  entry: './src/cli.ts',
+  directory: './src/commands',
+  outputFile: './.bunli/commands.gen.ts'
 })
 
 const runResult = await generator.run()
@@ -36,8 +37,9 @@ import { Generator } from '@bunli/generator'
 import { Result } from 'better-result'
 
 const generator = new Generator({
-  commandsDir: './commands',
-  outputFile: './commands.gen.ts'
+  entry: './src/cli.ts',
+  directory: './src/commands',
+  outputFile: './.bunli/commands.gen.ts'
 })
 
 // Initial generation
@@ -84,7 +86,7 @@ export function listCommands(): Array<{...}>
 
 ## Command File Structure
 
-The generator scans for files matching `**/*.{ts,tsx,js,jsx}` and looks for `defineCommand` calls:
+The generator discovers command modules from your CLI entry (`commands.entry` / `build.entry`) and parses default-exported `defineCommand` / `defineGroup` calls:
 
 ```typescript
 import { defineCommand, option } from '@bunli/core'
@@ -147,7 +149,8 @@ class Generator {
 
 ```typescript
 interface GeneratorConfig {
-  commandsDir: string
+  entry: string
+  directory?: string
   outputFile: string
   config?: any
 }

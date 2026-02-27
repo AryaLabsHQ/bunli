@@ -1,145 +1,288 @@
-import { join, relative, extname } from 'node:path'
+import { dirname, extname, join, resolve } from 'node:path'
+import { existsSync } from 'node:fs'
+import { parse } from '@babel/parser'
+const traverse = require('@babel/traverse').default
 import { Result } from 'better-result'
-import type { CommandMetadata } from './types.js'
 import { createLogger } from '@bunli/core/utils'
 import { ScanCommandFileError, ScanCommandsError } from './errors.js'
 
 const logger = createLogger('generator:scanner')
+
+const SUPPORTED_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs']
 
 function isMissingDirectoryError(cause: unknown): boolean {
   return cause instanceof Error && (cause as NodeJS.ErrnoException).code === 'ENOENT'
 }
 
 /**
- * Fast command scanner using Bun.Transpiler for optimal performance
- * 
- * This scanner uses Bun's native transpiler to quickly identify
- * command files without full AST parsing, making it much faster
- * than traditional approaches.
+ * Command scanner that prefers entrypoint-based command discovery.
+ *
+ * Primary path:
+ * - Parse the CLI entry file
+ * - Collect modules passed to `cli.command(...)`
+ *
+ * Fallback path:
+ * - Scan `directory` when entrypoint analysis discovers no command modules
  */
 export class CommandScanner {
   private transpiler: Bun.Transpiler
 
   constructor() {
-    // Initialize transpiler for TypeScript/JSX files
-    this.transpiler = new Bun.Transpiler({ 
+    this.transpiler = new Bun.Transpiler({
       loader: 'tsx',
       target: 'bun'
     })
   }
 
-  /**
-   * Scan for command files using Bun.Transpiler for fast filtering
-   */
-  async scanCommands(commandsDir: string): Promise<Result<string[], ScanCommandsError>> {
-    // Use Bun's native Glob for file scanning
-    const glob = new Bun.Glob('**/*.{ts,tsx,js,jsx}')
+  async scanCommands(entry: string, directory?: string): Promise<Result<string[], ScanCommandsError>> {
+    const resolvedEntry = resolve(entry)
+    if (!existsSync(resolvedEntry)) {
+      return Result.err(new ScanCommandsError({
+        entry: resolvedEntry,
+        message: `Entry file does not exist: ${resolvedEntry}`,
+        cause: new Error('Entry file not found')
+      }))
+    }
+
+    const fromEntry = await this.scanFromEntry(resolvedEntry)
+    if (Result.isError(fromEntry)) {
+      return Result.err(new ScanCommandsError({
+        entry: resolvedEntry,
+        message: `Could not scan commands from entry ${resolvedEntry}`,
+        cause: fromEntry.error
+      }))
+    }
+
+    if (fromEntry.value.length > 0) {
+      return Result.ok(fromEntry.value)
+    }
+
+    const fallbackDirectory = resolve(directory ?? 'commands')
+    const fromDirectory = await this.scanDirectory(fallbackDirectory)
+    if (Result.isError(fromDirectory)) {
+      if (isMissingDirectoryError(fromDirectory.error.cause)) {
+        logger.debug(
+          'No command registrations found in %s and fallback directory %s is missing; treating as empty',
+          resolvedEntry,
+          fallbackDirectory
+        )
+        return Result.ok([])
+      }
+
+      return Result.err(new ScanCommandsError({
+        entry: resolvedEntry,
+        message: `Could not scan fallback commands directory ${fallbackDirectory}`,
+        cause: fromDirectory.error
+      }))
+    }
+
+    return Result.ok(fromDirectory.value)
+  }
+
+  private async scanFromEntry(entryFile: string): Promise<Result<string[], ScanCommandFileError>> {
+    const visited = new Set<string>()
+    const queued = new Set<string>()
+    const commandFiles = new Set<string>()
+    const queue: string[] = [entryFile]
+    queued.add(entryFile)
+
+    while (queue.length > 0) {
+      const current = queue.shift()
+      if (!current) continue
+      if (visited.has(current)) continue
+      visited.add(current)
+
+      const inspectResult = await this.inspectModule(current)
+      if (Result.isError(inspectResult)) {
+        return Result.err(inspectResult.error)
+      }
+
+      const { importMap, localRelativeImports, registeredCommandIdentifiers, hasInlineCommandRegistration } = inspectResult.value
+
+      if (hasInlineCommandRegistration) {
+        commandFiles.add(current)
+      }
+
+      for (const identifier of registeredCommandIdentifiers) {
+        const commandFile = importMap.get(identifier)
+        if (!commandFile) continue
+        commandFiles.add(commandFile)
+      }
+
+      for (const importedFile of localRelativeImports) {
+        if (visited.has(importedFile) || queued.has(importedFile)) continue
+        queue.push(importedFile)
+        queued.add(importedFile)
+      }
+    }
+
+    return Result.ok(Array.from(commandFiles).sort((a, b) => a.localeCompare(b)))
+  }
+
+  private async inspectModule(filePath: string): Promise<Result<{
+    importMap: Map<string, string>
+    localRelativeImports: Set<string>
+    registeredCommandIdentifiers: Set<string>
+    hasInlineCommandRegistration: boolean
+  }, ScanCommandFileError>> {
+    return Result.tryPromise({
+      try: async () => {
+        const content = await Bun.file(filePath).text()
+        const ast = parse(content, {
+          sourceType: 'module',
+          plugins: ['typescript', 'jsx', 'decorators-legacy']
+        })
+
+        const importMap = new Map<string, string>()
+        const localRelativeImports = new Set<string>()
+        const registeredCommandIdentifiers = new Set<string>()
+        let hasInlineCommandRegistration = false
+
+        traverse(ast, {
+          ImportDeclaration: (path: any) => {
+            const source = path.node.source?.value
+            if (typeof source !== 'string' || !source.startsWith('.')) return
+            const resolved = this.resolveImportPath(filePath, source)
+            if (!resolved) return
+
+            localRelativeImports.add(resolved)
+            for (const specifier of path.node.specifiers) {
+              if (!specifier?.local?.name) continue
+              importMap.set(specifier.local.name, resolved)
+            }
+          },
+          CallExpression: (path: any) => {
+            const callee = path.node.callee
+            if (
+              callee?.type !== 'MemberExpression' ||
+              callee.property?.type !== 'Identifier' ||
+              callee.property.name !== 'command'
+            ) {
+              return
+            }
+
+            const firstArg = path.node.arguments?.[0]
+            if (!firstArg) return
+
+            if (firstArg.type === 'Identifier') {
+              registeredCommandIdentifiers.add(firstArg.name)
+              return
+            }
+
+            if (
+              firstArg.type === 'CallExpression' &&
+              firstArg.callee?.type === 'Identifier' &&
+              (firstArg.callee.name === 'defineCommand' || firstArg.callee.name === 'defineGroup')
+            ) {
+              hasInlineCommandRegistration = true
+            }
+          }
+        })
+
+        return {
+          importMap,
+          localRelativeImports,
+          registeredCommandIdentifiers,
+          hasInlineCommandRegistration
+        }
+      },
+      catch: (cause) => new ScanCommandFileError({
+        filePath,
+        message: `Could not inspect module ${filePath}`,
+        cause
+      })
+    })
+  }
+
+  private async scanDirectory(commandsDirectory: string): Promise<Result<string[], ScanCommandsError>> {
+    const glob = new Bun.Glob('**/*.{ts,tsx,js,jsx,mjs,cjs}')
     const filesResult = await Result.tryPromise({
-      try: async () => Array.fromAsync(glob.scan({ cwd: commandsDir })),
+      try: async () => Array.fromAsync(glob.scan({ cwd: commandsDirectory })),
       catch: (cause) => cause
     })
 
     if (Result.isError(filesResult)) {
-      if (isMissingDirectoryError(filesResult.error)) {
-        logger.debug('Commands directory %s does not exist; treating as empty', commandsDir)
-        return Result.ok([])
-      }
-
-      const error = new ScanCommandsError({
-        commandsDir,
-        message: `Could not scan commands directory ${commandsDir}`,
+      return Result.err(new ScanCommandsError({
+        entry: commandsDirectory,
+        message: `Could not scan commands directory ${commandsDirectory}`,
         cause: filesResult.error
-      })
-      logger.debug('Could not scan commands directory %s: %O', commandsDir, error)
-      return Result.err(error)
+      }))
     }
 
-    const files = filesResult.value
     const commandFiles: string[] = []
-
-    // Process files in parallel for better performance
-    const fileChecks = files.map(async (file) => {
-      const fullPath = join(commandsDir, file)
-
-      // Quick file extension check
+    const checks = filesResult.value.map(async (file) => {
+      const fullPath = join(commandsDirectory, file)
       const ext = extname(file)
-      if (!['.ts', '.tsx', '.js', '.jsx'].includes(ext)) {
-        return null
-      }
+      if (!SUPPORTED_EXTENSIONS.includes(ext)) return null
+      if (this.isNonCommandFile(file)) return null
 
-      // Skip test files and other non-command files
-      if (this.isNonCommandFile(file)) {
-        return null
-      }
-
-      // Use Bun.Transpiler to quickly check if this is a command file
       const fileResult = await this.isCommandFile(fullPath)
       if (Result.isError(fileResult)) {
-        logger.debug('Could not inspect command file %s: %O', fullPath, fileResult.error)
+        logger.debug('Could not inspect potential command file %s: %O', fullPath, fileResult.error)
         return null
       }
 
-      if (fileResult.value) {
-        return fullPath
-      }
-
-      return null
+      return fileResult.value ? fullPath : null
     })
 
-    const results = await Promise.all(fileChecks)
-
-    // Filter out null results
-    for (const result of results) {
-      if (result) {
-        commandFiles.push(result)
-      }
+    const results = await Promise.all(checks)
+    for (const file of results) {
+      if (file) commandFiles.push(file)
     }
 
-    return Result.ok(commandFiles)
+    return Result.ok(commandFiles.sort((a, b) => a.localeCompare(b)))
   }
 
-  /**
-   * Check if a file is likely a command file using Bun.Transpiler
-   */
   private async isCommandFile(filePath: string): Promise<Result<boolean, ScanCommandFileError>> {
     return Result.tryPromise({
       try: async () => {
-        const file = Bun.file(filePath)
-        const content = await file.text()
-
-        // Use Bun.Transpiler to quickly scan for command indicators
+        const content = await Bun.file(filePath).text()
         const scanResult = this.transpiler.scan(content)
 
-        // Check for command-related exports
-        const hasCommandExport = scanResult.exports.some(exp =>
-          exp === 'default' ||
-          exp.includes('Command') ||
-          exp.includes('defineCommand')
-        )
+        const hasCommandExport = scanResult.exports.some(exp => exp === 'default' || exp.includes('Command') || exp.includes('Group'))
+        const hasCoreImport = scanResult.imports.some(imp => imp.path.includes('@bunli/core'))
+        const hasCommandCall = content.includes('defineCommand(') || content.includes('defineGroup(')
 
-        // Check for command-related imports
-        const hasCommandImports = scanResult.imports.some(imp =>
-          imp.path.includes('@bunli/core') ||
-          imp.path.includes('defineCommand')
-        )
-
-        // Check for defineCommand usage in the content
-        const hasDefineCommand = content.includes('defineCommand(')
-
-        return hasCommandExport && (hasCommandImports || hasDefineCommand)
+        return hasCommandCall && (hasCommandExport || hasCoreImport)
       },
-      catch: (cause) =>
-        new ScanCommandFileError({
-          filePath,
-          message: `Could not inspect command file ${filePath}`,
-          cause
-        })
+      catch: (cause) => new ScanCommandFileError({
+        filePath,
+        message: `Could not inspect command file ${filePath}`,
+        cause
+      })
     })
   }
 
-  /**
-   * Check if a file should be excluded from command scanning
-   */
+  private resolveImportPath(fromFile: string, specifier: string): string | null {
+    const base = resolve(dirname(fromFile), specifier)
+    const candidatePaths: string[] = []
+
+    const extension = extname(base)
+    if (extension) {
+      candidatePaths.push(base)
+
+      if (extension === '.js' || extension === '.mjs' || extension === '.cjs') {
+        const stem = base.slice(0, -extension.length)
+        for (const ext of SUPPORTED_EXTENSIONS) {
+          candidatePaths.push(`${stem}${ext}`)
+        }
+      }
+    } else {
+      for (const ext of SUPPORTED_EXTENSIONS) {
+        candidatePaths.push(`${base}${ext}`)
+      }
+      for (const ext of SUPPORTED_EXTENSIONS) {
+        candidatePaths.push(join(base, `index${ext}`))
+      }
+    }
+
+    for (const candidate of candidatePaths) {
+      if (existsSync(candidate)) return candidate
+    }
+
+    return null
+  }
+
   private isNonCommandFile(fileName: string): boolean {
     return (
       fileName.includes('.test.') ||
@@ -154,39 +297,14 @@ export class CommandScanner {
       fileName.includes('commands.gen.')
     )
   }
-
-  /**
-   * Get command name from file path
-   */
-  getCommandName(filePath: string, commandsDir: string): string {
-    const relativePath = filePath.replace(commandsDir + '/', '')
-    const withoutExt = relativePath.replace(/\.[^.]+$/, '')
-    
-    // Handle index files as parent commands
-    if (withoutExt.endsWith('/index')) {
-      return withoutExt.slice(0, -6) // Remove '/index'
-    }
-    
-    return withoutExt
-  }
-
-  /**
-   * Get export path for a command file
-   */
-  getExportPath(filePath: string, commandsDir: string): string {
-    const relativePath = filePath.replace(commandsDir + '/', '')
-    const withoutExt = relativePath.replace(/\.[^.]+$/, '')
-    return `./commands/${withoutExt}`
-  }
 }
 
-// Utility functions for external use
 export function isCommandFile(filePath: string): boolean {
   const ext = extname(filePath)
-  return ['.ts', '.tsx', '.js', '.jsx'].includes(ext) &&
-         !filePath.includes('.test.') &&
-         !filePath.includes('.spec.') &&
-         !filePath.includes('__tests__') &&
-         !filePath.includes('commands.gen.') &&
-         !filePath.includes('.bunli/')
+  return SUPPORTED_EXTENSIONS.includes(ext) &&
+    !filePath.includes('.test.') &&
+    !filePath.includes('.spec.') &&
+    !filePath.includes('__tests__') &&
+    !filePath.includes('commands.gen.') &&
+    !filePath.includes('.bunli/')
 }
