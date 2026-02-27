@@ -67,15 +67,23 @@ export const password = clackPrompts.password
 export const group = clackPrompts.group
 export const groupMultiselect = clackPrompts.groupMultiselect
 
+export type BunliClack = typeof clackPrompts & {
+  readonly CANCEL: typeof CANCEL
+  readonly isCancel: typeof isCancel
+  readonly PromptCancelledError: typeof PromptCancelledError
+  readonly assertNotCancelled: typeof assertNotCancelled
+  readonly promptOrExit: typeof promptOrExit
+}
+
 /**
  * Blessed Bunli namespace that wraps @clack/prompts and adds Bunli helpers.
  * This is the recommended import surface for Clack within Bunli projects.
  */
-export const clack = {
-  ...clackPrompts,
+export const clack: BunliClack = {
+  ...(clackPrompts as typeof clackPrompts),
   CANCEL,
   isCancel,
   PromptCancelledError,
   assertNotCancelled,
   promptOrExit
-} as const
+}
