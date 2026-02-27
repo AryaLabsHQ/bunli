@@ -26,6 +26,28 @@ const pluginConfigSchema = z.custom<PluginConfig>(isPluginConfig, {
   message: 'Invalid plugin configuration'
 })
 
+const commandsConfigSchema = z
+  .object({
+    entry: z.string().optional(),
+    directory: z.string().optional(),
+    generateReport: z.boolean().optional()
+  })
+  .catchall(z.unknown())
+  .superRefine((value, ctx) => {
+    if (Object.prototype.hasOwnProperty.call(value, 'manifest')) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          "commands.manifest has been removed. Register commands explicitly with cli.command(...) and set commands.entry for tooling."
+      })
+    }
+  })
+  .transform((value) => ({
+    entry: value.entry,
+    directory: value.directory,
+    generateReport: value.generateReport
+  }))
+
 /**
  * Comprehensive Bunli configuration schema
  * Codegen and TypeScript are REQUIRED for all Bunli projects
@@ -37,11 +59,7 @@ export const bunliConfigSchema = z.object({
   description: z.string().optional(),
     
   // Commands configuration
-  commands: z.object({
-    manifest: z.string().optional(),
-    directory: z.string().optional(),
-    generateReport: z.boolean().optional()
-  }).optional(),
+  commands: commandsConfigSchema.optional(),
   
   // Build configuration - TypeScript REQUIRED
   build: z.object({

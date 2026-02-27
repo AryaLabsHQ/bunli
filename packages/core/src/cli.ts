@@ -3,8 +3,6 @@ import type {
   Command,
   BunliConfig,
   BunliConfigInput,
-  CommandManifest,
-  CommandLoader,
   ResolvedConfig,
   CLIOption,
   TerminalInfo,
@@ -175,7 +173,11 @@ export async function createCLI<
     name: fullConfig.name,
     version: fullConfig.version,
     description: fullConfig.description || '',
-    commands: fullConfig.commands || {},
+    commands: fullConfig.commands || {
+      entry: undefined,
+      directory: undefined,
+      generateReport: undefined
+    },
     build: fullConfig.build || {
       targets: [],
       compress: false,
@@ -468,63 +470,6 @@ export async function createCLI<
     for (const message of generalErrors) console.error(colors.dim(`  • ${message}`))
   }
   
-  
-  // Auto-load commands from config if specified
-  async function loadFromConfig() {
-    if (fullConfig.commands?.manifest) {
-      try {
-        // Resolve relative to the current working directory
-        const manifestPath = fullConfig.commands.manifest.startsWith('.')
-          ? `${process.cwd()}/${fullConfig.commands.manifest}`
-          : fullConfig.commands.manifest
-        
-        const manifestModule = await import(manifestPath)
-        const manifest = manifestModule.default || manifestModule
-        await loadCommandsFromManifest(manifest)
-      } catch (error) {
-        logger.debug('Failed to load command manifest from %s: %O', fullConfig.commands.manifest, error)
-      }
-    }
-  }
-  
-  // Helper function to load commands from manifest
-  async function loadCommandsFromManifest(manifest: CommandManifest) {
-    async function loadFromManifest(obj: CommandManifest | CommandLoader, path: string[] = []): Promise<Command<any, any>[]> {
-      const commands: Command<any, any>[] = []
-      
-      if (typeof obj === 'function') {
-        const { default: command } = await obj()
-        return [command]
-      }
-      
-      for (const [key, value] of Object.entries(obj)) {
-        if (typeof value === 'function') {
-          // It's a command loader
-          const { default: command } = await value()
-          commands.push(command)
-        } else {
-          // It's a nested manifest - create a parent command with subcommands
-          const subCommands = await loadFromManifest(value, [...path, key])
-          if (subCommands.length > 0) {
-            const parentCommand: Command<any, TStore> = {
-              name: key,
-              description: `${key} commands`,
-              commands: subCommands
-            }
-            commands.push(parentCommand)
-          }
-        }
-      }
-      
-      return commands
-    }
-    
-    const loadedCommands = await loadFromManifest(manifest)
-    for (const cmd of loadedCommands) {
-      registerCommand(cmd)
-    }
-  }
-  
   async function runCommandInternal(
     command: Command<any, TStore>,
     argv: string[],
@@ -668,13 +613,9 @@ export async function createCLI<
     command<TCommandStore = unknown>(cmd: Command<any, TCommandStore>) {
       registerCommand(cmd)
     },
-    
-    async load(manifest: CommandManifest) {
-      await loadCommandsFromManifest(manifest)
-    },
-    
+
     async init() {
-      await loadFromConfig()
+      // Kept for lifecycle symmetry; no-op since commands are registered explicitly.
     },
     
     async run(argv = process.argv.slice(2)) {
@@ -727,17 +668,15 @@ export async function createCLI<
         return
       }
       
-      if (command.handler || command.render) {
-        // Combine remaining args from command parsing with passthrough args
-        const allArgs = [...remainingArgs, ...passthroughArgs]
-        const invokedCommandName = commandArgs
-          .slice(0, commandArgs.length - remainingArgs.length)
-          .join(' ')
-        const runResult = await runCommandInternal(command as Command<any, TStore>, allArgs, undefined, invokedCommandName || command.name)
-        if (runResult.isErr()) {
-          await printRunCommandError(runResult.error)
-          process.exit(1)
-        }
+      // Combine remaining args from command parsing with passthrough args
+      const allArgs = [...remainingArgs, ...passthroughArgs]
+      const invokedCommandName = commandArgs
+        .slice(0, commandArgs.length - remainingArgs.length)
+        .join(' ')
+      const runResult = await runCommandInternal(command as Command<any, TStore>, allArgs, undefined, invokedCommandName || command.name)
+      if (runResult.isErr()) {
+        await printRunCommandError(runResult.error)
+        process.exit(1)
       }
     },
     

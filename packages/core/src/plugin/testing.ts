@@ -91,14 +91,18 @@ export async function testPluginHooks<TStore = {}>(
 
   // Test configResolved hook
   if (plugin.configResolved) {
-    const config: ResolvedConfig = {
-      name: 'test-cli',
-      version: '1.0.0',
-      description: 'Test CLI',
-      commands: {},
-      build: {
-        targets: [],
-        compress: false,
+      const config: ResolvedConfig = {
+        name: 'test-cli',
+        version: '1.0.0',
+        description: 'Test CLI',
+        commands: {
+          entry: undefined,
+          directory: undefined,
+          generateReport: undefined
+        },
+        build: {
+          targets: [],
+          compress: false,
         minify: false,
         sourcemap: true
       },

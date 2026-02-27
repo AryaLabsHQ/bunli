@@ -35,11 +35,6 @@ export interface CLI<TStore = {}> {
   command<TCommandStore = any>(command: Command<any, TCommandStore>): void
   
   /**
-   * Load commands from a manifest
-   */
-  load(manifest: CommandManifest): Promise<void>
-  
-  /**
    * Initialize the CLI (load config, etc)
    */
   init(): Promise<void>
@@ -66,32 +61,39 @@ export interface CLI<TStore = {}> {
   ): Promise<void>
 }
 
-// generic Command type that carries options type information
+// generic Command types that carry options type information
 interface BaseCommand<TOptions extends Options = Options, TStore = {}, TName extends string = string> {
   name: TName
   description: string
-  options?: TOptions
-  commands?: Command<any, TStore, any>[]
   alias?: string | string[]
-  handler?: Handler<InferOptions<TOptions>, TStore, TName>
-  render?: RenderFunction<InferOptions<TOptions>, TStore>
 }
 
-type CommandGroup<TOptions extends Options = Options, TStore = {}, TName extends string = string> =
-  BaseCommand<TOptions, TStore, TName> & {
-    commands: Command<any, TStore, any>[]
-    handler?: undefined
-    render?: undefined
-  }
+interface CommandLeaf<TOptions extends Options = Options, TStore = {}, TName extends string = string>
+  extends BaseCommand<TOptions, TStore, TName> {
+  options?: TOptions
+  handler?: Handler<InferOptions<TOptions>, TStore, TName>
+  render?: RenderFunction<InferOptions<TOptions>, TStore>
+  commands?: undefined
+}
 
-export type Command<TOptions extends Options = Options, TStore = {}, TName extends string = string> =
-  | (BaseCommand<TOptions, TStore, TName> & { handler: Handler<InferOptions<TOptions>, TStore, TName> })
-  | (BaseCommand<TOptions, TStore, TName> & { render: RenderFunction<InferOptions<TOptions>, TStore> })
-  | (BaseCommand<TOptions, TStore, TName> & {
+export type RunnableCommand<TOptions extends Options = Options, TStore = {}, TName extends string = string> =
+  | (CommandLeaf<TOptions, TStore, TName> & { handler: Handler<InferOptions<TOptions>, TStore, TName> })
+  | (CommandLeaf<TOptions, TStore, TName> & { render: RenderFunction<InferOptions<TOptions>, TStore> })
+  | (CommandLeaf<TOptions, TStore, TName> & {
       handler: Handler<InferOptions<TOptions>, TStore, TName>
       render: RenderFunction<InferOptions<TOptions>, TStore>
     })
-  | CommandGroup<TOptions, TStore, TName>
+
+export interface Group<TStore = {}, TName extends string = string> extends BaseCommand<Options, TStore, TName> {
+  commands: Command<any, TStore, any>[]
+  handler?: undefined
+  render?: undefined
+  options?: undefined
+}
+
+export type Command<TOptions extends Options = Options, TStore = {}, TName extends string = string> =
+  | RunnableCommand<TOptions, TStore, TName>
+  | Group<TStore, TName>
 
 // Type helper to extract output types from StandardSchemaV1
 type InferSchema<T> = T extends StandardSchemaV1<any, infer Out>
@@ -166,18 +168,18 @@ export interface CLIOption<S extends StandardSchemaV1 = StandardSchemaV1> {
 // Options must use the CLIOption wrapper
 export type Options = Record<string, CLIOption<any>>
 
-// Command manifest for lazy loading
-export type CommandManifest = {
-  [key: string]: CommandLoader | CommandManifest
-}
-
-export type CommandLoader = () => Promise<{ default: Command<any> }>
-
 // Define command helper with proper type inference
 export function defineCommand<TOptions extends Options = Options, TStore = {}, TName extends string = string>(
-  command: Command<TOptions, TStore> & { name: TName }
-): Command<TOptions, TStore> & { name: TName } {
+  command: RunnableCommand<TOptions, TStore> & { name: TName }
+): RunnableCommand<TOptions, TStore> & { name: TName } {
   return command
+}
+
+// Define non-runnable command group helper
+export function defineGroup<TStore = {}, TName extends string = string>(
+  group: Group<TStore, TName>
+): Group<TStore, TName> {
+  return group
 }
 
 // Import configuration types from schema
