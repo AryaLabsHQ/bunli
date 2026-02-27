@@ -142,6 +142,50 @@ cli.command(jsonImportCommand)
     await rm(testDir, { recursive: true, force: true })
   })
 
+  test('scanner ignores inline entry registrations as parse targets', async () => {
+    await mkdir(testDir, { recursive: true })
+
+    await Bun.write(join(testDir, 'imported-command.ts'), `
+import { defineCommand } from '@bunli/core'
+
+export default defineCommand({
+  name: 'imported-command',
+  description: 'Imported command',
+  handler: async () => {}
+})
+`)
+
+    const entryFile = join(testDir, 'cli.ts')
+    await Bun.write(entryFile, `
+import { createCLI, defineCommand } from '@bunli/core'
+import importedCommand from './imported-command.js'
+
+const cli = await createCLI({
+  name: 'inline-entry-cli',
+  version: '0.0.0'
+})
+
+cli.command(importedCommand)
+cli.command(defineCommand({
+  name: 'inline-command',
+  description: 'Inline command',
+  handler: async () => {}
+}))
+`)
+
+    const scanner = new CommandScanner()
+    const filesResult = await scanner.scanCommands(entryFile, join(testDir, 'missing-commands'))
+    expect(Result.isOk(filesResult)).toBe(true)
+    if (Result.isError(filesResult)) {
+      throw filesResult.error
+    }
+
+    expect(filesResult.value.some((file) => file.endsWith('imported-command.ts'))).toBe(true)
+    expect(filesResult.value.some((file) => file.endsWith('/cli.ts'))).toBe(false)
+
+    await rm(testDir, { recursive: true, force: true })
+  })
+
   test('should parse command metadata', async () => {
     // Ensure test directory exists
     await mkdir(testDir, { recursive: true })
@@ -361,6 +405,37 @@ await createCLI({ name: 'empty-cli', version: '0.0.0' })
 
     const output = await Bun.file(outputForMissingDir).text()
     expect(output).toContain('const modules: Record<GeneratedNames, Command<any>> = {')
+
+    await rm(testDir, { recursive: true, force: true })
+  })
+
+  test('generator does not fail on inline-only entry registrations', async () => {
+    await rm(testDir, { recursive: true, force: true })
+    await mkdir(testDir, { recursive: true })
+
+    await Bun.write(join(testDir, 'cli.ts'), `
+import { createCLI, defineCommand } from '@bunli/core'
+
+const cli = await createCLI({ name: 'inline-only-cli', version: '0.0.0' })
+cli.command(defineCommand({
+  name: 'inline-only',
+  description: 'Inline-only command',
+  handler: async () => {}
+}))
+`)
+
+    const output = join(testDir, 'commands.gen.ts')
+    const generator = new Generator({
+      entry: join(testDir, 'cli.ts'),
+      directory: join(testDir, 'missing-commands'),
+      outputFile: output
+    })
+
+    const generation = await generator.run()
+    expect(Result.isOk(generation)).toBe(true)
+
+    const generated = await Bun.file(output).text()
+    expect(generated).toContain('const modules: Record<GeneratedNames, Command<any>> = {')
 
     await rm(testDir, { recursive: true, force: true })
   })

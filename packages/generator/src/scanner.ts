@@ -103,12 +103,8 @@ export class CommandScanner {
         registeredCommandIdentifiers,
         localIdentifierAliases,
         locallyDefinedCommandIdentifiers,
-        hasInlineCommandRegistration
+        hasDefaultExport
       } = inspectResult.value
-
-      if (hasInlineCommandRegistration) {
-        commandFiles.add(current)
-      }
 
       for (const identifier of registeredCommandIdentifiers) {
         const resolved = this.resolveRegisteredCommandTarget(
@@ -119,7 +115,9 @@ export class CommandScanner {
         )
         if (!resolved) continue
         if (resolved === 'current') {
-          commandFiles.add(current)
+          if (hasDefaultExport) {
+            commandFiles.add(current)
+          }
         } else {
           commandFiles.add(resolved)
         }
@@ -141,11 +139,12 @@ export class CommandScanner {
     registeredCommandIdentifiers: Set<string>
     localIdentifierAliases: Map<string, string>
     locallyDefinedCommandIdentifiers: Set<string>
-    hasInlineCommandRegistration: boolean
+    hasDefaultExport: boolean
   }, ScanCommandFileError>> {
     return Result.tryPromise({
       try: async () => {
         const content = await Bun.file(filePath).text()
+        const scanResult = this.transpiler.scan(content)
         const ast = parse(content, {
           sourceType: 'module',
           plugins: ['typescript', 'jsx', 'decorators-legacy']
@@ -156,7 +155,7 @@ export class CommandScanner {
         const registeredCommandIdentifiers = new Set<string>()
         const localIdentifierAliases = new Map<string, string>()
         const locallyDefinedCommandIdentifiers = new Set<string>()
-        let hasInlineCommandRegistration = false
+        const hasDefaultExport = scanResult.exports.includes('default')
 
         traverse(ast, {
           ImportDeclaration: (path: any) => {
@@ -203,15 +202,6 @@ export class CommandScanner {
 
             if (firstArg.type === 'Identifier') {
               registeredCommandIdentifiers.add(firstArg.name)
-              return
-            }
-
-            if (
-              firstArg.type === 'CallExpression' &&
-              firstArg.callee?.type === 'Identifier' &&
-              (firstArg.callee.name === 'defineCommand' || firstArg.callee.name === 'defineGroup')
-            ) {
-              hasInlineCommandRegistration = true
             }
           }
         })
@@ -222,7 +212,7 @@ export class CommandScanner {
           registeredCommandIdentifiers,
           localIdentifierAliases,
           locallyDefinedCommandIdentifiers,
-          hasInlineCommandRegistration
+          hasDefaultExport
         }
       },
       catch: (cause) => new ScanCommandFileError({
