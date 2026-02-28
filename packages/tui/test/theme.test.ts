@@ -18,6 +18,32 @@ describe('@bunli/tui theme tokens', () => {
     expect(theme.tokens).toEqual(lightThemeTokens)
   })
 
+  test('createTheme supports auto preset via explicit env override', () => {
+    const previous = process.env.BUNLI_TUI_THEME
+    process.env.BUNLI_TUI_THEME = 'light'
+    try {
+      const theme = createTheme('auto')
+      expect(theme.name).toBe('light')
+      expect(theme.tokens).toEqual(lightThemeTokens)
+    } finally {
+      if (previous === undefined) delete process.env.BUNLI_TUI_THEME
+      else process.env.BUNLI_TUI_THEME = previous
+    }
+  })
+
+  test('createTheme supports object preset auto', () => {
+    const previous = process.env.BUNLI_TUI_THEME
+    process.env.BUNLI_TUI_THEME = 'dark'
+    try {
+      const theme = createTheme({ preset: 'auto' })
+      expect(theme.name).toBe('dark')
+      expect(theme.tokens).toEqual(darkThemeTokens)
+    } finally {
+      if (previous === undefined) delete process.env.BUNLI_TUI_THEME
+      else process.env.BUNLI_TUI_THEME = previous
+    }
+  })
+
   test('createTheme merges token overrides on preset', () => {
     const theme = createTheme({
       preset: 'dark',
