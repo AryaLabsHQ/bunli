@@ -6,7 +6,6 @@ import deployCommand from './commands/deploy.js'
 import setupCommand from './commands/setup.js'
 import testCommand from './commands/test.js'
 registerTuiRenderer()
-registerTuiRenderer()
 
 const cli = await createCLI()
 
