@@ -214,22 +214,29 @@ export async function createCLI<
   
   // Helper to register a command and its aliases
   function registerCommand(cmd: Command<any, any>, path: string[] = []) {
-    const fullName = [...path, cmd.name].join(' ')
-    commands.set(fullName, cmd)
-    
-    // Register aliases
+    const registrationPaths = new Map<string, string[]>()
+    const canonicalPath = [...path, cmd.name]
+    registrationPaths.set(canonicalPath.join(' '), canonicalPath)
+
+    // Register aliases for this command/group at the current depth.
     if (cmd.alias) {
       const aliases = Array.isArray(cmd.alias) ? cmd.alias : [cmd.alias]
       aliases.forEach(alias => {
-        const aliasPath = [...path, alias].join(' ')
-        commands.set(aliasPath, cmd)
+        const aliasPath = [...path, alias]
+        registrationPaths.set(aliasPath.join(' '), aliasPath)
       })
     }
-    
-    // Register nested commands
+
+    for (const [fullName] of registrationPaths) {
+      commands.set(fullName, cmd)
+    }
+
+    // Register nested commands under all parent aliases and canonical paths.
     if (cmd.commands) {
       cmd.commands.forEach(subCmd => {
-        registerCommand(subCmd, [...path, cmd.name])
+        for (const parentPath of registrationPaths.values()) {
+          registerCommand(subCmd, parentPath)
+        }
       })
     }
   }
