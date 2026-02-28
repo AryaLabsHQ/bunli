@@ -1,4 +1,4 @@
-import { rawSpinner, intro, outro, note, log, cancel, isCancel } from '../prompt/index.js'
+import { spinner as promptSpinner, intro, outro, note, log, cancel, isCancel } from '../prompt/index.js'
 
 export { intro, outro, note, log, cancel, isCancel }
 
@@ -13,7 +13,7 @@ export interface InlineSpinner {
 }
 
 export function spinner(): InlineSpinner {
-  const s = rawSpinner()
+  const s = promptSpinner()
   return {
     start(text) {
       s.start(text)
@@ -22,19 +22,19 @@ export function spinner(): InlineSpinner {
       s.stop(text)
     },
     succeed(text) {
-      s.stop(text)
+      s.succeed(text)
     },
     fail(text) {
-      s.stop(text)
+      s.fail(text)
     },
     warn(text) {
-      s.stop(text)
+      s.warn(text)
     },
     info(text) {
-      s.stop(text)
+      s.info(text)
     },
     update(text) {
-      s.message(text)
+      s.update(text)
     }
   }
 }
