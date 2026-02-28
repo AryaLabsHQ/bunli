@@ -35,6 +35,7 @@ export type {
   HelpRenderer,
   RenderResult,
   PromptApi,
+  PromptSpinnerFactory,
   RegisteredCommands,
   CommandOptions
 } from './types.js'

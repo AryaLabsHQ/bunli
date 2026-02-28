@@ -144,7 +144,7 @@ export interface HandlerArgs<TFlags = Record<string, unknown>, TStore = {}, TCom
   terminal: TerminalInfo
   // Runtime information
   runtime: RuntimeInfo
-  // Abort signal for interruption/cancellation handling
+  // Cooperative cancellation signal for interrupt handling.
   signal: AbortSignal
 }
 

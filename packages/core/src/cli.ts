@@ -8,7 +8,6 @@ import type {
   TerminalInfo,
   RuntimeInfo
 } from './types.js'
-import { appendFileSync } from 'node:fs'
 import { bunliConfigStrictSchema, bunliConfigSchema } from './config.js'
 import { ConfigLoadError, ConfigNotFoundError, loadConfigResult } from './config-loader.js'
 import { parseArgs } from './parser.js'
@@ -22,25 +21,13 @@ import { GLOBAL_FLAGS, type GlobalFlags } from './global-flags.js'
 import { getTuiRenderer } from './tui/registry.js'
 import { loadGeneratedStores } from './generated.js'
 import { createLogger } from './utils/logger.js'
+import { createDebugFileLogger } from './utils/debug-file-log.js'
+import { createInterruptController } from './runtime/interrupt-controller.js'
 import { Result, TaggedError } from 'better-result'
 import { validateValue } from './validation.js'
 
 const logger = createLogger('core:cli')
-const DEBUG_LOG_FILE = (
-  process.env.BUNLI_TUI_DEBUG_LOG_FILE
-  ?? process.env.BUNLI_TUI_DEBUG_INPUT_FILE
-  ?? ''
-).trim()
-
-function debugInterruptLog(message: string) {
-  if (DEBUG_LOG_FILE.length === 0) return
-  const line = `[${new Date().toISOString()} pid=${process.pid}] [bunli:core:interrupt] ${message}`
-  try {
-    appendFileSync(DEBUG_LOG_FILE, `${line}\n`)
-  } catch {
-    // Ignore debug log write failures.
-  }
-}
+const debugInterruptLog = createDebugFileLogger('bunli:core:interrupt')
 
 export class InvalidConfigError extends TaggedError('InvalidConfigError')<{
   message: string
@@ -518,8 +505,7 @@ export async function createCLI<
   ): Promise<Result<void, RunCommandError>> {
     let context: CommandContext<TStore> | undefined
     let promptSession: ReturnType<typeof createPromptSession> | undefined
-    let onSigint: (() => void) | undefined
-    let onSigterm: (() => void) | undefined
+    let interruptController: ReturnType<typeof createInterruptController> | undefined
     try {
       const mergedOptions: Record<string, CLIOption<any>> = { ...GLOBAL_FLAGS, ...(command.options || {}) }
       const parsed = await parseArgs(argv, mergedOptions, command.name)
@@ -562,61 +548,17 @@ export async function createCLI<
         command: invokedCommandName ?? command.name
       }
       promptSession = createPromptSession()
-      let interrupted = false
-      let rejectInterrupted: ((error: PromptCancelledError) => void) | undefined
-      const interruptedPromise = new Promise<never>((_resolve, reject) => {
-        rejectInterrupted = reject
+      interruptController = createInterruptController({
+        onLog: (message) => debugInterruptLog(`command=${command.name} ${message}`)
       })
-      const raiseInterrupt = (message: string) => {
-        if (interrupted) return
-        interrupted = true
-        debugInterruptLog(`raiseInterrupt command=${command.name} message="${message}"`)
-        rejectInterrupted?.(new PromptCancelledError(message))
-      }
-      onSigint = () => raiseInterrupt('Cancelled')
-      onSigterm = () => raiseInterrupt('Terminated')
-      process.on('SIGINT', onSigint)
-      process.on('SIGTERM', onSigterm)
+      interruptController.attach()
 
       const render = shouldUseRender(command, globalFlags, terminalInfo, rendererOptions)
-      await Promise.race([
-        (async () => {
-          if (render) {
-            ensureRenderAvailable(command)
-            await getTuiRenderer<Record<string, unknown>, TStore>()?.({
-              command,
-              flags: parsed.flags,
-              positional: parsed.positional,
-              shell: Bun.$,
-              env: process.env,
-              cwd: process.cwd(),
-              prompt: promptSession.prompt,
-              spinner: promptSession.spinner,
-              colors,
-              terminal: terminalInfo,
-              runtime: runtimeInfo,
-              rendererOptions,
-              ...(context ? { context } : {})
-            })
-            return
-          }
-
-          if (!command.handler) {
-            if (command.render && globalFlags['no-tui'] && rendererOptions.bufferMode === 'alternate') {
-              throw new CommandExecutionError({
-                message: 'Command only provides alternate-buffer TUI rendering and was disabled by --no-tui',
-                command: command.name,
-                cause: undefined
-              })
-            }
-            throw new CommandExecutionError({
-              message: 'Command does not provide a handler for non-TUI execution',
-              command: command.name,
-              cause: undefined
-            })
-          }
-
-          await command.handler({
+      const commandRunPromise = (async () => {
+        if (render) {
+          ensureRenderAvailable(command)
+          await getTuiRenderer<Record<string, unknown>, TStore>()?.({
+            command,
             flags: parsed.flags,
             positional: parsed.positional,
             shell: Bun.$,
@@ -627,14 +569,48 @@ export async function createCLI<
             colors,
             terminal: terminalInfo,
             runtime: runtimeInfo,
+            signal: interruptController.signal,
+            rendererOptions,
             ...(context ? { context } : {})
           })
-        })(),
-        interruptedPromise
-      ])
+          return
+        }
+
+        if (!command.handler) {
+          if (command.render && globalFlags['no-tui'] && rendererOptions.bufferMode === 'alternate') {
+            throw new CommandExecutionError({
+              message: 'Command only provides alternate-buffer TUI rendering and was disabled by --no-tui',
+              command: command.name,
+              cause: undefined
+            })
+          }
+          throw new CommandExecutionError({
+            message: 'Command does not provide a handler for non-TUI execution',
+            command: command.name,
+            cause: undefined
+          })
+        }
+
+        await command.handler({
+          flags: parsed.flags,
+          positional: parsed.positional,
+          shell: Bun.$,
+          env: process.env,
+          cwd: process.cwd(),
+          prompt: promptSession.prompt,
+          spinner: promptSession.spinner,
+          colors,
+          terminal: terminalInfo,
+          runtime: runtimeInfo,
+          signal: interruptController.signal,
+          ...(context ? { context } : {})
+        })
+      })()
+
+      await interruptController.race(commandRunPromise)
 
       if (mergedConfig.plugins && mergedConfig.plugins.length > 0 && context) {
-        await pluginManager.runAfterCommand(context, { exitCode: 0 })
+        await interruptController.race(pluginManager.runAfterCommand(context, { exitCode: 0 }))
       }
       return Result.ok(undefined)
     } catch (error) {
@@ -670,8 +646,7 @@ export async function createCLI<
       }))
     } finally {
       debugInterruptLog(`dispose promptSession command=${command.name}`)
-      if (onSigint) process.off('SIGINT', onSigint)
-      if (onSigterm) process.off('SIGTERM', onSigterm)
+      interruptController?.detach()
       await promptSession?.dispose()
     }
   }
