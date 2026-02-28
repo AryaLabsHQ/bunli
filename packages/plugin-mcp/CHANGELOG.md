@@ -1,5 +1,12 @@
 # @bunli/plugin-mcp
 
+## 0.2.2
+
+### Patch Changes
+
+- Updated dependencies [88cfc08]
+  - @bunli/core@0.7.0
+
 ## 0.2.1
 
 ### Patch Changes
