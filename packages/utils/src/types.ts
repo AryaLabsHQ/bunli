@@ -1,26 +1,3 @@
-export type SpinnerAnimation = 'line' | 'dots' | 'braille'
-export type SpinnerSymbolMode = 'ascii' | 'unicode'
-
-// Spinner types
-export interface SpinnerOptions {
-  text?: string
-  color?: string
-  animation?: SpinnerAnimation
-  showTimer?: boolean
-  symbols?: SpinnerSymbolMode
-  intervalMs?: number
-}
-
-export interface Spinner {
-  start(text?: string): void
-  stop(text?: string): void
-  succeed(text?: string): void
-  fail(text?: string): void
-  warn(text?: string): void
-  info(text?: string): void
-  update(text: string): void
-}
-
 // Color types (using Bun's built-in colors)
 export type ColorFunction = (text: string) => string
 
@@ -62,6 +39,5 @@ export interface Colors {
 }
 
 export interface BunliUtils {
-  spinner: (options?: SpinnerOptions | string) => Spinner
   colors: Colors
 }

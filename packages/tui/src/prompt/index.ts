@@ -12,7 +12,7 @@ import {
   runOpenTuiMultiSelectPrompt,
   runOpenTuiSelectPrompt,
   runOpenTuiTextPrompt
-} from './open-tui-session.js'
+} from './runtime/open-tui-session.js'
 
 export type PromptMode = 'inline' | 'interactive'
 

@@ -1,7 +1,7 @@
 {
   "name": "@bunli/utils",
   "version": "0.4.0",
-  "description": "Built-in utilities for Bunli CLI framework - prompts, spinners, and colors",
+  "description": "Built-in utilities for Bunli CLI framework - colors and validation",
   "type": "module",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -24,8 +24,8 @@
     "bunli",
     "cli",
     "utilities",
-    "prompts",
-    "spinner",
+    "colors",
+    "validation",
     "terminal"
   ],
   "author": "Arya Labs, Inc.",
@@ -43,7 +43,6 @@
   },
   "homepage": "https://github.com/AryaLabsHQ/bunli#readme",
   "dependencies": {
-    "@bunli/tui": "workspace:^",
     "@standard-schema/spec": "^1.1.0",
     "@standard-schema/utils": "^0.3.0",
     "better-result": "^2.7.0"
