@@ -6,6 +6,7 @@ export default defineConfig({
   description: 'Git workflow automation CLI',  
   plugins: [],
   commands: {
+    entry: './cli.ts',
     directory: './commands'
   },
   build: {

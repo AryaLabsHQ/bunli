@@ -50,13 +50,14 @@ const basicCli = await createCLI({
   description: 'My awesome CLI tool'
 })
 
-// With command manifest for lazy loading
-const manifestCli = await createCLI({
+// With command discovery hints for tooling/codegen
+const configuredCli = await createCLI({
   name: 'my-cli',
   version: '1.0.0',
   description: 'My awesome CLI tool',
   commands: {
-    manifest: './commands/manifest.js'
+    entry: './cli.ts',
+    directory: './commands'
   }
 })
 
@@ -83,7 +84,7 @@ cli.command({
   }
 })
 
-// Initialize (loads manifest if configured)
+// Initialize CLI lifecycle (optional)
 await cli.init()
 
 // Run the CLI
@@ -334,27 +335,40 @@ cli.command({
 })
 ```
 
-## Command Manifests
+## Command Groups
 
-For larger CLIs, use command manifests for lazy loading:
+For larger CLIs, compose nested subcommands with explicit groups:
 
 ```typescript
-// commands/manifest.ts
-export default {
-  build: () => import('./build.js'),
-  deploy: () => import('./deploy.js'),
-  test: () => import('./test.js'),
-  // Nested commands
-  db: {
-    migrate: () => import('./db/migrate.js'),
-    seed: () => import('./db/seed.js'),
-    backup: () => import('./db/backup.js')
-  }
-}
+// commands/db/migrate.ts
+import { defineCommand } from '@bunli/core'
+export default defineCommand({
+  name: 'migrate',
+  description: 'Run migrations',
+  handler: async () => {}
+})
+
+// commands/db/seed.ts
+import { defineCommand } from '@bunli/core'
+export default defineCommand({
+  name: 'seed',
+  description: 'Seed data',
+  handler: async () => {}
+})
+
+// commands/db.ts
+import { defineGroup } from '@bunli/core'
+import migrate from './db/migrate.js'
+import seed from './db/seed.js'
+export default defineGroup({
+  name: 'db',
+  description: 'Database commands',
+  commands: [migrate, seed]
+})
 
 // cli.ts
 import { createCLI } from '@bunli/core'
-import manifest from './commands/manifest.js'
+import db from './commands/db.js'
 
 const cli = await createCLI({
   name: 'my-cli',
@@ -362,13 +376,12 @@ const cli = await createCLI({
   description: 'My CLI'
 })
 
-// Load commands from manifest
-await cli.load(manifest)
+cli.command(db)
 await cli.run()
 ```
 
 <Callout type="tip">
-  Command manifests enable lazy loading, significantly improving startup time for large CLIs. Commands are only loaded when actually invoked.
+  Use `defineGroup(...)` to model nested subcommands and keep registration explicit with `cli.command(...)`.
 </Callout>
 
 ## Error Handling
@@ -467,7 +480,8 @@ export default defineConfig({
   version: '1.0.0',
   description: 'My CLI tool',
   commands: {
-    manifest: './commands/manifest.js'
+    entry: './src/cli.ts',
+    directory: './src/commands'
   },
   build: {
     entry: './src/cli.ts',

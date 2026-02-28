@@ -286,26 +286,42 @@ export default defineCommand({
 	    ```
 	  </Tab>
 	  
-	  <Tab value="manifest" label="Command Manifest">
-	    Use a manifest for lazy loading:
-    
+	  <Tab value="groups" label="Command Groups">
+	    For nested commands, compose explicit groups:
+
 	    ```typescript
-	    // src/commands/index.ts
-	    export default {
-	      serve: () => import('./serve.js'),
-	      build: () => import('./build.js'),
-	      db: {
-	        migrate: () => import('./db/migrate.js'),
-	        seed: () => import('./db/seed.js')
-	      }
-	    }
+	    // src/commands/db/migrate.ts
+	    import { defineCommand } from '@bunli/core'
+	    export default defineCommand({
+	      name: 'migrate',
+	      description: 'Run migrations',
+	      handler: async () => { /* ... */ }
+	    })
+
+	    // src/commands/db/seed.ts
+	    import { defineCommand } from '@bunli/core'
+	    export default defineCommand({
+	      name: 'seed',
+	      description: 'Seed data',
+	      handler: async () => { /* ... */ }
+	    })
+
+	    // src/commands/db.ts
+	    import { defineGroup } from '@bunli/core'
+	    import migrate from './db/migrate.js'
+	    import seed from './db/seed.js'
+	    export default defineGroup({
+	      name: 'db',
+	      description: 'Database commands',
+	      commands: [migrate, seed]
+	    })
 	    
 	    // src/index.ts
 	    import { createCLI } from '@bunli/core'
-	    import manifest from './commands/index.js'
+	    import db from './commands/db.js'
 	    
 	    const cli = await createCLI({ name: 'my-cli', description: 'My CLI' })
-	    await cli.load(manifest)
+	    cli.command(db)
 	    await cli.run()
 	    ```
 	  </Tab>
@@ -381,7 +397,7 @@ Options:
 ```
 
 <Callout type="tip">
-  Commands are lazy-loaded by default when using a manifest, improving startup time for CLIs with many commands.
+  Keep command registration explicit with `cli.command(...)` and use `defineGroup(...)` for nested command trees.
 </Callout>
 
 ## Best Practices

@@ -5,7 +5,7 @@ import { z } from 'zod'
 import { loadConfig } from '@bunli/core'
 import { findEntry } from '../utils/find-entry.js'
 import path from 'node:path'
-import { existsSync } from 'node:fs'
+import { existsSync, statSync } from 'node:fs'
 import { watch } from 'node:fs/promises'
 import type { BunliUtils } from '@bunli/utils'
 
@@ -19,6 +19,43 @@ type DevCommandErrorType = InstanceType<typeof DevCommandError>
 const failDev = (message: string, cause?: unknown): Result<never, DevCommandErrorType> =>
   Result.err(new DevCommandError({ message, cause }))
 
+function isDirectory(candidate: string): boolean {
+  try {
+    return statSync(candidate).isDirectory()
+  } catch {
+    return false
+  }
+}
+
+export function resolveWatchDirectory(entryPath: string, configuredDirectory?: string): string | null {
+  if (configuredDirectory) {
+    return path.resolve(configuredDirectory)
+  }
+
+  const cwd = process.cwd()
+  const defaultCommandsDir = path.resolve(cwd, 'commands')
+  if (isDirectory(defaultCommandsDir)) {
+    return defaultCommandsDir
+  }
+
+  const srcCommandsDir = path.resolve(cwd, 'src/commands')
+  if (isDirectory(srcCommandsDir)) {
+    return srcCommandsDir
+  }
+
+  const entryDirectory = path.dirname(entryPath)
+  if (entryDirectory !== cwd) {
+    return entryDirectory
+  }
+
+  const srcDir = path.resolve(cwd, 'src')
+  if (isDirectory(srcDir)) {
+    return srcDir
+  }
+
+  return null
+}
+
 export default defineCommand({
   name: 'dev',
   description: 'Run your CLI in development mode with hot reload',
@@ -27,10 +64,6 @@ export default defineCommand({
     entry: option(
       z.string().optional(),
       { short: 'e', description: 'Entry file (defaults to auto-detect)' }
-    ),
-    commandsDir: option(
-      z.string().optional(),
-      { description: 'Commands directory' }
     ),
     generate: option(
       z.boolean().default(true),
@@ -70,21 +103,28 @@ async function runDev(
     const config = await loadConfig()
     const typedFlags = flags as {
       entry?: string
-      commandsDir?: string
       generate: boolean
       clearScreen: boolean
       watch: boolean
       inspect: boolean
       port?: number
     }
-    const commandsDir = typedFlags.commandsDir || config.commands?.directory || 'commands'
 
     // Generate types if codegen is enabled
     const generateTypes = async (): Promise<Result<void, DevCommandErrorType>> => {
       if (!typedFlags.generate) return Result.ok(undefined)
 
+      const configuredEntry = config.commands?.entry || config.build?.entry
+      const configuredEntryFile = Array.isArray(configuredEntry) ? configuredEntry[0] : configuredEntry
+      const discoveredEntry = await findEntry()
+      const resolvedEntry = typedFlags.entry || configuredEntryFile || discoveredEntry
+      if (!resolvedEntry) {
+        return failDev('No entry file found for code generation. Set commands.entry or pass --entry.')
+      }
+
       const generator = new Generator({
-        commandsDir: commandsDir,
+        entry: resolvedEntry,
+        directory: config.commands?.directory,
         outputFile: './.bunli/commands.gen.ts',
         config,
         generateReport: config.commands?.generateReport
@@ -109,7 +149,9 @@ async function runDev(
     }
 
     // 2. Find entry point
-    const entry = typedFlags.entry || config.build?.entry || await findEntry()
+    const configuredEntry = config.commands?.entry || config.build?.entry
+    const configuredEntryFile = Array.isArray(configuredEntry) ? configuredEntry[0] : configuredEntry
+    const entry = typedFlags.entry || configuredEntryFile || await findEntry()
     if (!entry) {
       return failDev('No entry file found. Please specify with --entry or in bunli.config.ts')
     }
@@ -159,15 +201,16 @@ async function runDev(
     // Watch for changes in commands directory to regenerate types
     let ac: AbortController | null = null
     if (typedFlags.watch ?? config.dev?.watch ?? true) {
-      const commandsDirPath = path.resolve(commandsDir)
-      if (existsSync(commandsDirPath) && typedFlags.generate) {
+      const watchDirectory = resolveWatchDirectory(entryPath, config.commands?.directory)
+      if (typedFlags.generate && watchDirectory && existsSync(watchDirectory)) {
+        console.log(colors.dim(`Watching command changes in ${watchDirectory}`))
         ac = new AbortController()
         const { signal } = ac
 
         // Watch commands directory for type regeneration
         const watchCommands = async () => {
           try {
-            const watcher = watch(commandsDirPath, {
+            const watcher = watch(watchDirectory, {
               recursive: true,
               signal
             })
@@ -201,6 +244,10 @@ async function runDev(
         watchCommands().catch(err => {
           console.error(colors.red(`Watch error: ${err.message}`))
         })
+      } else if (typedFlags.generate && watchDirectory && !existsSync(watchDirectory)) {
+        console.log(colors.yellow(`Skipping command watcher: directory does not exist (${watchDirectory})`))
+      } else if (typedFlags.generate && !watchDirectory) {
+        console.log(colors.yellow('Skipping command watcher: set commands.directory to avoid watching the project root'))
       }
     }
 

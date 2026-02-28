@@ -1,5 +1,6 @@
 export interface GeneratorConfig {
-  commandsDir: string
+  entry: string
+  directory?: string
   outputFile: string
   config?: any
   generateReport?: boolean

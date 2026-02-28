@@ -151,7 +151,8 @@ bunli generate
 ```
 
 **Options:**
-- `--commandsDir` - Commands directory (defaults to config or `./commands`)
+- `--entry, -e` - CLI entry file used for command discovery
+- `--directory` - Optional fallback command source directory
 - `--output, -o` - Output file (default: `./.bunli/commands.gen.ts`)
 - `--watch, -w` - Watch for changes and regenerate
 
@@ -166,8 +167,11 @@ bunli generate --output ./types/commands.ts
 # Watch for changes
 bunli generate --watch
 
-# Use custom commands directory
-bunli generate --commandsDir ./src/commands
+# Use explicit entry
+bunli generate --entry ./src/cli.ts
+
+# Optional fallback directory
+bunli generate --directory ./src/commands
 ```
 
 <Callout type="info">
@@ -265,7 +269,7 @@ export default defineConfig({
   
   // Command configuration
   commands: {
-    manifest: './src/commands/manifest.js',
+    entry: './src/cli.ts',
     directory: './src/commands'
   },
   

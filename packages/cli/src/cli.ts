@@ -1,5 +1,12 @@
 #!/usr/bin/env bun
 import { createCLI } from '@bunli/core'
+import buildCommand from './commands/build.js'
+import devCommand from './commands/dev.js'
+import generateCommand from './commands/generate.js'
+import initCommand from './commands/init.js'
+import releaseCommand from './commands/release.js'
+import testCommand from './commands/test.js'
+import doctorCommand from './commands/doctor.js'
 
 const cli = await createCLI({
   name: 'bunli',
@@ -7,15 +14,12 @@ const cli = await createCLI({
   description: 'The Bunli CLI toolchain for developing, building, and distributing CLIs'
 })
 
-// Load commands from manifest
-await cli.load({
-  dev: () => import('./commands/dev.js'),
-  build: () => import('./commands/build.js'),
-  generate: () => import('./commands/generate.js'),
-  test: () => import('./commands/test.js'),
-  release: () => import('./commands/release.js'),
-  init: () => import('./commands/init.js')
-})
+cli.command(devCommand)
+cli.command(buildCommand)
+cli.command(generateCommand)
+cli.command(testCommand)
+cli.command(releaseCommand)
+cli.command(initCommand)
+cli.command(doctorCommand)
 
-// Run CLI
 await cli.run()

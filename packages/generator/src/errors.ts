@@ -7,7 +7,7 @@ export class ScanCommandFileError extends TaggedError('ScanCommandFileError')<{
 }>() {}
 
 export class ScanCommandsError extends TaggedError('ScanCommandsError')<{
-  commandsDir: string
+  entry: string
   message: string
   cause: unknown
 }>() {}

@@ -14,13 +14,13 @@ Bunli automatically loads configuration from `bunli.config.ts` when you call `cr
 ```typescript
 // cli.ts - No config needed!
 import { createCLI } from '@bunli/core'
+import build from './commands/build.js'
+import test from './commands/test.js'
 
 const cli = await createCLI()  // Automatically loads bunli.config.ts
 
-await cli.load({
-  build: () => import('./commands/build'),
-  test: () => import('./commands/test')
-})
+cli.command(build)
+cli.command(test)
 
 await cli.run()
 ```
@@ -34,7 +34,8 @@ export default defineConfig({
   version: '1.0.0',
   description: 'My awesome CLI tool',
   commands: {
-    directory: './commands'
+    entry: './cli.ts',
+    directory: './commands' // optional fallback hint
   },
   plugins: []
 })
@@ -80,9 +81,10 @@ export default defineConfig({
   version: '1.0.0',
   description: 'My awesome CLI tool',
   
-  // Command options (REQUIRED)
+  // Command discovery options
   commands: {
-    directory: './commands'  // Must use commands/ directory
+    entry: './cli.ts',
+    directory: './commands' // optional
   },
   
   // Build configuration
@@ -95,7 +97,7 @@ export default defineConfig({
     sourcemap: true       // Default: true
   },
   
-  // Plugins (REQUIRED - can be empty array)
+  // Plugins (optional, defaults to [])
   plugins: []
 })
 ```
@@ -122,17 +124,17 @@ export default defineConfig({
 ```typescript
 export default defineConfig({
   commands: {
-    // Where to find command files (REQUIRED)
-    directory: './commands',  // Must use commands/ directory
-    
-    // Command manifest for lazy loading (optional)
-    manifest: './commands/manifest.ts'
+    // CLI entry used for command discovery/codegen
+    entry: './cli.ts',
+
+    // Optional fallback directory scanner
+    directory: './commands'
   }
 })
 ```
 
 <Callout type="warning">
-  All Bunli projects must use a `commands/` directory structure for reliable type generation. The `commands.directory` configuration is required.
+  `commands.manifest` has been removed. Register commands explicitly with `cli.command(...)`.
 </Callout>
 
 ### Build Configuration
@@ -199,10 +201,10 @@ export default defineConfig({
 | Setting | Default | Description |
 |---------|---------|-------------|
 | **Auto-Generation** | `true` | Always enabled |
-| **Commands Directory** | `./commands` | Where to find command files (REQUIRED) |
+| **Command Entry** | `build.entry` or auto-detected | CLI entry used for command discovery |
 | **Output File** | `./.bunli/commands.gen.ts` | Generated types location |
 | **Watch Mode** | `true` in dev | Regenerate on file changes |
-| **Plugins** | `[]` | Empty array (REQUIRED) |
+| **Plugins** | `[]` | Empty array by default |
 
 <Callout type="info">
   Type generation is automatically integrated with `bunli dev` and `bunli build` commands. Learn more in the [Type Generation Guide](/docs/guides/type-generation).
@@ -349,7 +351,7 @@ const configSchema = z.object({
   version: z.string().optional(),
   description: z.string().optional(),
   commands: z.object({
-    manifest: z.string().optional(),
+    entry: z.string().optional(),
     directory: z.string().optional()
   }).optional(),
   build: z.object({
@@ -386,7 +388,7 @@ If no configuration file is found, these defaults are used:
   version: package.version,
   description: package.description,
   commands: {
-    directory: './commands'  // REQUIRED
+    entry: './cli.ts'
   },
   build: {
     entry: './cli.ts',
@@ -396,7 +398,7 @@ If no configuration file is found, these defaults are used:
     minify: false,
     sourcemap: true
   },
-  plugins: []  // REQUIRED
+  plugins: []
 }
 ```
 

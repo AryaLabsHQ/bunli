@@ -1,6 +1,6 @@
 // Note: createCLI is now async and returns Promise<CLI>
 export { createCLI } from './cli.js'
-export { defineCommand, option } from './types.js'
+export { defineCommand, defineGroup, option } from './types.js'
 export { defineConfig, bunliConfigSchema, type BunliConfig, type BunliConfigInput } from './config.js'
 export { loadConfig, loadConfigResult } from './config-loader.js'
 export {
@@ -24,8 +24,8 @@ export type {
   TuiRenderOptions,
   Options,
   CLIOption,
-  CommandManifest,
-  CommandLoader,
+  Group,
+  RunnableCommand,
   StandardSchemaV1,
   PluginConfig,
   ResolvedConfig,

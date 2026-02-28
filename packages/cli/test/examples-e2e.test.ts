@@ -22,6 +22,19 @@ function forceBundleMode(configPath: string) {
   writeFileSync(configPath, updated)
 }
 
+function forceMultiEntryBundleMode(configPath: string) {
+  const current = readFileSync(configPath, 'utf8')
+  const target = "build: {\n    entry: './cli.ts',"
+  if (!current.includes(target)) {
+    throw new Error(`Could not find build.entry in ${configPath}`)
+  }
+  const withMultiEntry = current.replace(
+    target,
+    "build: {\n    entry: ['./cli.ts', './secondary.ts'],"
+  )
+  writeFileSync(configPath, withMultiEntry)
+}
+
 async function initGitRepository(cwd: string) {
   await Bun.$`git init ${cwd}`.quiet()
   await Bun.$`git -C ${cwd} config user.email "test@example.com"`.quiet()
@@ -76,6 +89,19 @@ describe('example e2e: task-runner with build.targets=[]', () => {
 
     const bundle = readFileSync(bundlePath, 'utf8')
     expect(bundle.startsWith('#!/usr/bin/env bun')).toBe(true)
+  })
+
+  test('bunli build preserves multi-entry build.entry arrays in bundle mode', async () => {
+    forceMultiEntryBundleMode(path.join(fixtureDir, 'bunli.config.ts'))
+    writeFileSync(path.join(fixtureDir, 'secondary.ts'), "console.log('secondary entry')\n")
+
+    const result = await runCli(fixtureDir, ['build'])
+    const combinedOutput = `${result.stdout}\n${result.stderr}`
+
+    expect(result.exitCode).toBe(0)
+    expect(combinedOutput).toContain('Build complete')
+    expect(existsSync(path.join(fixtureDir, 'dist/cli.js'))).toBe(true)
+    expect(existsSync(path.join(fixtureDir, 'dist/secondary.js'))).toBe(true)
   })
 
   test('bunli release --dry stays in non-binary flow', async () => {

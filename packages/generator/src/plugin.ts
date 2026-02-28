@@ -8,7 +8,8 @@ import { Result } from 'better-result'
 const logger = createLogger('generator:plugin')
 
 export interface BunliCodegenPluginOptions {
-  commandsDir?: string
+  entry?: string
+  directory?: string
   outputFile?: string
   config?: any
   generateReport?: boolean
@@ -23,7 +24,8 @@ export interface BunliCodegenPluginOptions {
  */
 export function bunliCodegenPlugin(options: BunliCodegenPluginOptions = {}): BunPlugin {
   const {
-    commandsDir = 'commands',
+    entry = './cli.ts',
+    directory,
     outputFile = './commands.gen.ts',
     config,
     generateReport
@@ -37,7 +39,8 @@ export function bunliCodegenPlugin(options: BunliCodegenPluginOptions = {}): Bun
     setup(build) {
       // Initialize generator
       generator = new Generator({
-        commandsDir,
+        entry,
+        directory,
         outputFile,
         config,
         generateReport
@@ -88,7 +91,8 @@ export function bunliCodegenPlugin(options: BunliCodegenPluginOptions = {}): Bun
  *   outdir: './dist',
  *   plugins: [
  *     bunliCodegenPlugin({
- *       commandsDir: './commands',
+ *       entry: './src/cli.ts',
+ *       directory: './src/commands',
  *       outputFile: './commands.gen.ts'
  *     })
  *   ]

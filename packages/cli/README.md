@@ -35,7 +35,6 @@ Development options:
 - `--watch, -w` - Watch for changes (default: true)
 - `--inspect, -i` - Enable debugger
 - `--port, -p` - Debugger port (default: 9229)
-- `--commandsDir` - Commands directory for codegen (default: commands)
 - `--generate` - Enable/disable code generation (default: true)
 - `--clearScreen` - Clear screen on reload (default: true)
 
@@ -72,16 +71,20 @@ bunli generate
 # Generate types and watch for changes
 bunli generate --watch
 
-# Custom commands directory
-bunli generate --commandsDir ./src/commands
+# Explicit command discovery entry
+bunli generate --entry ./src/cli.ts
+
+# Optional fallback directory
+bunli generate --directory ./src/commands
 
 # Custom output file
 bunli generate --output ./types/commands.gen.ts
 ```
 
 Generate options:
-- `--commandsDir` - Commands directory to scan (default: commands)
-- `--output, -o` - Output file path (default: ./commands.gen.ts)
+- `--entry, -e` - CLI entry file used for command discovery
+- `--directory` - Optional fallback command source directory
+- `--output, -o` - Output file path (default: ./.bunli/commands.gen.ts)
 - `--watch, -w` - Watch for changes and regenerate
 
 The generator creates type-safe command definitions with:
@@ -96,6 +99,7 @@ The generator creates type-safe command definitions with:
 - `bunli dev` - Run CLI in development mode with hot reloading
 - `bunli build` - Build your CLI for production
 - `bunli generate` - Generate TypeScript definitions from commands
+- `bunli doctor completions` - Validate generated completion metadata
 - `bunli test` - Run tests with Bun test runner
 - `bunli release` - Release your CLI package
 
@@ -236,6 +240,11 @@ import { defineConfig } from 'bunli'
 export default defineConfig({
   name: 'my-cli',
   version: '1.0.0',
+
+  commands: {
+    entry: './src/cli.ts',
+    directory: './src/commands' // optional fallback hint
+  },
   
   build: {
     entry: './src/cli.ts',

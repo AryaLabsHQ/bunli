@@ -6,6 +6,7 @@ export default defineConfig({
   description: 'Development server with plugins - Advanced plugin system and configuration management',
   plugins: [],
   commands: {
+    entry: './cli.ts',
     directory: './commands'
   },
   build: {

@@ -54,3 +54,15 @@ test('bunliConfigSchema - handles partial build config', () => {
   expect(result.build?.minify).toBe(false)
   expect(result.build?.outdir).toBeUndefined()
 })
+
+test('bunliConfigSchema - rejects removed commands.manifest', () => {
+  expect(() =>
+    bunliConfigSchema.parse({
+      name: 'test-cli',
+      version: '1.0.0',
+      commands: {
+        manifest: './commands/manifest.ts'
+      }
+    })
+  ).toThrow(/commands\.manifest has been removed/)
+})

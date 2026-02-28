@@ -2,10 +2,11 @@ import { defineCommand, option } from '@bunli/core'
 import { Result, TaggedError } from 'better-result'
 import { Generator } from '@bunli/generator'
 import { z } from 'zod'
-import { join } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 import { watch } from 'node:fs/promises'
 import { isCommandFile } from '@bunli/generator'
 import { loadConfig } from '@bunli/core'
+import { findEntry } from '../utils/find-entry.js'
 import type { BunliUtils } from '@bunli/utils'
 
 
@@ -22,8 +23,12 @@ export default defineCommand({
   description: 'Generate command type definitions',
   alias: 'gen',
   options: {
-    commandsDir: option(z.string().optional(), {
-      description: 'Commands directory'
+    entry: option(z.string().optional(), {
+      short: 'e',
+      description: 'CLI entry file used for command discovery'
+    }),
+    directory: option(z.string().optional(), {
+      description: 'Optional command source directory fallback'
     }),
     output: option(z.string().default('./.bunli/commands.gen.ts'), {
       short: 'o',
@@ -51,16 +56,28 @@ async function runGenerate(
     // Load config to get default values
     const config = await loadConfig()
     const typedFlags = flags as {
-      commandsDir?: string
+      entry?: string
+      directory?: string
       output: string
       watch: boolean
     }
     
-    const finalCommandsDir = typedFlags.commandsDir || config.commands?.directory || 'commands'
+    const configuredEntry = config.commands?.entry || config.build?.entry
+    const configuredEntryFile = Array.isArray(configuredEntry) ? configuredEntry[0] : configuredEntry
+    const discoveredEntry = await findEntry()
+    const finalEntry = typedFlags.entry || configuredEntryFile || discoveredEntry
+    if (!finalEntry) {
+      return failGenerate(
+        'No CLI entry file found. Set commands.entry in bunli.config.ts or pass --entry.'
+      )
+    }
+
+    const finalDirectory = typedFlags.directory || config.commands?.directory
     const finalOutputFile = typedFlags.output || './.bunli/commands.gen.ts'
     
     const generator = new Generator({
-      commandsDir: finalCommandsDir,
+      entry: finalEntry,
+      directory: finalDirectory,
       outputFile: finalOutputFile,
       config,
       generateReport: config.commands?.generateReport
@@ -76,7 +93,8 @@ async function runGenerate(
     spin.succeed('Types generated')
     
     if (typedFlags.watch) {
-      console.log(colors.cyan(`\n👀 Watching ${finalCommandsDir}...\n`))
+      const watchDirectory = resolve(finalDirectory || dirname(finalEntry))
+      console.log(colors.cyan(`\n👀 Watching ${watchDirectory}...\n`))
 
       const ac = new AbortController()
       const { signal } = ac
@@ -92,7 +110,7 @@ async function runGenerate(
       process.on('SIGTERM', stopWatching)
       
       try {
-        const watcher = watch(finalCommandsDir, { 
+        const watcher = watch(watchDirectory, { 
           recursive: true,
           signal 
         })
@@ -105,7 +123,7 @@ async function runGenerate(
           
           const updateResult = await generator.run({
             type: event.eventType === 'rename' ? 'delete' : 'update',
-            path: join(finalCommandsDir, event.filename)
+            path: join(watchDirectory, event.filename)
           })
           if (Result.isError(updateResult)) {
             spin.fail('Failed')
