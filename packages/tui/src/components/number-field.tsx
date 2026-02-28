@@ -33,7 +33,9 @@ export function NumberField({
   useEffect(() => {
     if (typeof field.value === 'number' && Number.isFinite(field.value)) {
       setDraft(String(field.value))
+      return
     }
+    setDraft('')
   }, [field.value])
 
   const handleInput = useCallback(

@@ -1,7 +1,8 @@
-import { useId, useMemo, useState } from 'react'
+import { useEffect, useId, useMemo, useState } from 'react'
 import { useScopedKeyboard } from './focus-scope.js'
 import { createKeyMatcher } from './keymap.js'
 import { useTuiTheme } from './theme.js'
+import { displayWidth, formatFixedWidth, type TextOverflowMode } from './text-layout.js'
 
 export interface CommandPaletteItem {
   key: string
@@ -15,6 +16,9 @@ export interface CommandPaletteProps {
   onSelect?: (key: string) => void
   scopeId?: string
   keyboardEnabled?: boolean
+  inputFocused?: boolean
+  maxLineWidth?: number
+  overflow?: TextOverflowMode
 }
 
 const paletteKeymap = createKeyMatcher({
@@ -28,7 +32,10 @@ export function CommandPalette({
   placeholder = 'Type to filter commands...',
   onSelect,
   scopeId,
-  keyboardEnabled = true
+  keyboardEnabled = true,
+  inputFocused = true,
+  maxLineWidth,
+  overflow = 'ellipsis'
 }: CommandPaletteProps) {
   const { tokens } = useTuiTheme()
   const reactScopeId = useId()
@@ -40,6 +47,24 @@ export function CommandPalette({
     () =>
       items.filter((item) => item.label.toLowerCase().includes(query.toLowerCase())),
     [items, query]
+  )
+
+  useEffect(() => {
+    setSelectedIndex((prev) => {
+      if (filtered.length === 0) return 0
+      return Math.min(prev, filtered.length - 1)
+    })
+  }, [filtered.length])
+  const lineWidth = useMemo(
+    () =>
+      Math.max(
+        8,
+        Math.min(
+          maxLineWidth ?? Number.POSITIVE_INFINITY,
+          ...items.map((item) => displayWidth(`> ${item.label}${item.hint ? ` - ${item.hint}` : ''}`))
+        )
+      ),
+    [items, maxLineWidth]
   )
 
   useScopedKeyboard(
@@ -75,20 +100,29 @@ export function CommandPalette({
         value={query}
         placeholder={placeholder}
         onInput={setQuery}
-        focused
+        focused={inputFocused}
         style={{ focusedBackgroundColor: tokens.backgroundMuted }}
       />
       <box style={{ flexDirection: 'column', gap: 1 }}>
         {filtered.length === 0 ? (
           <text content="No commands found" fg={tokens.textMuted} />
         ) : (
-          filtered.map((item, index) => (
-            <text
-              key={item.key}
-              content={`${index === selectedIndex ? '>' : ' '} ${item.label}${item.hint ? ` - ${item.hint}` : ''}`}
-              fg={index === selectedIndex ? tokens.accent : tokens.textPrimary}
-            />
-          ))
+          Array.from({ length: filtered.length }, (_, rowIndex) => {
+            const item = filtered[rowIndex]
+            if (!item) {
+              return <text key={`palette-empty-${rowIndex}`} content={formatFixedWidth('', lineWidth, { overflow })} fg={tokens.textPrimary} />
+            }
+
+            const active = rowIndex === selectedIndex
+            const rawLine = `${active ? '>' : ' '} ${item.label}${item.hint ? ` - ${item.hint}` : ''}`
+            return (
+                <text
+                  key={item.key}
+                  content={formatFixedWidth(rawLine, lineWidth, { overflow })}
+                  fg={active ? tokens.accent : tokens.textPrimary}
+                />
+            )
+          })
         )}
       </box>
     </box>

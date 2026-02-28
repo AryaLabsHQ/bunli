@@ -34,7 +34,8 @@ export function FormField({
     onChange?.(newValue)
   }, [field, onChange])
 
-  const handleSubmit = useCallback((submittedValue: string) => {
+  const handleSubmit = useCallback(() => {
+    const submittedValue = field.value ?? ''
     field.setValue(submittedValue)
     field.blur()
     onSubmit?.(submittedValue)

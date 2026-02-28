@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { useTuiTheme } from './theme.js'
+import { displayWidth, formatFixedWidth, type TextOverflowMode } from './text-layout.js'
 
 export interface KeyValueItem {
   key: string
@@ -9,27 +10,50 @@ export interface KeyValueItem {
 export interface KeyValueListProps {
   items: KeyValueItem[]
   minKeyWidth?: number
+  maxLineWidth?: number
+  fillWidth?: boolean
+  overflow?: TextOverflowMode
 }
 
-function pad(value: string, width: number): string {
-  if (value.length >= width) return value
-  return `${value}${' '.repeat(width - value.length)}`
-}
-
-export function KeyValueList({ items, minKeyWidth = 12 }: KeyValueListProps) {
+export function KeyValueList({
+  items,
+  minKeyWidth = 12,
+  maxLineWidth,
+  fillWidth = false,
+  overflow = 'ellipsis'
+}: KeyValueListProps) {
   const { tokens } = useTuiTheme()
 
   const keyWidth = useMemo(
-    () => Math.max(minKeyWidth, ...items.map((item) => item.key.length), 0),
+    () => Math.max(minKeyWidth, ...items.map((item) => displayWidth(item.key)), 0),
     [items, minKeyWidth]
   )
+  const lineWidth = useMemo(() => {
+    const contentLineWidth = Math.max(
+      keyWidth + 3,
+      Math.min(
+        maxLineWidth ?? Number.POSITIVE_INFINITY,
+        ...items.map((item) => displayWidth(`${formatFixedWidth(item.key, keyWidth)} : ${String(item.value ?? '')}`))
+      )
+    )
+
+    if (!fillWidth || typeof maxLineWidth !== 'number') {
+      return contentLineWidth
+    }
+
+    return Math.max(contentLineWidth, maxLineWidth)
+  }, [fillWidth, items, keyWidth, maxLineWidth])
 
   return (
     <box style={{ flexDirection: 'column', gap: 1 }}>
       {items.map((item, index) => (
         <text
           key={`kv-${index}-${item.key}`}
-          content={`${pad(item.key, keyWidth)} : ${String(item.value ?? '')}`}
+          content={formatFixedWidth(
+            `${formatFixedWidth(item.key, keyWidth)} : ${String(item.value ?? '')}`,
+            lineWidth,
+            { overflow }
+          )}
           fg={tokens.textPrimary}
         />
       ))}

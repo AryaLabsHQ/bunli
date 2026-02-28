@@ -1,7 +1,8 @@
-import { useId, useMemo, useState } from 'react'
+import { useEffect, useId, useMemo, useState } from 'react'
 import { useScopedKeyboard } from './focus-scope.js'
 import { createKeyMatcher } from './keymap.js'
 import { useTuiTheme } from './theme.js'
+import { displayWidth, formatFixedWidth, type TextOverflowMode } from './text-layout.js'
 
 export interface DataTableColumn {
   key: string
@@ -14,10 +15,9 @@ export interface DataTableProps {
   onRowSelect?: (row: Record<string, string | number | boolean | null | undefined>) => void
   scopeId?: string
   keyboardEnabled?: boolean
-}
-
-function pad(value: string, width: number): string {
-  return value.length >= width ? value : `${value}${' '.repeat(width - value.length)}`
+  maxLineWidth?: number
+  fillWidth?: boolean
+  overflow?: TextOverflowMode
 }
 
 const dataTableKeymap = createKeyMatcher({
@@ -33,7 +33,10 @@ export function DataTable({
   rows,
   onRowSelect,
   scopeId,
-  keyboardEnabled = true
+  keyboardEnabled = true,
+  maxLineWidth,
+  fillWidth = false,
+  overflow = 'ellipsis'
 }: DataTableProps) {
   const { tokens } = useTuiTheme()
   const reactScopeId = useId()
@@ -50,16 +53,32 @@ export function DataTable({
     return copy
   }, [rows, sortColumn])
 
+  useEffect(() => {
+    setSortIndex((prev) => {
+      if (columns.length === 0) return 0
+      return Math.min(prev, columns.length - 1)
+    })
+  }, [columns.length])
+
+  useEffect(() => {
+    setSelectedRowIndex((prev) => {
+      if (sortedRows.length === 0) return 0
+      return Math.min(prev, sortedRows.length - 1)
+    })
+  }, [sortedRows.length])
+
   useScopedKeyboard(
     keyboardScopeId,
     (key) => {
       if (dataTableKeymap.match('sortPrevious', key)) {
-        setSortIndex((prev) => (prev - 1 + columns.length) % Math.max(columns.length, 1))
+        if (columns.length === 0) return false
+        setSortIndex((prev) => (prev - 1 + columns.length) % columns.length)
         return true
       }
 
       if (dataTableKeymap.match('sortNext', key)) {
-        setSortIndex((prev) => (prev + 1) % Math.max(columns.length, 1))
+        if (columns.length === 0) return false
+        setSortIndex((prev) => (prev + 1) % columns.length)
         return true
       }
 
@@ -88,40 +107,60 @@ export function DataTable({
   )
 
   const widths = columns.map((column) =>
-    Math.max(column.label.length, ...sortedRows.map((row) => String(row[column.key] ?? '').length), 1)
+    Math.max(
+      displayWidth(column.label),
+      ...sortedRows.map((row) => displayWidth(String(row[column.key] ?? ''))),
+      1
+    )
   )
 
-  const header = columns
+  const rawHeader = columns
     .map((column, index) => {
       const decorated = index === sortIndex ? `${column.label}*` : column.label
-      return pad(decorated, widths[index] ?? column.label.length)
+      return formatFixedWidth(decorated, widths[index] ?? displayWidth(column.label), { overflow })
     })
     .join(' | ')
+  const rawSeparator = widths.map((width) => '-'.repeat(width)).join('-+-')
+  const rawRowLines = sortedRows.map((row) => columns
+    .map((column, index) => formatFixedWidth(String(row[column.key] ?? ''), widths[index] ?? 1, { overflow }))
+    .join(' | '))
+  const contentWidth = Math.max(
+    displayWidth(rawHeader),
+    displayWidth(rawSeparator),
+    ...rawRowLines.map((line) => displayWidth(line)),
+    1
+  )
+  const finalLineWidth = Math.max(
+    8,
+    fillWidth && typeof maxLineWidth === 'number'
+      ? maxLineWidth
+      : Math.min(maxLineWidth ?? Number.POSITIVE_INFINITY, contentWidth)
+  )
+  const header = formatFixedWidth(rawHeader, finalLineWidth, { overflow })
+  const separator = formatFixedWidth(rawSeparator, finalLineWidth, { overflow })
 
-  const separator = widths.map((width) => '-'.repeat(width)).join('-+-')
+  const footer = formatFixedWidth('Arrows: navigate/sort | Enter: select row', finalLineWidth, { overflow })
 
   return (
     <box border padding={1} style={{ flexDirection: 'column', gap: 1, borderColor: tokens.border }}>
       <text content={header} fg={tokens.textPrimary} />
       <text content={separator} fg={tokens.borderMuted} />
       {sortedRows.length === 0 ? (
-        <text content="No rows" fg={tokens.textMuted} />
+        <text content={formatFixedWidth('No rows', finalLineWidth, { overflow })} fg={tokens.textMuted} />
       ) : (
         sortedRows.map((row, rowIndex) => {
-          const line = columns
-            .map((column, index) => pad(String(row[column.key] ?? ''), widths[index] ?? 1))
-            .join(' | ')
+          const line = formatFixedWidth(rawRowLines[rowIndex] ?? '', finalLineWidth, { overflow })
           const active = rowIndex === selectedRowIndex
           return (
             <text
               key={`datatable-row-${rowIndex}`}
-              content={`${active ? '>' : ' '} ${line}`}
+              content={formatFixedWidth(`${active ? '>' : ' '} ${line}`, finalLineWidth + 2, { overflow })}
               fg={active ? tokens.accent : tokens.textPrimary}
             />
           )
         })
       )}
-      <text content="Arrows: navigate/sort | Enter: select row" fg={tokens.textMuted} />
+      <text content={footer} fg={tokens.textMuted} />
     </box>
   )
 }

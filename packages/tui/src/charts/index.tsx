@@ -74,6 +74,25 @@ function pointLabel(point: SeriesPoint, index: number): string {
   return point.label ?? `#${index + 1}`
 }
 
+function resampleValues(values: Array<number | null>, width?: number): Array<number | null> {
+  if (!width || width <= 0 || values.length === 0 || values.length === width) {
+    return values
+  }
+
+  if (width === 1) {
+    return [values[0] ?? null]
+  }
+
+  if (values.length === 1) {
+    return Array.from({ length: width }, () => values[0] ?? null)
+  }
+
+  return Array.from({ length: width }, (_, outputIndex) => {
+    const inputIndex = Math.round((outputIndex * (values.length - 1)) / (width - 1))
+    return values[inputIndex] ?? null
+  })
+}
+
 function renderBarLine(args: {
   point: SeriesPoint
   index: number
@@ -169,12 +188,13 @@ export function BarChart({
 
 export interface LineChartProps {
   series: ChartSeriesInput
+  width?: number
   color?: string
   palette?: string[]
   axis?: AxisOptions
 }
 
-export function LineChart({ series, color, palette, axis }: LineChartProps) {
+export function LineChart({ series, width, color, palette, axis }: LineChartProps) {
   const { tokens } = useTuiTheme()
   const seriesList = toSeriesArray(series)
   const domain = useMemo(() => computeDomain(seriesList, axis), [axis, seriesList])
@@ -184,7 +204,7 @@ export function LineChart({ series, color, palette, axis }: LineChartProps) {
       {axis?.yLabel ? <text content={axis.yLabel} fg={tokens.textMuted} /> : null}
       {seriesList.map((item, seriesIndex) => {
         const seriesColor = item.color ?? color ?? paletteAt(seriesIndex, tokens.accent, palette)
-        const points = item.points.map((point) => toNumber(point.value))
+        const points = resampleValues(item.points.map((point) => toNumber(point.value)), width)
         const sparkline = renderSparkline(points, domain.min, domain.max)
         const name = item.name ?? `Series ${seriesIndex + 1}`
 
@@ -206,17 +226,18 @@ export function LineChart({ series, color, palette, axis }: LineChartProps) {
 
 export interface SparklineProps {
   values: Array<number | null | undefined>
+  width?: number
   color?: string
   min?: number
   max?: number
   placeholder?: string
 }
 
-export function Sparkline({ values, color, min, max, placeholder = '·' }: SparklineProps) {
+export function Sparkline({ values, width, color, min, max, placeholder = '·' }: SparklineProps) {
   const { tokens } = useTuiTheme()
   if (values.length === 0) return <text content="" fg={tokens.textMuted} />
 
-  const normalizedValues = values.map((value) => toNumber(value))
+  const normalizedValues = resampleValues(values.map((value) => toNumber(value)), width)
   const valid = normalizedValues.filter((value): value is number => value !== null)
   const computedMin = min ?? (valid.length > 0 ? Math.min(...valid) : 0)
   const computedMax = max ?? (valid.length > 0 ? Math.max(...valid) : 0)
@@ -230,6 +251,7 @@ export const __chartInternalsForTests = {
   toSeriesArray,
   toNumber,
   computeDomain,
+  resampleValues,
   renderBarLine,
   renderSparkline
 }

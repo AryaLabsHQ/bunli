@@ -2,6 +2,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -12,6 +13,7 @@ import { createKeyMatcher } from './keymap.js'
 import { Modal } from './modal.js'
 import { OverlayPortal } from './overlay-host.js'
 import { useTuiTheme } from './theme.js'
+import { createSyncBatcher, type SyncBatcher } from '../utils/sync-batcher.js'
 
 type DialogController = {
   reject: (reason?: unknown) => void
@@ -23,6 +25,11 @@ interface DialogEntry {
   priority: number
   node: ReactNode
 }
+
+type DialogEntryAction =
+  | { type: 'add'; entry: DialogEntry }
+  | { type: 'replace'; id: string; node: ReactNode }
+  | { type: 'remove'; id: string }
 
 export interface DialogOpenOptions {
   id?: string
@@ -341,20 +348,126 @@ export function DialogProvider({ children }: DialogProviderProps) {
   const controllersRef = useRef<Map<string, DialogController>>(new Map())
   const idCounterRef = useRef(0)
   const orderCounterRef = useRef(0)
+  const entriesBatcherRef = useRef<SyncBatcher<DialogEntryAction> | null>(null)
+
+  useEffect(() => {
+    entriesBatcherRef.current = createSyncBatcher((actions) => {
+      setEntries((prev) => {
+        let next = prev
+        let changed = false
+
+        for (const action of actions) {
+          if (action.type === 'add') {
+            const existingIndex = next.findIndex((entry) => entry.id === action.entry.id)
+            if (existingIndex >= 0) {
+              const existing = next[existingIndex]
+              if (
+                existing &&
+                existing.node === action.entry.node &&
+                existing.priority === action.entry.priority &&
+                existing.order === action.entry.order
+              ) {
+                continue
+              }
+
+              if (!changed) {
+                next = [...next]
+                changed = true
+              }
+              next[existingIndex] = action.entry
+              continue
+            }
+
+            if (!changed) {
+              next = [...next]
+              changed = true
+            }
+            next.push(action.entry)
+            continue
+          }
+
+          if (action.type === 'replace') {
+            const existingIndex = next.findIndex((entry) => entry.id === action.id)
+            if (existingIndex < 0) continue
+            const existing = next[existingIndex]
+            if (!existing) continue
+            if (existing.node === action.node) continue
+
+            if (!changed) {
+              next = [...next]
+              changed = true
+            }
+            next[existingIndex] = { ...existing, node: action.node }
+            continue
+          }
+
+          const existingIndex = next.findIndex((entry) => entry.id === action.id)
+          if (existingIndex < 0) continue
+
+          if (!changed) {
+            next = [...next]
+            changed = true
+          }
+          next.splice(existingIndex, 1)
+        }
+
+        return changed ? next : prev
+      })
+    }, {
+      mode: typeof process !== 'undefined' && process.env.NODE_ENV === 'test' ? 'sync' : 'microtask'
+    })
+
+    return () => {
+      entriesBatcherRef.current?.dispose()
+      entriesBatcherRef.current = null
+    }
+  }, [])
+
+  const queueEntryAction = useCallback((action: DialogEntryAction) => {
+    const batcher = entriesBatcherRef.current
+    if (!batcher) {
+      setEntries((prev) => {
+        if (action.type === 'add') {
+          const existingIndex = prev.findIndex((entry) => entry.id === action.entry.id)
+          if (existingIndex >= 0) {
+            const next = [...prev]
+            next[existingIndex] = action.entry
+            return next
+          }
+          return [...prev, action.entry]
+        }
+
+        if (action.type === 'replace') {
+          const existingIndex = prev.findIndex((entry) => entry.id === action.id)
+          if (existingIndex < 0) return prev
+          const existing = prev[existingIndex]
+          if (!existing) return prev
+          const next = [...prev]
+          next[existingIndex] = { ...existing, node: action.node }
+          return next
+        }
+
+        return prev.filter((entry) => entry.id !== action.id)
+      })
+      return
+    }
+
+    batcher.enqueue(action)
+  }, [])
 
   const replaceDialog = useCallback((id: string, node: ReactNode) => {
-    setEntries((prev) => prev.map((entry) => (entry.id === id ? { ...entry, node } : entry)))
-  }, [])
+    queueEntryAction({ type: 'replace', id, node })
+  }, [queueEntryAction])
 
   const closeDialog = useCallback((id: string, reason?: unknown) => {
     const controller = controllersRef.current.get(id)
     if (!controller) {
-      setEntries((prev) => prev.filter((entry) => entry.id !== id))
+      queueEntryAction({ type: 'remove', id })
       return
     }
 
     controller.reject(reason ?? new DialogDismissedError())
-  }, [])
+  }, [queueEntryAction])
 
   const clearDialogs = useCallback((reason?: unknown) => {
     const ids = Array.from(controllersRef.current.keys())
@@ -384,7 +497,7 @@ export function DialogProvider({ children }: DialogProviderProps) {
           if (settled) return
           settled = true
           controllersRef.current.delete(id)
-          setEntries((prev) => prev.filter((entry) => entry.id !== id))
+          queueEntryAction({ type: 'remove', id })
           resolve(value)
         }
 
@@ -392,7 +505,7 @@ export function DialogProvider({ children }: DialogProviderProps) {
           if (settled) return
           settled = true
           controllersRef.current.delete(id)
-          setEntries((prev) => prev.filter((entry) => entry.id !== id))
+          queueEntryAction({ type: 'remove', id })
           reject(reason ?? new DialogDismissedError())
         }
 
@@ -420,10 +533,13 @@ export function DialogProvider({ children }: DialogProviderProps) {
           return
         }
 
-        setEntries((prev) => [...prev, { id, priority, order, node }])
+        queueEntryAction({
+          type: 'add',
+          entry: { id, priority, order, node }
+        })
       })
     },
-    [replaceDialog]
+    [queueEntryAction, replaceDialog]
   )
 
   const confirm = useCallback(

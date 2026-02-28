@@ -1,5 +1,13 @@
 import { useTuiTheme } from '../components/theme.js'
 export { useKeyboard, useRenderer, useOnResize, useTerminalDimensions, useTimeline } from '@opentui/react'
+export { AppRuntimeProvider } from '../runtime/app-runtime.js'
+export { RouteStoreProvider, useRouteStore } from '../runtime/route-store.js'
+export {
+  CommandRegistryProvider,
+  useCommandRegistry,
+  useCommandRegistryItems
+} from '../runtime/command-registry.js'
+export { createSyncBatcher, type SyncBatcher, type SyncBatcherOptions } from '../utils/sync-batcher.js'
 
 export { Form } from '../components/form.js'
 export { FormField as Input } from '../components/form-field.js'
@@ -112,6 +120,13 @@ export type {
   UseFormFieldOptions,
   UseFormFieldResult
 } from '../components/index.js'
+export type { AppRuntimeProviderProps } from '../runtime/app-runtime.js'
+export type { RouteStoreProviderProps, RouteStore } from '../runtime/route-store.js'
+export type {
+  RuntimeCommand,
+  CommandRegistry,
+  CommandRegistryProviderProps
+} from '../runtime/command-registry.js'
 
 export interface ListProps {
   items: string[]

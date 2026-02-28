@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import type { TextareaRenderable } from '@opentui/core'
 import { useFormField } from './form-context.js'
 import { useTuiTheme } from './theme.js'
@@ -31,6 +31,14 @@ export function TextareaField({
     const value = ref.current?.plainText ?? ''
     field.setValue(value)
   }, [field])
+
+  useEffect(() => {
+    const nextValue = field.value ?? ''
+    const currentValue = ref.current?.plainText ?? ''
+    if (currentValue !== nextValue) {
+      ref.current?.setText(nextValue)
+    }
+  }, [field.value])
 
   return (
     <box style={{ flexDirection: 'column', marginBottom: 1, gap: 1 }}>

@@ -1,4 +1,15 @@
-import { Fragment, createContext, useContext, useEffect, useId, useMemo, useState, type ReactNode } from 'react'
+import {
+  Fragment,
+  createContext,
+  useContext,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode
+} from 'react'
+import { createSyncBatcher, type SyncBatcher } from '../utils/sync-batcher.js'
 
 interface OverlayEntry {
   id: string
@@ -11,6 +22,10 @@ interface OverlayHostContextValue {
   removeOverlay: (id: string) => void
 }
 
+type OverlayAction =
+  | { type: 'set'; entry: OverlayEntry }
+  | { type: 'remove'; id: string }
+
 const OverlayHostContext = createContext<OverlayHostContextValue | null>(null)
 
 export interface OverlayHostProviderProps {
@@ -19,19 +34,78 @@ export interface OverlayHostProviderProps {
 
 export function OverlayHostProvider({ children }: OverlayHostProviderProps) {
   const [entries, setEntries] = useState<Record<string, OverlayEntry>>({})
+  const batcherRef = useRef<SyncBatcher<OverlayAction> | null>(null)
+
+  useEffect(() => {
+    batcherRef.current = createSyncBatcher((actions) => {
+      setEntries((prev) => {
+        let next = prev
+        let changed = false
+
+        for (const action of actions) {
+          if (action.type === 'set') {
+            const existing = next[action.entry.id]
+            if (
+              existing &&
+              existing.priority === action.entry.priority &&
+              existing.node === action.entry.node
+            ) {
+              continue
+            }
+
+            if (!changed) {
+              next = { ...next }
+              changed = true
+            }
+            next[action.entry.id] = action.entry
+            continue
+          }
+
+          if (!next[action.id]) {
+            continue
+          }
+
+          if (!changed) {
+            next = { ...next }
+            changed = true
+          }
+          delete next[action.id]
+        }
+
+        return changed ? next : prev
+      })
+    }, {
+      mode: typeof process !== 'undefined' && process.env.NODE_ENV === 'test' ? 'sync' : 'microtask'
+    })
+
+    return () => {
+      batcherRef.current?.dispose()
+      batcherRef.current = null
+    }
+  }, [])
 
   const value = useMemo<OverlayHostContextValue>(
     () => ({
       setOverlay(entry) {
-        setEntries((prev) => ({ ...prev, [entry.id]: entry }))
+        const batcher = batcherRef.current
+        if (!batcher) {
+          setEntries((prev) => ({ ...prev, [entry.id]: entry }))
+          return
+        }
+        batcher.enqueue({ type: 'set', entry })
       },
       removeOverlay(id) {
-        setEntries((prev) => {
-          if (!prev[id]) return prev
-          const next = { ...prev }
-          delete next[id]
-          return next
-        })
+        const batcher = batcherRef.current
+        if (!batcher) {
+          setEntries((prev) => {
+            if (!prev[id]) return prev
+            const next = { ...prev }
+            delete next[id]
+            return next
+          })
+          return
+        }
+        batcher.enqueue({ type: 'remove', id })
       }
     }),
     []
