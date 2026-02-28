@@ -69,7 +69,7 @@ npm view bunli           # CLI version
 ```
 Define Command?
 ├─ Basic command → defineCommand({ name: "mycmd", description: "...", handler: ({ flags }) => {...} })
-├─ With options → Add options: { options: { verbose: option(z.boolean(), { short: "v" }) } }
+├─ With options → Add options: { options: { debug: option(z.boolean(), { short: "d" }) } }
 ├─ Nested commands → Use defineGroup({ name: "group", description: "...", commands: [...] })
 ├─ With alias → Add alias: "m" for "mycmd"
 └─ With render (TUI) → Add render function instead of handler
@@ -79,7 +79,7 @@ Define Command?
 
 ```
 Add Options?
-├─ Boolean flag → option(z.boolean(), { short: "v", description: "Verbose" })
+├─ Boolean flag → option(z.boolean(), { short: "d", description: "Debug output" })
 ├─ String input → option(z.string(), { description: "Name" })
 ├─ Number input → option(z.coerce.number(), { description: "Port" })
 ├─ Enum/choice → option(z.enum(["dev", "prod"]), { description: "Environment" })
@@ -88,6 +88,8 @@ Add Options?
 ```
 
 > **Important**: Use `z.coerce.number()` for numeric flags because CLI args are strings. Enums should use `z.enum(...)`, and booleans can use `z.boolean()` (the parser handles `"true"`/`"false"`).
+>
+> `-v` is reserved globally for `--version`, so avoid `short: "v"` for command-local options.
 
 ### "I need to create a plugin"
 

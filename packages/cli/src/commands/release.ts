@@ -108,7 +108,7 @@ export default defineCommand({
   options: {
     version: option(
       z.enum(['patch', 'minor', 'major']).or(z.string()).optional(),
-      { short: 'v', description: 'Version to release (patch/minor/major/x.y.z)' }
+      { short: 'V', description: 'Version to release (patch/minor/major/x.y.z)' }
     ),
     tag: option(
       z.string().optional(),

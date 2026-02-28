@@ -48,7 +48,7 @@ import { z } from "zod"
 
 // Basic options
 name: option(z.string(), { short: "n", description: "Your name" })
-verbose: option(z.boolean(), { short: "v", description: "Enable verbose output" })
+debug: option(z.boolean(), { short: "d", description: "Enable debug output" })
 port: option(z.coerce.number(), { description: "Port number" })
 
 // With defaults
@@ -59,6 +59,8 @@ mode: option(z.enum(["dev", "prod"]).default("dev"))
 email: option(z.string().email())
 count: option(z.coerce.number().min(1).max(100))
 ```
+
+Note: `-v` is reserved by Bunli global flags for `--version`, so prefer other short letters for command options.
 
 ## Positional Arguments
 
@@ -104,6 +106,6 @@ handler: ({ flags, positional, shell, env, cwd, prompt, spinner, colors, termina
   // colors: Color formatting
   // terminal: Terminal info (width, height, isInteractive, isCI, supportsColor, supportsMouse)
   // runtime: Runtime info (startTime, args, command)
-  // context: Plugin context for accessing store values
+  // context: Optional plugin command context (store values are generic unless narrowed/augmented)
 }
 ```
