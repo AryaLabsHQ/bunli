@@ -47,7 +47,8 @@
     "@opentui/core": "^0.1.84",
     "@opentui/react": "^0.1.84",
     "@standard-schema/spec": "^1.1.0",
-    "@standard-schema/utils": "^0.3.0"
+    "@standard-schema/utils": "^0.3.0",
+    "debug": "^4.4.3"
   },
   "devDependencies": {
     "@types/bun": "catalog:",

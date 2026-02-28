@@ -1,7 +1,6 @@
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import { SchemaError } from '@standard-schema/utils'
 import { Result } from 'better-result'
-import { colors } from './colors.js'
 
 /**
  * Validate a value against a schema and return Result

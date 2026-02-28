@@ -12,10 +12,9 @@ bun add @bunli/utils
 
 `@bunli/utils` now focuses on:
 - terminal colors
-- spinner utilities
 - schema validation helpers
 
-Prompt APIs were moved to `@bunli/tui/prompt`.
+Prompt and spinner APIs were moved to `@bunli/tui/prompt`.
 
 ## Usage
 
@@ -27,17 +26,6 @@ import { colors } from '@bunli/utils'
 console.log(colors.green('✓ Success!'))
 console.log(colors.red('✗ Error!'))
 console.log(colors.bold('Bold text'))
-```
-
-### Spinners
-
-```typescript
-import { spinner } from '@bunli/utils'
-
-const spin = spinner()
-spin.start('Loading...')
-await someAsyncTask()
-spin.succeed('Done!')
 ```
 
 ### Validation Helpers
@@ -63,15 +51,18 @@ const fields = await validateFields(
 
 ## Prompt APIs
 
-Use `@bunli/tui/prompt` for prompt primitives:
+Use `@bunli/tui/prompt` for prompt primitives and spinners:
 
 ```typescript
-import { prompt } from '@bunli/tui/prompt'
+import { prompt, spinner } from '@bunli/tui/prompt'
 
 const name = await prompt('Project name:')
 const confirmed = await prompt.confirm('Continue?', { default: true })
 prompt.intro('Setup')
 prompt.outro('Done')
+
+const spin = spinner('Loading...')
+spin.succeed('Done')
 ```
 
 ## License

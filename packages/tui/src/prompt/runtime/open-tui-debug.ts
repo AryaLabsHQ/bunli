@@ -1,18 +1,10 @@
-import { appendFileSync } from 'node:fs'
+import createDebug from 'debug'
 
-const DEBUG_INPUT_FILE = (process.env.BUNLI_DEBUG_LOG_FILE ?? '').trim()
+const inputDebug = createDebug('bunli:tui:input')
+const verboseInputDebug = createDebug('bunli:tui:input:verbose')
 
-const DEBUG_NAMESPACES = new Set(
-  String(process.env.BUNLI_DEBUG ?? '')
-    .split(',')
-    .map((entry) => entry.trim())
-    .filter(Boolean)
-)
-
-const DEBUG_STDERR = DEBUG_NAMESPACES.has('tui:input')
-export const DEBUG_VERBOSE = process.env.BUNLI_DEBUG_VERBOSE === '1'
-
-const DEBUG_INPUTS = DEBUG_STDERR || DEBUG_INPUT_FILE.length > 0
+const DEBUG_INPUTS = inputDebug.enabled || verboseInputDebug.enabled
+export const DEBUG_VERBOSE = verboseInputDebug.enabled
 
 export function formatDebugSequence(sequence: string): string {
   return sequence
@@ -32,21 +24,12 @@ export function isCtrlCRawSequence(sequence: string): boolean {
 }
 
 export function shouldLogRawSequence(sequence: string): boolean {
+  if (!DEBUG_INPUTS) return false
   if (DEBUG_VERBOSE) return true
   return isEscapeRawSequence(sequence) || isCtrlCRawSequence(sequence)
 }
 
 export function debugInput(message: string) {
   if (!DEBUG_INPUTS) return
-  const line = `[${new Date().toISOString()} pid=${process.pid}] [bunli:tui:input] ${message}`
-  if (DEBUG_STDERR) {
-    process.stderr.write(`${line}\n`)
-  }
-  if (DEBUG_INPUT_FILE.length > 0) {
-    try {
-      appendFileSync(DEBUG_INPUT_FILE, `${line}\n`)
-    } catch {
-      // Avoid crashing prompt runtime on debug logging failures.
-    }
-  }
+  inputDebug(message)
 }

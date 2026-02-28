@@ -21,13 +21,12 @@ import { GLOBAL_FLAGS, type GlobalFlags } from './global-flags.js'
 import { getTuiRenderer } from './tui/registry.js'
 import { loadGeneratedStores } from './generated.js'
 import { createLogger } from './utils/logger.js'
-import { createDebugFileLogger } from './utils/debug-file-log.js'
 import { createInterruptController } from './runtime/interrupt-controller.js'
 import { Result, TaggedError } from 'better-result'
 import { validateValue } from './validation.js'
 
 const logger = createLogger('core:cli')
-const debugInterruptLog = createDebugFileLogger('bunli:core:interrupt')
+const interruptLogger = createLogger('core:interrupt')
 
 export class InvalidConfigError extends TaggedError('InvalidConfigError')<{
   message: string
@@ -549,7 +548,7 @@ export async function createCLI<
       }
       promptSession = createPromptSession()
       interruptController = createInterruptController({
-        onLog: (message) => debugInterruptLog(`command=${command.name} ${message}`)
+        onLog: (message) => interruptLogger.debug('command=%s %s', command.name, message)
       })
       interruptController.attach()
 
@@ -615,7 +614,7 @@ export async function createCLI<
       return Result.ok(undefined)
     } catch (error) {
       if (error instanceof PromptCancelledError) {
-        debugInterruptLog(`PromptCancelledError command=${command.name} -> graceful-cancel`)
+        interruptLogger.debug('PromptCancelledError command=%s -> graceful-cancel', command.name)
         process.exitCode = 0
         if (mergedConfig.plugins && mergedConfig.plugins.length > 0 && context) {
           await pluginManager.runAfterCommand(context, { exitCode: 0 })
@@ -645,7 +644,7 @@ export async function createCLI<
         cause: error
       }))
     } finally {
-      debugInterruptLog(`dispose promptSession command=${command.name}`)
+      interruptLogger.debug('dispose promptSession command=%s', command.name)
       interruptController?.detach()
       await promptSession?.dispose()
     }

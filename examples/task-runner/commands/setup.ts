@@ -182,7 +182,7 @@ export default defineCommand({
     } catch (error) {
       spin.fail('Project creation failed')
       prompt.log.error(error instanceof Error ? error.message : String(error))
-      prompt.outro('Setup finished with errors')
+      throw error instanceof Error ? error : new Error(String(error))
     }
   }
 })
