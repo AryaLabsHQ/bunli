@@ -1,6 +1,5 @@
 {
   "lockfileVersion": 1,
-  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "bunli-monorepo",
@@ -142,13 +141,14 @@
     },
     "packages/cli": {
       "name": "bunli",
-      "version": "0.6.1",
+      "version": "0.7.0",
       "bin": {
         "bunli": "./dist/cli.js",
       },
       "dependencies": {
         "@bunli/core": "workspace:^",
         "@bunli/generator": "workspace:^",
+        "@bunli/plugin-completions": "workspace:^",
         "@bunli/utils": "workspace:^",
         "better-result": "catalog:",
         "zod": "^4.3.6",
@@ -161,7 +161,7 @@
     },
     "packages/core": {
       "name": "@bunli/core",
-      "version": "0.6.1",
+      "version": "0.7.0",
       "dependencies": {
         "@bunli/utils": "workspace:^",
         "@standard-schema/spec": "^1.1.0",
@@ -178,7 +178,7 @@
     },
     "packages/create-bunli": {
       "name": "create-bunli",
-      "version": "0.6.1",
+      "version": "0.6.2",
       "bin": {
         "create-bunli": "./dist/cli.js",
       },
@@ -197,7 +197,7 @@
     },
     "packages/generator": {
       "name": "@bunli/generator",
-      "version": "0.6.1",
+      "version": "0.6.2",
       "dependencies": {
         "@babel/parser": "^7.28.6",
         "@babel/traverse": "^7.28.6",
@@ -215,7 +215,7 @@
     },
     "packages/plugin-ai-detect": {
       "name": "@bunli/plugin-ai-detect",
-      "version": "0.6.1",
+      "version": "0.6.2",
       "dependencies": {
         "@bunli/core": "workspace:^",
       },
@@ -226,9 +226,9 @@
     },
     "packages/plugin-completions": {
       "name": "@bunli/plugin-completions",
-      "version": "0.3.1",
+      "version": "0.3.2",
       "dependencies": {
-        "@bunli/core": "workspace:*",
+        "@bunli/core": "workspace:^",
         "better-result": "^2.7.0",
       },
       "devDependencies": {
@@ -238,7 +238,7 @@
     },
     "packages/plugin-config": {
       "name": "@bunli/plugin-config",
-      "version": "0.4.1",
+      "version": "0.4.2",
       "dependencies": {
         "@bunli/core": "workspace:^",
         "better-result": "^2.7.0",
@@ -250,7 +250,7 @@
     },
     "packages/plugin-mcp": {
       "name": "@bunli/plugin-mcp",
-      "version": "0.2.1",
+      "version": "0.2.2",
       "dependencies": {
         "@bunli/core": "workspace:^",
         "better-result": "^2.7.0",
@@ -267,7 +267,7 @@
     },
     "packages/test": {
       "name": "@bunli/test",
-      "version": "0.4.1",
+      "version": "0.4.2",
       "dependencies": {
         "@bunli/core": "workspace:^",
       },
@@ -281,7 +281,7 @@
     },
     "packages/tui": {
       "name": "@bunli/tui",
-      "version": "0.4.1",
+      "version": "0.4.2",
       "dependencies": {
         "@bunli/core": "workspace:^",
         "@opentui/core": "^0.1.75",
