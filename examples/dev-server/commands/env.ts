@@ -1,5 +1,6 @@
 import { defineCommand, option } from '@bunli/core'
 import { z } from 'zod'
+import { hasMetricsStore } from './store-guards.js'
 
 const envCommand = defineCommand({
   name: 'env',
@@ -42,8 +43,7 @@ const envCommand = defineCommand({
       const value = valueParts.join('=')
       
       if (!key || !value) {
-        console.error(colors.red('Error: Invalid format. Use KEY=VALUE'))
-        process.exit(1)
+        throw new Error('Invalid format. Use KEY=VALUE')
       }
       
       const setSpinner = spinner(`Setting ${key}...`)
@@ -93,7 +93,7 @@ const envCommand = defineCommand({
     }
     
     // Access plugin context
-    if (context?.store && 'metrics' in context.store) {
+    if (hasMetricsStore(context?.store)) {
       context.store.metrics.recordEvent('env_command', { action: set ? 'set' : get ? 'get' : 'list' })
     }
   }

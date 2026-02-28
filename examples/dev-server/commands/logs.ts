@@ -1,5 +1,19 @@
 import { defineCommand, option } from '@bunli/core'
 import { z } from 'zod'
+import { hasMetricsStore } from './store-guards.js'
+
+const LOG_LEVEL_WEIGHT = {
+  error: 0,
+  warn: 1,
+  info: 2,
+  debug: 3
+} as const
+
+type LogLevel = keyof typeof LOG_LEVEL_WEIGHT
+
+function shouldIncludeLevel(entryLevel: LogLevel, minimumLevel: LogLevel) {
+  return LOG_LEVEL_WEIGHT[entryLevel] <= LOG_LEVEL_WEIGHT[minimumLevel]
+}
 
 const logsCommand = defineCommand({
   name: 'logs',
@@ -58,18 +72,22 @@ const logsCommand = defineCommand({
       let count = 0
       const interval = setInterval(() => {
         const timestamp = new Date().toISOString()
-        const logLevel = logLevels[Math.floor(Math.random() * logLevels.length)]
-        const serviceName = service || services[Math.floor(Math.random() * services.length)]
-        const message = messages[Math.floor(Math.random() * messages.length)]
+        const logLevel = logLevels[Math.floor(Math.random() * logLevels.length)] ?? 'info'
+        const serviceName = service ?? services[Math.floor(Math.random() * services.length)] ?? 'server'
+        const message = messages[Math.floor(Math.random() * messages.length)] ?? 'No message'
+
+        if (!shouldIncludeLevel(logLevel, level)) {
+          return
+        }
         
         const levelColor = {
           error: colors.red,
           warn: colors.yellow,
           info: colors.blue,
           debug: colors.gray
-        }[logLevel!]
+        }[logLevel]
         
-        console.log(`${colors.dim(timestamp)} ${levelColor(`[${logLevel!.toUpperCase()}]`)} ${colors.cyan(`[${serviceName}]`)} ${message}`)
+        console.log(`${colors.dim(timestamp)} ${levelColor(`[${logLevel.toUpperCase()}]`)} ${colors.cyan(`[${serviceName}]`)} ${message}`)
         
         count++
         if (count >= 20) {
@@ -91,7 +109,12 @@ const logsCommand = defineCommand({
       logsSpinner.succeed('Logs loaded')
       
       // Simulate log entries
-      const logEntries = [
+      const logEntries: Array<{
+        timestamp: string
+        level: LogLevel
+        service: string
+        message: string
+      }> = [
         { timestamp: '2024-01-15T10:30:15.123Z', level: 'info', service: 'server', message: 'Server started on port 3000' },
         { timestamp: '2024-01-15T10:30:16.456Z', level: 'info', service: 'database', message: 'Database connection established' },
         { timestamp: '2024-01-15T10:30:17.789Z', level: 'warn', service: 'cache', message: 'Cache miss for key: user:123' },
@@ -103,7 +126,7 @@ const logsCommand = defineCommand({
       ]
       
       const filteredLogs = logEntries
-        .filter(log => !service || log.service === service)
+        .filter((log) => (!service || log.service === service) && shouldIncludeLevel(log.level, level))
         .slice(-lines)
       
       if (filteredLogs.length === 0) {
@@ -127,12 +150,9 @@ const logsCommand = defineCommand({
     }
     
       // Access plugin context
-      if (context?.store) {
-        // Type-safe access to plugin stores
-        if ('metrics' in context.store) {
-          context.store.metrics.recordEvent('logs_viewed', { follow, lines, level, service })
-        }
-      }
+    if (hasMetricsStore(context?.store)) {
+      context.store.metrics.recordEvent('logs_viewed', { follow, lines, level, service })
+    }
   }
 })
 
