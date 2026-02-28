@@ -1,12 +1,12 @@
 ---
-"bunli": major
-"@bunli/core": major
-"@bunli/utils": major
-"@bunli/tui": major
-"create-bunli": major
+"bunli": minor
+"@bunli/core": minor
+"@bunli/utils": minor
+"@bunli/tui": minor
+"create-bunli": minor
 ---
 
-Ship the `@bunli/tui` component-library cutover and remove clack prompt ownership.
+introducing `@bunli/tui` component-library
 
 - move prompt runtime ownership to `@bunli/tui` with inline + interactive modes
 - drop `@bunli/utils` prompt/clack exports and update usage across the toolchain
