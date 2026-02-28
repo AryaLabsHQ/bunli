@@ -13,6 +13,13 @@ create-bunli
 create-bunli my-cli --template basic
 create-bunli my-cli --template advanced
 create-bunli my-cli --template monorepo
+
+# Remote template (GitHub shorthand)
+create-bunli my-cli --template user/repo
+create-bunli my-cli --template github:user/repo
+
+# Local template directory
+create-bunli my-cli --template ./path/to/template
 ```
 
 ## Templates
@@ -113,4 +120,4 @@ my-cli/
 └── tsconfig.json
 ```
 
-Note: You can use `src/` prefix or place files at root level. The `bunli.config.ts` must specify the entry point path.
+Note: You can use `src/` prefix or place files at root level. Entry can be auto-detected; set `commands.entry` or `build.entry` in `bunli.config.ts` when auto-detection is ambiguous.

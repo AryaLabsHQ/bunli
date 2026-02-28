@@ -23,6 +23,9 @@ bunli dev --port 3000
 ```
 
 Options:
+- `--entry` - Entry file (defaults to auto-detect)
+- `--generate` - Enable codegen
+- `--clearScreen` - Clear screen on reload (currently accepted but not applied)
 - `--watch` - Watch for changes (boolean)
 - `--port` - Debugger inspect port (`--inspect-port`)
 - `--inspect` - Enable debugger
@@ -40,8 +43,12 @@ bunli build --bytecode  # Bytecode compilation
 ```
 
 Options:
-- `--targets` - Target platforms (darwin-arm64, darwin-x64, linux-arm64, linux-x64, windows-x64)
+- `--entry` - Entry file (defaults to auto-detect)
 - `--outdir` - Output directory
+- `--outfile` - Output filename (single executable)
+- `--runtime` - Runtime target for non-compiled builds (`bun` or `node`)
+- `--targets` - Target platforms (`native`, `all`, or explicit targets like darwin-arm64, darwin-x64, linux-arm64, linux-x64, windows-x64)
+- `--watch` - Watch for changes (currently accepted but not applied)
 - `--minify` - Minify output
 - `--sourcemap` - Generate sourcemaps
 - `--bytecode` - Compile to bytecode
@@ -79,7 +86,7 @@ bunli doctor completions --generatedPath ./.bunli/commands.gen.ts
 
 ## bunli release
 
-Create releases (npm publish + GitHub).
+Create releases (npm publish, optional GitHub release).
 
 ```bash
 bunli release

@@ -36,7 +36,7 @@ Generates shell completions.
 import { completionsPlugin } from "@bunli/plugin-completions"
 
 const plugin = completionsPlugin({
-  generatedPath: "./completions",
+  generatedPath: ".bunli/commands.gen.ts", // bunli-generated command metadata module
   commandName: "mycli",
   executable: "mycli",
   includeAliases: true,
@@ -90,7 +90,7 @@ const plugin = mcpPlugin({
   sync: true  // Generate TypeScript types
 })
 
-// Creates commands: server tool1, server tool2, ...
+// Creates commands: server:tool1, server:tool2, ...
 ```
 
 ## Plugin Composition

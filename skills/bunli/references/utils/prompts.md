@@ -44,12 +44,11 @@ Single selection from options.
 ```typescript
 const framework = await select("Choose framework", {
   options: [
-    { value: "react", label: "React" },
+    { value: "react", label: "React", hint: "Popular choice" },
     { value: "vue", label: "Vue" },
     { value: "svelte", label: "Svelte" }
   ],
-  default: "react",
-  hint: "Use arrow keys"
+  default: "react"
 })
 ```
 
@@ -87,7 +86,7 @@ Full access to `@clack/prompts`:
 ```typescript
 import { clack } from "@bunli/utils"
 
-clack.intro({ title: "My CLI" })
+clack.intro("My CLI")
 clack.outro("Done!")
 clack.note("Info message", "Tip")
 clack.log.info("Info")
@@ -103,15 +102,18 @@ s.stop("Loaded!")
 
 ```typescript
 import { clack, prompt } from "@bunli/utils"
+import { PromptCancelledError } from "@bunli/utils"
 
-const value = await prompt("Enter value")
-
-if (clack.isCancel(value)) {
-  // Handle cancel
+try {
+  const value = await prompt("Enter value")
+  // use value
+} catch (error) {
+  if (error instanceof PromptCancelledError) {
+    // Handle user cancellation
+  } else {
+    throw error
+  }
 }
-
-const safe = clack.assertNotCancelled(value)  // Throws if cancelled
-
-const nextValue = await prompt("Enter value")
-clack.promptOrExit(nextValue)  // Exits process on cancel
 ```
+
+`clack.isCancel(...)`, `clack.assertNotCancelled(...)`, and `clack.promptOrExit(...)` are useful when using raw `clack.*` prompt primitives that may return cancel sentinels.

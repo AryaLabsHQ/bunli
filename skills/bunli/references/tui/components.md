@@ -127,24 +127,29 @@ import { registerTuiRenderer } from "@bunli/tui"
 registerTuiRenderer()
 ```
 
-Renderer options are passed via `defineCommand`:
+Renderer options are configured via `defineConfig({ tui: { renderer: ... } })`:
 
 ```typescript
-import { defineCommand } from "@bunli/core"
+import { defineCommand, defineConfig } from "@bunli/core"
 import { Form, FormField } from "@bunli/tui"
 import { registerTuiRenderer } from "@bunli/tui"
 
 registerTuiRenderer()
 
+export default defineConfig({
+  tui: {
+    renderer: {
+      exitOnCtrlC: true,
+      targetFps: 30,
+      enableMouseMovement: true,
+      bufferMode: 'alternate'
+    }
+  }
+})
+
 export const setup = defineCommand({
   name: 'setup',
   description: 'Setup wizard',
-  rendererOptions: {
-    exitOnCtrlC: true,
-    targetFps: 30,
-    enableMouseMovement: true,
-    bufferMode: 'alternate'
-  },
   render: () => (
     <Form title="Setup" onSubmit={(values) => console.log(values)}>
       <FormField label="Name" name="name" />

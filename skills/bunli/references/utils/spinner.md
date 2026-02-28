@@ -12,8 +12,7 @@ import { spinner } from "@bunli/utils"
 
 ```typescript
 const s = spinner({
-  text: "Loading...",
-  color: "green"
+  text: "Loading..."
 })
 
 s.start()      // Start animation
@@ -37,7 +36,7 @@ Interval: 80ms
 ```typescript
 interface SpinnerOptions {
   text?: string       // Initial text
-  color?: string      // Text color
+  color?: string      // Accepted by API, currently not applied by renderer
 }
 ```
 

@@ -83,7 +83,7 @@ export default defineConfig({
     myPlugin,
 
     // Factory with options
-    [completionsPlugin, { generatedPath: "./completions" }]
+    [completionsPlugin, { generatedPath: ".bunli/commands.gen.ts" }]
   ]
 })
 ```
