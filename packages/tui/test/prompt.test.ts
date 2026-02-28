@@ -240,6 +240,11 @@ describe('@bunli/tui prompt adapters', () => {
     expect(line).toContain('Project name')
   })
 
+  test('formatQuestionLabel keeps leading line breaks before the prompt symbol', () => {
+    const line = stripAnsi(__promptInternalsForTests.formatQuestionLabel('\nDeploy to staging?'))
+    expect(line).toBe('\n? Deploy to staging?')
+  })
+
   test('intro/outro formatting helpers produce section-style labels', () => {
     const intro = stripAnsi(__promptInternalsForTests.formatIntroLine('Project Setup Wizard'))
     const outro = stripAnsi(__promptInternalsForTests.formatOutroLine('Project created successfully'))

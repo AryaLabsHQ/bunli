@@ -4,6 +4,15 @@ import { spawnSync } from 'node:child_process'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import { SchemaError } from '@standard-schema/utils'
 import { displayWidth, formatFixedWidth, padEndTo } from '../components/text-layout.js'
+import {
+  createOpenTuiRendererSession,
+  isOpenTuiCancel,
+  type OpenTuiRendererSession,
+  runOpenTuiConfirmPrompt,
+  runOpenTuiMultiSelectPrompt,
+  runOpenTuiSelectPrompt,
+  runOpenTuiTextPrompt
+} from './open-tui-session.js'
 
 export type PromptMode = 'inline' | 'interactive'
 
@@ -170,6 +179,10 @@ function bold(style: PromptStyle, text: string): string {
   return `\x1b[1m${text}\x1b[0m`
 }
 
+function stripAnsi(text: string): string {
+  return text.replace(/\x1b\[[0-9;]*m/g, '')
+}
+
 const promptStyle: PromptStyle = {
   useColor: shouldUseColor(),
   symbols: resolvePromptSymbols(resolvePromptSymbolMode())
@@ -267,21 +280,28 @@ function renderSchemaIssues(error: unknown) {
   console.error()
 }
 
-async function askLine(message: string, defaultValue?: string): Promise<string> {
+async function askLine(message: string, defaultValue?: string): Promise<string | Cancel> {
   const rl = createInterface({
     input: process.stdin,
     output: process.stdout
   })
+  const abortController = new AbortController()
+  const onSigint = () => abortController.abort()
 
   const promptLabel = defaultValue !== undefined
     ? `${formatQuestionLabel(message)} ${dim(promptStyle, `(${defaultValue})`)} `
     : `${formatQuestionLabel(message)} `
 
+  process.on('SIGINT', onSigint)
   try {
-    const answer = await rl.question(promptLabel)
+    const answer = await rl.question(promptLabel, { signal: abortController.signal })
     if (answer.length === 0 && defaultValue !== undefined) return defaultValue
     return answer
+  } catch (error) {
+    if (abortController.signal.aborted) return CANCEL
+    throw error
   } finally {
+    process.off('SIGINT', onSigint)
     rl.close()
   }
 }
@@ -293,7 +313,12 @@ function isPrintableKey(event: KeypressEvent): boolean {
 }
 
 function isCancelKey(key: KeypressEvent): boolean {
-  return (key.ctrl && key.name === 'c') || key.name === 'escape'
+  const name = key.name?.toLowerCase() ?? ''
+  const sequence = key.sequence ?? ''
+  if (name === 'escape' || name === 'esc') return true
+  if (sequence === '\u001b' || sequence === '\u0003') return true
+  if (key.ctrl && (name === 'c' || sequence.toLowerCase() === 'c')) return true
+  return false
 }
 
 function isSubmitKey(key: KeypressEvent): boolean {
@@ -338,7 +363,9 @@ function clearStatusLine() {
 }
 
 function formatQuestionLabel(message: string): string {
-  return `${cyan(promptStyle, promptStyle.symbols.question)} ${bold(promptStyle, message)}`
+  const leadingLineBreaks = message.match(/^(?:\r?\n)+/)?.[0] ?? ''
+  const labelMessage = message.slice(leadingLineBreaks.length)
+  return `${leadingLineBreaks}${cyan(promptStyle, promptStyle.symbols.question)} ${bold(promptStyle, labelMessage)}`
 }
 
 function formatErrorLine(message: string): string {
@@ -910,9 +937,16 @@ async function askPasswordNoEcho(args: {
 
     try {
       const rl = createInterface({ input: stdin, output: stdout, terminal: false })
+      const abortController = new AbortController()
+      const onSigint = () => abortController.abort()
+      process.on('SIGINT', onSigint)
       try {
-        value = await rl.question('')
+        value = await rl.question('', { signal: abortController.signal })
+      } catch (error) {
+        if (abortController.signal.aborted) return CANCEL
+        throw error
       } finally {
+        process.off('SIGINT', onSigint)
         rl.close()
       }
     } finally {
@@ -1101,15 +1135,16 @@ async function askMultiSelectWithKeyboard<T>(args: {
 
 interface RawSpinner {
   start(text?: string): void
-  stop(text?: string): void
+  stop(text?: string, options?: { silent?: boolean }): void
   message(text: string): void
 }
 
-type RawSpinnerAnimation = 'line' | 'dots'
+type RawSpinnerAnimation = 'line' | 'dots' | 'braille'
 
 interface RawSpinnerOptions {
   animation?: RawSpinnerAnimation
   showTimer?: boolean
+  intervalMs?: number
 }
 
 interface PromptDriver {
@@ -1152,17 +1187,106 @@ function findOptionByToken<T>(token: string, options: SelectOption<T>[]): Select
   return options.find((option) => String(option.value) === token)
 }
 
+let globalOpenTuiSession: OpenTuiRendererSession | undefined
+
+function getGlobalOpenTuiSession(): OpenTuiRendererSession {
+  globalOpenTuiSession ??= createOpenTuiRendererSession()
+  return globalOpenTuiSession
+}
+
+function createOpenTuiRawSpinner(session: OpenTuiRendererSession, options?: RawSpinnerOptions): RawSpinner {
+  const framesByAnimation: Record<RawSpinnerAnimation, string[]> = {
+    line: ['-', '\\', '|', '/'],
+    dots: ['.  ', '.. ', '...', ' ..', '  .'],
+    braille: ['⣾', '⣽', '⣻', '⢿', '⡿', '⣟', '⣯', '⣷']
+  }
+
+  const animation = options?.animation ?? 'braille'
+  const frames = framesByAnimation[animation] ?? framesByAnimation.dots
+  const intervalMs = options?.intervalMs ?? 80
+  let frameIndex = 0
+  let timer: ReturnType<typeof setInterval> | null = null
+  let running = false
+  let currentText = ''
+  let startedAt = 0
+
+  const stopTimer = () => {
+    if (!timer) return
+    clearInterval(timer)
+    timer = null
+  }
+
+  const renderFrame = () => {
+    if (!running) return
+    const frame = frames[frameIndex % frames.length] ?? '-'
+    frameIndex += 1
+    const elapsedSuffix = options?.showTimer
+      ? ` ${((Date.now() - startedAt) / 1000).toFixed(1)}s`
+      : ''
+    session.renderStatusLine(`${frame} ${currentText}${elapsedSuffix}`, '#6ac4ff')
+  }
+
+  return {
+    start(text) {
+      currentText = text ?? currentText
+      running = true
+      startedAt = Date.now()
+
+      if (!process.stdout.isTTY) {
+        if (currentText) console.log(formatInfoLine(currentText))
+        return
+      }
+
+      stopTimer()
+      renderFrame()
+      timer = setInterval(renderFrame, intervalMs)
+    },
+    stop(text, stopOptions) {
+      if (text) currentText = text
+      const elapsedSuffix = options?.showTimer
+        ? ` (${((Date.now() - startedAt) / 1000).toFixed(1)}s)`
+        : ''
+
+      if (!process.stdout.isTTY) {
+        if (currentText && !stopOptions?.silent) console.log(`${currentText}${elapsedSuffix}`)
+        running = false
+        return
+      }
+
+      stopTimer()
+      running = false
+      session.clearStatusLine()
+      session.flushHistoryToStdout()
+      if (stopOptions?.silent) return
+      if (currentText) process.stdout.write(`${currentText}${elapsedSuffix}\n`)
+    },
+    message(text) {
+      currentText = text
+      if (!process.stdout.isTTY) {
+        console.log(formatInfoLine(text))
+        return
+      }
+
+      if (!running) {
+        session.renderStatusLine(`- ${currentText}`, '#6ac4ff')
+        return
+      }
+
+      renderFrame()
+    }
+  }
+}
+
 const defaultDriver: PromptDriver = {
   async text(args) {
-    while (true) {
-      const value = await askLine(args.message, args.defaultValue)
-      const validationError = args.validate?.(value)
-      if (validationError) {
-        console.error(formatErrorLine(validationError))
-        continue
-      }
-      return value
-    }
+    const value = await runOpenTuiTextPrompt({
+      message: args.message,
+      placeholder: args.placeholder,
+      defaultValue: args.defaultValue,
+      validate: args.validate,
+      formatHistoryLine: (submitted) => `? ${args.message} ${submitted}`
+    }, getGlobalOpenTuiSession())
+    return isOpenTuiCancel(value) ? CANCEL : value
   },
 
   async password(args) {
@@ -1172,6 +1296,7 @@ const defaultDriver: PromptDriver = {
 
     while (true) {
       const value = await askLine(args.message)
+      if (isCancel(value)) return CANCEL
       const validationError = args.validate?.(value)
       if (validationError) {
         console.error(formatErrorLine(validationError))
@@ -1182,45 +1307,26 @@ const defaultDriver: PromptDriver = {
   },
 
   async confirm(args) {
-    const defaultValue = args.initialValue ?? false
-    const suffix = defaultValue ? '[Y/n]' : '[y/N]'
-
-    while (true) {
-      const value = (await askLine(`${args.message} ${suffix}`)).trim().toLowerCase()
-      if (value === '') return defaultValue
-      if (['y', 'yes'].includes(value)) return true
-      if (['n', 'no'].includes(value)) return false
-      console.error(formatErrorLine('Please answer with y/yes or n/no.'))
-    }
+    const defaultYes = args.initialValue ?? false
+    const value = await runOpenTuiConfirmPrompt({
+      message: args.message,
+      initialValue: defaultYes,
+      formatHistoryLine: (submitted) => `? ${args.message} ${submitted ? 'Yes' : 'No'}`
+    }, getGlobalOpenTuiSession())
+    return isOpenTuiCancel(value) ? CANCEL : value
   },
 
   async select<T>(args: { message: string; options: SelectOption<T>[]; initialValue?: T }): Promise<T | Cancel> {
-    if (process.stdin.isTTY && process.stdout.isTTY) {
-      return askSelectWithKeyboard(args)
-    }
-
-    console.log(formatQuestionLabel(args.message))
-    args.options.forEach((option, index) => {
-      const disabled = option.disabled ? dim(promptStyle, ' [disabled]') : ''
-      const hint = option.hint ? dim(promptStyle, ` (${option.hint})`) : ''
-      console.log(`  ${dim(promptStyle, `${index + 1}.`)} ${option.label}${hint}${disabled}`)
-    })
-
-    while (true) {
-      const answer = (await askLine('Select option:')).trim()
-      if (answer === '' && args.initialValue !== undefined) return args.initialValue
-
-      const picked = findOptionByToken(answer, args.options)
-      if (!picked) {
-        console.error(formatErrorLine('Invalid selection. Enter the option number or value.'))
-        continue
+    const value = await runOpenTuiSelectPrompt<T>({
+      message: args.message,
+      options: args.options,
+      initialValue: args.initialValue,
+      formatHistoryLine: (submitted) => {
+        const selected = args.options.find((entry) => entry.value === submitted)
+        return `? ${args.message} ${selected?.label ?? String(submitted)}`
       }
-      if (picked.disabled) {
-        console.error(formatErrorLine('Selected option is disabled.'))
-        continue
-      }
-      return picked.value
-    }
+    }, getGlobalOpenTuiSession())
+    return isOpenTuiCancel(value) ? CANCEL : value
   },
 
   async multiselect<T>(args: {
@@ -1229,59 +1335,19 @@ const defaultDriver: PromptDriver = {
     initialValues?: T[]
     required?: boolean
   }): Promise<T[] | Cancel> {
-    if (process.stdin.isTTY && process.stdout.isTTY) {
-      return askMultiSelectWithKeyboard(args)
-    }
-
-    console.log(formatQuestionLabel(args.message))
-    args.options.forEach((option, index) => {
-      const disabled = option.disabled ? dim(promptStyle, ' [disabled]') : ''
-      const hint = option.hint ? dim(promptStyle, ` (${option.hint})`) : ''
-      console.log(`  ${dim(promptStyle, `${index + 1}.`)} ${option.label}${hint}${disabled}`)
-    })
-    console.log(dim(promptStyle, 'Enter comma-separated option numbers or values.'))
-
-    while (true) {
-      const answer = (await askLine('Select options:')).trim()
-      if (answer === '') {
-        if (args.initialValues && args.initialValues.length > 0) return args.initialValues
-        if (args.required) {
-          console.error(formatErrorLine('Select at least one option.'))
-          continue
-        }
-        return []
+    const value = await runOpenTuiMultiSelectPrompt<T>({
+      message: args.message,
+      options: args.options,
+      initialValues: args.initialValues,
+      required: args.required,
+      formatHistoryLine: (submitted) => {
+        const labels = args.options
+          .filter((entry) => submitted.includes(entry.value))
+          .map((entry) => entry.label)
+        return `? ${args.message} ${labels.length > 0 ? labels.join(', ') : '(none)'}`
       }
-
-      const tokens = answer
-        .split(/[\s,]+/)
-        .map((token) => token.trim())
-        .filter(Boolean)
-
-      const selected = new Set<T>()
-      let invalidToken: string | null = null
-
-      for (const token of tokens) {
-        const option = findOptionByToken(token, args.options)
-        if (!option || option.disabled) {
-          invalidToken = token
-          break
-        }
-        selected.add(option.value)
-      }
-
-      if (invalidToken) {
-        console.error(formatErrorLine(`Invalid selection: ${invalidToken}`))
-        continue
-      }
-
-      const values = Array.from(selected)
-      if (args.required && values.length === 0) {
-        console.error(formatErrorLine('Select at least one option.'))
-        continue
-      }
-
-      return values
-    }
+    }, getGlobalOpenTuiSession())
+    return isOpenTuiCancel(value) ? CANCEL : value
   },
 
   intro(message) {
@@ -1316,84 +1382,7 @@ const defaultDriver: PromptDriver = {
   },
 
   spinner(options) {
-    const framesByAnimation: Record<RawSpinnerAnimation, string[]> = {
-      line: ['-', '\\', '|', '/'],
-      dots: ['.  ', '.. ', '...', ' ..', '  .']
-    }
-    const animation = options?.animation ?? 'dots'
-    const frames = framesByAnimation[animation] ?? framesByAnimation.dots
-    let frameIndex = 0
-    let timer: ReturnType<typeof setInterval> | null = null
-    let running = false
-    let currentText = ''
-    let startedAt = 0
-
-    const stopTimer = () => {
-      if (timer) {
-        clearInterval(timer)
-        timer = null
-      }
-    }
-
-    const render = () => {
-      if (!running) return
-      const frame = frames[frameIndex % frames.length] ?? '-'
-      frameIndex += 1
-      const elapsedSuffix = options?.showTimer
-        ? dim(promptStyle, ` ${((Date.now() - startedAt) / 1000).toFixed(1)}s`)
-        : ''
-      writeStatusLine(`${cyan(promptStyle, frame)} ${currentText}${elapsedSuffix}`)
-    }
-
-    return {
-      start(text) {
-        currentText = text ?? currentText
-        running = true
-        startedAt = Date.now()
-
-        if (!process.stdout.isTTY) {
-          if (currentText) console.log(formatInfoLine(currentText))
-          return
-        }
-
-        stopTimer()
-        render()
-        timer = setInterval(render, 80)
-      },
-      stop(text) {
-        if (text) {
-          currentText = text
-        }
-        const elapsedSuffix = options?.showTimer
-          ? ` (${((Date.now() - startedAt) / 1000).toFixed(1)}s)`
-          : ''
-
-        if (!process.stdout.isTTY) {
-          if (currentText) console.log(formatSuccessLine(`${currentText}${elapsedSuffix}`))
-          running = false
-          return
-        }
-
-        stopTimer()
-        running = false
-        clearStatusLine()
-        if (currentText) {
-          process.stdout.write(`${formatSuccessLine(`${currentText}${elapsedSuffix}`)}\n`)
-        }
-      },
-      message(text) {
-        currentText = text
-        if (!process.stdout.isTTY) {
-          console.log(formatInfoLine(text))
-          return
-        }
-        if (!running) {
-          writeStatusLine(`${cyan(promptStyle, '-')} ${currentText}`)
-          return
-        }
-        render()
-      }
-    }
+    return createOpenTuiRawSpinner(getGlobalOpenTuiSession(), options)
   }
 }
 
@@ -1614,6 +1603,441 @@ export const log: PromptDriver['log'] = {
 export const cancel = (...args: Parameters<typeof runtime.cancel>) => runtime.cancel(...args)
 export const rawSpinner = (...args: Parameters<typeof runtime.spinner>) => runtime.spinner(...args)
 
+export type SpinnerAnimation = RawSpinnerAnimation
+
+export interface SpinnerOptions {
+  text?: string
+  animation?: SpinnerAnimation
+  showTimer?: boolean
+  intervalMs?: number
+}
+
+export interface Spinner {
+  start(text?: string): void
+  stop(text?: string): void
+  succeed(text?: string): void
+  fail(text?: string): void
+  warn(text?: string): void
+  info(text?: string): void
+  update(text: string): void
+}
+
+export function spinner(options?: SpinnerOptions | string): Spinner {
+  const config: SpinnerOptions =
+    typeof options === 'string'
+      ? { text: options }
+      : options ?? {}
+
+  const raw = runtime.spinner({
+    animation: config.animation,
+    showTimer: config.showTimer,
+    intervalMs: config.intervalMs
+  })
+
+  let currentText = config.text ?? ''
+  let startedAt = 0
+
+  const elapsedSuffix = () =>
+    config.showTimer && startedAt > 0
+      ? ` (${((Date.now() - startedAt) / 1000).toFixed(1)}s)`
+      : ''
+
+  const settle = (tone: 'success' | 'error' | 'warning' | 'info', text?: string) => {
+    if (text !== undefined) currentText = text
+
+    raw.stop(undefined, { silent: true })
+    const value = `${currentText}${elapsedSuffix()}`
+    if (!value.trim()) return
+
+    const line =
+      tone === 'success'
+        ? formatSuccessLine(value)
+        : tone === 'error'
+          ? formatErrorLine(value)
+          : tone === 'warning'
+            ? formatWarningLine(value)
+            : formatInfoLine(value)
+    console.log(line)
+  }
+
+  const api: Spinner = {
+    start(text) {
+      if (text !== undefined) currentText = text
+      startedAt = Date.now()
+      raw.start(currentText)
+    },
+    stop(text) {
+      if (text !== undefined) currentText = text
+      raw.stop(currentText)
+    },
+    succeed(text) {
+      settle('success', text)
+    },
+    fail(text) {
+      settle('error', text)
+    },
+    warn(text) {
+      settle('warning', text)
+    },
+    info(text) {
+      settle('info', text)
+    },
+    update(text) {
+      currentText = text
+      raw.message(text)
+    }
+  }
+
+  if (config.text) api.start(config.text)
+  return api
+}
+
+export interface PromptSession {
+  initialize: () => Promise<void>
+  prompt: PromptApi
+  spinner: typeof spinner
+  dispose: () => Promise<void>
+}
+
+function createQueueRunner() {
+  let chain = Promise.resolve()
+
+  return async function runQueued<T>(job: () => Promise<T>): Promise<T> {
+    const run = chain.then(job, job)
+    chain = run.then(() => undefined, () => undefined)
+    return run
+  }
+}
+
+export function createPromptSession(): PromptSession {
+  const runQueued = createQueueRunner()
+  const rendererSession: OpenTuiRendererSession = createOpenTuiRendererSession()
+  const flushHistory = () => rendererSession.flushHistoryToStdout()
+  const appendHistory = (lines: string[]) => rendererSession.appendHistoryLines(lines)
+
+  const sessionText = async <T = string>(message: string, options: PromptOptions = {}): Promise<T> => {
+    return runQueued(async () => {
+      const fallback = assertInteractiveOrFallback(options.mode, options.fallbackValue)
+      if (fallback !== undefined) return fallback as T
+
+      while (true) {
+        const value = await runOpenTuiTextPrompt({
+          message,
+          placeholder: options.placeholder,
+          defaultValue: options.default,
+          validate: options.validate
+            ? (v) => {
+                const input = (v ?? '').trim()
+                const res = options.validate?.(input)
+                if (res === true) return undefined
+                if (typeof res === 'string') return res
+                return 'Invalid input'
+              }
+            : undefined,
+          formatHistoryLine: (submitted) => `? ${message} ${submitted}`
+        }, rendererSession)
+
+        if (isOpenTuiCancel(value) || isCancel(value)) cancelAndThrow()
+
+        const input = (value ?? '').trim()
+
+        if (options.schema) {
+          try {
+            return await validateWithSchema<T>(input, options)
+          } catch (err) {
+            renderSchemaIssues(err)
+            continue
+          }
+        }
+
+        return input as T
+      }
+    })
+  }
+
+  const sessionPassword = async <T = string>(message: string, options: PromptOptions = {}): Promise<T> => {
+    return runQueued(async () => {
+      flushHistory()
+      return password<T>(message, options)
+    })
+  }
+
+  const sessionConfirm = async (message: string, options: ConfirmOptions = {}): Promise<boolean> => {
+    return runQueued(async () => {
+      const fallback = assertInteractiveOrFallback(options.mode, options.fallbackValue)
+      if (fallback !== undefined) return fallback
+
+      const defaultYes = options.default ?? false
+      const value = await runOpenTuiConfirmPrompt({
+        message,
+        initialValue: defaultYes,
+        formatHistoryLine: (submitted) => `? ${message} ${submitted ? 'Yes' : 'No'}`
+      }, rendererSession)
+
+      if (isOpenTuiCancel(value) || isCancel(value)) cancelAndThrow()
+      return value
+    })
+  }
+
+  const sessionSelect = async <T = string>(message: string, options: SelectOptions<T>): Promise<T> => {
+    return runQueued(async () => {
+      const fallback = assertInteractiveOrFallback(options.mode, options.fallbackValue)
+      if (fallback !== undefined) return fallback
+
+      const value = await runOpenTuiSelectPrompt<T>({
+        message,
+        options: options.options,
+        initialValue: options.default,
+        formatHistoryLine: (submitted) => {
+          const selected = options.options.find((entry) => entry.value === submitted)
+          return `? ${message} ${selected?.label ?? String(submitted)}`
+        }
+      }, rendererSession)
+
+      if (isOpenTuiCancel(value) || isCancel(value)) cancelAndThrow()
+      return value
+    })
+  }
+
+  const sessionMultiSelect = async <T = string>(message: string, options: MultiSelectOptions<T>): Promise<T[]> => {
+    return runQueued(async () => {
+      const fallback = assertInteractiveOrFallback(options.mode, options.fallbackValue)
+      if (fallback !== undefined) return fallback
+
+      while (true) {
+        const value = await runOpenTuiMultiSelectPrompt<T>({
+          message,
+          options: options.options,
+          initialValues: options.initialValues,
+          required: (options.min ?? 0) > 0,
+          formatHistoryLine: (submitted) => {
+            const labels = options.options
+              .filter((entry) => submitted.includes(entry.value))
+              .map((entry) => entry.label)
+            return `? ${message} ${labels.length > 0 ? labels.join(', ') : '(none)'}`
+          }
+        }, rendererSession)
+
+        if (isOpenTuiCancel(value) || isCancel(value)) cancelAndThrow()
+
+        const picked = value ?? []
+        const min = options.min ?? 0
+        const max = options.max
+
+        if (min > 0 && picked.length < min) {
+          console.error(formatErrorLine(`Please select at least ${min} option(s).`))
+          continue
+        }
+
+        if (typeof max === 'number' && picked.length > max) {
+          console.error(formatErrorLine(`Please select at most ${max} option(s).`))
+          continue
+        }
+
+        return picked
+      }
+    })
+  }
+
+  const sessionSpinner = (options?: SpinnerOptions | string): Spinner => {
+    const config: SpinnerOptions =
+      typeof options === 'string'
+        ? { text: options }
+        : options ?? {}
+
+    const framesByAnimation: Record<SpinnerAnimation, string[]> = {
+      line: ['-', '\\', '|', '/'],
+      dots: ['.  ', '.. ', '...', ' ..', '  .'],
+      braille: ['⣾', '⣽', '⣻', '⢿', '⡿', '⣟', '⣯', '⣷']
+    }
+
+    const frames = framesByAnimation[config.animation ?? 'braille'] ?? framesByAnimation.dots
+    const intervalMs = config.intervalMs ?? 80
+    let frameIndex = 0
+    let timer: ReturnType<typeof setInterval> | null = null
+    let running = false
+    let currentText = config.text ?? ''
+    let startedAt = 0
+
+    const elapsedSuffix = () =>
+      config.showTimer && startedAt > 0
+        ? ` (${((Date.now() - startedAt) / 1000).toFixed(1)}s)`
+        : ''
+
+    const stopTimer = () => {
+      if (!timer) return
+      clearInterval(timer)
+      timer = null
+    }
+
+    const renderFrame = () => {
+      if (!running) return
+      const frame = frames[frameIndex % frames.length] ?? '-'
+      frameIndex += 1
+      rendererSession.renderStatusLine(`${frame} ${currentText}${elapsedSuffix()}`, '#6ac4ff')
+    }
+
+    const settle = (tone: 'success' | 'error' | 'warning' | 'info', text?: string) => {
+      if (text !== undefined) currentText = text
+      stopTimer()
+      running = false
+      rendererSession.clearStatusLine()
+
+      const value = `${currentText}${elapsedSuffix()}`
+      if (!value.trim()) return
+
+      const line =
+        tone === 'success'
+          ? formatSuccessLine(value)
+          : tone === 'error'
+            ? formatErrorLine(value)
+            : tone === 'warning'
+              ? formatWarningLine(value)
+              : formatInfoLine(value)
+      console.log(line)
+    }
+
+    return {
+      start(text) {
+        if (text !== undefined) currentText = text
+        startedAt = Date.now()
+        running = true
+
+        if (!process.stdout.isTTY) {
+          if (currentText) console.log(formatInfoLine(currentText))
+          return
+        }
+
+        stopTimer()
+        renderFrame()
+        timer = setInterval(renderFrame, intervalMs)
+      },
+      stop(text) {
+        if (text !== undefined) currentText = text
+        stopTimer()
+        running = false
+        rendererSession.clearStatusLine()
+
+        const value = `${currentText}${elapsedSuffix()}`
+        if (value.trim()) process.stdout.write(`${value}\n`)
+      },
+      succeed(text) {
+        settle('success', text)
+      },
+      fail(text) {
+        settle('error', text)
+      },
+      warn(text) {
+        settle('warning', text)
+      },
+      info(text) {
+        settle('info', text)
+      },
+      update(text) {
+        currentText = text
+        if (!process.stdout.isTTY) {
+          console.log(formatInfoLine(text))
+          return
+        }
+
+        if (!running) {
+          rendererSession.renderStatusLine(`- ${currentText}`, '#6ac4ff')
+          return
+        }
+
+        renderFrame()
+      }
+    }
+  }
+
+  const sessionIntro: typeof intro = (...args) => {
+    const [message] = args
+    appendHistory(['', ...stripAnsi(formatIntroLine(message)).split('\n')])
+  }
+
+  const sessionOutro: typeof outro = (...args) => {
+    const [message] = args
+    appendHistory(['', stripAnsi(formatOutroLine(message)), ''])
+  }
+
+  const sessionNote: typeof note = (...args) => {
+    const [message, title] = args
+    const bodyLines = message
+      .split('\n')
+      .map((line) => line.trimEnd())
+      .filter((line, index, lines) => {
+        if (line.length > 0) return true
+        const hasContentAfter = lines.slice(index + 1).some((candidate) => candidate.length > 0)
+        return hasContentAfter
+      })
+
+    if (title) {
+      const section = title.trim()
+      const contentLines = bodyLines.length > 0 ? bodyLines : ['']
+      const nonEmptyContent = contentLines.filter((line) => line.trim().length > 0)
+
+      if (section.toLowerCase() === 'step' && nonEmptyContent.length > 0) {
+        appendHistory(['', `● ${nonEmptyContent[0]}`])
+        return
+      }
+
+      appendHistory(['', `${promptStyle.symbols.section} ${section}`])
+      appendHistory(contentLines.map((line) => `${promptStyle.symbols.rail} ${line}`))
+      return
+    }
+
+    appendHistory((bodyLines.length > 0 ? bodyLines : ['']).map((line) => `${promptStyle.symbols.rail} ${line}`))
+  }
+
+  const sessionCancel: typeof cancel = (...args) => {
+    const [message = 'Cancelled'] = args
+    appendHistory([stripAnsi(formatWarningLine(message))])
+  }
+
+  const sessionLog: typeof log = {
+    info(message) {
+      appendHistory([stripAnsi(formatInfoLine(message))])
+    },
+    success(message) {
+      appendHistory([stripAnsi(formatSuccessLine(message))])
+    },
+    warn(message) {
+      appendHistory([stripAnsi(formatWarningLine(message))])
+    },
+    error(message) {
+      appendHistory([stripAnsi(formatErrorLine(message))])
+    }
+  }
+
+  const sessionPrompt = Object.assign(sessionText, {
+    confirm: sessionConfirm,
+    select: sessionSelect,
+    multiselect: sessionMultiSelect,
+    password: sessionPassword,
+    text: sessionText,
+    group,
+    intro: sessionIntro,
+    outro: sessionOutro,
+    note: sessionNote,
+    log: sessionLog,
+    cancel: sessionCancel,
+    isCancel,
+    spinner: sessionSpinner
+  }) as PromptApi
+
+  return {
+    initialize: () => rendererSession.initialize(),
+    prompt: sessionPrompt,
+    spinner: sessionSpinner,
+    async dispose() {
+      await runQueued(async () => undefined)
+      rendererSession.clearStatusLine()
+      await rendererSession.dispose()
+      flushHistory()
+    }
+  }
+}
+
 export interface PromptApi {
   <T = string>(message: string, options?: PromptOptions): Promise<T>
   confirm(message: string, options?: ConfirmOptions): Promise<boolean>
@@ -1628,6 +2052,7 @@ export interface PromptApi {
   log: typeof log
   cancel: typeof cancel
   isCancel: typeof isCancel
+  spinner: typeof spinner
 }
 
 export const prompt = Object.assign(text, {
@@ -1642,7 +2067,8 @@ export const prompt = Object.assign(text, {
   note,
   log,
   cancel,
-  isCancel
+  isCancel,
+  spinner
 }) as PromptApi
 
 export type BunliPrompt = PromptApi
