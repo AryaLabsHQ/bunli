@@ -18,6 +18,14 @@ export interface TuiRenderOptions {
   [key: string]: unknown
 }
 
+export interface CommandTuiOptions {
+  /**
+   * Command-level renderer overrides.
+   * These merge on top of global `config.tui.renderer`.
+   */
+  renderer?: TuiRenderOptions
+}
+
 export interface RenderArgs<TFlags = Record<string, unknown>, TStore = {}> extends HandlerArgs<TFlags, TStore> {
   command: Command<any, TStore>
   rendererOptions?: TuiRenderOptions
@@ -26,6 +34,7 @@ export interface RenderArgs<TFlags = Record<string, unknown>, TStore = {}> exten
 export type RenderFunction<TFlags = Record<string, unknown>, TStore = {}> = (args: RenderArgs<TFlags, TStore>) => RenderResult
 
 export type PromptApi = typeof import('@bunli/tui/prompt').prompt
+export type PromptSpinnerFactory = typeof import('@bunli/tui/prompt').spinner
 
 // Core Bunli types
 /**
@@ -68,6 +77,9 @@ export interface CLI<TStore = {}> {
 interface BaseCommand<TOptions extends Options = Options, TStore = {}, TName extends string = string> {
   name: TName
   description: string
+  options?: TOptions
+  tui?: CommandTuiOptions
+  commands?: Command<any, TStore, any>[]
   alias?: string | string[]
 }
 
@@ -124,7 +136,7 @@ export interface HandlerArgs<TFlags = Record<string, unknown>, TStore = {}, TCom
   cwd: string
   // Utilities
   prompt: PromptApi
-  spinner: typeof import('@bunli/utils').spinner
+  spinner: PromptSpinnerFactory
   colors: typeof import('@bunli/utils').colors
   // Plugin context (if plugins are loaded)
   context?: import('./plugin/types.js').CommandContext<Record<string, unknown>>
@@ -132,6 +144,8 @@ export interface HandlerArgs<TFlags = Record<string, unknown>, TStore = {}, TCom
   terminal: TerminalInfo
   // Runtime information
   runtime: RuntimeInfo
+  // Abort signal for interruption/cancellation handling
+  signal: AbortSignal
 }
 
 export interface TerminalInfo {
