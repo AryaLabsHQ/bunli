@@ -4,10 +4,8 @@ import { createCliRenderer } from '@opentui/core'
 import { CliRenderEvents } from '@opentui/core'
 import { createRoot } from '@opentui/react'
 import type { ReactElement } from 'react'
-import { DialogProvider } from './components/dialog-manager.js'
-import { FocusScopeProvider } from './components/focus-scope.js'
-import { OverlayHostProvider } from './components/overlay-host.js'
 import { resolveOpenTuiRendererOptions } from './options.js'
+import { AppRuntimeProvider } from './runtime/app-runtime.js'
 
 type RegisterRendererFn = (render: (args: RenderArgs<any, any>) => Promise<void>) => void
 
@@ -20,11 +18,9 @@ interface RendererDependencies {
 
 function renderWithProviders(component: ReactElement) {
   return (
-    <FocusScopeProvider>
-      <OverlayHostProvider>
-        <DialogProvider>{component}</DialogProvider>
-      </OverlayHostProvider>
-    </FocusScopeProvider>
+    <AppRuntimeProvider>
+      {component}
+    </AppRuntimeProvider>
   )
 }
 

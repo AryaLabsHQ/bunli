@@ -28,6 +28,14 @@
     "./charts": {
       "types": "./dist/charts/index.d.ts",
       "default": "./src/charts/index.tsx"
+    },
+    "./runtime": {
+      "types": "./dist/runtime/index.d.ts",
+      "default": "./src/runtime/index.ts"
+    },
+    "./utils/sync-batcher": {
+      "types": "./dist/utils/sync-batcher.d.ts",
+      "default": "./src/utils/sync-batcher.ts"
     }
   },
   "scripts": {

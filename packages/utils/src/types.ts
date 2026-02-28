@@ -1,7 +1,14 @@
+export type SpinnerAnimation = 'line' | 'dots' | 'braille'
+export type SpinnerSymbolMode = 'ascii' | 'unicode'
+
 // Spinner types
 export interface SpinnerOptions {
   text?: string
   color?: string
+  animation?: SpinnerAnimation
+  showTimer?: boolean
+  symbols?: SpinnerSymbolMode
+  intervalMs?: number
 }
 
 export interface Spinner {
