@@ -5,7 +5,7 @@ import { z } from 'zod'
 import { loadConfig } from '@bunli/core'
 import { findEntry } from '../utils/find-entry.js'
 import path from 'node:path'
-import { existsSync } from 'node:fs'
+import { existsSync, statSync } from 'node:fs'
 import { watch } from 'node:fs/promises'
 import type { BunliUtils } from '@bunli/utils'
 
@@ -18,6 +18,43 @@ type DevCommandErrorType = InstanceType<typeof DevCommandError>
 
 const failDev = (message: string, cause?: unknown): Result<never, DevCommandErrorType> =>
   Result.err(new DevCommandError({ message, cause }))
+
+function isDirectory(candidate: string): boolean {
+  try {
+    return statSync(candidate).isDirectory()
+  } catch {
+    return false
+  }
+}
+
+export function resolveWatchDirectory(entryPath: string, configuredDirectory?: string): string | null {
+  if (configuredDirectory) {
+    return path.resolve(configuredDirectory)
+  }
+
+  const cwd = process.cwd()
+  const defaultCommandsDir = path.resolve(cwd, 'commands')
+  if (isDirectory(defaultCommandsDir)) {
+    return defaultCommandsDir
+  }
+
+  const srcCommandsDir = path.resolve(cwd, 'src/commands')
+  if (isDirectory(srcCommandsDir)) {
+    return srcCommandsDir
+  }
+
+  const entryDirectory = path.dirname(entryPath)
+  if (entryDirectory !== cwd) {
+    return entryDirectory
+  }
+
+  const srcDir = path.resolve(cwd, 'src')
+  if (isDirectory(srcDir)) {
+    return srcDir
+  }
+
+  return null
+}
 
 export default defineCommand({
   name: 'dev',
@@ -164,8 +201,9 @@ async function runDev(
     // Watch for changes in commands directory to regenerate types
     let ac: AbortController | null = null
     if (typedFlags.watch ?? config.dev?.watch ?? true) {
-      const watchDirectory = path.resolve(config.commands?.directory || path.dirname(entryPath))
-      if (existsSync(watchDirectory) && typedFlags.generate) {
+      const watchDirectory = resolveWatchDirectory(entryPath, config.commands?.directory)
+      if (typedFlags.generate && watchDirectory && existsSync(watchDirectory)) {
+        console.log(colors.dim(`Watching command changes in ${watchDirectory}`))
         ac = new AbortController()
         const { signal } = ac
 
@@ -206,6 +244,10 @@ async function runDev(
         watchCommands().catch(err => {
           console.error(colors.red(`Watch error: ${err.message}`))
         })
+      } else if (typedFlags.generate && watchDirectory && !existsSync(watchDirectory)) {
+        console.log(colors.yellow(`Skipping command watcher: directory does not exist (${watchDirectory})`))
+      } else if (typedFlags.generate && !watchDirectory) {
+        console.log(colors.yellow('Skipping command watcher: set commands.directory to avoid watching the project root'))
       }
     }
 

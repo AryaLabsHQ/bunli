@@ -149,4 +149,5 @@ describe('dev e2e - command entry precedence', () => {
     expect(existsSync(generatedPath)).toBe(true)
     expect(readFileSync(generatedPath, 'utf8')).toContain("'from-build-entry'")
   })
+
 })
