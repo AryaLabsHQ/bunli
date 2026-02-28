@@ -8,9 +8,14 @@ export type KeymapDefinition<TAction extends string> = {
 
 const KEY_ALIASES: Record<string, string> = {
   esc: 'escape',
+  '\u001b': 'escape',
   return: 'enter',
   linefeed: 'enter',
+  '\r': 'enter',
+  '\n': 'enter',
   spacebar: 'space',
+  ' ': 'space',
+  '\u0003': 'c',
   arrowup: 'up',
   arrowdown: 'down',
   arrowleft: 'left',

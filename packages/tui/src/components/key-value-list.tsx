@@ -31,17 +31,17 @@ export function KeyValueList({
   const lineWidth = useMemo(() => {
     const contentLineWidth = Math.max(
       keyWidth + 3,
-      Math.min(
-        maxLineWidth ?? Number.POSITIVE_INFINITY,
-        ...items.map((item) => displayWidth(`${formatFixedWidth(item.key, keyWidth)} : ${String(item.value ?? '')}`))
-      )
+      ...items.map((item) => displayWidth(`${formatFixedWidth(item.key, keyWidth)} : ${String(item.value ?? '')}`))
     )
+    const boundedLineWidth = typeof maxLineWidth === 'number'
+      ? Math.max(keyWidth + 3, Math.min(maxLineWidth, contentLineWidth))
+      : contentLineWidth
 
     if (!fillWidth || typeof maxLineWidth !== 'number') {
-      return contentLineWidth
+      return boundedLineWidth
     }
 
-    return Math.max(contentLineWidth, maxLineWidth)
+    return Math.max(boundedLineWidth, maxLineWidth)
   }, [fillWidth, items, keyWidth, maxLineWidth])
 
   return (

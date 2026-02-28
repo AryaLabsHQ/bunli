@@ -55,17 +55,16 @@ export function CommandPalette({
       return Math.min(prev, filtered.length - 1)
     })
   }, [filtered.length])
-  const lineWidth = useMemo(
-    () =>
-      Math.max(
-        8,
-        Math.min(
-          maxLineWidth ?? Number.POSITIVE_INFINITY,
-          ...items.map((item) => displayWidth(`> ${item.label}${item.hint ? ` - ${item.hint}` : ''}`))
-        )
-      ),
-    [items, maxLineWidth]
-  )
+  const lineWidth = useMemo(() => {
+    const contentLineWidth = Math.max(
+      8,
+      ...items.map((item) => displayWidth(`> ${item.label}${item.hint ? ` - ${item.hint}` : ''}`))
+    )
+    if (typeof maxLineWidth === 'number') {
+      return Math.max(8, Math.min(maxLineWidth, contentLineWidth))
+    }
+    return contentLineWidth
+  }, [items, maxLineWidth])
 
   useScopedKeyboard(
     keyboardScopeId,
