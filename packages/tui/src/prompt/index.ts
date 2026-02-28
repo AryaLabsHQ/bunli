@@ -53,22 +53,103 @@ interface KeypressEvent {
   meta?: boolean
 }
 
+interface PromptStyle {
+  useColor: boolean
+  symbols: {
+    pointer: string
+    question: string
+    success: string
+    error: string
+    info: string
+    warning: string
+    selected: string
+    unselected: string
+  }
+}
+
+function shouldUseColor(): boolean {
+  if (process.env.NO_COLOR) return false
+  return Boolean(process.stdout.isTTY)
+}
+
+function colorize(style: PromptStyle, colorCode: number, text: string): string {
+  if (!style.useColor) return text
+  return `\x1b[${colorCode}m${text}\x1b[0m`
+}
+
+function dim(style: PromptStyle, text: string): string {
+  return colorize(style, 90, text)
+}
+
+function green(style: PromptStyle, text: string): string {
+  return colorize(style, 32, text)
+}
+
+function red(style: PromptStyle, text: string): string {
+  return colorize(style, 31, text)
+}
+
+function yellow(style: PromptStyle, text: string): string {
+  return colorize(style, 33, text)
+}
+
+function cyan(style: PromptStyle, text: string): string {
+  return colorize(style, 36, text)
+}
+
+function bold(style: PromptStyle, text: string): string {
+  if (!style.useColor) return text
+  return `\x1b[1m${text}\x1b[0m`
+}
+
+const promptStyle: PromptStyle = {
+  useColor: shouldUseColor(),
+  symbols: {
+    pointer: '>',
+    question: '?',
+    success: 'OK',
+    error: 'ERR',
+    info: 'INFO',
+    warning: 'WARN',
+    selected: '[x]',
+    unselected: '[ ]'
+  }
+}
+
 function isCIEnvironment(): boolean {
+  return isCIEnvironmentFromEnv(process.env)
+}
+
+function isCIEnvironmentFromEnv(env: NodeJS.ProcessEnv): boolean {
   return Boolean(
-    process.env.CI ||
-      process.env.CONTINUOUS_INTEGRATION ||
-      process.env.GITHUB_ACTIONS ||
-      process.env.GITLAB_CI ||
-      process.env.CIRCLECI ||
-      process.env.TRAVIS
+    env.CI ||
+      env.CONTINUOUS_INTEGRATION ||
+      env.GITHUB_ACTIONS ||
+      env.GITLAB_CI ||
+      env.CIRCLECI ||
+      env.TRAVIS
   )
 }
 
-function canPrompt(mode?: PromptMode): boolean {
+interface PromptEnvironment {
+  stdinIsTTY: boolean
+  stdoutIsTTY: boolean
+  env: NodeJS.ProcessEnv
+}
+
+function canPromptInEnvironment(mode: PromptMode | undefined, environment: PromptEnvironment): boolean {
   if (mode === 'interactive') {
-    return Boolean(process.stdin.isTTY && process.stdout.isTTY)
+    return Boolean(environment.stdinIsTTY && environment.stdoutIsTTY)
   }
-  return Boolean(process.stdin.isTTY && process.stdout.isTTY && !isCIEnvironment())
+  return Boolean(environment.stdinIsTTY && environment.stdoutIsTTY && !isCIEnvironmentFromEnv(environment.env))
+}
+
+function canPrompt(mode?: PromptMode): boolean {
+  return canPromptInEnvironment(mode, {
+    stdinIsTTY: Boolean(process.stdin.isTTY),
+    stdoutIsTTY: Boolean(process.stdout.isTTY),
+    env: process.env
+  })
 }
 
 let bypassTerminalCheckForTests = false
@@ -120,9 +201,9 @@ function cancelAndThrow(message?: string): never {
 
 function renderSchemaIssues(error: unknown) {
   if (!(error instanceof SchemaError)) return
-  console.error('Invalid input:')
+  console.error(formatErrorLine('Invalid input:'))
   for (const issue of error.issues) {
-    console.error(`  - ${issue.message}`)
+    console.error(`  ${dim(promptStyle, '-')} ${issue.message}`)
   }
   console.error()
 }
@@ -133,7 +214,9 @@ async function askLine(message: string, defaultValue?: string): Promise<string> 
     output: process.stdout
   })
 
-  const promptLabel = defaultValue !== undefined ? `${message} (${defaultValue}) ` : `${message} `
+  const promptLabel = defaultValue !== undefined
+    ? `${formatQuestionLabel(message)} ${dim(promptStyle, `(${defaultValue})`)} `
+    : `${formatQuestionLabel(message)} `
 
   try {
     const answer = await rl.question(promptLabel)
@@ -168,6 +251,288 @@ function isMultiSelectToggleKey(key: KeypressEvent): boolean {
 
 function writeStatusLine(text: string) {
   process.stdout.write(`\r\x1b[2K${text}`)
+}
+
+function clearStatusLine() {
+  process.stdout.write('\r\x1b[2K')
+}
+
+function formatQuestionLabel(message: string): string {
+  return `${cyan(promptStyle, promptStyle.symbols.question)} ${bold(promptStyle, message)}`
+}
+
+function formatErrorLine(message: string): string {
+  return `${red(promptStyle, promptStyle.symbols.error)} ${message}`
+}
+
+function formatSuccessLine(message: string): string {
+  return `${green(promptStyle, promptStyle.symbols.success)} ${message}`
+}
+
+function formatInfoLine(message: string): string {
+  return `${cyan(promptStyle, promptStyle.symbols.info)} ${message}`
+}
+
+function formatWarningLine(message: string): string {
+  return `${yellow(promptStyle, promptStyle.symbols.warning)} ${message}`
+}
+
+function formatIntroLine(message: string): string {
+  return formatInfoLine(`== ${message} ==`)
+}
+
+function formatOutroLine(message: string): string {
+  return formatSuccessLine(`== ${message} ==`)
+}
+
+function formatNoteLines(message: string, title?: string): string[] {
+  const bodyLines = message
+    .split('\n')
+    .map((line) => line.trimEnd())
+    .filter((line) => line.length > 0)
+
+  if (!title) {
+    return [formatInfoLine(message)]
+  }
+
+  return [
+    formatInfoLine(title),
+    ...bodyLines.map((line) => `${dim(promptStyle, '|')} ${line}`)
+  ]
+}
+
+function renderFrame(lines: string[], prevLineCount: number): number {
+  if (prevLineCount > 0) {
+    process.stdout.write(`\x1b[${prevLineCount}A`)
+    process.stdout.write('\x1b[J')
+  }
+  process.stdout.write(`${lines.join('\n')}\n`)
+  return lines.length
+}
+
+function renderSelectFrame<T>(args: {
+  message: string
+  options: SelectOption<T>[]
+  selectedIndex: number
+  hint?: string
+}): string[] {
+  const lines: string[] = [
+    formatQuestionLabel(args.message),
+    dim(
+      promptStyle,
+      args.hint ?? `Use Up/Down, Enter to choose, 1-${Math.min(9, args.options.length)} for shortcuts`
+    )
+  ]
+
+  for (let index = 0; index < args.options.length; index += 1) {
+    const option = args.options[index]
+    if (!option) continue
+    const active = index === args.selectedIndex
+    const pointer = active ? cyan(promptStyle, promptStyle.symbols.pointer) : ' '
+    const numeric = dim(promptStyle, `${index + 1}.`)
+    const label = option.disabled ? dim(promptStyle, option.label) : option.label
+    const hint = option.hint ? dim(promptStyle, ` (${option.hint})`) : ''
+    const disabled = option.disabled ? dim(promptStyle, ' [disabled]') : ''
+    lines.push(`${pointer} ${numeric} ${label}${hint}${disabled}`)
+  }
+
+  return lines
+}
+
+function renderMultiSelectFrame<T>(args: {
+  message: string
+  options: SelectOption<T>[]
+  selectedIndex: number
+  selected: Set<T>
+  errorMessage?: string
+}): string[] {
+  const lines: string[] = [
+    formatQuestionLabel(args.message),
+    dim(
+      promptStyle,
+      `Use Up/Down, Space to toggle, Enter to submit, 1-${Math.min(9, args.options.length)} shortcuts`
+    )
+  ]
+
+  if (args.errorMessage) {
+    lines.push(formatErrorLine(args.errorMessage))
+  }
+
+  for (let index = 0; index < args.options.length; index += 1) {
+    const option = args.options[index]
+    if (!option) continue
+    const active = index === args.selectedIndex
+    const pointer = active ? cyan(promptStyle, promptStyle.symbols.pointer) : ' '
+    const checkmark = args.selected.has(option.value)
+      ? green(promptStyle, promptStyle.symbols.selected)
+      : dim(promptStyle, promptStyle.symbols.unselected)
+    const numeric = dim(promptStyle, `${index + 1}.`)
+    const label = option.disabled ? dim(promptStyle, option.label) : option.label
+    const hint = option.hint ? dim(promptStyle, ` (${option.hint})`) : ''
+    const disabled = option.disabled ? dim(promptStyle, ' [disabled]') : ''
+    lines.push(`${pointer} ${numeric} ${checkmark} ${label}${hint}${disabled}`)
+  }
+
+  const selectedSummary = buildSelectedSummary(args.selected, args.options)
+  lines.push(dim(promptStyle, `Selected: ${selectedSummary}`))
+  return lines
+}
+
+function simulateSelectKeySequence<T>(args: {
+  options: SelectOption<T>[]
+  keys: KeypressEvent[]
+  initialValue?: T
+}): { result: T | Cancel | null; selectedIndex: number } {
+  const enabledCount = args.options.filter((option) => !option.disabled).length
+  if (enabledCount === 0) {
+    return { result: CANCEL, selectedIndex: 0 }
+  }
+
+  let selectedIndex = initialSelectableIndex(args.options, args.initialValue)
+
+  for (const key of args.keys) {
+    if (isCancelKey(key)) {
+      return { result: CANCEL, selectedIndex }
+    }
+
+    const shortcutOption = resolveShortcutOption(key, args.options)
+    if (shortcutOption && !shortcutOption.disabled) {
+      return { result: shortcutOption.value, selectedIndex }
+    }
+
+    if (key.name === 'up' || key.name === 'k') {
+      selectedIndex = moveSelectableIndex(args.options, selectedIndex, -1)
+      continue
+    }
+
+    if (key.name === 'down' || key.name === 'j') {
+      selectedIndex = moveSelectableIndex(args.options, selectedIndex, 1)
+      continue
+    }
+
+    if (isSubmitKey(key)) {
+      const current = args.options[selectedIndex]
+      if (current && !current.disabled) {
+        return { result: current.value, selectedIndex }
+      }
+    }
+  }
+
+  return { result: null, selectedIndex }
+}
+
+function simulateMultiSelectKeySequence<T>(args: {
+  options: SelectOption<T>[]
+  keys: KeypressEvent[]
+  initialValues?: T[]
+  required?: boolean
+}): {
+  result: T[] | Cancel | null
+  selectedIndex: number
+  selected: Set<T>
+  errorMessage?: string
+} {
+  const enabledCount = args.options.filter((option) => !option.disabled).length
+  if (enabledCount === 0) {
+    return { result: CANCEL, selectedIndex: 0, selected: new Set<T>() }
+  }
+
+  let selectedIndex = initialSelectableIndex(args.options)
+  const selected = new Set<T>(
+    args.options
+      .filter((option) => !option.disabled && args.initialValues?.includes(option.value))
+      .map((option) => option.value)
+  )
+  let errorMessage: string | undefined
+
+  for (const key of args.keys) {
+    if (isCancelKey(key)) {
+      return { result: CANCEL, selectedIndex, selected, errorMessage }
+    }
+
+    const shortcutOption = resolveShortcutOption(key, args.options)
+    if (shortcutOption && !shortcutOption.disabled) {
+      toggleSelection(selected, shortcutOption)
+      errorMessage = undefined
+      continue
+    }
+
+    if (key.name === 'up' || key.name === 'k') {
+      selectedIndex = moveSelectableIndex(args.options, selectedIndex, -1)
+      errorMessage = undefined
+      continue
+    }
+
+    if (key.name === 'down' || key.name === 'j') {
+      selectedIndex = moveSelectableIndex(args.options, selectedIndex, 1)
+      errorMessage = undefined
+      continue
+    }
+
+    if (isMultiSelectToggleKey(key)) {
+      const current = args.options[selectedIndex]
+      if (current && !current.disabled) {
+        toggleSelection(selected, current)
+        errorMessage = undefined
+      }
+      continue
+    }
+
+    if (isSubmitKey(key)) {
+      const values = args.options
+        .filter((option) => selected.has(option.value))
+        .map((option) => option.value)
+
+      if (args.required && values.length === 0) {
+        errorMessage = 'Select at least one option.'
+        continue
+      }
+
+      return { result: values, selectedIndex, selected, errorMessage }
+    }
+  }
+
+  return { result: null, selectedIndex, selected, errorMessage }
+}
+
+function simulatePasswordKeySequence(args: {
+  keys: KeypressEvent[]
+  validate?: (value: string) => string | undefined
+}): { result: string | Cancel | null; revealed: boolean; value: string } {
+  const chars: string[] = []
+  let revealed = false
+
+  for (const key of args.keys) {
+    if (isCancelKey(key)) {
+      return { result: CANCEL, revealed, value: chars.join('') }
+    }
+
+    if (isPasswordRevealToggleKey(key)) {
+      revealed = !revealed
+      continue
+    }
+
+    if (key.name === 'backspace' || key.name === 'delete') {
+      chars.pop()
+      continue
+    }
+
+    if (isSubmitKey(key)) {
+      const value = chars.join('')
+      const validationError = args.validate?.(value)
+      if (validationError) {
+        chars.length = 0
+        continue
+      }
+      return { result: value, revealed, value }
+    }
+
+    if (isPrintableKey(key)) {
+      chars.push(key.sequence as string)
+    }
+  }
+
+  return { result: null, revealed, value: chars.join('') }
 }
 
 function initialSelectableIndex<T>(options: SelectOption<T>[], preferred?: T): number {
@@ -260,15 +625,16 @@ async function askPasswordWithReveal(args: {
   message: string
   validate?: (value: string) => string | undefined
 }): Promise<string | Cancel> {
-  process.stdout.write(`${args.message}\n`)
-  process.stdout.write('Press Ctrl+R to toggle reveal\n')
+  process.stdout.write(`${formatQuestionLabel(args.message)}\n`)
+  process.stdout.write(`${dim(promptStyle, 'Press Ctrl+R to toggle reveal, Enter to submit, Esc to cancel')}\n`)
 
   const chars: string[] = []
   let revealed = false
 
   const render = () => {
     const display = revealed ? chars.join('') : '*'.repeat(chars.length)
-    writeStatusLine(`Password: ${display}`)
+    const mode = revealed ? dim(promptStyle, '(revealed)') : dim(promptStyle, '(hidden)')
+    writeStatusLine(`${cyan(promptStyle, promptStyle.symbols.pointer)} Password ${mode}: ${display}`)
   }
 
   return withRawKeyboard(async (readKey) => {
@@ -278,7 +644,8 @@ async function askPasswordWithReveal(args: {
       const key = await readKey()
 
       if (isCancelKey(key)) {
-        process.stdout.write('\n')
+        clearStatusLine()
+        process.stdout.write(`\n${formatWarningLine('Password entry cancelled')}\n`)
         return CANCEL
       }
 
@@ -298,12 +665,13 @@ async function askPasswordWithReveal(args: {
         const value = chars.join('')
         const validationError = args.validate?.(value)
         if (validationError) {
-          process.stdout.write('\n')
-          console.error(validationError)
+          clearStatusLine()
+          process.stdout.write(`\n${formatErrorLine(validationError)}\n`)
           chars.length = 0
           render()
           continue
         }
+        clearStatusLine()
         process.stdout.write('\n')
         return value
       }
@@ -323,22 +691,21 @@ async function askSelectWithKeyboard<T>(args: {
 }): Promise<T | Cancel> {
   const enabledCount = args.options.filter((option) => !option.disabled).length
   if (enabledCount === 0) {
-    console.error('No selectable options available.')
+    console.error(formatErrorLine('No selectable options available.'))
     return CANCEL
   }
 
   let selectedIndex = initialSelectableIndex(args.options, args.initialValue)
-  process.stdout.write(`${args.message}\n`)
-  args.options.forEach((option, index) => {
-    const disabled = option.disabled ? ' (disabled)' : ''
-    const hint = option.hint ? ` - ${option.hint}` : ''
-    process.stdout.write(`  ${index + 1}) ${option.label}${hint}${disabled}\n`)
-  })
+  let renderedLines = 0
 
   return withRawKeyboard(async (readKey) => {
     const render = () => {
-      const current = args.options[selectedIndex]
-      writeStatusLine(`Use ↑/↓ + Enter, or 1-${args.options.length}. Current: ${current?.label ?? 'none'}`)
+      const lines = renderSelectFrame({
+        message: args.message,
+        options: args.options,
+        selectedIndex
+      })
+      renderedLines = renderFrame(lines, renderedLines)
     }
 
     render()
@@ -348,6 +715,7 @@ async function askSelectWithKeyboard<T>(args: {
 
       if (isCancelKey(key)) {
         process.stdout.write('\n')
+        process.stdout.write(`${formatWarningLine('Selection cancelled')}\n`)
         return CANCEL
       }
 
@@ -390,7 +758,7 @@ async function askMultiSelectWithKeyboard<T>(args: {
 }): Promise<T[] | Cancel> {
   const enabledCount = args.options.filter((option) => !option.disabled).length
   if (enabledCount === 0) {
-    console.error('No selectable options available.')
+    console.error(formatErrorLine('No selectable options available.'))
     return CANCEL
   }
 
@@ -401,22 +769,19 @@ async function askMultiSelectWithKeyboard<T>(args: {
       .map((option) => option.value)
   )
 
-  process.stdout.write(`${args.message}\n`)
-  args.options.forEach((option, index) => {
-    const disabled = option.disabled ? ' (disabled)' : ''
-    const hint = option.hint ? ` - ${option.hint}` : ''
-    process.stdout.write(`  ${index + 1}) ${option.label}${hint}${disabled}\n`)
-  })
+  let renderedLines = 0
+  let errorMessage: string | undefined
 
   return withRawKeyboard(async (readKey) => {
     const render = () => {
-      const current = args.options[selectedIndex]
-      const selectedSummary = buildSelectedSummary(selected, args.options)
-      writeStatusLine(
-        `Use ↑/↓, Space toggle, Enter submit, 1-${args.options.length} toggle. Current: ${
-          current?.label ?? 'none'
-        } | Selected: ${selectedSummary}`
-      )
+      const lines = renderMultiSelectFrame({
+        message: args.message,
+        options: args.options,
+        selectedIndex,
+        selected,
+        errorMessage
+      })
+      renderedLines = renderFrame(lines, renderedLines)
     }
 
     render()
@@ -426,24 +791,28 @@ async function askMultiSelectWithKeyboard<T>(args: {
 
       if (isCancelKey(key)) {
         process.stdout.write('\n')
+        process.stdout.write(`${formatWarningLine('Selection cancelled')}\n`)
         return CANCEL
       }
 
       const shortcutOption = resolveShortcutOption(key, args.options)
       if (shortcutOption && !shortcutOption.disabled) {
         toggleSelection(selected, shortcutOption)
+        errorMessage = undefined
         render()
         continue
       }
 
       if (key.name === 'up' || key.name === 'k') {
         selectedIndex = moveSelectableIndex(args.options, selectedIndex, -1)
+        errorMessage = undefined
         render()
         continue
       }
 
       if (key.name === 'down' || key.name === 'j') {
         selectedIndex = moveSelectableIndex(args.options, selectedIndex, 1)
+        errorMessage = undefined
         render()
         continue
       }
@@ -452,6 +821,7 @@ async function askMultiSelectWithKeyboard<T>(args: {
         const current = args.options[selectedIndex]
         if (current && !current.disabled) {
           toggleSelection(selected, current)
+          errorMessage = undefined
         }
         render()
         continue
@@ -463,7 +833,8 @@ async function askMultiSelectWithKeyboard<T>(args: {
           .map((option) => option.value)
 
         if (args.required && values.length === 0) {
-          writeStatusLine('Select at least one option.')
+          errorMessage = 'Select at least one option.'
+          render()
           continue
         }
 
@@ -526,7 +897,7 @@ const defaultDriver: PromptDriver = {
       const value = await askLine(args.message, args.defaultValue)
       const validationError = args.validate?.(value)
       if (validationError) {
-        console.error(validationError)
+        console.error(formatErrorLine(validationError))
         continue
       }
       return value
@@ -542,7 +913,7 @@ const defaultDriver: PromptDriver = {
       const value = await askLine(args.message)
       const validationError = args.validate?.(value)
       if (validationError) {
-        console.error(validationError)
+        console.error(formatErrorLine(validationError))
         continue
       }
       return value
@@ -558,7 +929,7 @@ const defaultDriver: PromptDriver = {
       if (value === '') return defaultValue
       if (['y', 'yes'].includes(value)) return true
       if (['n', 'no'].includes(value)) return false
-      console.error('Please answer with y/yes or n/no.')
+      console.error(formatErrorLine('Please answer with y/yes or n/no.'))
     }
   },
 
@@ -567,11 +938,11 @@ const defaultDriver: PromptDriver = {
       return askSelectWithKeyboard(args)
     }
 
-    console.log(args.message)
+    console.log(formatQuestionLabel(args.message))
     args.options.forEach((option, index) => {
-      const disabled = option.disabled ? ' (disabled)' : ''
-      const hint = option.hint ? ` - ${option.hint}` : ''
-      console.log(`  ${index + 1}) ${option.label}${hint}${disabled}`)
+      const disabled = option.disabled ? dim(promptStyle, ' [disabled]') : ''
+      const hint = option.hint ? dim(promptStyle, ` (${option.hint})`) : ''
+      console.log(`  ${dim(promptStyle, `${index + 1}.`)} ${option.label}${hint}${disabled}`)
     })
 
     while (true) {
@@ -580,11 +951,11 @@ const defaultDriver: PromptDriver = {
 
       const picked = findOptionByToken(answer, args.options)
       if (!picked) {
-        console.error('Invalid selection. Enter the option number or value.')
+        console.error(formatErrorLine('Invalid selection. Enter the option number or value.'))
         continue
       }
       if (picked.disabled) {
-        console.error('Selected option is disabled.')
+        console.error(formatErrorLine('Selected option is disabled.'))
         continue
       }
       return picked.value
@@ -601,20 +972,20 @@ const defaultDriver: PromptDriver = {
       return askMultiSelectWithKeyboard(args)
     }
 
-    console.log(args.message)
+    console.log(formatQuestionLabel(args.message))
     args.options.forEach((option, index) => {
-      const disabled = option.disabled ? ' (disabled)' : ''
-      const hint = option.hint ? ` - ${option.hint}` : ''
-      console.log(`  ${index + 1}) ${option.label}${hint}${disabled}`)
+      const disabled = option.disabled ? dim(promptStyle, ' [disabled]') : ''
+      const hint = option.hint ? dim(promptStyle, ` (${option.hint})`) : ''
+      console.log(`  ${dim(promptStyle, `${index + 1}.`)} ${option.label}${hint}${disabled}`)
     })
-    console.log('Enter comma-separated option numbers or values.')
+    console.log(dim(promptStyle, 'Enter comma-separated option numbers or values.'))
 
     while (true) {
       const answer = (await askLine('Select options:')).trim()
       if (answer === '') {
         if (args.initialValues && args.initialValues.length > 0) return args.initialValues
         if (args.required) {
-          console.error('Select at least one option.')
+          console.error(formatErrorLine('Select at least one option.'))
           continue
         }
         return []
@@ -638,13 +1009,13 @@ const defaultDriver: PromptDriver = {
       }
 
       if (invalidToken) {
-        console.error(`Invalid selection: ${invalidToken}`)
+        console.error(formatErrorLine(`Invalid selection: ${invalidToken}`))
         continue
       }
 
       const values = Array.from(selected)
       if (args.required && values.length === 0) {
-        console.error('Select at least one option.')
+        console.error(formatErrorLine('Select at least one option.'))
         continue
       }
 
@@ -653,50 +1024,100 @@ const defaultDriver: PromptDriver = {
   },
 
   intro(message) {
-    console.log(`\n${message}`)
+    console.log(`\n${formatIntroLine(message)}`)
   },
 
   outro(message) {
-    console.log(`\n${message}`)
+    console.log(`\n${formatOutroLine(message)}\n`)
   },
 
   note(message, title) {
-    if (title) {
-      console.log(`${title}: ${message}`)
-      return
-    }
-    console.log(message)
+    console.log(formatNoteLines(message, title).join('\n'))
   },
 
   cancel(message = 'Cancelled') {
-    console.log(message)
+    console.log(formatWarningLine(message))
   },
 
   log: {
     info(message) {
-      console.log(message)
+      console.log(formatInfoLine(message))
     },
     success(message) {
-      console.log(message)
+      console.log(formatSuccessLine(message))
     },
     warn(message) {
-      console.warn(message)
+      console.warn(formatWarningLine(message))
     },
     error(message) {
-      console.error(message)
+      console.error(formatErrorLine(message))
     }
   },
 
   spinner() {
+    const frames = ['-', '\\', '|', '/']
+    let frameIndex = 0
+    let timer: ReturnType<typeof setInterval> | null = null
+    let running = false
+    let currentText = ''
+
+    const stopTimer = () => {
+      if (timer) {
+        clearInterval(timer)
+        timer = null
+      }
+    }
+
+    const render = () => {
+      if (!running) return
+      const frame = frames[frameIndex % frames.length] ?? '-'
+      frameIndex += 1
+      writeStatusLine(`${cyan(promptStyle, frame)} ${currentText}`)
+    }
+
     return {
       start(text) {
-        if (text) console.log(text)
+        currentText = text ?? currentText
+        running = true
+
+        if (!process.stdout.isTTY) {
+          if (currentText) console.log(formatInfoLine(currentText))
+          return
+        }
+
+        stopTimer()
+        render()
+        timer = setInterval(render, 80)
       },
       stop(text) {
-        if (text) console.log(text)
+        if (text) {
+          currentText = text
+        }
+
+        if (!process.stdout.isTTY) {
+          if (currentText) console.log(formatSuccessLine(currentText))
+          running = false
+          return
+        }
+
+        stopTimer()
+        running = false
+        clearStatusLine()
+        if (currentText) {
+          process.stdout.write(`${formatSuccessLine(currentText)}\n`)
+        }
       },
       message(text) {
-        console.log(text)
+        currentText = text
+        if (!process.stdout.isTTY) {
+          console.log(formatInfoLine(text))
+          return
+        }
+        if (!running) {
+          writeStatusLine(`${cyan(promptStyle, '-')} ${currentText}`)
+          return
+        }
+        render()
       }
     }
   }
@@ -729,7 +1150,20 @@ export const __promptInternalsForTests = {
   isSubmitKey,
   isPasswordRevealToggleKey,
   isMultiSelectToggleKey,
-  canPrompt
+  formatQuestionLabel,
+  renderFrame,
+  renderSelectFrame,
+  renderMultiSelectFrame,
+  simulateSelectKeySequence,
+  simulateMultiSelectKeySequence,
+  simulatePasswordKeySequence,
+  formatIntroLine,
+  formatOutroLine,
+  formatNoteLines,
+  formatErrorLine,
+  canPrompt,
+  canPromptInEnvironment,
+  isCIEnvironmentFromEnv
 }
 
 async function validateWithSchema<TOut = unknown>(value: string, options: PromptOptions): Promise<TOut> {
@@ -861,12 +1295,12 @@ export async function multiselect<T = string>(message: string, options: MultiSel
     const max = options.max
 
     if (min > 0 && picked.length < min) {
-      console.error(`Please select at least ${min} option(s).`)
+      console.error(formatErrorLine(`Please select at least ${min} option(s).`))
       continue
     }
 
     if (typeof max === 'number' && picked.length > max) {
-      console.error(`Please select at most ${max} option(s).`)
+      console.error(formatErrorLine(`Please select at most ${max} option(s).`))
       continue
     }
 
