@@ -14,14 +14,21 @@ const toErrorMessage = (error: unknown): string =>
 const tryAsync = <TValue, TError>(
   fn: () => Promise<TValue>,
   mapError: (cause: unknown) => TError
-) =>
-  Result.tryPromise({ try: fn, catch: mapError })
+): Promise<Result<TValue, TError>> =>
+  fn()
+    .then((value) => Result.ok<TValue, TError>(value))
+    .catch((cause) => Result.err<TValue, TError>(mapError(cause)))
 
 const trySync = <TValue, TError>(
-  fn: () => Awaited<TValue>,
+  fn: () => TValue,
   mapError: (cause: unknown) => TError
-) =>
-  Result.try({ try: fn, catch: mapError })
+): Result<TValue, TError> => {
+  try {
+    return Result.ok<TValue, TError>(fn())
+  } catch (cause) {
+    return Result.err<TValue, TError>(mapError(cause))
+  }
+}
 
 type VersionBump = 'major' | 'minor' | 'patch'
 
@@ -102,6 +109,18 @@ const PATCH_TYPES = ['fix', 'refactor', 'chore', 'docs', 'test', 'perf', 'style'
 
 function printHelp(): void {
   console.log(`\nRelease Prepare (Changesets)\n\nUsage:\n  bun scripts/release-prepare.ts [options]\n\nOptions:\n  --package, -p <name>  Prepare a changeset for one package\n  --all                 Consider all publishable packages\n  --since <tag|commit>   Override the commit range\n  --dry-run, -d          Show output without writing files\n  --pr                   Create a PR with the changeset(s)\n  --yes, -y              Skip confirmation prompts\n  --ai                   Generate summary with AI (optional)\n  --help, -h             Show help\n`)
+}
+
+function printPromptUxSmokeChecklist(): void {
+  p.note(
+    [
+      'Manual prompt UX smoke checklist:',
+      '1) Non-TTY fallback: run a prompt command with CI=1 and confirm fallbackValue path.',
+      '2) Inline wizard flow: run task-runner setup and verify select/multiselect/password rendering.',
+      '3) Alternate-buffer showcase: run hello-world showcase with --tui and verify terminal cleanup on exit.'
+    ].join('\n'),
+    'Release Checklist'
+  )
 }
 
 function parseArgs(args: string[]): Result<Options, ReleasePrepareError> {
@@ -547,6 +566,7 @@ async function main(): Promise<Result<void, ReleasePrepareError>> {
   }
 
   p.log.success('Changeset written')
+  printPromptUxSmokeChecklist()
 
   if (options.pr) {
     if (!options.yes) {
