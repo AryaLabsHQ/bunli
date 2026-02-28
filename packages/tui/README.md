@@ -73,8 +73,48 @@ const cli = await createCLI({
 Notes:
 - `bufferMode: 'alternate'` is the default for interactive terminals.
 - `bufferMode: 'standard'` is the default for non-interactive / CI environments when TUI is forced via `--tui`.
+- Mouse tracking is disabled by default (`useMouse: false`) to avoid leaking raw mouse escape sequences after exit in standard-buffer workflows. Enable explicitly when needed.
 
 ## Usage
+
+### Module Split
+
+Use subpath exports depending on mode:
+
+- `@bunli/tui/prompt`: inline prompt runtime for standard-buffer command flows.
+- `@bunli/tui/interactive`: alternate-buffer interactive components.
+- `@bunli/tui/charts`: terminal-native chart primitives.
+- `@bunli/tui`: root export that re-exports shared components/hooks.
+
+### Clack Migration Quick Map
+
+Use this when replacing a clack mental model with Bunli-native APIs:
+
+```typescript
+// clack
+// import { intro, outro, confirm, select, multiselect, log } from '@clack/prompts'
+
+// bunli
+import { prompt } from '@bunli/tui/prompt'
+
+prompt.intro('Setup')
+const confirmed = await prompt.confirm('Continue?', { default: true })
+const env = await prompt.select('Environment', {
+  options: [
+    { label: 'Development', value: 'dev' },
+    { label: 'Production', value: 'prod' }
+  ]
+})
+const features = await prompt.multiselect('Features', {
+  options: [
+    { label: 'Testing', value: 'testing' },
+    { label: 'Docker', value: 'docker' }
+  ],
+  initialValues: ['testing']
+})
+prompt.log.success(`Selected ${env}`)
+prompt.outro('Done')
+```
 
 ### Basic TUI Component
 
@@ -196,10 +236,65 @@ Interactive components are available from `@bunli/tui/interactive` and root expo
 
 Included primitives:
 - Form: `Form`, `SchemaForm`, `FormField`, `SelectField`
-- Layout: `Stack`, `Panel`, `Card`, `Divider`
-- Feedback: `Alert`, `Badge`, `ProgressBar`
-- Data display: `List`, `Table`, `KeyValueList`, `Stat`, `Markdown`, `Diff`
+- Form v2: `NumberField`, `PasswordField`, `TextareaField`, `CheckboxField`, `MultiSelectField`
+- Layout: `Container`, `Stack`, `Grid`, `Panel`, `Card`, `Divider`, `SectionHeader`
+- Navigation/flow: `Tabs`, `Menu`, `CommandPalette`, `Modal`
+- Dialog orchestration: `DialogProvider`, `useDialogManager`, `DialogDismissedError`
+- Feedback: `Alert`, `Badge`, `Toast`, `ProgressBar`, `EmptyState`
+- Data display: `List`, `Table`, `DataTable`, `KeyValueList`, `Stat`, `Markdown`, `Diff`
 - Charts: `BarChart`, `LineChart`, `Sparkline` from `@bunli/tui/charts`
+- Focus/keyboard scope: `FocusScopeProvider`, `useFocusScope`, `useScopedKeyboard`
+
+### Keyboard Contracts
+
+Default keyboard bindings for interactive primitives:
+
+- `Modal`: `Esc` / `Ctrl+C` close, `Tab`/`Shift+Tab` focus trap
+- `Dialog confirm`: `Left`/`h`/`y` -> confirm, `Right`/`l`/`n` -> cancel choice, `Tab` toggle, `Enter` submit
+- `Dialog choose`: `Up`/`k` previous, `Down`/`j` next, `Enter` submit. Disabled options are skipped for selection/navigation.
+- `Menu`: `Up`/`k`, `Down`/`j`, `Enter`
+- `Tabs`: `Left`/`h` previous tab, `Right`/`l` next tab
+- `CommandPalette`: `Up`/`k`, `Down`/`j`, `Enter`
+- `DataTable`: `Left`/`h` previous sort column, `Right`/`l` next sort column, `Up`/`k` previous row, `Down`/`j` next row, `Enter` select row
+- `Form`: `Tab`/`Shift+Tab` field navigation, `Ctrl+S` submit, `Ctrl+R` reset, `F8`/`Shift+F8` jump error fields, `Esc` cancel
+
+### Dialog Manager
+
+Use the dialog manager to stack confirm/choose flows with consistent priority handling and dismissal semantics.
+
+```typescript
+import { useDialogManager, DialogDismissedError } from '@bunli/tui/interactive'
+
+function Screen() {
+  const dialogs = useDialogManager()
+
+  async function deploy() {
+    try {
+      const confirmed = await dialogs.confirm({
+        title: 'Deploy',
+        message: 'Ship this release now?'
+      })
+      if (!confirmed) return
+
+      const target = await dialogs.choose({
+        title: 'Target',
+        options: [
+          { label: 'Staging', value: 'staging', section: 'General' },
+          { label: 'Production', value: 'production', section: 'Protected', disabled: true }
+        ]
+      })
+
+      console.log('Deploying to', target)
+    } catch (error) {
+      if (error instanceof DialogDismissedError) {
+        console.log('Dialog dismissed')
+      }
+    }
+  }
+
+  return <box />
+}
+```
 
 ### Form
 
@@ -225,6 +320,10 @@ A schema-driven container for controlled interactive forms.
 - `initialValues?: Partial<InferOutput<schema>>` - Initial controlled values
 - `validateOnChange?: boolean` - Validate while typing/selecting (default `true`)
 - `submitHint?: string` - Footer hint override
+- `onReset?: () => void` - Reset callback
+- `onDirtyChange?: (isDirty, dirtyFields) => void` - Dirty-state callback
+- `onSubmitStateChange?: ({ isSubmitting, isValidating }) => void` - async state callback
+- `scopeId?: string` - keyboard scope boundary id for nested interactive flows
 
 ### SchemaForm
 
@@ -236,11 +335,31 @@ A higher-level schema form builder that renders fields from descriptors.
   schema={schema}
   fields={[
     { kind: 'text', name: 'service', label: 'Service' },
-    { kind: 'select', name: 'env', label: 'Environment', options: envOptions }
+    { kind: 'select', name: 'env', label: 'Environment', options: envOptions },
+    { kind: 'checkbox', name: 'telemetry', label: 'Enable telemetry' },
+    {
+      kind: 'textarea',
+      name: 'notes',
+      label: 'Release notes',
+      visibleWhen: (values) => values.env === 'production'
+    }
   ]}
   onSubmit={(values) => console.log(values)}
 />
 ```
+
+Supported `SchemaForm` field kinds:
+- `text`
+- `select`
+- `multiselect`
+- `number`
+- `password`
+- `textarea`
+- `checkbox`
+
+Field-level behavior:
+- `visibleWhen(values) => boolean` for conditional rendering.
+- `deriveDefault(values) => unknown` for dependent default initialization.
 
 ### FormField
 
@@ -308,6 +427,27 @@ A progress bar component for showing completion status.
 - `value: number` - Progress value (0-100)
 - `label?: string` - Progress label
 - `color?: string` - Progress bar color
+
+### Chart Primitives
+
+`@bunli/tui/charts` supports negative and sparse values, axis labels, and multi-series palettes.
+
+```typescript
+import { BarChart, LineChart } from '@bunli/tui/charts'
+
+<BarChart
+  series={[
+    { name: 'build', points: [{ label: 'Mon', value: -2 }, { label: 'Tue', value: 6 }] },
+    { name: 'test', points: [{ label: 'Mon', value: null }, { label: 'Tue', value: 4 }] }
+  ]}
+  axis={{ yLabel: 'Jobs', xLabel: 'Day', showRange: true }}
+/>
+
+<LineChart
+  series={{ name: 'latency', points: [{ value: 120 }, { value: 98 }, { value: null }, { value: 104 }] }}
+  axis={{ yLabel: 'ms' }}
+/>
+```
 
 ### ThemeProvider and Tokens
 

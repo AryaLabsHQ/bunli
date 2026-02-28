@@ -5,28 +5,20 @@ export default defineCommand({
   name: 'setup' as const,
   description: 'Interactive project setup wizard',
   options: {
-    // Preset configuration
     preset: option(
-      z.enum(['minimal', 'standard', 'full'])
-        .optional(),
-      { 
-        short: 'p', 
-        description: 'Use preset configuration' 
+      z.enum(['minimal', 'standard', 'full']).optional(),
+      {
+        short: 'p',
+        description: 'Use preset configuration'
       }
     )
   },
-  
-  handler: async ({ flags, colors, prompt, spinner }) => {
-    prompt.intro('Project Setup Wizard')
-    prompt.note('Press Ctrl+C at any step to cancel the wizard.', 'Tip')
 
-    console.log(colors.bold('🎯 Project Setup Wizard'))
-    console.log(colors.dim('Let\'s configure your project step by step\n'))
-    
-    // Use preset if provided
+  handler: async ({ flags, prompt, spinner }) => {
+    prompt.intro('Project Setup Wizard')
+    prompt.note('Use Ctrl+C at any point to cancel.', 'Tip')
+
     if (flags.preset) {
-      console.log(colors.cyan(`Using ${flags.preset} preset...`))
-      
       const presets = {
         minimal: {
           name: 'my-project',
@@ -55,45 +47,39 @@ export default defineCommand({
           installDeps: true,
           features: ['testing', 'linting', 'docker', 'ci']
         }
-      }
-      
+      } as const
+
       const config = presets[flags.preset]
-      console.log(colors.green('✅ Preset applied successfully!'))
-      console.log(colors.dim('\nConfiguration:'))
-      console.log(`  Name: ${colors.cyan(config.name)}`)
-      console.log(`  Type: ${colors.cyan(config.type)}`)
-      console.log(`  Framework: ${colors.cyan(config.framework)}`)
-      console.log(`  TypeScript: ${colors.cyan(config.typescript ? 'Yes' : 'No')}`)
-      console.log(`  Git: ${colors.cyan(config.git ? 'Yes' : 'No')}`)
-      console.log(`  Features: ${colors.cyan(config.features.join(', ') || 'None')}`)
+      prompt.log.info(`Using preset: ${flags.preset}`)
+      prompt.note(
+        [
+          `Name: ${config.name}`,
+          `Type: ${config.type}`,
+          `Framework: ${config.framework}`,
+          `TypeScript: ${config.typescript ? 'Yes' : 'No'}`,
+          `Git: ${config.git ? 'Yes' : 'No'}`,
+          `Features: ${config.features.join(', ') || 'None'}`
+        ].join('\n'),
+        'Preset Configuration'
+      )
       prompt.outro(`Preset "${flags.preset}" ready`)
       return
     }
-    
-    // Interactive setup
-    const config: {
-      name?: string
-      type?: string
-      framework?: string
-      typescript?: boolean
-      git?: boolean
-      telemetry?: boolean
-      installDeps?: boolean
-      features?: string[]
-    } = {}
-    
-    // Project name
-    config.name = await prompt.text('Project name:', {
+
+    prompt.note('Step 1/4: Project identity', 'Step')
+
+    const name = await prompt.text('Project name:', {
       default: 'my-project',
       validate: (val) => {
         if (!val || val.length < 2) return 'Name must be at least 2 characters'
-        if (!/^[a-zA-Z0-9-_]+$/.test(val)) return 'Name can only contain letters, numbers, hyphens, and underscores'
+        if (!/^[a-zA-Z0-9-_]+$/.test(val)) {
+          return 'Name can only contain letters, numbers, hyphens, and underscores'
+        }
         return true
       }
     })
-    
-    // Project type
-    config.type = await prompt.select('Project type:', {
+
+    const type = await prompt.select('Project type:', {
       options: [
         { value: 'library', label: 'Library', hint: 'Reusable code package' },
         { value: 'application', label: 'Application', hint: 'Standalone app' },
@@ -101,9 +87,10 @@ export default defineCommand({
       ],
       default: 'application'
     })
-    
-    // Framework
-    config.framework = await prompt.select('Runtime framework:', {
+
+    prompt.note('Step 2/4: Runtime and language', 'Step')
+
+    const framework = await prompt.select('Runtime framework:', {
       options: [
         { value: 'bun', label: 'Bun', hint: 'Fast JavaScript runtime' },
         { value: 'node', label: 'Node.js', hint: 'Traditional Node.js' },
@@ -111,107 +98,90 @@ export default defineCommand({
       ],
       default: 'bun'
     })
-    
-    // TypeScript
-    config.typescript = await prompt.confirm('Use TypeScript?', {
-      default: true
-    })
-    
-    // Git
-    config.git = await prompt.confirm('Initialize Git repository?', {
+
+    const typescript = await prompt.confirm('Use TypeScript?', {
       default: true
     })
 
-    config.telemetry = await prompt.confirm('Enable anonymous setup analytics?', {
+    const git = await prompt.confirm('Initialize Git repository?', {
+      default: true
+    })
+
+    const telemetry = await prompt.confirm('Enable anonymous setup analytics?', {
       default: false
     })
-    
-    // Features
-    const availableFeatures = [
-      { value: 'testing', label: 'Testing', hint: 'Jest/Vitest setup' },
-      { value: 'linting', label: 'Linting', hint: 'ESLint configuration' },
-      { value: 'docker', label: 'Docker', hint: 'Containerization' },
-      { value: 'ci', label: 'CI/CD', hint: 'GitHub Actions' }
-    ]
-    
-    config.features = await prompt.multiselect<string>('Additional features:', {
-      options: availableFeatures
+
+    prompt.note('Step 3/4: Optional capabilities', 'Step')
+
+    const features = await prompt.multiselect<string>('Additional features:', {
+      options: [
+        { value: 'testing', label: 'Testing', hint: 'Jest/Vitest setup' },
+        { value: 'linting', label: 'Linting', hint: 'ESLint configuration' },
+        { value: 'docker', label: 'Docker', hint: 'Containerization' },
+        { value: 'ci', label: 'CI/CD', hint: 'GitHub Actions' }
+      ],
+      initialValues: ['testing'],
+      min: 1
     })
-    
-    // Install dependencies
-    config.installDeps = await prompt.confirm('Install dependencies now?', {
+
+    const installDeps = await prompt.confirm('Install dependencies now?', {
       default: true
     })
-    
-    // Show configuration summary
-    console.log(colors.bold('\n📋 Configuration Summary:'))
-    console.log(`  Name: ${colors.cyan(config.name)}`)
-    console.log(`  Type: ${colors.cyan(config.type)}`)
-    console.log(`  Framework: ${colors.cyan(config.framework)}`)
-    console.log(`  TypeScript: ${colors.cyan(config.typescript ? 'Yes' : 'No')}`)
-    console.log(`  Git: ${colors.cyan(config.git ? 'Yes' : 'No')}`)
-    console.log(`  Telemetry: ${colors.cyan(config.telemetry ? 'Enabled' : 'Disabled')}`)
-    console.log(`  Features: ${colors.cyan(config.features.join(', ') || 'None')}`)
-    console.log(`  Install deps: ${colors.cyan(config.installDeps ? 'Yes' : 'No')}`)
-    
-    // Final confirmation
-    const confirmed = await prompt.confirm('\nCreate project with this configuration?', {
+
+    prompt.note(
+      [
+        `Name: ${name}`,
+        `Type: ${type}`,
+        `Framework: ${framework}`,
+        `TypeScript: ${typescript ? 'Yes' : 'No'}`,
+        `Git: ${git ? 'Yes' : 'No'}`,
+        `Telemetry: ${telemetry ? 'Enabled' : 'Disabled'}`,
+        `Features: ${features.join(', ')}`,
+        `Install dependencies: ${installDeps ? 'Yes' : 'No'}`
+      ].join('\n'),
+      'Configuration Summary'
+    )
+
+    prompt.note('Step 4/4: Confirm and create', 'Step')
+
+    const confirmed = await prompt.confirm('Create project with this configuration?', {
       default: true
     })
-    
+
     if (!confirmed) {
       prompt.cancel('Setup cancelled')
       return
     }
-    
-    // Simulate project creation
+
     const spin = spinner('Creating project...')
-    
+
     try {
-      // Create directory
-      spin.update('Creating project directory...')
-      await new Promise(resolve => setTimeout(resolve, 300))
-      
-      // Initialize package.json
-      spin.update('Initializing package.json...')
-      await new Promise(resolve => setTimeout(resolve, 200))
-      
-      // Setup TypeScript
-      if (config.typescript) {
-        spin.update('Configuring TypeScript...')
-        await new Promise(resolve => setTimeout(resolve, 400))
+      const steps: string[] = [
+        'Creating project directory...',
+        'Initializing package.json...'
+      ]
+
+      if (typescript) steps.push('Configuring TypeScript...')
+      if (git) steps.push('Initializing Git repository...')
+      for (const feature of features) {
+        steps.push(`Setting up ${feature}...`)
       }
-      
-      // Initialize Git
-      if (config.git) {
-        spin.update('Initializing Git repository...')
-        await new Promise(resolve => setTimeout(resolve, 300))
+      if (installDeps) steps.push('Installing dependencies...')
+
+      for (const step of steps) {
+        spin.update(step)
+        await new Promise((resolve) => setTimeout(resolve, 250))
       }
-      
-      // Setup features
-      for (const feature of config.features) {
-        spin.update(`Setting up ${feature}...`)
-        await new Promise(resolve => setTimeout(resolve, 500))
-      }
-      
-      // Install dependencies
-      if (config.installDeps) {
-        spin.update('Installing dependencies...')
-        await new Promise(resolve => setTimeout(resolve, 1000))
-      }
-      
+
       spin.succeed('Project created successfully!')
-      
-      console.log(colors.green('\n🎉 Your project is ready!'))
-      console.log(colors.dim('\nNext steps:'))
-      console.log(`  ${colors.cyan('cd')} ${config.name}`)
-      console.log(`  ${colors.cyan('bun run dev')} # Start development`)
-      console.log(`  ${colors.cyan('bun run build')} # Build for production`)
-      prompt.outro(`Project "${config.name}" is ready`)
-      
+      prompt.note(
+        [`cd ${name}`, 'bun run dev # Start development', 'bun run build # Build for production'].join('\n'),
+        'Next Steps'
+      )
+      prompt.outro(`Project "${name}" is ready`)
     } catch (error) {
       spin.fail('Project creation failed')
-      console.error(colors.red(`Error: ${error instanceof Error ? error.message : String(error)}`))
+      prompt.log.error(error instanceof Error ? error.message : String(error))
       prompt.outro('Setup finished with errors')
     }
   }

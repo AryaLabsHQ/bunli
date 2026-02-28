@@ -9,6 +9,7 @@ The absolute simplest possible Bunli CLI with a single command. Perfect starting
 - Basic command definition
 - Simple flag handling
 - OpenTUI `render` + CLI `handler` dual mode
+- Component-library showcase command (`showcase --tui`)
 - Minimal configuration
 - Type generation for enhanced DX
 
