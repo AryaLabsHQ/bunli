@@ -75,17 +75,18 @@ function ShowcaseScreen({ theme }: { theme: 'dark' | 'light' }) {
   const isCompact = terminalWidth < 80
   const isTiny = terminalWidth < 66
   const isUltraWide = terminalWidth >= 180
-  const contentWidth = Math.max(24, terminalWidth - 8)
+  const contentWidth = Math.max(24, terminalWidth - 10)
+  const layoutWidth = Math.max(24, contentWidth - 2)
   const statsColumns = isTiny ? 1 : terminalWidth < 96 ? 2 : 3
   const topPanelWidth = isNarrow
-    ? contentWidth
+    ? layoutWidth
     : isUltraWide
-      ? Math.max(28, Math.floor((contentWidth - 4) / 3))
-      : Math.max(28, Math.floor((contentWidth - 2) / 2))
+      ? Math.max(28, Math.floor((layoutWidth - 4) / 3))
+      : Math.max(28, Math.floor((layoutWidth - 2) / 2))
   const panelLineWidth = Math.max(24, topPanelWidth - 6)
-  const fullPanelLineWidth = Math.max(24, contentWidth - 6)
-  const tableLineWidth = Math.max(32, contentWidth - 6)
-  const metaLineWidth = Math.max(28, contentWidth - 6)
+  const fullPanelLineWidth = Math.max(24, layoutWidth - 6)
+  const tableLineWidth = Math.max(32, layoutWidth - 6)
+  const metaLineWidth = Math.max(28, layoutWidth - 6)
   const chartWidth = Math.max(24, Math.floor((tableLineWidth - 26) / 2) * 2)
   const sparklineWidth = Math.max(20, Math.min(96, tableLineWidth - 16))
   const bodyHeight = Math.max(12, terminalHeight - 8)
@@ -442,7 +443,12 @@ function ShowcaseScreen({ theme }: { theme: 'dark' | 'light' }) {
   const queueDepth = 7 + (pulse % 4)
   const throughput = 112 + ((pulse % 6) * 3)
   const heroSparklineValues = [18, 21, 19, 24, 26, 23, 27, 30, 28]
-  const heroPanelWidth = isNarrow ? contentWidth : Math.max(36, Math.floor((contentWidth - 2) / 2))
+  const releasePanelInnerWidth = Math.max(24, layoutWidth - 4)
+  const heroPanelWidth = isNarrow
+    ? releasePanelInnerWidth
+    : Math.max(36, Math.floor((releasePanelInnerWidth - 2) / 2))
+  const heroKeyValueWidth = Math.max(24, heroPanelWidth - 10)
+  const heroBarChartWidth = Math.max(20, heroPanelWidth - 26)
 
   return (
     <ThemeProvider theme={theme}>
@@ -467,7 +473,7 @@ function ShowcaseScreen({ theme }: { theme: 'dark' | 'light' }) {
           focused={keyboardInteractionsEnabled && activeRegion === 'viewport'}
           style={{ borderColor: 'transparent' }}
         >
-          <box style={{ flexDirection: 'column', gap: 2, width: contentWidth }}>
+          <box style={{ flexDirection: 'column', gap: 2, width: layoutWidth }}>
             <Panel
               title='Release Cockpit'
               subtitle='Animated operational snapshot'
@@ -483,10 +489,10 @@ function ShowcaseScreen({ theme }: { theme: 'dark' | 'light' }) {
                     <Badge tone='warning' label={`queue ${queueDepth}`} />
                   </Stack>
                   <Progress value={rolloutProgress} label='Rollout confidence' />
-                  <Sparkline values={heroSparklineValues} width={Math.max(24, Math.min(72, contentWidth - 12))} />
+                  <Sparkline values={heroSparklineValues} width={Math.max(24, Math.min(72, layoutWidth - 12))} />
                 </Stack>
               ) : (
-                <Stack direction='row' gap={2} style={{ width: contentWidth }}>
+                <Stack direction='row' gap={2} style={{ width: releasePanelInnerWidth }}>
                   <box width={heroPanelWidth}>
                     <Stack gap={1}>
                       <text content='OpenTUI lets you blend command surfaces, dashboards, and modal workflows in one terminal runtime.' />
@@ -501,7 +507,7 @@ function ShowcaseScreen({ theme }: { theme: 'dark' | 'light' }) {
                           { key: 'active workers', value: `${14 + (pulse % 3)}` },
                           { key: 'focus region', value: activeRegion }
                         ]}
-                        maxLineWidth={Math.max(28, heroPanelWidth - 6)}
+                        maxLineWidth={heroKeyValueWidth}
                       />
                     </Stack>
                   </box>
@@ -517,7 +523,7 @@ function ShowcaseScreen({ theme }: { theme: 'dark' | 'light' }) {
                             { label: 'cache', value: 9 + (pulse % 2) }
                           ]
                         }}
-                        width={Math.max(26, heroPanelWidth - 8)}
+                        width={heroBarChartWidth}
                       />
                     </Stack>
                   </box>
@@ -532,7 +538,7 @@ function ShowcaseScreen({ theme }: { theme: 'dark' | 'light' }) {
             </Grid>
 
             {isUltraWide ? (
-              <Stack direction='row' gap={2} style={{ width: contentWidth }}>
+              <Stack direction='row' gap={2} style={{ width: layoutWidth }}>
                 <box width={topPanelWidth}>
                   <Panel title='Feedback' subtitle='Tone variants'>
                     <Alert tone='success' title='Build' message='All packages built successfully' />
@@ -579,7 +585,7 @@ function ShowcaseScreen({ theme }: { theme: 'dark' | 'light' }) {
                 </box>
               </Stack>
             ) : isNarrow ? (
-              <Stack direction='column' gap={2} style={{ width: contentWidth }}>
+              <Stack direction='column' gap={2} style={{ width: layoutWidth }}>
                 <box width={topPanelWidth}>
                   <Panel title='Feedback' subtitle='Tone variants'>
                     <Alert tone='success' title='Build' message='All packages built successfully' />
@@ -621,8 +627,8 @@ function ShowcaseScreen({ theme }: { theme: 'dark' | 'light' }) {
                 </box>
               </Stack>
             ) : (
-              <Stack direction='column' gap={2} style={{ width: contentWidth }}>
-                <Stack direction='row' gap={2} style={{ width: contentWidth }}>
+              <Stack direction='column' gap={2} style={{ width: layoutWidth }}>
+                <Stack direction='row' gap={2} style={{ width: layoutWidth }}>
                   <box width={topPanelWidth}>
                     <Panel title='Feedback' subtitle='Tone variants'>
                       <Alert tone='success' title='Build' message='All packages built successfully' />
@@ -652,7 +658,7 @@ function ShowcaseScreen({ theme }: { theme: 'dark' | 'light' }) {
                   </box>
                 </Stack>
 
-                <box width={contentWidth}>
+                <box width={layoutWidth}>
                   <Panel title='Command Palette' subtitle={isCompact ? `focus: ${activeRegion}` : 'Search and run commands'}>
                     <CommandPalette
                       items={commandPaletteItems}
