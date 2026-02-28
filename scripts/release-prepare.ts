@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { $ } from 'bun'
-import * as p from '@clack/prompts'
+import * as p from '@bunli/tui/prompt'
 import { readdir, readFile, writeFile } from 'fs/promises'
 import { existsSync } from 'node:fs'
 import { join } from 'path'
@@ -353,10 +353,10 @@ async function ensureCleanWorkingTree(options: Options): Promise<Result<void, Re
 
   const confirmed = await p.confirm({
     message: 'Working tree is not clean. Continue anyway?',
-    initialValue: false,
+    default: false,
   })
 
-  if (p.isCancel(confirmed) || !confirmed) {
+  if (!confirmed) {
     return Result.err(new UserCancelled())
   }
 
@@ -441,14 +441,10 @@ async function main(): Promise<Result<void, ReleasePrepareError>> {
           label: `${pkg.config.name} (${pkg.commits.length} commits)`,
           hint: pkg.lastTag ? `last: ${pkg.lastTag}` : 'first release',
         })),
-        required: true,
+        min: 1,
       })
 
-      if (p.isCancel(selected)) {
-        return Result.err(new UserCancelled())
-      }
-
-      selectedPackages = modifiedPackages.filter((pkg) => (selected as string[]).includes(pkg.config.name))
+      selectedPackages = modifiedPackages.filter((pkg) => selected.includes(pkg.config.name))
     }
   }
 
@@ -558,10 +554,10 @@ async function main(): Promise<Result<void, ReleasePrepareError>> {
     if (!options.yes) {
       const confirmPr = await p.confirm({
         message: 'Create a PR with this changeset?',
-        initialValue: true,
+        default: true,
       })
 
-      if (p.isCancel(confirmPr) || !confirmPr) {
+      if (!confirmPr) {
         p.outro('Changeset prepared without PR')
         return Result.ok(undefined)
       }
@@ -637,6 +633,10 @@ try {
     process.exit(1)
   }
 } catch (error) {
+  if (error instanceof p.PromptCancelledError) {
+    process.exit(0)
+  }
+
   p.log.error(`Release prepare failed: ${toErrorMessage(error)}`)
   process.exit(1)
 }

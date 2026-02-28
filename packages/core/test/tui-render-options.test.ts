@@ -1,7 +1,7 @@
 import { describe, test, expect, afterEach } from 'bun:test'
 import { createCLI } from '../src/cli.js'
 import { registerTuiRenderer, clearTuiRenderer } from '../src/tui/registry.js'
-import { PromptCancelledError } from '@bunli/utils'
+import { PromptCancelledError } from '@bunli/tui/prompt'
 
 describe('TUI renderer option plumbing', () => {
   afterEach(() => {

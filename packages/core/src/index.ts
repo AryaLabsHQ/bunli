@@ -34,6 +34,7 @@ export type {
   HelpRenderContext,
   HelpRenderer,
   RenderResult,
+  PromptApi,
   RegisteredCommands,
   CommandOptions
 } from './types.js'

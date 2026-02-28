@@ -16,7 +16,7 @@ import {
 } from '../src/commands/release.ts'
 import releaseCommand from '../src/commands/release.ts'
 import { testCommand, mockPromptResponses } from '@bunli/test'
-import type { BunliUtils } from '@bunli/utils'
+import type { PromptApi } from '@bunli/core'
 
 // ── Pure unit tests ──────────────────────────────────────────────────────────
 
@@ -191,7 +191,7 @@ describe('getNpmPublishArgs', () => {
 
 // ── determineVersion ─────────────────────────────────────────────────────────
 
-function makePrompt(selectValue: string, textValue = ''): BunliUtils['prompt'] {
+function makePrompt(selectValue: string, textValue = ''): PromptApi {
   return Object.assign(
     (_msg: string) => Promise.resolve(textValue),
     {
@@ -201,7 +201,7 @@ function makePrompt(selectValue: string, textValue = ''): BunliUtils['prompt'] {
       password: () => Promise.resolve(''),
       multiselect: () => Promise.resolve([]),
     }
-  ) as BunliUtils['prompt']
+  ) as PromptApi
 }
 
 describe('determineVersion', () => {

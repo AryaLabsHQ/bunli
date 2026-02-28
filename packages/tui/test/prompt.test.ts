@@ -1,38 +1,35 @@
 import { describe, test, expect, beforeEach, afterEach } from 'bun:test'
 import { z } from 'zod'
-import { confirm, multiselect, password, select } from '../src/prompt.js'
-import { clack, CANCEL, PromptCancelledError } from '../src/prompts/clack.js'
+import {
+  confirm,
+  multiselect,
+  password,
+  select,
+  CANCEL,
+  PromptCancelledError,
+  __setPromptRuntimeForTests
+} from '../src/prompt/index.js'
 
-function setClackValue(key: PropertyKey, value: unknown) {
-  Reflect.set(clack, key, value)
-}
-
-describe('@bunli/utils prompt adapters', () => {
-  const originalValues = new Map<PropertyKey, unknown>()
+describe('@bunli/tui prompt adapters', () => {
+  let restoreRuntime: (() => void) | null = null
 
   beforeEach(() => {
-    originalValues.set('confirm', clack.confirm)
-    originalValues.set('select', clack.select)
-    originalValues.set('multiselect', clack.multiselect)
-    originalValues.set('password', clack.password)
-    originalValues.set('cancel', clack.cancel)
+    restoreRuntime = null
   })
 
   afterEach(() => {
-    for (const [key, value] of originalValues.entries()) {
-      setClackValue(key, value)
-    }
-    originalValues.clear()
+    restoreRuntime?.()
+    restoreRuntime = null
   })
 
   test('password preserves whitespace exactly', async () => {
-    setClackValue('password', async () => '  secret  ')
+    restoreRuntime = __setPromptRuntimeForTests({ password: async () => '  secret  ' as string })
     const value = await password('Password')
     expect(value).toBe('  secret  ')
   })
 
   test('password schema receives untrimmed input', async () => {
-    setClackValue('password', async () => '  abc  ')
+    restoreRuntime = __setPromptRuntimeForTests({ password: async () => '  abc  ' as string })
 
     const length = await password<number>('Password', {
       schema: z.string().transform((v) => v.length)
@@ -42,8 +39,10 @@ describe('@bunli/utils prompt adapters', () => {
   })
 
   test('confirm throws PromptCancelledError on cancel', async () => {
-    setClackValue('confirm', async () => CANCEL)
-    setClackValue('cancel', () => CANCEL)
+    restoreRuntime = __setPromptRuntimeForTests({
+      confirm: async () => CANCEL,
+      cancel: () => CANCEL
+    })
 
     await expect(confirm('Continue?')).rejects.toThrow(PromptCancelledError)
   })
@@ -51,9 +50,11 @@ describe('@bunli/utils prompt adapters', () => {
   test('select forwards hint/disabled options and returns selected value', async () => {
     let capturedOptions: unknown
 
-    setClackValue('select', async (args: { options: unknown }) => {
-      capturedOptions = args.options
-      return 'b'
+    restoreRuntime = __setPromptRuntimeForTests({
+      select: async (args: { options: unknown }) => {
+        capturedOptions = args.options
+        return 'b'
+      }
     })
 
     const result = await select('Choose', {
@@ -75,10 +76,12 @@ describe('@bunli/utils prompt adapters', () => {
     const results: Array<string[]> = [[], ['a', 'b'], ['a']]
     let callIndex = 0
 
-    setClackValue('multiselect', async () => {
-      const next = results[callIndex] ?? ['a']
-      callIndex += 1
-      return next
+    restoreRuntime = __setPromptRuntimeForTests({
+      multiselect: async () => {
+        const next = results[callIndex] ?? ['a']
+        callIndex += 1
+        return next
+      }
     })
 
     const errors: string[] = []

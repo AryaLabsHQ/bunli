@@ -1,0 +1,560 @@
+import { SchemaError } from '@standard-schema/utils'
+import type { StandardSchemaV1 } from '@standard-schema/spec'
+import { createInterface } from 'node:readline/promises'
+
+export type PromptMode = 'inline' | 'interactive'
+
+interface BasePromptOptions<TFallback> {
+  mode?: PromptMode
+  fallbackValue?: TFallback
+}
+
+export interface PromptOptions extends BasePromptOptions<string> {
+  default?: string
+  validate?: (input: string) => boolean | string
+  schema?: StandardSchemaV1
+  placeholder?: string
+  multiline?: boolean
+}
+
+export interface ConfirmOptions extends BasePromptOptions<boolean> {
+  default?: boolean
+}
+
+export interface SelectOption<T = string> {
+  label: string
+  value: T
+  hint?: string
+  disabled?: boolean
+}
+
+export interface SelectOptions<T = string> extends BasePromptOptions<T> {
+  options: SelectOption<T>[]
+  default?: T
+  hint?: string
+}
+
+export interface MultiSelectOptions<T = string> extends BasePromptOptions<T[]> {
+  options: SelectOption<T>[]
+  min?: number
+  max?: number
+  initialValues?: T[]
+}
+
+export const CANCEL = Symbol.for('bunli:prompt_cancel')
+export type Cancel = typeof CANCEL | symbol
+
+function isCIEnvironment(): boolean {
+  return Boolean(
+    process.env.CI ||
+      process.env.CONTINUOUS_INTEGRATION ||
+      process.env.GITHUB_ACTIONS ||
+      process.env.GITLAB_CI ||
+      process.env.CIRCLECI ||
+      process.env.TRAVIS
+  )
+}
+
+function canPrompt(mode?: PromptMode): boolean {
+  if (mode === 'interactive') {
+    return Boolean(process.stdin.isTTY && process.stdout.isTTY)
+  }
+  return Boolean(process.stdin.isTTY && process.stdout.isTTY && !isCIEnvironment())
+}
+
+let bypassTerminalCheckForTests = false
+
+function resolveFallback<T>(enabled: boolean, fallbackValue: T | undefined): T | undefined {
+  if (enabled) return undefined
+  return fallbackValue
+}
+
+function assertInteractiveOrFallback<T>(mode: PromptMode | undefined, fallbackValue: T | undefined): T | undefined {
+  if (bypassTerminalCheckForTests) return undefined
+
+  const fallback = resolveFallback(canPrompt(mode), fallbackValue)
+  if (fallback !== undefined) return fallback
+  if (!canPrompt(mode)) {
+    throw new Error('Prompt requires an interactive terminal. Provide fallbackValue for non-interactive environments.')
+  }
+  return undefined
+}
+
+export function isCancel(value: unknown): value is Cancel {
+  return value === CANCEL
+}
+
+export class PromptCancelledError extends Error {
+  constructor(message = 'Cancelled') {
+    super(message)
+    this.name = 'PromptCancelledError'
+  }
+}
+
+export function assertNotCancelled<T>(value: T | Cancel, message?: string): T {
+  if (isCancel(value)) throw new PromptCancelledError(message)
+  return value
+}
+
+export function promptOrExit<T>(value: T | Cancel, message?: string): T {
+  if (isCancel(value)) {
+    cancel(message ?? 'Cancelled')
+    process.exit(0)
+  }
+  return value
+}
+
+function cancelAndThrow(message?: string): never {
+  cancel(message ?? 'Cancelled')
+  throw new PromptCancelledError(message ?? 'Cancelled')
+}
+
+function renderSchemaIssues(error: unknown) {
+  if (!(error instanceof SchemaError)) return
+  console.error('Invalid input:')
+  for (const issue of error.issues) {
+    console.error(`  - ${issue.message}`)
+  }
+  console.error()
+}
+
+async function askLine(message: string, defaultValue?: string): Promise<string> {
+  const rl = createInterface({
+    input: process.stdin,
+    output: process.stdout
+  })
+
+  const promptLabel = defaultValue !== undefined ? `${message} (${defaultValue}) ` : `${message} `
+
+  try {
+    const answer = await rl.question(promptLabel)
+    if (answer.length === 0 && defaultValue !== undefined) return defaultValue
+    return answer
+  } finally {
+    rl.close()
+  }
+}
+
+interface RawSpinner {
+  start(text?: string): void
+  stop(text?: string): void
+  message(text: string): void
+}
+
+interface PromptDriver {
+  text(args: {
+    message: string
+    placeholder?: string
+    defaultValue?: string
+    validate?: (value: string) => string | undefined
+  }): Promise<string | Cancel>
+  password(args: {
+    message: string
+    validate?: (value: string) => string | undefined
+  }): Promise<string | Cancel>
+  confirm(args: { message: string; initialValue?: boolean }): Promise<boolean | Cancel>
+  select<T>(args: { message: string; options: SelectOption<T>[]; initialValue?: T }): Promise<T | Cancel>
+  multiselect<T>(args: {
+    message: string
+    options: SelectOption<T>[]
+    initialValues?: T[]
+    required?: boolean
+  }): Promise<T[] | Cancel>
+  intro(message: string): void
+  outro(message: string): void
+  note(message: string, title?: string): void
+  cancel(message?: string): void
+  log: {
+    info(message: string): void
+    success(message: string): void
+    warn(message: string): void
+    error(message: string): void
+  }
+  spinner(): RawSpinner
+}
+
+function findOptionByToken<T>(token: string, options: SelectOption<T>[]): SelectOption<T> | undefined {
+  const asNumber = Number.parseInt(token, 10)
+  if (!Number.isNaN(asNumber) && asNumber >= 1 && asNumber <= options.length) {
+    return options[asNumber - 1]
+  }
+  return options.find((option) => String(option.value) === token)
+}
+
+const defaultDriver: PromptDriver = {
+  async text(args) {
+    while (true) {
+      const value = await askLine(args.message, args.defaultValue)
+      const validationError = args.validate?.(value)
+      if (validationError) {
+        console.error(validationError)
+        continue
+      }
+      return value
+    }
+  },
+
+  async password(args) {
+    while (true) {
+      const value = await askLine(args.message)
+      const validationError = args.validate?.(value)
+      if (validationError) {
+        console.error(validationError)
+        continue
+      }
+      return value
+    }
+  },
+
+  async confirm(args) {
+    const defaultValue = args.initialValue ?? false
+    const suffix = defaultValue ? '[Y/n]' : '[y/N]'
+
+    while (true) {
+      const value = (await askLine(`${args.message} ${suffix}`)).trim().toLowerCase()
+      if (value === '') return defaultValue
+      if (['y', 'yes'].includes(value)) return true
+      if (['n', 'no'].includes(value)) return false
+      console.error('Please answer with y/yes or n/no.')
+    }
+  },
+
+  async select<T>(args: { message: string; options: SelectOption<T>[]; initialValue?: T }): Promise<T | Cancel> {
+    console.log(args.message)
+    args.options.forEach((option, index) => {
+      const disabled = option.disabled ? ' (disabled)' : ''
+      const hint = option.hint ? ` - ${option.hint}` : ''
+      console.log(`  ${index + 1}) ${option.label}${hint}${disabled}`)
+    })
+
+    while (true) {
+      const answer = (await askLine('Select option:')).trim()
+      if (answer === '' && args.initialValue !== undefined) return args.initialValue
+
+      const picked = findOptionByToken(answer, args.options)
+      if (!picked) {
+        console.error('Invalid selection. Enter the option number or value.')
+        continue
+      }
+      if (picked.disabled) {
+        console.error('Selected option is disabled.')
+        continue
+      }
+      return picked.value
+    }
+  },
+
+  async multiselect<T>(args: {
+    message: string
+    options: SelectOption<T>[]
+    initialValues?: T[]
+    required?: boolean
+  }): Promise<T[] | Cancel> {
+    console.log(args.message)
+    args.options.forEach((option, index) => {
+      const disabled = option.disabled ? ' (disabled)' : ''
+      const hint = option.hint ? ` - ${option.hint}` : ''
+      console.log(`  ${index + 1}) ${option.label}${hint}${disabled}`)
+    })
+    console.log('Enter comma-separated option numbers or values.')
+
+    while (true) {
+      const answer = (await askLine('Select options:')).trim()
+      if (answer === '') {
+        if (args.initialValues && args.initialValues.length > 0) return args.initialValues
+        if (args.required) {
+          console.error('Select at least one option.')
+          continue
+        }
+        return []
+      }
+
+      const tokens = answer
+        .split(/[\s,]+/)
+        .map((token) => token.trim())
+        .filter(Boolean)
+
+      const selected = new Set<T>()
+      let invalidToken: string | null = null
+
+      for (const token of tokens) {
+        const option = findOptionByToken(token, args.options)
+        if (!option || option.disabled) {
+          invalidToken = token
+          break
+        }
+        selected.add(option.value)
+      }
+
+      if (invalidToken) {
+        console.error(`Invalid selection: ${invalidToken}`)
+        continue
+      }
+
+      const values = Array.from(selected)
+      if (args.required && values.length === 0) {
+        console.error('Select at least one option.')
+        continue
+      }
+
+      return values
+    }
+  },
+
+  intro(message) {
+    console.log(`\n${message}`)
+  },
+
+  outro(message) {
+    console.log(`\n${message}`)
+  },
+
+  note(message, title) {
+    if (title) {
+      console.log(`${title}: ${message}`)
+      return
+    }
+    console.log(message)
+  },
+
+  cancel(message = 'Cancelled') {
+    console.log(message)
+  },
+
+  log: {
+    info(message) {
+      console.log(message)
+    },
+    success(message) {
+      console.log(message)
+    },
+    warn(message) {
+      console.warn(message)
+    },
+    error(message) {
+      console.error(message)
+    }
+  },
+
+  spinner() {
+    return {
+      start(text) {
+        if (text) console.log(text)
+      },
+      stop(text) {
+        if (text) console.log(text)
+      },
+      message(text) {
+        console.log(text)
+      }
+    }
+  }
+}
+
+const runtime: PromptDriver = {
+  ...defaultDriver
+}
+
+export function __setPromptRuntimeForTests(overrides: Partial<PromptDriver>): () => void {
+  const original = { ...runtime }
+  const originalBypass = bypassTerminalCheckForTests
+
+  bypassTerminalCheckForTests = true
+  Object.assign(runtime, overrides)
+  return () => {
+    bypassTerminalCheckForTests = originalBypass
+    Object.assign(runtime, original)
+  }
+}
+
+async function validateWithSchema<TOut = unknown>(value: string, options: PromptOptions): Promise<TOut> {
+  const result = await options.schema!['~standard'].validate(value)
+  if ('issues' in result && result.issues) {
+    throw new SchemaError(result.issues)
+  }
+  if ('value' in result) {
+    return result.value as TOut
+  }
+  throw new Error('Schema validation did not return a value')
+}
+
+export async function text<T = string>(message: string, options: PromptOptions = {}): Promise<T> {
+  const fallback = assertInteractiveOrFallback(options.mode, options.fallbackValue)
+  if (fallback !== undefined) return fallback as T
+
+  while (true) {
+    const value = await runtime.text({
+      message,
+      placeholder: options.placeholder,
+      defaultValue: options.default,
+      validate: options.validate
+        ? (v) => {
+            const input = (v ?? '').trim()
+            const res = options.validate?.(input)
+            if (res === true) return undefined
+            if (typeof res === 'string') return res
+            return 'Invalid input'
+          }
+        : undefined
+    })
+
+    if (isCancel(value)) cancelAndThrow()
+
+    const input = (value ?? '').trim()
+
+    if (options.schema) {
+      try {
+        return await validateWithSchema<T>(input, options)
+      } catch (err) {
+        renderSchemaIssues(err)
+        continue
+      }
+    }
+
+    return input as T
+  }
+}
+
+export async function password<T = string>(message: string, options: PromptOptions = {}): Promise<T> {
+  const fallback = assertInteractiveOrFallback(options.mode, options.fallbackValue)
+  if (fallback !== undefined) return fallback as T
+
+  while (true) {
+    const value = await runtime.password({
+      message,
+      validate: options.validate
+        ? (v) => {
+            const input = v ?? ''
+            const res = options.validate?.(input)
+            if (res === true) return undefined
+            if (typeof res === 'string') return res
+            return 'Invalid input'
+          }
+        : undefined
+    })
+
+    if (isCancel(value)) cancelAndThrow()
+
+    const input = value ?? ''
+
+    if (options.schema) {
+      try {
+        return await validateWithSchema<T>(input, options)
+      } catch (err) {
+        renderSchemaIssues(err)
+        continue
+      }
+    }
+
+    return input as T
+  }
+}
+
+export async function confirm(message: string, options: ConfirmOptions = {}): Promise<boolean> {
+  const fallback = assertInteractiveOrFallback(options.mode, options.fallbackValue)
+  if (fallback !== undefined) return fallback
+
+  const value = await runtime.confirm({
+    message,
+    initialValue: options.default
+  })
+
+  if (isCancel(value)) cancelAndThrow()
+  return value
+}
+
+export async function select<T = string>(message: string, options: SelectOptions<T>): Promise<T> {
+  const fallback = assertInteractiveOrFallback(options.mode, options.fallbackValue)
+  if (fallback !== undefined) return fallback
+
+  const value = await runtime.select<T>({
+    message,
+    options: options.options,
+    initialValue: options.default
+  })
+
+  if (isCancel(value)) cancelAndThrow()
+  return value
+}
+
+export async function multiselect<T = string>(message: string, options: MultiSelectOptions<T>): Promise<T[]> {
+  const fallback = assertInteractiveOrFallback(options.mode, options.fallbackValue)
+  if (fallback !== undefined) return fallback
+
+  while (true) {
+    const value = await runtime.multiselect<T>({
+      message,
+      options: options.options,
+      initialValues: options.initialValues,
+      required: (options.min ?? 0) > 0
+    })
+
+    if (isCancel(value)) cancelAndThrow()
+
+    const picked = value ?? []
+    const min = options.min ?? 0
+    const max = options.max
+
+    if (min > 0 && picked.length < min) {
+      console.error(`Please select at least ${min} option(s).`)
+      continue
+    }
+
+    if (typeof max === 'number' && picked.length > max) {
+      console.error(`Please select at most ${max} option(s).`)
+      continue
+    }
+
+    return picked
+  }
+}
+
+export async function group<T extends Record<string, () => Promise<unknown>>>(
+  steps: T
+): Promise<{ [K in keyof T]: Awaited<ReturnType<T[K]>> }> {
+  const result: Partial<{ [K in keyof T]: Awaited<ReturnType<T[K]>> }> = {}
+  for (const [name, step] of Object.entries(steps)) {
+    result[name as keyof T] = (await step()) as Awaited<ReturnType<T[keyof T]>>
+  }
+  return result as { [K in keyof T]: Awaited<ReturnType<T[K]>> }
+}
+
+export const intro = (...args: Parameters<typeof runtime.intro>) => runtime.intro(...args)
+export const outro = (...args: Parameters<typeof runtime.outro>) => runtime.outro(...args)
+export const note = (...args: Parameters<typeof runtime.note>) => runtime.note(...args)
+export const log = runtime.log
+export const cancel = (...args: Parameters<typeof runtime.cancel>) => runtime.cancel(...args)
+export const rawSpinner = (...args: Parameters<typeof runtime.spinner>) => runtime.spinner(...args)
+
+export interface PromptApi {
+  <T = string>(message: string, options?: PromptOptions): Promise<T>
+  confirm(message: string, options?: ConfirmOptions): Promise<boolean>
+  select<T = string>(message: string, options: SelectOptions<T>): Promise<T>
+  password<T = string>(message: string, options?: PromptOptions): Promise<T>
+  text(message: string, options?: PromptOptions): Promise<string>
+  multiselect<T = string>(message: string, options: MultiSelectOptions<T>): Promise<T[]>
+  group<T extends Record<string, () => Promise<unknown>>>(steps: T): Promise<{ [K in keyof T]: Awaited<ReturnType<T[K]>> }>
+  intro: typeof intro
+  outro: typeof outro
+  note: typeof note
+  log: typeof log
+  cancel: typeof cancel
+  isCancel: typeof isCancel
+}
+
+export const prompt = Object.assign(text, {
+  confirm,
+  select,
+  multiselect,
+  password,
+  text,
+  group,
+  intro,
+  outro,
+  note,
+  log,
+  cancel,
+  isCancel
+}) as PromptApi
+
+export type BunliPrompt = PromptApi

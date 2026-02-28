@@ -22,8 +22,8 @@
     "release:publish": "bun run build && bun run ci:publish"
   },
   "devDependencies": {
+    "@bunli/tui": "workspace:^",
     "@changesets/cli": "^2.29.8",
-    "@clack/prompts": "^1.0.0",
     "@types/bun": "catalog:",
     "ai": "^6.0.72",
     "better-result": "catalog:",

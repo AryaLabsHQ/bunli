@@ -8,6 +8,26 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./src/index.ts"
+    },
+    "./register": {
+      "types": "./dist/register.d.ts",
+      "default": "./src/register.ts"
+    },
+    "./prompt": {
+      "types": "./dist/prompt/index.d.ts",
+      "default": "./src/prompt/index.ts"
+    },
+    "./inline": {
+      "types": "./dist/inline/index.d.ts",
+      "default": "./src/inline/index.ts"
+    },
+    "./interactive": {
+      "types": "./dist/interactive/index.d.ts",
+      "default": "./src/interactive/index.tsx"
+    },
+    "./charts": {
+      "types": "./dist/charts/index.d.ts",
+      "default": "./src/charts/index.tsx"
     }
   },
   "scripts": {
@@ -16,9 +36,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@bunli/core": "workspace:^",
     "@opentui/core": "^0.1.75",
-    "@opentui/react": "^0.1.75"
+    "@opentui/react": "^0.1.75",
+    "@standard-schema/spec": "^1.1.0",
+    "@standard-schema/utils": "^0.3.0"
   },
   "devDependencies": {
     "@types/bun": "catalog:",
@@ -40,7 +61,8 @@
     "tui",
     "terminal",
     "ui",
-    "interactive"
+    "interactive",
+    "prompts"
   ],
   "author": "Bunli Contributors",
   "license": "MIT"

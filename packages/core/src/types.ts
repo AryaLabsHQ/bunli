@@ -24,6 +24,8 @@ export interface RenderArgs<TFlags = Record<string, unknown>, TStore = {}> exten
 
 export type RenderFunction<TFlags = Record<string, unknown>, TStore = {}> = (args: RenderArgs<TFlags, TStore>) => RenderResult
 
+export type PromptApi = typeof import('@bunli/tui/prompt').prompt
+
 // Core Bunli types
 /**
  * CLI instance with plugin type information
@@ -120,7 +122,7 @@ export interface HandlerArgs<TFlags = Record<string, unknown>, TStore = {}, TCom
   env: typeof process.env
   cwd: string
   // Utilities
-  prompt: typeof import('@bunli/utils').prompt
+  prompt: PromptApi
   spinner: typeof import('@bunli/utils').spinner
   colors: typeof import('@bunli/utils').colors
   // Plugin context (if plugins are loaded)
