@@ -17,10 +17,9 @@ create-bunli my-cli --template monorepo
 # Remote template (GitHub shorthand)
 create-bunli my-cli --template user/repo
 create-bunli my-cli --template github:user/repo
-
-# Local template directory
-create-bunli my-cli --template ./path/to/template
 ```
+
+Note: local filesystem template paths are not currently supported.
 
 ## Templates
 

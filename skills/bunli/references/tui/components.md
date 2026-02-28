@@ -112,7 +112,7 @@ useKeyboard((key) => {
 })
 
 // Terminal dimensions
-const { rows, columns } = useTerminalDimensions()
+const { width, height } = useTerminalDimensions()
 
 // Resize handler
 useOnResize(() => console.log("resized"))

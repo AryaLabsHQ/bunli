@@ -19,11 +19,11 @@ const plugin = aiAgentPlugin()
 // - OPENCODE=1
 ```
 
-Access in handler via `env`:
+Access in handler via plugin `context`:
 ```typescript
-handler: ({ env }) => {
-  if (env.isAIAgent) {
-    console.log("Running in AI:", env.aiAgents)
+handler: ({ context }) => {
+  if (context?.env.isAIAgent) {
+    console.log("Running in AI:", context.env.aiAgents)
   }
 }
 ```
