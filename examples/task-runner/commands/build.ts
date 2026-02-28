@@ -131,6 +131,7 @@ export default defineCommand({
     } catch (error) {
       spin.fail('Build failed')
       console.error(colors.red(`Error: ${error instanceof Error ? error.message : String(error)}`))
+      throw error instanceof Error ? error : new Error(String(error))
     }
   }
 })

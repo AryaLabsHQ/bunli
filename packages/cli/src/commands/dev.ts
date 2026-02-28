@@ -7,7 +7,8 @@ import { findEntry } from '../utils/find-entry.js'
 import path from 'node:path'
 import { existsSync, statSync } from 'node:fs'
 import { watch } from 'node:fs/promises'
-import type { BunliUtils } from '@bunli/utils'
+import type { PromptSpinnerFactory } from '@bunli/core'
+import type { Colors } from '@bunli/utils'
 
 
 const DevCommandError = TaggedError('DevCommandError')<{
@@ -97,8 +98,8 @@ export default defineCommand({
 async function runDev(
   flags: Record<string, unknown>,
   positional: string[],
-  spinner: BunliUtils['spinner'],
-  colors: BunliUtils['colors']
+  spinner: PromptSpinnerFactory,
+  colors: Colors
 ): Promise<Result<void, DevCommandErrorType>> {
     const config = await loadConfig()
     const typedFlags = flags as {

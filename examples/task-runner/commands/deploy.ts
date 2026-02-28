@@ -69,6 +69,8 @@ export default defineCommand({
     const totalSteps = steps.length
     const stepLabel = (index: number, description: string) => `[${index + 1}/${totalSteps}] ${description}`
     const results: StepResult[] = []
+    let hasFailures = false
+    let aborted = false
 
     const statusText = {
       ok: colors.green('PASS'),
@@ -130,9 +132,9 @@ export default defineCommand({
         animation: flags.spinner,
         showTimer: true
       })
+      const startedAt = Date.now()
       
       try {
-        const startedAt = Date.now()
         // Simulate step execution
         await new Promise(resolve => setTimeout(resolve, 1000))
         
@@ -167,11 +169,12 @@ export default defineCommand({
         
       } catch (error) {
         spin.fail(`${stepLabel(index, step.description)} failed`)
+        hasFailures = true
         results.push({
           index,
           description: step.description,
           status: 'fail',
-          durationMs: 0
+          durationMs: Date.now() - startedAt
         })
         console.error(colors.red(`Error: ${error instanceof Error ? error.message : String(error)}`))
         
@@ -183,19 +186,25 @@ export default defineCommand({
           )
           
           if (!continueDeploy) {
-            prompt.cancel('Deployment aborted')
-            renderSummary()
-            return
+            aborted = true
+            break
           }
         } else {
-          prompt.log.error('Deployment failed')
-          renderSummary()
-          return
+          break
         }
       }
     }
     
     renderSummary()
+    if (aborted) {
+      prompt.cancel('Deployment aborted')
+      throw new Error('Deployment aborted after step failure')
+    }
+    if (hasFailures) {
+      prompt.log.error('Deployment finished with failures')
+      throw new Error('Deployment failed')
+    }
+
     prompt.outro(`Deployment completed (${flags.environment})`)
     
     const viewLogs = await prompt.confirm(

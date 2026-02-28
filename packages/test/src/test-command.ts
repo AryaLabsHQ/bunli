@@ -359,7 +359,8 @@ export async function testCommand(
         startTime: Date.now(),
         args: options.args || [],
         command: command.name
-      }
+      },
+      signal: new AbortController().signal
     }
     
     // Execute command handler

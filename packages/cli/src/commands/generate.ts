@@ -7,7 +7,8 @@ import { watch } from 'node:fs/promises'
 import { isCommandFile } from '@bunli/generator'
 import { loadConfig } from '@bunli/core'
 import { findEntry } from '../utils/find-entry.js'
-import type { BunliUtils } from '@bunli/utils'
+import type { PromptSpinnerFactory } from '@bunli/core'
+import type { Colors } from '@bunli/utils'
 
 
 class GenerateCommandError extends TaggedError('GenerateCommandError')<{
@@ -50,8 +51,8 @@ export default defineCommand({
 
 async function runGenerate(
   flags: Record<string, unknown>,
-  colors: BunliUtils['colors'],
-  spinner: BunliUtils['spinner']
+  colors: Colors,
+  spinner: PromptSpinnerFactory
 ): Promise<Result<void, GenerateCommandError>> {
     // Load config to get default values
     const config = await loadConfig()
