@@ -82,7 +82,7 @@ export default defineCommand({
       { short: 'i', description: 'Enable debugger' }
     ),
     port: option(
-      z.number().int().min(1).max(65535).optional(),
+      z.coerce.number().int().min(1).max(65535).optional(),
       { short: 'p', description: 'Debugger port' }
     )
   },

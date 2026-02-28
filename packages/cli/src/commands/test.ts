@@ -28,7 +28,7 @@ export default defineCommand({
       { short: 'b', description: 'Stop on first failure' }
     ),
     timeout: option(
-      z.number().int().positive().optional(),
+      z.coerce.number().int().positive().optional(),
       { description: 'Test timeout in milliseconds' }
     ),
     all: option(
