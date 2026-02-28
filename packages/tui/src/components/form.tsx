@@ -78,6 +78,7 @@ export function Form<TSchema extends StandardSchemaV1>({
   const [values, setValues] = useState<Record<string, unknown>>(
     () => ({ ...initialValuesRef.current })
   )
+  const valuesRef = useRef(values)
   const [errors, setErrors] = useState<FormErrors>({})
   const [touched, setTouched] = useState<Record<string, boolean>>({})
   const [fieldDefaults, setFieldDefaults] = useState<Record<string, unknown>>({})
@@ -95,6 +96,10 @@ export function Form<TSchema extends StandardSchemaV1>({
       return Math.min(prev, fieldOrder.length - 1)
     })
   }, [fieldOrder])
+
+  useEffect(() => {
+    valuesRef.current = values
+  }, [values])
 
   const baselineValues = useMemo(
     () => ({ ...fieldDefaults, ...initialValuesRef.current }),
@@ -203,14 +208,13 @@ export function Form<TSchema extends StandardSchemaV1>({
 
   const setFieldValue = useCallback(
     (name: string, value: unknown) => {
-      setValues((prev) => {
-        const nextValues = { ...prev, [name]: value }
-        if (validateOnChange) {
-          void runValidation(nextValues, false)
-        }
-        return nextValues
-      })
+      const nextValues = { ...valuesRef.current, [name]: value }
+      valuesRef.current = nextValues
+      setValues(nextValues)
       setTouched((prev) => ({ ...prev, [name]: true }))
+      if (validateOnChange) {
+        void runValidation(nextValues, false)
+      }
     },
     [runValidation, validateOnChange]
   )

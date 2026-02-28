@@ -132,27 +132,36 @@ function ManagedConfirmDialog({
   onCancel: () => void
 }) {
   const [selection, setSelection] = useState(defaultValue)
+  const selectionRef = useRef(defaultValue)
+
+  const updateSelection = useCallback((next: boolean | ((prev: boolean) => boolean)) => {
+    setSelection((prev) => {
+      const resolved = typeof next === 'function' ? next(prev) : next
+      selectionRef.current = resolved
+      return resolved
+    })
+  }, [])
 
   useScopedKeyboard(
     scopeId,
     (key) => {
       if (confirmKeymap.match('chooseTrue', key)) {
-        setSelection(true)
+        updateSelection(true)
         return true
       }
 
       if (confirmKeymap.match('chooseFalse', key)) {
-        setSelection(false)
+        updateSelection(false)
         return true
       }
 
       if (confirmKeymap.match('toggle', key)) {
-        setSelection((prev) => !prev)
+        updateSelection((prev) => !prev)
         return true
       }
 
       if (confirmKeymap.match('submit', key)) {
-        onResolve(selection)
+        onResolve(selectionRef.current)
         return true
       }
 
@@ -250,6 +259,15 @@ function ManagedChooseDialog<TValue>({
   const [index, setIndex] = useState(() => {
     return getResolvedChooseIndex(options, initialIndex)
   })
+  const indexRef = useRef(index)
+
+  const updateIndex = useCallback((next: number | ((prev: number) => number)) => {
+    setIndex((prev) => {
+      const resolved = typeof next === 'function' ? next(prev) : next
+      indexRef.current = resolved
+      return resolved
+    })
+  }, [])
 
   useScopedKeyboard(
     scopeId,
@@ -257,17 +275,17 @@ function ManagedChooseDialog<TValue>({
       if (options.length === 0) return false
 
       if (chooseKeymap.match('up', key)) {
-        setIndex((prev) => getAdjacentSelectableIndex(options, prev, -1))
+        updateIndex((prev) => getAdjacentSelectableIndex(options, prev, -1))
         return true
       }
 
       if (chooseKeymap.match('down', key)) {
-        setIndex((prev) => getAdjacentSelectableIndex(options, prev, 1))
+        updateIndex((prev) => getAdjacentSelectableIndex(options, prev, 1))
         return true
       }
 
       if (chooseKeymap.match('submit', key)) {
-        const option = options[index]
+        const option = options[indexRef.current]
         if (!option || option.disabled) return false
         onResolve(option.value)
         return true
