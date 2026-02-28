@@ -8,6 +8,7 @@ export interface TuiRenderOptions {
   exitOnCtrlC?: boolean
   targetFps?: number
   enableMouseMovement?: boolean
+  useMouse?: boolean
   /**
    * Terminal buffer mode for OpenTUI-backed renderers.
    * - 'alternate': full-screen alternate buffer (smcup/rmcup semantics)

@@ -11,12 +11,22 @@ export interface FormContextValue {
   values: Record<string, unknown>
   errors: FormErrors
   touched: Record<string, boolean>
+  dirtyFields: Record<string, boolean>
+  isDirty: boolean
+  isSubmitting: boolean
+  isValidating: boolean
+  keyboardScopeId: string
   activeFieldName: string | null
   registerField: (field: FormFieldRegistration) => void
   unregisterField: (name: string) => void
   setFieldValue: (name: string, value: unknown) => void
   markTouched: (name: string) => void
   focusField: (name: string) => void
+  submit: () => void
+  reset: () => void
+  getErrorFields: () => string[]
+  jumpToNextError: () => void
+  jumpToPreviousError: () => void
 }
 
 export const FormContext = createContext<FormContextValue | null>(null)
