@@ -7,6 +7,55 @@ export interface RegistryOptions {
   includeGlobalFlags: boolean
 }
 
+function canonicalCommandPath(name: string): string {
+  return name
+    .replace(/\s+/g, '/')
+    .replace(/\/+/g, '/')
+    .replace(/^\/+|\/+$/g, '')
+    .trim()
+}
+
+function resolveNestedCommandName(parentPath: string | undefined, rawName: string): string {
+  const child = canonicalCommandPath(rawName)
+  if (!child) return parentPath ?? ''
+  if (!parentPath) return child
+
+  if (!child.includes('/')) {
+    return `${parentPath}/${child}`
+  }
+
+  if (child === parentPath || child.startsWith(`${parentPath}/`)) {
+    return child
+  }
+
+  // Treat already nested path-like names as explicit paths.
+  return child
+}
+
+function flattenCommandTree(commands: GeneratedCommandMeta[]): GeneratedCommandMeta[] {
+  const flattened: GeneratedCommandMeta[] = []
+
+  const walk = (meta: GeneratedCommandMeta, parentPath?: string) => {
+    const resolvedName = resolveNestedCommandName(parentPath, meta.name)
+    if (!resolvedName) return
+
+    flattened.push({
+      ...meta,
+      name: resolvedName
+    })
+
+    for (const nested of meta.commands ?? []) {
+      walk(nested, resolvedName)
+    }
+  }
+
+  for (const meta of commands) {
+    walk(meta)
+  }
+
+  return flattened
+}
+
 function normalizeCommandPath(name: string): string {
   // Bunli generator uses "/" to represent nested commands; Tab expects space-separated paths.
   return name.replace(/\//g, ' ').trim()
@@ -96,11 +145,12 @@ export function buildRegistry(
   }
 
   const root = new RootCommand()
+  const flattenedCommands = flattenCommandTree(commands)
 
   const metaByPath = new Map<string, GeneratedCommandMeta>()
   const allPaths = new Set<string>()
 
-  for (const meta of commands) {
+  for (const meta of flattenedCommands) {
     for (const path of expandAliases(meta, opts)) {
       metaByPath.set(path, meta)
 

@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
+import completionsDoctorCommand from '../src/commands/doctor/completions.js'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 const repoRoot = path.resolve(import.meta.dir, '../../..')
-const cliEntrypoint = path.join(repoRoot, 'packages/cli/src/cli.ts')
 const tempBaseDir = path.join(repoRoot, '.tmp-bunli-doctor-e2e')
 
 interface CliRunResult {
@@ -13,17 +13,67 @@ interface CliRunResult {
 }
 
 async function runCli(cwd: string, args: string[]): Promise<CliRunResult> {
-  const proc = Bun.spawn(['bun', cliEntrypoint, ...args], {
-    cwd,
-    stdout: 'pipe',
-    stderr: 'pipe',
-  })
+  const originalCwd = process.cwd()
+  const stdout: string[] = []
+  const stderr: string[] = []
+  const originalLog = console.log
+  const originalError = console.error
 
-  const stdout = await new Response(proc.stdout).text()
-  const stderr = await new Response(proc.stderr).text()
-  const exitCode = await proc.exited
+  console.log = (...parts: unknown[]) => stdout.push(parts.map(String).join(' '))
+  console.error = (...parts: unknown[]) => stderr.push(parts.map(String).join(' '))
 
-  return { exitCode, stdout, stderr }
+  let exitCode = 0
+  try {
+    process.chdir(cwd)
+    const normalizedArgs = args[0] === 'doctor' ? args.slice(1) : args
+    if (normalizedArgs[0] !== 'completions') {
+      throw new Error(`Unsupported test command: ${normalizedArgs.join(' ')}`)
+    }
+
+    const strict = normalizedArgs.includes('--strict')
+    const generatedPathIndex = normalizedArgs.findIndex((value) => value === '--generatedPath')
+    const generatedPath = generatedPathIndex >= 0
+      ? normalizedArgs[generatedPathIndex + 1] ?? './.bunli/commands.gen.ts'
+      : './.bunli/commands.gen.ts'
+
+    const commandLike = completionsDoctorCommand as unknown as {
+      handler?: (args: {
+        flags: { generatedPath: string, strict: boolean }
+        colors: {
+          green: (value: string) => string
+          yellow: (value: string) => string
+          red: (value: string) => string
+        }
+      }) => Promise<void>
+    }
+
+    if (typeof commandLike.handler !== 'function') {
+      throw new Error('Doctor completions command is missing a handler.')
+    }
+
+    await commandLike.handler({
+      flags: { generatedPath, strict },
+      colors: {
+        green: (value) => value,
+        yellow: (value) => value,
+        red: (value) => value
+      }
+    })
+  } catch (error) {
+    exitCode = 1
+    const message = error instanceof Error ? error.message : String(error)
+    stderr.push(`Error: ${message}`)
+  } finally {
+    process.chdir(originalCwd)
+    console.log = originalLog
+    console.error = originalError
+  }
+
+  return {
+    exitCode,
+    stdout: stdout.join('\n'),
+    stderr: stderr.join('\n')
+  }
 }
 
 function writeFixturePackageJson(fixtureDir: string) {
@@ -116,5 +166,67 @@ describe('doctor completions', () => {
     expect(result.exitCode).toBe(1)
     expect(result.stderr).toContain('Duplicate command metadata name detected')
     expect(result.stderr).toContain('Completion metadata validation failed.')
+  })
+
+  test('passes strict mode for nested group metadata when children are protocol-reachable', async () => {
+    writeGeneratedModule(
+      fixtureDir,
+      `[{
+  name: 'config',
+  metadata: {
+    name: 'config',
+    description: 'Config group',
+    options: {},
+    commands: [
+      { name: 'init', description: 'Init config', options: {} },
+      {
+        name: 'profile',
+        description: 'Profile group',
+        options: {},
+        commands: [
+          { name: 'set', description: 'Set profile value', options: {} },
+          { name: 'show', description: 'Show profile value', options: {} }
+        ]
+      }
+    ]
+  }
+}, {
+  name: 'status',
+  metadata: { name: 'status', description: 'Status', options: {} }
+}]`
+    )
+
+    const result = await runCli(fixtureDir, ['doctor', 'completions', '--strict'])
+
+    expect(result.exitCode).toBe(0)
+    expect(result.stdout).toContain('Completion protocol round-trip passed')
+    expect(result.stdout).toContain('Loaded 2 generated command entries')
+    expect(result.stderr).not.toContain('Error:')
+  })
+
+  test('warns for nested child paths that do not resolve beneath their declared parent', async () => {
+    writeGeneratedModule(
+      fixtureDir,
+      `[{
+  name: 'config',
+  metadata: {
+    name: 'config',
+    description: 'Config group',
+    options: {},
+    commands: [
+      { name: 'other/init', description: 'Mismatched child path', options: {} }
+    ]
+  }
+}]`
+    )
+
+    const nonStrict = await runCli(fixtureDir, ['doctor', 'completions'])
+    expect(nonStrict.exitCode).toBe(0)
+    expect(nonStrict.stdout).toContain('does not resolve beneath its parent path')
+
+    const strict = await runCli(fixtureDir, ['doctor', 'completions', '--strict'])
+    expect(strict.exitCode).toBe(1)
+    expect(strict.stdout).toContain('does not resolve beneath its parent path')
+    expect(strict.stderr).toContain('Strict mode enabled and warnings were found.')
   })
 })

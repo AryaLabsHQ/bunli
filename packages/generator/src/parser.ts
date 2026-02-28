@@ -15,6 +15,26 @@ interface ParseContext {
   readonly outputFile: string
   readonly cache: Map<string, Promise<Result<CommandMetadata | null, ParseCommandError>>>
   readonly inProgress: Set<string>
+  readonly moduleCache: Map<string, Promise<Result<ModuleInfo, ParseCommandError>>>
+  readonly moduleInProgress: Set<string>
+}
+
+interface ImportBinding {
+  filePath: string
+  importedName: string
+}
+
+interface ModuleInfo {
+  variableInitializers: Map<string, any>
+  importBindings: Map<string, ImportBinding>
+  exportedExpressions: Map<string, any>
+}
+
+interface OptionResolverScope {
+  readonly filePath: string
+  readonly variableInitializers: Map<string, any>
+  readonly importBindings: Map<string, ImportBinding>
+  readonly context: ParseContext
 }
 
 function toAbsolute(target: string): string {
@@ -63,7 +83,9 @@ export async function parseCommand(
     sourceRoot,
     outputFile,
     cache: new Map(),
-    inProgress: new Set()
+    inProgress: new Set(),
+    moduleCache: new Map(),
+    moduleInProgress: new Set()
   }
 
   return parseCommandWithContext(filePath, context)
@@ -126,7 +148,8 @@ async function parseCommandInternal(
         plugins: ['typescript', 'jsx', 'decorators-legacy']
       })
 
-      const importMap = collectImportMap(ast, filePath)
+      const importBindings = collectImportBindings(ast, filePath)
+      const importMap = collectImportMap(importBindings)
       const variableInitializers = collectVariableInitializers(ast)
       const defaultExpr = findDefaultExportExpression(ast, variableInitializers)
       if (!defaultExpr) {
@@ -146,7 +169,13 @@ async function parseCommandInternal(
         commandObject,
         filePath,
         context,
-        importMap
+        importMap,
+        {
+          filePath,
+          variableInitializers,
+          importBindings,
+          context
+        }
       )
 
       if (!metadata.name) {
@@ -219,8 +248,8 @@ function extractCommandObjectExpression(node: any): any | null {
   return null
 }
 
-function collectImportMap(ast: any, filePath: string): Map<string, string> {
-  const importMap = new Map<string, string>()
+function collectImportBindings(ast: any, filePath: string): Map<string, ImportBinding> {
+  const bindings = new Map<string, ImportBinding>()
 
   traverse(ast, {
     ImportDeclaration(path: any) {
@@ -231,14 +260,91 @@ function collectImportMap(ast: any, filePath: string): Map<string, string> {
       if (!resolved) return
 
       for (const specifier of path.node.specifiers) {
-        if (specifier?.local?.name) {
-          importMap.set(specifier.local.name, resolved)
+        if (!specifier?.local?.name) continue
+
+        if (specifier.type === 'ImportDefaultSpecifier') {
+          bindings.set(specifier.local.name, {
+            filePath: resolved,
+            importedName: 'default'
+          })
+          continue
+        }
+
+        if (specifier.type === 'ImportSpecifier') {
+          const importedName = specifier.imported?.name ?? specifier.imported?.value
+          if (typeof importedName === 'string' && importedName.length > 0) {
+            bindings.set(specifier.local.name, {
+              filePath: resolved,
+              importedName
+            })
+          }
+          continue
+        }
+
+        if (specifier.type === 'ImportNamespaceSpecifier') {
+          bindings.set(specifier.local.name, {
+            filePath: resolved,
+            importedName: '*'
+          })
         }
       }
     }
   })
 
+  return bindings
+}
+
+function collectImportMap(bindings: Map<string, ImportBinding>): Map<string, string> {
+  const importMap = new Map<string, string>()
+  for (const [name, binding] of bindings) {
+    importMap.set(name, binding.filePath)
+  }
   return importMap
+}
+
+function collectExportedExpressions(ast: any, variableInitializers: Map<string, any>): Map<string, any> {
+  const exports = new Map<string, any>()
+
+  traverse(ast, {
+    ExportDefaultDeclaration(path: any) {
+      const declaration = path.node.declaration
+      if (declaration?.type === 'Identifier') {
+        const init = variableInitializers.get(declaration.name)
+        if (init) exports.set('default', init)
+        return
+      }
+      if (declaration) exports.set('default', declaration)
+    },
+    ExportNamedDeclaration(path: any) {
+      const declaration = path.node.declaration
+
+      if (declaration?.type === 'VariableDeclaration') {
+        for (const decl of declaration.declarations) {
+          const id = decl?.id
+          if (id?.type !== 'Identifier') continue
+          if (decl.init) {
+            exports.set(id.name, decl.init)
+          } else {
+            const init = variableInitializers.get(id.name)
+            if (init) exports.set(id.name, init)
+          }
+        }
+      } else if (declaration?.type === 'FunctionDeclaration' && declaration.id?.name) {
+        exports.set(declaration.id.name, declaration)
+      }
+
+      for (const specifier of path.node.specifiers ?? []) {
+        if (specifier.type !== 'ExportSpecifier') continue
+        const localName = specifier.local?.name ?? specifier.local?.value
+        const exportedName = specifier.exported?.name ?? specifier.exported?.value
+        if (typeof localName !== 'string' || typeof exportedName !== 'string') continue
+        const init = variableInitializers.get(localName)
+        if (init) exports.set(exportedName, init)
+      }
+    }
+  })
+
+  return exports
 }
 
 function resolveImportPath(fromFile: string, specifier: string): string | null {
@@ -273,11 +379,77 @@ function resolveImportPath(fromFile: string, specifier: string): string | null {
   return null
 }
 
+async function parseModuleInfoWithContext(
+  filePath: string,
+  context: ParseContext
+): Promise<Result<ModuleInfo, ParseCommandError>> {
+  const absoluteFilePath = toAbsolute(filePath)
+  if (context.moduleInProgress.has(absoluteFilePath)) {
+    return Result.err(new ParseCommandError({
+      filePath: absoluteFilePath,
+      message: `Circular module reference detected while parsing ${absoluteFilePath}`,
+      cause: new Error('Circular module reference')
+    }))
+  }
+
+  const cached = context.moduleCache.get(absoluteFilePath)
+  if (cached) return cached
+
+  const work = parseModuleInfoInternal(absoluteFilePath, context)
+  context.moduleCache.set(absoluteFilePath, work)
+  return work
+}
+
+async function parseModuleInfoInternal(
+  filePath: string,
+  context: ParseContext
+): Promise<Result<ModuleInfo, ParseCommandError>> {
+  if (context.moduleInProgress.has(filePath)) {
+    return Result.err(new ParseCommandError({
+      filePath,
+      message: `Circular module reference detected while parsing ${filePath}`,
+      cause: new Error('Circular module reference')
+    }))
+  }
+
+  context.moduleInProgress.add(filePath)
+
+  const parseResult = await Result.tryPromise({
+    try: async () => {
+      const content = await Bun.file(filePath).text()
+      const ast = parse(content, {
+        sourceType: 'module',
+        plugins: ['typescript', 'jsx', 'decorators-legacy']
+      })
+
+      const variableInitializers = collectVariableInitializers(ast)
+      const importBindings = collectImportBindings(ast, filePath)
+      const exportedExpressions = collectExportedExpressions(ast, variableInitializers)
+
+      return {
+        variableInitializers,
+        importBindings,
+        exportedExpressions
+      }
+    },
+    catch: (cause) =>
+      new ParseCommandError({
+        filePath,
+        message: `Could not parse module file ${filePath}`,
+        cause
+      })
+  })
+
+  context.moduleInProgress.delete(filePath)
+  return parseResult
+}
+
 async function extractCommandMetadata(
   objectExpression: any,
   filePath: string,
   context: ParseContext,
-  importMap: Map<string, string>
+  importMap: Map<string, string>,
+  optionResolver: OptionResolverScope
 ): Promise<CommandMetadata> {
   const metadata: CommandMetadata = {
     name: '',
@@ -310,8 +482,11 @@ async function extractCommandMetadata(
         }
         break
       case 'options':
-        if (value.type === 'ObjectExpression') {
-          metadata.options = extractOptions(value)
+        {
+          const extractedOptions = await extractOptions(value, optionResolver)
+          if (Object.keys(extractedOptions).length > 0) {
+            metadata.options = extractedOptions
+          }
         }
         break
       case 'handler':
@@ -321,7 +496,13 @@ async function extractCommandMetadata(
         metadata.hasRender = true
         break
       case 'commands':
-        metadata.commands = await extractNestedCommands(value, filePath, context, importMap)
+        metadata.commands = await extractNestedCommands(
+          value,
+          filePath,
+          context,
+          importMap,
+          optionResolver
+        )
         break
     }
   }
@@ -333,7 +514,8 @@ async function extractNestedCommands(
   value: any,
   parentFile: string,
   context: ParseContext,
-  importMap: Map<string, string>
+  importMap: Map<string, string>,
+  optionResolver: OptionResolverScope
 ): Promise<CommandMetadata[] | undefined> {
   if (value.type !== 'ArrayExpression') return undefined
 
@@ -347,7 +529,8 @@ async function extractNestedCommands(
         element,
         parentFile,
         context,
-        importMap
+        importMap,
+        optionResolver
       )
       if (!nestedMetadata.name) {
         nestedMetadata.name = getCommandName(parentFile, context.sourceRoot)
@@ -376,7 +559,8 @@ async function extractNestedCommands(
           nestedObject,
           parentFile,
           context,
-          importMap
+          importMap,
+          optionResolver
         )
         if (nestedMetadata.name) nested.push(nestedMetadata)
       }
@@ -386,46 +570,128 @@ async function extractNestedCommands(
   return nested.length > 0 ? nested : undefined
 }
 
-function extractOptions(objectExpression: any): Record<string, OptionMetadata> {
+function isOptionCallExpression(node: any): boolean {
+  return Boolean(
+    node &&
+    node.type === 'CallExpression' &&
+    node.callee?.type === 'Identifier' &&
+    node.callee.name === 'option'
+  )
+}
+
+function getObjectPropertyKey(key: any): string | undefined {
+  if (key?.type === 'Identifier') return key.name
+  if (key?.type === 'StringLiteral') return key.value
+  return undefined
+}
+
+async function resolveExpressionNode(
+  node: any,
+  scope: OptionResolverScope,
+  visited: Set<string> = new Set()
+): Promise<{ node: any, scope: OptionResolverScope } | null> {
+  if (!node) return null
+  if (node.type !== 'Identifier') {
+    return { node, scope }
+  }
+
+  const key = `${scope.filePath}:${node.name}`
+  if (visited.has(key)) return null
+
+  const nextVisited = new Set(visited)
+  nextVisited.add(key)
+
+  const localInitializer = scope.variableInitializers.get(node.name)
+  if (localInitializer) {
+    return resolveExpressionNode(localInitializer, scope, nextVisited)
+  }
+
+  const importBinding = scope.importBindings.get(node.name)
+  if (!importBinding || importBinding.importedName === '*') {
+    return null
+  }
+
+  const importedModule = await parseModuleInfoWithContext(importBinding.filePath, scope.context)
+  if (Result.isError(importedModule)) {
+    logger.debug(
+      'Could not resolve imported option symbol %s from %s: %O',
+      node.name,
+      importBinding.filePath,
+      importedModule.error
+    )
+    return null
+  }
+
+  const importedExpression = importedModule.value.exportedExpressions.get(importBinding.importedName)
+  if (!importedExpression) return null
+
+  const importedScope: OptionResolverScope = {
+    filePath: importBinding.filePath,
+    variableInitializers: importedModule.value.variableInitializers,
+    importBindings: importedModule.value.importBindings,
+    context: scope.context
+  }
+
+  return resolveExpressionNode(importedExpression, importedScope, nextVisited)
+}
+
+function buildOptionMetadata(optionCall: any): OptionMetadata | null {
+  const args = optionCall.arguments
+  if (!Array.isArray(args) || args.length < 1) {
+    return null
+  }
+
+  const schema = args[0]
+  const metadata = args[1]?.type === 'ObjectExpression' ? args[1] : null
+  const { type } = inferSchemaType(schema)
+  const defaultInfo = inferDefault(schema)
+  const enumValues = extractEnumValues(schema)
+  const constraints = extractConstraints(schema)
+  const description = extractDescription(metadata)
+  const fileType = detectFileType(metadata, description)
+
+  return {
+    type,
+    required: inferRequired(schema),
+    hasDefault: defaultInfo.hasDefault,
+    default: defaultInfo.value,
+    description,
+    short: extractShort(metadata),
+    enumValues,
+    ...constraints,
+    fileType,
+    schema: extractSchemaDefinition(schema),
+    validator: generateValidator(schema)
+  }
+}
+
+async function extractOptions(
+  value: any,
+  scope: OptionResolverScope
+): Promise<Record<string, OptionMetadata>> {
   const options: Record<string, OptionMetadata> = {}
+  const resolved = await resolveExpressionNode(value, scope)
+  if (!resolved || resolved.node.type !== 'ObjectExpression') {
+    return options
+  }
 
-  for (const prop of objectExpression.properties) {
-    if (prop.type === 'ObjectProperty' && prop.key.type === 'Identifier') {
-      const optionName = prop.key.name
-      const optionValue = prop.value
+  for (const prop of resolved.node.properties) {
+    if (prop.type === 'SpreadElement') {
+      const spreadOptions = await extractOptions(prop.argument, resolved.scope)
+      Object.assign(options, spreadOptions)
+      continue
+    }
 
-      if (
-        optionValue.type === 'CallExpression' &&
-        optionValue.callee.type === 'Identifier' &&
-        optionValue.callee.name === 'option'
-      ) {
-        const args = optionValue.arguments
-        if (args.length >= 1) {
-          const schema = args[0]
-          const metadata = args[1]?.type === 'ObjectExpression' ? args[1] : null
+    if (prop.type !== 'ObjectProperty') continue
+    const optionName = getObjectPropertyKey(prop.key)
+    if (!optionName) continue
 
-          const { type } = inferSchemaType(schema)
-          const defaultInfo = inferDefault(schema)
-          const enumValues = extractEnumValues(schema)
-          const constraints = extractConstraints(schema)
-          const description = extractDescription(metadata)
-          const fileType = detectFileType(metadata, description)
+    const optionValue = await resolveExpressionNode(prop.value, resolved.scope)
+    if (!optionValue || !isOptionCallExpression(optionValue.node)) continue
 
-          options[optionName] = {
-            type,
-            required: inferRequired(schema),
-            hasDefault: defaultInfo.hasDefault,
-            default: defaultInfo.value,
-            description,
-            short: extractShort(metadata),
-            enumValues,
-            ...constraints,
-            fileType,
-            schema: extractSchemaDefinition(schema),
-            validator: generateValidator(schema)
-          }
-        }
-      }
+    const built = buildOptionMetadata(optionValue.node)
+    if (built) {
+      options[optionName] = built
     }
   }
 

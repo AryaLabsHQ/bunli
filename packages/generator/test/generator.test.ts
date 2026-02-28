@@ -357,6 +357,104 @@ export default defineGroup({
     await rm(testDir, { recursive: true, force: true })
   })
 
+  test('parser extracts shared option metadata from imported identifiers and spreads in nested commands', async () => {
+    await rm(testDir, { recursive: true, force: true })
+    await mkdir(join(testDir, 'config'), { recursive: true })
+
+    await Bun.write(join(testDir, 'config/options.ts'), `
+import { option } from '@bunli/core'
+import { z } from 'zod'
+
+export const keyOption = option(z.enum(['model', 'size']), {
+  description: 'Config key',
+  short: 'k'
+})
+
+export const valueOption = option(z.string(), {
+  description: 'Config value'
+})
+
+export const unsetOptions = {
+  key: keyOption
+}
+
+const sharedOptions = {
+  key: keyOption,
+  value: valueOption
+}
+
+export default sharedOptions
+`)
+
+    await Bun.write(join(testDir, 'config/init.ts'), `
+import { defineCommand } from '@bunli/core'
+import sharedOptions from './options.js'
+
+export default defineCommand({
+  name: 'init',
+  description: 'Init config',
+  options: sharedOptions,
+  handler: async () => {}
+})
+`)
+
+    await Bun.write(join(testDir, 'config/set.ts'), `
+import { defineCommand } from '@bunli/core'
+import sharedOptions from './options.js'
+
+export default defineCommand({
+  name: 'set',
+  description: 'Set config',
+  options: { ...sharedOptions },
+  handler: async () => {}
+})
+`)
+
+    await Bun.write(join(testDir, 'config/unset.ts'), `
+import { defineCommand } from '@bunli/core'
+import { unsetOptions } from './options.js'
+
+export default defineCommand({
+  name: 'unset',
+  description: 'Unset config',
+  options: unsetOptions,
+  handler: async () => {}
+})
+`)
+
+    await Bun.write(join(testDir, 'config.ts'), `
+import { defineGroup } from '@bunli/core'
+import init from './config/init.js'
+import set from './config/set.js'
+import unset from './config/unset.js'
+
+export default defineGroup({
+  name: 'config',
+  description: 'Config group',
+  commands: [init, set, unset]
+})
+`)
+
+    const parsed = await parseCommand(join(testDir, 'config.ts'), testDir, outputFile)
+    expect(Result.isOk(parsed)).toBe(true)
+    if (Result.isError(parsed)) {
+      throw parsed.error
+    }
+
+    const nested = parsed.value?.commands ?? []
+    const init = nested.find((command) => command.name === 'init')
+    const set = nested.find((command) => command.name === 'set')
+    const unset = nested.find((command) => command.name === 'unset')
+
+    expect(init?.options?.key?.description).toBe('Config key')
+    expect(init?.options?.key?.short).toBe('k')
+    expect(init?.options?.key?.enumValues).toEqual(['model', 'size'])
+    expect(set?.options?.value?.description).toBe('Config value')
+    expect(unset?.options?.key?.description).toBe('Config key')
+
+    await rm(testDir, { recursive: true, force: true })
+  })
+
   test('returns Err when output file cannot be written', async () => {
     await mkdir(testDir, { recursive: true })
     await Bun.write(

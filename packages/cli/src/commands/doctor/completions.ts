@@ -20,9 +20,106 @@ interface GeneratedStoreModule {
 interface CompletionProbeResult {
   directive: string
   suggestions: number
+  candidates: string[]
 }
 
-async function runCompletionProtocolProbe(generatedPath: string): Promise<CompletionProbeResult> {
+function normalizeCommandPath(name: string): string {
+  return name
+    .replace(/\s+/g, '/')
+    .replace(/\/+/g, '/')
+    .replace(/^\/+|\/+$/g, '')
+    .trim()
+}
+
+function resolveChildPath(parentPath: string, rawName: string): string {
+  const normalizedChild = normalizeCommandPath(rawName)
+  if (!normalizedChild) return ''
+  if (!parentPath) return normalizedChild
+
+  if (!normalizedChild.includes('/')) {
+    return `${parentPath}/${normalizedChild}`
+  }
+
+  if (normalizedChild === parentPath || normalizedChild.startsWith(`${parentPath}/`)) {
+    return normalizedChild
+  }
+
+  return normalizedChild
+}
+
+function toCandidateLabel(line: string): string {
+  return line.split('\t', 1)[0]?.trim() ?? ''
+}
+
+function collectNestedExpectedChildren(
+  entries: Array<{ name: string, metadata?: { name?: string, commands?: Array<unknown> } }>
+): { expectedByParent: Map<string, Set<string>>, warnings: string[] } {
+  const expectedByParent = new Map<string, Set<string>>()
+  const warnings: string[] = []
+
+  const addExpectedChild = (parentPath: string, childSegment: string) => {
+    const existing = expectedByParent.get(parentPath)
+    if (existing) {
+      existing.add(childSegment)
+      return
+    }
+    expectedByParent.set(parentPath, new Set([childSegment]))
+  }
+
+  const walkChildren = (parentPath: string, commands: Array<unknown>) => {
+    for (const rawChild of commands) {
+      if (!rawChild || typeof rawChild !== 'object') continue
+
+      const child = rawChild as {
+        name?: unknown
+        commands?: unknown
+      }
+
+      const childName = typeof child.name === 'string' ? child.name.trim() : ''
+      if (!childName) {
+        warnings.push(`Nested command under "${parentPath}" is missing a name.`)
+        continue
+      }
+
+      const childPath = resolveChildPath(parentPath, childName)
+      if (!childPath) continue
+
+      if (!childPath.startsWith(`${parentPath}/`)) {
+        warnings.push(
+          `Nested child "${childName}" under "${parentPath}" does not resolve beneath its parent path.`
+        )
+      } else {
+        const relative = childPath.slice(parentPath.length + 1)
+        const segment = relative.split('/')[0]?.trim()
+        if (segment) addExpectedChild(parentPath, segment)
+      }
+
+      if (Array.isArray(child.commands) && child.commands.length > 0) {
+        walkChildren(childPath, child.commands)
+      }
+    }
+  }
+
+  for (const entry of entries) {
+    const runtimeName = typeof entry.name === 'string' ? entry.name.trim() : ''
+    const metadataName = typeof entry.metadata?.name === 'string' ? entry.metadata.name.trim() : ''
+    const effectiveName = metadataName || runtimeName
+    const rootPath = normalizeCommandPath(effectiveName)
+
+    if (!rootPath || !Array.isArray(entry.metadata?.commands) || entry.metadata.commands.length === 0) {
+      continue
+    }
+
+    walkChildren(rootPath, entry.metadata.commands)
+  }
+
+  return { expectedByParent, warnings }
+}
+
+async function runCompletionProtocolProbe(
+  generatedPath: string,
+  protocolArgs: string[] = ['']
+): Promise<CompletionProbeResult> {
   const stdout: string[] = []
   const stderr: string[] = []
 
@@ -45,7 +142,7 @@ async function runCompletionProtocolProbe(generatedPath: string): Promise<Comple
       ] as const
     })
 
-    await probeCli.run(['complete', '--', ''])
+    await probeCli.run(['complete', '--', ...protocolArgs])
   } finally {
     console.log = originalLog
     console.error = originalError
@@ -61,9 +158,11 @@ async function runCompletionProtocolProbe(generatedPath: string): Promise<Comple
     .map((line) => line.trim())
     .filter(Boolean)
   const directive = lines.at(-1) ?? ''
-  const suggestions = lines.length > 0 ? lines.length - 1 : 0
+  const suggestionLines = lines.length > 0 ? lines.slice(0, -1) : []
+  const suggestions = suggestionLines.length
+  const candidates = suggestionLines.map(toCandidateLabel).filter(Boolean)
 
-  return { directive, suggestions }
+  return { directive, suggestions, candidates }
 }
 
 export default defineCommand({
@@ -149,6 +248,36 @@ export default defineCommand({
 
         if (entries.length > 0 && probeResult.suggestions === 0) {
           warnings.push('Completion protocol round-trip returned no suggestions for empty input.')
+        }
+
+        const nestedExpectations = collectNestedExpectedChildren(entries)
+        warnings.push(...nestedExpectations.warnings)
+
+        for (const [parentPath, expectedChildren] of nestedExpectations.expectedByParent) {
+          const probeArgs = [...parentPath.split('/').filter(Boolean), '']
+          try {
+            const nestedProbe = await runCompletionProtocolProbe(generatedPath, probeArgs)
+
+            if (!/^:\d+$/.test(nestedProbe.directive)) {
+              errors.push(
+                `Nested completion probe did not end with directive line for "${parentPath}". Received: "${nestedProbe.directive || '<empty>'}"`
+              )
+              continue
+            }
+
+            const missingChildren = Array.from(expectedChildren)
+              .filter((child) => !nestedProbe.candidates.includes(child))
+              .sort()
+            if (missingChildren.length > 0) {
+              warnings.push(
+                `Nested completion probe for "${parentPath}" is missing children: ${missingChildren.join(', ')}`
+              )
+            }
+          } catch (cause) {
+            errors.push(
+              `Nested completion probe failed for "${parentPath}": ${cause instanceof Error ? cause.message : String(cause)}`
+            )
+          }
         }
       }
     }
