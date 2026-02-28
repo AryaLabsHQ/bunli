@@ -1,7 +1,9 @@
 import { emitKeypressEvents } from 'node:readline'
 import { createInterface } from 'node:readline/promises'
+import { spawnSync } from 'node:child_process'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import { SchemaError } from '@standard-schema/utils'
+import { displayWidth, formatFixedWidth, padEndTo } from '../components/text-layout.js'
 
 export type PromptMode = 'inline' | 'interactive'
 
@@ -57,6 +59,16 @@ interface PromptStyle {
   useColor: boolean
   symbols: {
     pointer: string
+    pointerAlt: string
+    rail: string
+    section: string
+    frameHorizontal: string
+    frameVertical: string
+    frameTopRight: string
+    frameBottomLeft: string
+    frameBottomRight: string
+    introStart: string
+    outroEnd: string
     question: string
     success: string
     error: string
@@ -67,9 +79,65 @@ interface PromptStyle {
   }
 }
 
+type PromptSymbolMode = 'ascii' | 'unicode'
+
 function shouldUseColor(): boolean {
   if (process.env.NO_COLOR) return false
   return Boolean(process.stdout.isTTY)
+}
+
+function resolvePromptSymbolMode(env: NodeJS.ProcessEnv = process.env): PromptSymbolMode {
+  const override = (env.BUNLI_TUI_SYMBOLS ?? env.BUNLI_SYMBOLS ?? '').trim().toLowerCase()
+  if (override === 'ascii' || override === 'plain') return 'ascii'
+  if (override === 'unicode') return 'unicode'
+  if (!process.stdout.isTTY) return 'ascii'
+  return 'unicode'
+}
+
+function resolvePromptSymbols(mode: PromptSymbolMode): PromptStyle['symbols'] {
+  if (mode === 'ascii') {
+    return {
+      pointer: '>',
+      pointerAlt: '*',
+      rail: '|',
+      section: '*',
+      frameHorizontal: '-',
+      frameVertical: '|',
+      frameTopRight: '+',
+      frameBottomLeft: '+',
+      frameBottomRight: '+',
+      introStart: '+',
+      outroEnd: '+',
+      question: '?',
+      success: 'OK',
+      error: 'ERR',
+      info: 'INFO',
+      warning: 'WARN',
+      selected: '[x]',
+      unselected: '[ ]'
+    }
+  }
+
+  return {
+    pointer: '>',
+    pointerAlt: '›',
+    rail: '│',
+    section: '◇',
+    frameHorizontal: '─',
+    frameVertical: '│',
+    frameTopRight: '╮',
+    frameBottomLeft: '╰',
+    frameBottomRight: '╯',
+    introStart: '┌',
+    outroEnd: '└',
+    question: '?',
+    success: 'OK',
+    error: 'ERR',
+    info: 'INFO',
+    warning: 'WARN',
+    selected: '[x]',
+    unselected: '[ ]'
+  }
 }
 
 function colorize(style: PromptStyle, colorCode: number, text: string): string {
@@ -104,16 +172,7 @@ function bold(style: PromptStyle, text: string): string {
 
 const promptStyle: PromptStyle = {
   useColor: shouldUseColor(),
-  symbols: {
-    pointer: '>',
-    question: '?',
-    success: 'OK',
-    error: 'ERR',
-    info: 'INFO',
-    warning: 'WARN',
-    selected: '[x]',
-    unselected: '[ ]'
-  }
+  symbols: resolvePromptSymbols(resolvePromptSymbolMode())
 }
 
 function isCIEnvironment(): boolean {
@@ -230,7 +289,7 @@ async function askLine(message: string, defaultValue?: string): Promise<string> 
 function isPrintableKey(event: KeypressEvent): boolean {
   if (!event.sequence) return false
   if (event.ctrl || event.meta) return false
-  return event.sequence.length === 1 && event.sequence >= ' '
+  return resolveTextInput(event.sequence).length > 0
 }
 
 function isCancelKey(key: KeypressEvent): boolean {
@@ -247,6 +306,27 @@ function isPasswordRevealToggleKey(key: KeypressEvent): boolean {
 
 function isMultiSelectToggleKey(key: KeypressEvent): boolean {
   return key.name === 'space'
+}
+
+function stripBracketedPasteEnvelope(sequence: string): string {
+  return sequence
+    .replace(/\u001b\[200~/g, '')
+    .replace(/\u001b\[201~/g, '')
+}
+
+function resolveTextInput(sequence: string): string {
+  const normalized = stripBracketedPasteEnvelope(sequence)
+    .replace(/\r\n/g, '')
+    .replace(/[\r\n]/g, '')
+
+  let output = ''
+  for (const char of normalized) {
+    const codePoint = char.codePointAt(0)
+    if (typeof codePoint !== 'number') continue
+    if (codePoint < 0x20 || codePoint === 0x7f) continue
+    output += char
+  }
+  return output
 }
 
 function writeStatusLine(text: string) {
@@ -278,26 +358,87 @@ function formatWarningLine(message: string): string {
 }
 
 function formatIntroLine(message: string): string {
-  return formatInfoLine(`== ${message} ==`)
+  const lead = cyan(promptStyle, promptStyle.symbols.introStart)
+  const body = bold(promptStyle, message)
+  const rail = dim(promptStyle, promptStyle.symbols.frameVertical)
+  return `${lead}  ${body}\n${rail}`
 }
 
 function formatOutroLine(message: string): string {
-  return formatSuccessLine(`== ${message} ==`)
+  const lead = green(promptStyle, promptStyle.symbols.outroEnd)
+  const body = bold(promptStyle, message)
+  return `${lead}  ${body}`
 }
 
 function formatNoteLines(message: string, title?: string): string[] {
-  const bodyLines = message
+  const normalizedLines = message
     .split('\n')
     .map((line) => line.trimEnd())
-    .filter((line) => line.length > 0)
 
-  if (!title) {
-    return [formatInfoLine(message)]
+  while (normalizedLines[0]?.trim().length === 0) {
+    normalizedLines.shift()
+  }
+  while (normalizedLines[normalizedLines.length - 1]?.trim().length === 0) {
+    normalizedLines.pop()
   }
 
+  const bodyLines = normalizedLines.length > 0 ? normalizedLines : ['']
+
+  const parsedRows = bodyLines.map((line) => {
+    if (line.trim().length === 0) return null
+    const separatorIndex = line.indexOf(':')
+    if (separatorIndex <= 0) return null
+    return {
+      key: line.slice(0, separatorIndex).trim(),
+      value: line.slice(separatorIndex + 1).trim()
+    }
+  })
+
+  const nonEmptyLineCount = bodyLines.filter((line) => line.trim().length > 0).length
+  const keyValueLineCount = parsedRows.filter((row) => row !== null).length
+  const shouldAlignAsKeyValueTable = nonEmptyLineCount >= 2 && keyValueLineCount === nonEmptyLineCount
+  const keyColumnWidth = shouldAlignAsKeyValueTable
+    ? Math.max(...parsedRows.map((row) => (row ? displayWidth(row.key) : 0)), 0)
+    : 0
+
+  const alignedBodyLines = shouldAlignAsKeyValueTable
+    ? bodyLines.map((line, index) => {
+      const row = parsedRows[index]
+      if (!row) return line
+      return `${padEndTo(row.key, keyColumnWidth)} : ${row.value}`
+    })
+    : bodyLines
+
+  if (!title) {
+    const vertical = dim(promptStyle, promptStyle.symbols.frameVertical)
+    return alignedBodyLines.map((line) => `${vertical}  ${line}`)
+  }
+
+  const terminalWidth = process.stdout.columns || 80
+  const maxBodyWidth = Math.max(
+    displayWidth(title),
+    ...alignedBodyLines.map((line) => displayWidth(line))
+  )
+  const maxInnerWidth = Math.max(20, terminalWidth - 8)
+  const minInnerWidth = Math.min(28, maxInnerWidth)
+  const innerWidth = Math.max(minInnerWidth, Math.min(maxInnerWidth, maxBodyWidth + 2))
+  const fill = Math.max(1, innerWidth - displayWidth(title) - 1)
+
+  const topLine =
+    `${cyan(promptStyle, promptStyle.symbols.section)}  ${bold(promptStyle, title)} ` +
+    `${dim(promptStyle, promptStyle.symbols.frameHorizontal.repeat(fill))}` +
+    `${dim(promptStyle, promptStyle.symbols.frameTopRight)}`
+  const vertical = dim(promptStyle, promptStyle.symbols.frameVertical)
+  const horizontal = dim(promptStyle, promptStyle.symbols.frameHorizontal.repeat(innerWidth + 2))
+  const padLine = `${vertical} ${' '.repeat(innerWidth)} ${vertical}`
+  const footer = `${dim(promptStyle, promptStyle.symbols.frameBottomLeft)}${horizontal}${dim(promptStyle, promptStyle.symbols.frameBottomRight)}`
+
   return [
-    formatInfoLine(title),
-    ...bodyLines.map((line) => `${dim(promptStyle, '|')} ${line}`)
+    topLine,
+    padLine,
+    ...alignedBodyLines.map((line) => `${vertical} ${formatFixedWidth(line, innerWidth, { overflow: 'clip' })} ${vertical}`),
+    padLine,
+    footer
   ]
 }
 
@@ -315,6 +456,7 @@ function renderSelectFrame<T>(args: {
   options: SelectOption<T>[]
   selectedIndex: number
   hint?: string
+  tick?: number
 }): string[] {
   const lines: string[] = [
     formatQuestionLabel(args.message),
@@ -328,12 +470,20 @@ function renderSelectFrame<T>(args: {
     const option = args.options[index]
     if (!option) continue
     const active = index === args.selectedIndex
-    const pointer = active ? cyan(promptStyle, promptStyle.symbols.pointer) : ' '
+    const pointerSymbol = active
+      ? (args.tick ?? 0) % 2 === 0
+        ? promptStyle.symbols.pointer
+        : promptStyle.symbols.pointerAlt
+      : ' '
+    const rail = active
+      ? cyan(promptStyle, promptStyle.symbols.rail)
+      : dim(promptStyle, promptStyle.symbols.rail)
+    const pointer = active ? cyan(promptStyle, pointerSymbol) : pointerSymbol
     const numeric = dim(promptStyle, `${index + 1}.`)
     const label = option.disabled ? dim(promptStyle, option.label) : option.label
     const hint = option.hint ? dim(promptStyle, ` (${option.hint})`) : ''
     const disabled = option.disabled ? dim(promptStyle, ' [disabled]') : ''
-    lines.push(`${pointer} ${numeric} ${label}${hint}${disabled}`)
+    lines.push(`${rail} ${pointer} ${numeric} ${label}${hint}${disabled}`)
   }
 
   return lines
@@ -345,6 +495,7 @@ function renderMultiSelectFrame<T>(args: {
   selectedIndex: number
   selected: Set<T>
   errorMessage?: string
+  tick?: number
 }): string[] {
   const lines: string[] = [
     formatQuestionLabel(args.message),
@@ -362,7 +513,15 @@ function renderMultiSelectFrame<T>(args: {
     const option = args.options[index]
     if (!option) continue
     const active = index === args.selectedIndex
-    const pointer = active ? cyan(promptStyle, promptStyle.symbols.pointer) : ' '
+    const pointerSymbol = active
+      ? (args.tick ?? 0) % 2 === 0
+        ? promptStyle.symbols.pointer
+        : promptStyle.symbols.pointerAlt
+      : ' '
+    const rail = active
+      ? cyan(promptStyle, promptStyle.symbols.rail)
+      : dim(promptStyle, promptStyle.symbols.rail)
+    const pointer = active ? cyan(promptStyle, pointerSymbol) : pointerSymbol
     const checkmark = args.selected.has(option.value)
       ? green(promptStyle, promptStyle.symbols.selected)
       : dim(promptStyle, promptStyle.symbols.unselected)
@@ -370,7 +529,7 @@ function renderMultiSelectFrame<T>(args: {
     const label = option.disabled ? dim(promptStyle, option.label) : option.label
     const hint = option.hint ? dim(promptStyle, ` (${option.hint})`) : ''
     const disabled = option.disabled ? dim(promptStyle, ' [disabled]') : ''
-    lines.push(`${pointer} ${numeric} ${checkmark} ${label}${hint}${disabled}`)
+    lines.push(`${rail} ${pointer} ${numeric} ${checkmark} ${label}${hint}${disabled}`)
   }
 
   const selectedSummary = buildSelectedSummary(args.selected, args.options)
@@ -528,7 +687,7 @@ function simulatePasswordKeySequence(args: {
     }
 
     if (isPrintableKey(key)) {
-      chars.push(key.sequence as string)
+      chars.push(resolveTextInput(key.sequence as string))
     }
   }
 
@@ -602,18 +761,43 @@ async function withRawKeyboard<T>(run: (readKey: () => Promise<KeypressEvent>) =
   stdin.setRawMode(true)
   stdin.resume()
 
+  const queue: KeypressEvent[] = []
+  let pendingResolver: ((key: KeypressEvent) => void) | null = null
+
+  const onKeypress = (sequence: string, key: KeypressEvent) => {
+    const resolvedKey: KeypressEvent = {
+      ...key,
+      sequence: key?.sequence ?? sequence
+    }
+
+    if (pendingResolver) {
+      const resolve = pendingResolver
+      pendingResolver = null
+      resolve(resolvedKey)
+      return
+    }
+
+    queue.push(resolvedKey)
+  }
+
+  stdin.on('keypress', onKeypress)
+
   const readKey = () =>
     new Promise<KeypressEvent>((resolve) => {
-      const onKeypress = (sequence: string, key: KeypressEvent) => {
-        stdin.off('keypress', onKeypress)
-        resolve(key ?? { sequence })
+      const next = queue.shift()
+      if (next) {
+        resolve(next)
+        return
       }
-      stdin.on('keypress', onKeypress)
+      pendingResolver = resolve
     })
 
   try {
     return await run(readKey)
   } finally {
+    stdin.off('keypress', onKeypress)
+    pendingResolver = null
+    queue.length = 0
     stdin.setRawMode(wasRaw)
     if (!wasRaw) {
       stdin.pause()
@@ -677,11 +861,75 @@ async function askPasswordWithReveal(args: {
       }
 
       if (isPrintableKey(key)) {
-        chars.push(key.sequence as string)
+        chars.push(resolveTextInput(key.sequence as string))
         render()
       }
     }
   })
+}
+
+function setTerminalEchoEnabled(enabled: boolean): boolean {
+  if (!process.stdin.isTTY) return false
+  if (process.platform === 'win32') return false
+
+  const flag = enabled ? 'echo' : '-echo'
+  const attempts: Array<() => ReturnType<typeof spawnSync>> = [
+    () => spawnSync('stty', [flag], { stdio: ['inherit', 'ignore', 'ignore'] }),
+    () =>
+      spawnSync('stty', process.platform === 'darwin' ? ['-f', '/dev/tty', flag] : ['-F', '/dev/tty', flag], {
+        stdio: ['ignore', 'ignore', 'ignore']
+      }),
+    () => spawnSync('sh', ['-lc', `stty ${flag} < /dev/tty`], { stdio: ['ignore', 'ignore', 'ignore'] })
+  ]
+
+  for (const attempt of attempts) {
+    const result = attempt()
+    if (result.status === 0) return true
+  }
+
+  return false
+}
+
+async function askPasswordNoEcho(args: {
+  message: string
+  validate?: (value: string) => string | undefined
+}): Promise<string | Cancel> {
+  const stdin = process.stdin
+  const stdout = process.stdout
+  if (!stdin.isTTY || !stdout.isTTY) {
+    return askLine(args.message)
+  }
+
+  while (true) {
+    stdout.write(`${formatQuestionLabel(args.message)} `)
+    let value = ''
+    const disabledEcho = setTerminalEchoEnabled(false)
+    if (!disabledEcho) {
+      return askPasswordWithReveal(args)
+    }
+
+    try {
+      const rl = createInterface({ input: stdin, output: stdout, terminal: false })
+      try {
+        value = await rl.question('')
+      } finally {
+        rl.close()
+      }
+    } finally {
+      if (disabledEcho) {
+        setTerminalEchoEnabled(true)
+      }
+      stdout.write('\n')
+    }
+
+    const validationError = args.validate?.(value)
+    if (validationError) {
+      console.error(formatErrorLine(validationError))
+      continue
+    }
+
+    return value
+  }
 }
 
 async function askSelectWithKeyboard<T>(args: {
@@ -697,14 +945,17 @@ async function askSelectWithKeyboard<T>(args: {
 
   let selectedIndex = initialSelectableIndex(args.options, args.initialValue)
   let renderedLines = 0
+  let tick = 0
 
   return withRawKeyboard(async (readKey) => {
     const render = () => {
       const lines = renderSelectFrame({
         message: args.message,
         options: args.options,
-        selectedIndex
+        selectedIndex,
+        tick
       })
+      tick += 1
       renderedLines = renderFrame(lines, renderedLines)
     }
 
@@ -771,6 +1022,7 @@ async function askMultiSelectWithKeyboard<T>(args: {
 
   let renderedLines = 0
   let errorMessage: string | undefined
+  let tick = 0
 
   return withRawKeyboard(async (readKey) => {
     const render = () => {
@@ -779,8 +1031,10 @@ async function askMultiSelectWithKeyboard<T>(args: {
         options: args.options,
         selectedIndex,
         selected,
-        errorMessage
+        errorMessage,
+        tick
       })
+      tick += 1
       renderedLines = renderFrame(lines, renderedLines)
     }
 
@@ -851,6 +1105,13 @@ interface RawSpinner {
   message(text: string): void
 }
 
+type RawSpinnerAnimation = 'line' | 'dots'
+
+interface RawSpinnerOptions {
+  animation?: RawSpinnerAnimation
+  showTimer?: boolean
+}
+
 interface PromptDriver {
   text(args: {
     message: string
@@ -880,7 +1141,7 @@ interface PromptDriver {
     warn(message: string): void
     error(message: string): void
   }
-  spinner(): RawSpinner
+  spinner(options?: RawSpinnerOptions): RawSpinner
 }
 
 function findOptionByToken<T>(token: string, options: SelectOption<T>[]): SelectOption<T> | undefined {
@@ -906,7 +1167,7 @@ const defaultDriver: PromptDriver = {
 
   async password(args) {
     if (process.stdin.isTTY && process.stdout.isTTY) {
-      return askPasswordWithReveal(args)
+      return askPasswordNoEcho(args)
     }
 
     while (true) {
@@ -1054,12 +1315,18 @@ const defaultDriver: PromptDriver = {
     }
   },
 
-  spinner() {
-    const frames = ['-', '\\', '|', '/']
+  spinner(options) {
+    const framesByAnimation: Record<RawSpinnerAnimation, string[]> = {
+      line: ['-', '\\', '|', '/'],
+      dots: ['.  ', '.. ', '...', ' ..', '  .']
+    }
+    const animation = options?.animation ?? 'dots'
+    const frames = framesByAnimation[animation] ?? framesByAnimation.dots
     let frameIndex = 0
     let timer: ReturnType<typeof setInterval> | null = null
     let running = false
     let currentText = ''
+    let startedAt = 0
 
     const stopTimer = () => {
       if (timer) {
@@ -1072,13 +1339,17 @@ const defaultDriver: PromptDriver = {
       if (!running) return
       const frame = frames[frameIndex % frames.length] ?? '-'
       frameIndex += 1
-      writeStatusLine(`${cyan(promptStyle, frame)} ${currentText}`)
+      const elapsedSuffix = options?.showTimer
+        ? dim(promptStyle, ` ${((Date.now() - startedAt) / 1000).toFixed(1)}s`)
+        : ''
+      writeStatusLine(`${cyan(promptStyle, frame)} ${currentText}${elapsedSuffix}`)
     }
 
     return {
       start(text) {
         currentText = text ?? currentText
         running = true
+        startedAt = Date.now()
 
         if (!process.stdout.isTTY) {
           if (currentText) console.log(formatInfoLine(currentText))
@@ -1093,9 +1364,12 @@ const defaultDriver: PromptDriver = {
         if (text) {
           currentText = text
         }
+        const elapsedSuffix = options?.showTimer
+          ? ` (${((Date.now() - startedAt) / 1000).toFixed(1)}s)`
+          : ''
 
         if (!process.stdout.isTTY) {
-          if (currentText) console.log(formatSuccessLine(currentText))
+          if (currentText) console.log(formatSuccessLine(`${currentText}${elapsedSuffix}`))
           running = false
           return
         }
@@ -1104,7 +1378,7 @@ const defaultDriver: PromptDriver = {
         running = false
         clearStatusLine()
         if (currentText) {
-          process.stdout.write(`${formatSuccessLine(currentText)}\n`)
+          process.stdout.write(`${formatSuccessLine(`${currentText}${elapsedSuffix}`)}\n`)
         }
       },
       message(text) {
@@ -1163,7 +1437,9 @@ export const __promptInternalsForTests = {
   formatErrorLine,
   canPrompt,
   canPromptInEnvironment,
-  isCIEnvironmentFromEnv
+  isCIEnvironmentFromEnv,
+  resolvePromptSymbolMode,
+  resolveTextInput
 }
 
 async function validateWithSchema<TOut = unknown>(value: string, options: PromptOptions): Promise<TOut> {

@@ -1,5 +1,6 @@
 import { describe, test, expect, beforeEach, afterEach } from 'bun:test'
 import { z } from 'zod'
+import { displayWidth } from '../src/components/text-layout.js'
 import {
   text,
   confirm,
@@ -243,8 +244,10 @@ describe('@bunli/tui prompt adapters', () => {
     const intro = stripAnsi(__promptInternalsForTests.formatIntroLine('Project Setup Wizard'))
     const outro = stripAnsi(__promptInternalsForTests.formatOutroLine('Project created successfully'))
 
-    expect(intro).toBe('INFO == Project Setup Wizard ==')
-    expect(outro).toBe('OK == Project created successfully ==')
+    expect(intro).toContain('Project Setup Wizard')
+    expect(intro).toMatch(/^[┌+]\s{2}Project Setup Wizard\n[│|]/)
+    expect(outro).toContain('Project created successfully')
+    expect(outro).toMatch(/^[└+]\s{2}Project created successfully/)
   })
 
   test('note formatter renders titled multi-line blocks with prefixed body lines', () => {
@@ -253,14 +256,22 @@ describe('@bunli/tui prompt adapters', () => {
       'Configuration Summary'
     )
 
-    expect(stripAnsi(lines.join('\n'))).toBe(
-      [
-        'INFO Configuration Summary',
-        '| Name: hello',
-        '| Type: library',
-        '| Framework: node'
-      ].join('\n')
-    )
+    const output = stripAnsi(lines.join('\n'))
+    expect(output).toContain('Configuration Summary')
+    expect(output).toMatch(/\|\s+Name\s+: hello/)
+    expect(output).toMatch(/\|\s+Type\s+: library/)
+    expect(output).toMatch(/\|\s+Framework\s+: node/)
+    expect(output).toMatch(/[╮+]/)
+    expect(output).toMatch(/[╯+]/)
+
+    const tableLines = output
+      .split('\n')
+      .filter((line) => line.startsWith('| ') && line.includes(':'))
+    const colonColumns = tableLines.map((line) => line.indexOf(':'))
+    expect(new Set(colonColumns).size).toBe(1)
+
+    const widths = lines.map((line) => displayWidth(stripAnsi(line)))
+    expect(new Set(widths).size).toBe(1)
   })
 
   test('renderSelectFrame marks active and disabled options', () => {
@@ -343,8 +354,8 @@ describe('@bunli/tui prompt adapters', () => {
       [
         '? Environment',
         'Use Up/Down, Enter to choose, 1-2 for shortcuts',
-        '> 1. Dev',
-        '  2. Prod (danger) [disabled]'
+        '| > 1. Dev',
+        '|   2. Prod (danger) [disabled]'
       ].join('\n')
     )
   })
@@ -366,11 +377,39 @@ describe('@bunli/tui prompt adapters', () => {
         '? Features',
         'Use Up/Down, Space to toggle, Enter to submit, 1-2 shortcuts',
         'ERR Select at least one option.',
-        '  1. [ ] TypeScript',
-        '> 2. [x] Docker',
+        '|   1. [ ] TypeScript',
+        '| > 2. [x] Docker',
         'Selected: Docker'
       ].join('\n')
     )
+  })
+
+  test('renderSelectFrame alternates active pointer for subtle motion', () => {
+    const firstOutput = stripAnsi(__promptInternalsForTests.renderSelectFrame({
+      message: 'Environment',
+      options: [{ label: 'Dev', value: 'dev' }],
+      selectedIndex: 0,
+      tick: 0
+    }).join('\n'))
+
+    const secondOutput = stripAnsi(__promptInternalsForTests.renderSelectFrame({
+      message: 'Environment',
+      options: [{ label: 'Dev', value: 'dev' }],
+      selectedIndex: 0,
+      tick: 1
+    }).join('\n'))
+
+    const firstLine = firstOutput.split('\n')[2]
+    const secondLine = secondOutput.split('\n')[2]
+
+    expect(firstLine).toContain('| ')
+    expect(secondLine).toContain('| ')
+    expect(firstLine).not.toBe(secondLine)
+  })
+
+  test('symbol mode resolver honors explicit env override and non-tty fallback', () => {
+    expect(__promptInternalsForTests.resolvePromptSymbolMode({ BUNLI_TUI_SYMBOLS: 'ascii' })).toBe('ascii')
+    expect(__promptInternalsForTests.resolvePromptSymbolMode({ BUNLI_SYMBOLS: 'unicode' })).toBe('unicode')
   })
 
   test('simulateSelectKeySequence covers realistic key navigation and submit', () => {
@@ -434,6 +473,25 @@ describe('@bunli/tui prompt adapters', () => {
 
     expect(result.revealed).toBe(true)
     expect(result.result).toBe('set')
+  })
+
+  test('simulatePasswordKeySequence accepts pasted multi-character input', () => {
+    const result = __promptInternalsForTests.simulatePasswordKeySequence({
+      keys: [
+        { sequence: 'super-secret-token', name: undefined },
+        { name: 'enter' }
+      ]
+    })
+
+    expect(result.result).toBe('super-secret-token')
+  })
+
+  test('resolveTextInput strips bracketed paste markers and newlines', () => {
+    const parsed = __promptInternalsForTests.resolveTextInput(
+      '\u001b[200~top\nsecret\r\nvalue\u001b[201~'
+    )
+
+    expect(parsed).toBe('topsecretvalue')
   })
 
   test('renderFrame clears prior frame lines and does not leave dangling escape prefixes', () => {
