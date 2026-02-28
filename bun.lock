@@ -1,6 +1,5 @@
 {
   "lockfileVersion": 1,
-  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "bunli-monorepo",
@@ -142,7 +141,7 @@
     },
     "packages/cli": {
       "name": "bunli",
-      "version": "0.7.0",
+      "version": "0.7.1",
       "bin": {
         "bunli": "./dist/cli.js",
       },
@@ -198,7 +197,7 @@
     },
     "packages/generator": {
       "name": "@bunli/generator",
-      "version": "0.6.2",
+      "version": "0.6.3",
       "dependencies": {
         "@babel/parser": "^7.28.6",
         "@babel/traverse": "^7.28.6",
@@ -227,7 +226,7 @@
     },
     "packages/plugin-completions": {
       "name": "@bunli/plugin-completions",
-      "version": "0.3.2",
+      "version": "0.3.3",
       "dependencies": {
         "@bunli/core": "workspace:^",
         "better-result": "^2.7.0",
