@@ -1,5 +1,14 @@
 # bunli
 
+## 0.7.1
+
+### Patch Changes
+
+- 8f0ba97: fix nested group subcommand completions, shared option metadata extraction, and strict nested `doctor completions` checks.
+- Updated dependencies [8f0ba97]
+  - @bunli/plugin-completions@0.3.3
+  - @bunli/generator@0.6.3
+
 ## 0.7.0
 
 ### Minor Changes
