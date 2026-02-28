@@ -10,6 +10,8 @@ bun install
 
 # Run the CLI
 bun cli.ts greet --name "World" --loud
+bun cli.ts password-prompt
+bun cli.ts password --tui
 bun cli.ts showcase --tui
 
 # Or with short flags
@@ -30,6 +32,8 @@ bun cli.ts greet --name "CLI" --no-tui
 - **Default values** and **short flags**
 - **Colored output** with built-in utilities
 - **OpenTUI integration** with `render` + global TUI flags
+- **Standard-buffer password prompt demo** with `prompt.password`
+- **Password input demo** with `Form`, `Input`, and `PasswordField`
 - **Component library showcase** for `@bunli/tui/interactive` + `@bunli/tui/charts`
 
 Showcase controls (`bun cli.ts showcase --tui`):
@@ -92,12 +96,12 @@ This example configures:
 ```typescript
 tui: {
   renderer: {
-    bufferMode: 'standard'
+    bufferMode: 'alternate'
   }
 }
 ```
 
-So `--tui` renders in the main terminal buffer (scrollback-friendly).
+So `--tui` renders in the alternate (full-screen) buffer for interactive showcase behavior.
 
 ## Development
 

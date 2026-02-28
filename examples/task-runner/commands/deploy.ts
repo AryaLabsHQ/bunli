@@ -37,10 +37,26 @@ export default defineCommand({
         short: 'f', 
         description: 'Force deployment without confirmation' 
       }
+    ),
+
+    // Spinner variant
+    spinner: option(
+      z.enum(['braille', 'dots', 'line']).default('braille'),
+      {
+        description: 'Spinner style (braille, dots, line)'
+      }
     )
   },
   
   handler: async ({ flags, colors, spinner, prompt }) => {
+    type StepStatus = 'ok' | 'skip' | 'fail'
+    type StepResult = {
+      index: number
+      description: string
+      status: StepStatus
+      durationMs: number
+    }
+
     const steps = [
       { name: 'tests', description: 'Run test suite' },
       { name: 'build', description: 'Build application' },
@@ -50,25 +66,49 @@ export default defineCommand({
     ]
     
     const skippedSteps = flags.skip || []
-    
-    // Show deployment plan
-    console.log(colors.bold(`\n🚀 Deployment Plan (${flags.environment}):`))
-    steps.forEach((step, index) => {
-      const isSkipped = skippedSteps.includes(step.name)
-      const icon = isSkipped ? colors.yellow('⏭️') : colors.cyan('📋')
-      const status = isSkipped ? colors.dim('(skipped)') : ''
-      console.log(`  ${index + 1}. ${icon} ${step.description} ${status}`)
-    })
+    const totalSteps = steps.length
+    const stepLabel = (index: number, description: string) => `[${index + 1}/${totalSteps}] ${description}`
+    const results: StepResult[] = []
+
+    const statusText = {
+      ok: colors.green('PASS'),
+      skip: colors.yellow('SKIP'),
+      fail: colors.red('FAIL')
+    }
+
+    const renderPlan = () => {
+      console.log(colors.cyan(`\n┌─ Deploy ${flags.environment}`))
+      console.log(colors.dim('│'))
+      for (const [index, step] of steps.entries()) {
+        const isSkipped = skippedSteps.includes(step.name)
+        const marker = isSkipped ? statusText.skip : colors.cyan('STEP')
+        const dimmed = isSkipped ? colors.dim(' (skipped)') : ''
+        console.log(`${colors.dim('│')} ${index + 1}. ${marker} ${step.description}${dimmed}`)
+      }
+      console.log(colors.cyan('└─ Ready'))
+    }
+
+    const renderSummary = () => {
+      console.log(colors.cyan(`\n┌─ Deployment Summary (${flags.environment})`))
+      for (const result of results) {
+        const seconds = (result.durationMs / 1000).toFixed(1).padStart(4, ' ')
+        const row = `${String(result.index + 1).padStart(2, '0')} ${statusText[result.status]} ${result.description}`
+        console.log(`${colors.dim('│')} ${row} ${colors.dim(`${seconds}s`)}`)
+      }
+      console.log(colors.cyan('└─ Complete'))
+    }
+
+    renderPlan()
     
     // Confirmation prompt
     if (!flags.force) {
       const confirmed = await prompt.confirm(
         `\nDeploy to ${colors.cyan(flags.environment)}?`,
-        { default: false }
+        { default: false, fallbackValue: false }
       )
       
       if (!confirmed) {
-        console.log(colors.yellow('Deployment cancelled'))
+        prompt.cancel('Deployment cancelled')
         return
       }
     }
@@ -76,13 +116,23 @@ export default defineCommand({
     // Execute deployment steps
     for (const [index, step] of steps.entries()) {
       if (skippedSteps.includes(step.name)) {
-        console.log(colors.yellow(`⏭️  Skipping: ${step.description}`))
+        results.push({
+          index,
+          description: step.description,
+          status: 'skip',
+          durationMs: 0
+        })
         continue
       }
       
-      const spin = spinner(`Step ${index + 1}/${steps.length}: ${step.description}`)
+      const spin = spinner({
+        text: `STEP ${stepLabel(index, step.description)}`,
+        animation: flags.spinner,
+        showTimer: true
+      })
       
       try {
+        const startedAt = Date.now()
         // Simulate step execution
         await new Promise(resolve => setTimeout(resolve, 1000))
         
@@ -107,46 +157,64 @@ export default defineCommand({
           await new Promise(resolve => setTimeout(resolve, 300))
         }
         
-        spin.succeed(`✅ ${step.description}`)
+        spin.succeed(stepLabel(index, step.description))
+        results.push({
+          index,
+          description: step.description,
+          status: 'ok',
+          durationMs: Date.now() - startedAt
+        })
         
       } catch (error) {
-        spin.fail(`❌ ${step.description} failed`)
+        spin.fail(`${stepLabel(index, step.description)} failed`)
+        results.push({
+          index,
+          description: step.description,
+          status: 'fail',
+          durationMs: 0
+        })
         console.error(colors.red(`Error: ${error instanceof Error ? error.message : String(error)}`))
         
         // Ask if user wants to continue
         if (step.name !== 'deploy') {
           const continueDeploy = await prompt.confirm(
             'Continue with remaining steps?',
-            { default: false }
+            { default: false, fallbackValue: false }
           )
           
           if (!continueDeploy) {
-            console.log(colors.yellow('Deployment aborted'))
+            prompt.cancel('Deployment aborted')
+            renderSummary()
             return
           }
         } else {
-          console.log(colors.red('Deployment failed'))
+          prompt.log.error('Deployment failed')
+          renderSummary()
           return
         }
       }
     }
     
-    // Show post-deployment options
-    console.log(colors.green('\n🎉 Deployment completed successfully!'))
+    renderSummary()
+    prompt.outro(`Deployment completed (${flags.environment})`)
     
     const viewLogs = await prompt.confirm(
       'View deployment logs?',
-      { default: false }
+      { default: false, fallbackValue: false }
     )
     
     if (viewLogs) {
-      console.log(colors.dim('\n📋 Recent deployment logs:'))
-      console.log(colors.dim('  [2024-01-15 10:30:15] Starting deployment to staging'))
-      console.log(colors.dim('  [2024-01-15 10:30:16] Tests passed (45/45)'))
-      console.log(colors.dim('  [2024-01-15 10:30:45] Build completed (2.3s)'))
-      console.log(colors.dim('  [2024-01-15 10:30:46] Cache warmed up'))
-      console.log(colors.dim('  [2024-01-15 10:30:47] Migrations applied (0 pending)'))
-      console.log(colors.dim('  [2024-01-15 10:31:12] Deployment successful'))
+      prompt.note(
+        [
+          '[2024-01-15 10:30:15] Starting deployment to staging',
+          '[2024-01-15 10:30:16] Tests passed (45/45)',
+          '[2024-01-15 10:30:45] Build completed (2.3s)',
+          '[2024-01-15 10:30:46] Cache warmed up',
+          '[2024-01-15 10:30:47] Migrations applied (0 pending)',
+          '[2024-01-15 10:31:12] Deployment successful'
+        ].join('\n'),
+        'Recent deployment logs'
+      )
     }
   }
 })

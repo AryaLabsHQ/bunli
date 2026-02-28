@@ -47,13 +47,14 @@ export default defineCommand({
     memory: option(
       z.string()
         .regex(/^\d+[kmg]?$/i, 'Memory must be a number with optional unit (k, m, g)')
+        .optional()
         .transform((val) => {
-          const num = parseInt(val)
-          const unit = val.slice(-1).toLowerCase()
+          const raw = val ?? '512m'
+          const num = parseInt(raw)
+          const unit = raw.slice(-1).toLowerCase()
           const multipliers = { k: 1024, m: 1024 * 1024, g: 1024 * 1024 * 1024 }
           return num * (multipliers[unit as keyof typeof multipliers] || 1)
-        })
-        .default('512m'),
+        }),
       { 
         short: 'm', 
         description: 'Memory limit (e.g., 512m, 2g)' 
@@ -124,7 +125,7 @@ export default defineCommand({
       }
       
       if (flags.watch) {
-        console.log(colors.yellow('\n👀 Watching for changes...'))
+        console.log(colors.yellow('\nWatching for changes...'))
       }
       
     } catch (error) {

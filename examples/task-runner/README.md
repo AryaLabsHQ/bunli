@@ -80,11 +80,17 @@ bun cli.ts deploy -e production --skip tests,cache
 
 # Force deployment
 bun cli.ts deploy --force
+
+# Choose spinner style
+bun cli.ts deploy --spinner braille
+bun cli.ts deploy --spinner dots
+bun cli.ts deploy --spinner line
 ```
 
 **Features:**
 - Multi-step progress indicators
 - Step skipping with validation
+- Selectable spinner variants (`braille`, `dots`, `line`)
 - Confirmation prompts
 - Error recovery with user choice
 - Post-deployment options
