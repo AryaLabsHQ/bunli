@@ -5,18 +5,28 @@
 
 import type { RenderArgs } from '../types.js'
 
-let renderer: ((args: RenderArgs<any, any>) => Promise<unknown> | unknown) | null = null
+type TuiRenderer = (args: RenderArgs<any, any>) => Promise<unknown> | unknown
+
+const TUI_RENDERER_SYMBOL = Symbol.for('bunli:tui:renderer')
+
+interface TuiRendererGlobal {
+  [TUI_RENDERER_SYMBOL]?: TuiRenderer
+}
 
 export function registerTuiRenderer<TFlags = Record<string, unknown>, TStore = {}>(
   fn: (args: RenderArgs<TFlags, TStore>) => Promise<unknown> | unknown
 ) {
-  renderer = fn as (args: RenderArgs<any, any>) => Promise<unknown> | unknown
+  ;(globalThis as typeof globalThis & TuiRendererGlobal)[TUI_RENDERER_SYMBOL] =
+    fn as TuiRenderer
 }
 
 export function getTuiRenderer<TFlags = Record<string, unknown>, TStore = {}>() {
-  return renderer as ((args: RenderArgs<TFlags, TStore>) => Promise<unknown> | unknown) | null
+  return (
+    (globalThis as typeof globalThis & TuiRendererGlobal)[TUI_RENDERER_SYMBOL]
+    ?? null
+  ) as ((args: RenderArgs<TFlags, TStore>) => Promise<unknown> | unknown) | null
 }
 
 export function clearTuiRenderer() {
-  renderer = null
+  delete (globalThis as typeof globalThis & TuiRendererGlobal)[TUI_RENDERER_SYMBOL]
 }

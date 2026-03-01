@@ -21,6 +21,8 @@ export function createInterruptController(options: InterruptControllerOptions = 
   const interruptedPromise = new Promise<never>((_resolve, reject) => {
     rejectInterrupted = reject
   })
+  // Prevent unhandled rejections if `work` wins the race and an interrupt arrives later.
+  interruptedPromise.catch(() => {})
 
   const raiseInterrupt = (message: string) => {
     if (interrupted) return

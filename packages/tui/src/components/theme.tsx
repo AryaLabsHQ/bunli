@@ -1,4 +1,4 @@
-import { createContext, useContext, type ReactNode } from 'react'
+import { createContext, useContext, useMemo, type ReactNode } from 'react'
 
 export interface TuiThemeTokens {
   background: string
@@ -116,7 +116,8 @@ export interface ThemeProviderProps {
 }
 
 export function ThemeProvider({ theme = 'dark', children }: ThemeProviderProps) {
-  return <ThemeContext.Provider value={createTheme(theme)}>{children}</ThemeContext.Provider>
+  const resolvedTheme = useMemo(() => createTheme(theme), [theme])
+  return <ThemeContext.Provider value={resolvedTheme}>{children}</ThemeContext.Provider>
 }
 
 export function useTuiTheme() {
