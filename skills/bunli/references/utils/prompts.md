@@ -3,61 +3,85 @@
 ## Import
 
 ```typescript
-import { prompt, confirm, select, multiselect, password } from "@bunli/utils"
+import {
+  prompt,
+  PromptCancelledError,
+  isCancel,
+  assertNotCancelled,
+  promptOrExit
+} from "@bunli/tui/prompt"
 ```
 
-## prompt
-
-Text input with optional schema validation.
+In command handlers, prefer injected prompt utilities:
 
 ```typescript
-// Basic
+handler: async ({ prompt }) => {
+  const name = await prompt("Project name")
+}
+```
+
+## prompt / text
+
+Text input with optional schema/validation.
+
+```typescript
 const name = await prompt("What is your name?")
 
-// With options
-const name = await prompt("Enter name", {
-  default: "Anonymous",
-  placeholder: "John Doe"
-})
-
-// With validation
-const email = await prompt("Enter email", {
+const email = await prompt("Email", {
   schema: z.string().email(),
-  validate: (value) => value.includes("@")
+  placeholder: "name@example.com",
+  fallbackValue: "ci@example.com"
 })
 ```
+
+Options:
+- `default?: string`
+- `placeholder?: string`
+- `validate?: (input: string) => boolean | string`
+- `schema?: StandardSchemaV1`
+- `mode?: "inline" | "interactive"`
+- `fallbackValue?: string`
+
+Note: `PromptOptions` includes `multiline?: boolean` in types, but current runtime does not wire multiline behavior yet.
 
 ## confirm
 
-Yes/no confirmation.
-
 ```typescript
-const proceed = await confirm("Continue with installation?", {
-  default: true
+const proceed = await prompt.confirm("Continue with release?", {
+  default: true,
+  fallbackValue: false
 })
 ```
+
+Options:
+- `default?: boolean`
+- `mode?: "inline" | "interactive"`
+- `fallbackValue?: boolean`
 
 ## select
 
-Single selection from options.
-
 ```typescript
-const framework = await select("Choose framework", {
+const framework = await prompt.select("Choose framework", {
   options: [
-    { value: "react", label: "React", hint: "Popular choice" },
-    { value: "vue", label: "Vue" },
-    { value: "svelte", label: "Svelte" }
+    { value: "react", label: "React", hint: "Most common" },
+    { value: "vue", label: "Vue" }
   ],
-  default: "react"
+  default: "react",
+  fallbackValue: "react"
 })
 ```
 
+Options:
+- `options: Array<{ label: string; value: T; hint?: string; disabled?: boolean }>`
+- `default?: T`
+- `hint?: string`
+- `mode?: "inline" | "interactive"`
+- `fallbackValue?: T`
+
 ## multiselect
 
-Multiple selection.
-
 ```typescript
-const tools = await multiselect("Select tools", {
+const tools = await prompt.multiselect("Select tools", {
   options: [
     { value: "eslint", label: "ESLint" },
     { value: "prettier", label: "Prettier" },
@@ -65,45 +89,61 @@ const tools = await multiselect("Select tools", {
   ],
   min: 1,
   max: 3,
-  initialValues: ["eslint"]
+  initialValues: ["eslint"],
+  fallbackValue: ["eslint"]
 })
 ```
+
+Options:
+- `options: Array<{ label: string; value: T; hint?: string; disabled?: boolean }>`
+- `min?: number`
+- `max?: number`
+- `initialValues?: T[]`
+- `mode?: "inline" | "interactive"`
+- `fallbackValue?: T[]`
 
 ## password
 
-Masked password input.
-
 ```typescript
-const pwd = await password("Enter password", {
-  validate: (value) => value.length >= 8
+const token = await prompt.password("API token", {
+  validate: (value) => value.length >= 20 || "Token is too short",
+  fallbackValue: process.env.API_TOKEN ?? ""
 })
 ```
 
-## Clack Prompts
+Uses the same options as text prompt, including `mode` and `fallbackValue`.
 
-Full access to `@clack/prompts`:
+## Prompt UI helpers
 
 ```typescript
-import { clack } from "@bunli/utils"
-
-clack.intro("My CLI")
-clack.outro("Done!")
-clack.note("Info message", "Tip")
-clack.log.info("Info")
-clack.log.warn("Warning")
-clack.log.error("Error")
-
-const s = clack.spinner()
-s.start("Loading...")
-s.stop("Loaded!")
+prompt.intro("Setup")
+prompt.note("Choose defaults to continue quickly", "Tip")
+prompt.log.info("Starting checks...")
+prompt.log.success("Checks passed")
+prompt.cancel("Cancelled by user")
+prompt.outro("Done")
 ```
 
-## Cancel Handling
+Use grouped prompt flows:
 
 ```typescript
-import { clack, prompt } from "@bunli/utils"
-import { PromptCancelledError } from "@bunli/utils"
+const result = await prompt.group({
+  name: () => prompt("Project name"),
+  packageManager: () =>
+    prompt.select("Package manager", {
+      options: [
+        { label: "bun", value: "bun" },
+        { label: "pnpm", value: "pnpm" }
+      ]
+    })
+})
+```
 
+## Cancel handling
+
+High-level prompt methods throw `PromptCancelledError` on cancellation.
+
+```typescript
 try {
   const value = await prompt("Enter value")
   // use value
@@ -116,4 +156,13 @@ try {
 }
 ```
 
-`clack.isCancel(...)`, `clack.assertNotCancelled(...)`, and `clack.promptOrExit(...)` are useful when using raw `clack.*` prompt primitives that may return cancel sentinels.
+Helpers for low-level/sentinel flows:
+
+```typescript
+if (isCancel(value)) {
+  // Handle cancel sentinel
+}
+
+const safeValue = assertNotCancelled(value)
+const valueOrExit = promptOrExit(value, "Cancelled")
+```

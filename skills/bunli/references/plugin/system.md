@@ -1,14 +1,13 @@
 # Plugin System
 
-## BunliPlugin Interface
+## BunliPlugin interface
 
 ```typescript
 interface BunliPlugin<TStore = {}> {
-  name: string              // Unique plugin name (required)
-  version?: string          // Optional version
-  store?: TStore           // Initial store state
+  name: string
+  version?: string
+  store?: TStore
 
-  // Lifecycle hooks
   setup?(context: PluginContext): void | Promise<void>
   configResolved?(config: ResolvedConfig): void | Promise<void>
   beforeCommand?(context: CommandContext<any>): void | Promise<void>
@@ -16,7 +15,7 @@ interface BunliPlugin<TStore = {}> {
 }
 ```
 
-## Plugin Context (Setup)
+## Plugin context (setup phase)
 
 ```typescript
 interface PluginContext {
@@ -26,19 +25,21 @@ interface PluginContext {
   use(middleware: Middleware): void
   readonly store: Map<string, unknown>
   readonly logger: Logger
-  readonly paths: PathInfo  // cwd, home, config
+  readonly paths: PathInfo // cwd, home, config
 }
 ```
 
-## Command Context
+`setup` store is a shared `Map<string, unknown>` for plugin setup coordination.
+
+## Command context (execution phase)
 
 ```typescript
 interface CommandContext<TStore = {}> {
   readonly command: string
   readonly commandDef: Command<any, TStore>
   readonly args: string[]
-  readonly flags: Record<string, any>
-  readonly env: EnvironmentInfo  // isCI (isAIAgent, aiAgents added by @bunli/plugin-ai-detect)
+  readonly flags: Record<string, unknown>
+  readonly env: EnvironmentInfo
   readonly store: TStore
   getStoreValue<K extends keyof TStore>(key: K): TStore[K]
   setStoreValue<K extends keyof TStore>(key: K, value: TStore[K]): void
@@ -46,12 +47,15 @@ interface CommandContext<TStore = {}> {
 }
 ```
 
-## Creating Plugins
+Execution `store` is a typed object copied from merged plugin stores for each command run.
+
+`EnvironmentInfo` base field is `isCI`; additional fields like `isAIAgent`/`aiAgents` come from plugins (for example `@bunli/plugin-ai-detect`).
+
+## Creating plugins
 
 ```typescript
 import { createPlugin } from "@bunli/core/plugin"
 
-// Direct plugin
 const myPlugin = createPlugin({
   name: "my-plugin",
   store: { count: 0 },
@@ -60,45 +64,22 @@ const myPlugin = createPlugin({
   }
 })
 
-// Factory pattern
-const myPlugin = createPlugin((options: { prefix: string }) => ({
-  name: "my-plugin",
-  store: { count: 0 },
+const myFactoryPlugin = createPlugin((options: { prefix: string }) => ({
+  name: "my-factory-plugin",
   beforeCommand(context) {
     console.log(`${options.prefix}: ${context.command}`)
   }
 }))
 ```
 
-## Plugin Configuration
+## Plugin configuration
 
 ```typescript
-// bunli.config.ts
 export default defineConfig({
   plugins: [
-    // String path
     "@bunli/plugin-ai-detect",
-
-    // Direct plugin
     myPlugin,
-
-    // Factory with options
     [completionsPlugin, { generatedPath: ".bunli/commands.gen.ts" }]
   ]
 })
-```
-
-## Lifecycle
-
-```
-CLI Start
-  │
-  ├─► loadPlugins()     Load all plugin configs
-  ├─► runSetup()        Execute setup hooks
-  ├─► configResolved()  Notify config finalized
-  │
-  └─► Command Loop
-       ├─► beforeCommand()
-       ├─► Execute command
-       └─► afterCommand()
 ```

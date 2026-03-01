@@ -11,12 +11,15 @@ import { z } from "zod"
 export const myCommand = defineCommand({
   name: "mycommand",
   description: "My command description",
-  alias: "mc", // Optional: string or string[]
+  alias: "mc", // optional: string or string[]
   options: {
-    // Define options here
+    debug: option(z.boolean().default(false), { short: "d", description: "Debug output" })
   },
-  handler: ({ flags, positional, shell, env, cwd, prompt, spinner, colors }) => {
-    // Command implementation
+  handler: async ({ flags, prompt, spinner, signal }) => {
+    if (signal.aborted) return
+    if (flags.debug) prompt.log.info("Running...")
+    const s = spinner("Work in progress...")
+    s.succeed("Done")
   }
 })
 ```
@@ -37,75 +40,58 @@ export const adminGroup = defineGroup({
 
 Creates a CLI option with StandardSchema validation.
 
-> **Critical**: CLI arguments always arrive as strings. Use `z.coerce.number()` for numeric options. Use `z.enum(...)` for enums.
->
-> - ❌ `z.number()` fails for "8080"
-> - ✅ `z.coerce.number()` converts "8080" to 8080
+Use `z.coerce.number()` for numeric flags because CLI args are strings.
 
 ```typescript
-import { option } from "@bunli/core"
-import { z } from "zod"
-
-// Basic options
 name: option(z.string(), { short: "n", description: "Your name" })
 debug: option(z.boolean(), { short: "d", description: "Enable debug output" })
 port: option(z.coerce.number(), { description: "Port number" })
-
-// With defaults
-timeout: option(z.coerce.number().default(5000))
 mode: option(z.enum(["dev", "prod"]).default("dev"))
-
-// With validation
-email: option(z.string().email())
-count: option(z.coerce.number().min(1).max(100))
 ```
 
-Note: `-v` is reserved by Bunli global flags for `--version`, so prefer other short letters for command options.
+## Positional arguments
 
-## Positional Arguments
-
-Positional arguments are handled via the `positional` array in HandlerArgs.
+Read positionals from `handler` args:
 
 ```typescript
-handler: ({ flags, positional }) => {
+handler: ({ positional }) => {
   const [first, second, ...rest] = positional
 }
 ```
 
-## Command Interface
+## Runnable command shape
+
+Runnable commands can provide:
+- `handler` only (non-TUI flow)
+- `render` only (TUI-only flow)
+- both `handler` and `render` (dual mode)
+
+Commands can also provide command-level renderer overrides:
 
 ```typescript
-interface RunnableCommand<TOptions, TStore, TName> {
-  name: TName
-  description: string
-  options?: TOptions
-  alias?: string | string[]
-  handler: Handler<InferOptions<TOptions>, TStore, TName>
-  // or render: RenderFunction<InferOptions<TOptions>, TStore>
-}
-
-interface Group<TStore, TName> {
-  name: TName
-  description: string
-  alias?: string | string[]
-  commands: Command<any, TStore, any>[]
+{
+  tui: {
+    renderer: {
+      bufferMode: "standard"
+    }
+  }
 }
 ```
 
-## Handler Context
+## Handler context
 
 ```typescript
-handler: ({ flags, positional, shell, env, cwd, prompt, spinner, colors, terminal, runtime, context }) => {
-  // flags: Parsed option values
-  // positional: Array of positional arguments
-  // shell: Bun.$ shell interface
-  // env: Process environment variables
-  // cwd: Current working directory
-  // prompt: Prompt utilities
-  // spinner: Spinner utilities
-  // colors: Color formatting
-  // terminal: Terminal info (width, height, isInteractive, isCI, supportsColor, supportsMouse)
-  // runtime: Runtime info (startTime, args, command)
-  // context: Optional plugin command context (store values are generic unless narrowed/augmented)
+handler: ({ flags, positional, shell, env, cwd, prompt, spinner, colors, terminal, runtime, signal, context }) => {
+  // flags: parsed option values
+  // positional: positional arguments
+  // shell: Bun.$
+  // env: process.env
+  // cwd: current working directory
+  // prompt/spinner: @bunli/tui/prompt APIs
+  // colors: @bunli/utils colors
+  // terminal: width, height, isInteractive, isCI, supportsColor, supportsMouse
+  // runtime: startTime, args, command
+  // signal: cooperative cancellation signal
+  // context: plugin command context (if plugins are loaded)
 }
 ```

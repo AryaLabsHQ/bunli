@@ -1,143 +1,171 @@
 # CLI Commands
 
-## Available Commands
+## Available commands
 
 | Command | Alias | Description |
 |---------|-------|-------------|
 | `dev` | `d` | Run CLI in development mode with hot reload |
 | `build` | `b` | Build CLI for production |
-| `generate` | `gen` | Generate TypeScript types |
+| `generate` | `gen` | Generate TypeScript command types |
 | `test` | `t` | Run tests with Bun |
 | `release` | `r` | Create releases |
-| `init` | `i` | Initialize new project |
-| `doctor` | - | Run diagnostics for Bunli projects |
+| `init` | `i` | Initialize a new project |
+| `doctor` | - | Run diagnostics (`doctor completions`) |
 
 ## bunli dev
 
-Run CLI in development mode with hot reload.
-
 ```bash
 bunli dev
-bunli dev --watch
-bunli dev --port 3000
+bunli dev --entry ./cli.ts --watch --inspect --port 3001
 ```
 
 Options:
-- `--entry` - Entry file (defaults to auto-detect)
-- `--generate` - Enable codegen
-- `--clearScreen` - Clear screen on reload (currently accepted but not applied)
-- `--watch` - Watch for changes (boolean)
-- `--port` - Debugger inspect port (`--inspect-port`)
-- `--inspect` - Enable debugger
+- `--entry` entry file
+- `--generate` enable codegen (default `true`)
+- `--clearScreen` accepted flag (currently not applied in runtime behavior)
+- `--watch` watch for changes (default `true`)
+- `--inspect` enable debugger
+- `--port` debugger port
+
+Behavior note:
+- parser defaults populate `watch`/`inspect` flags, so config fallback for these is effectively shadowed unless flags are explicitly provided.
 
 ## bunli build
 
-Build CLI for production.
-
 ```bash
 bunli build
-bunli build --targets darwin-arm64,linux-x64
-bunli build --minify
-bunli build --sourcemap
-bunli build --bytecode  # Bytecode compilation
+bunli build --targets darwin-arm64,linux-x64 --bytecode
 ```
 
 Options:
-- `--entry` - Entry file (defaults to auto-detect)
-- `--outdir` - Output directory
-- `--outfile` - Output filename (single executable)
-- `--runtime` - Runtime target for non-compiled builds (`bun` or `node`)
-- `--targets` - Target platforms (`native`, `all`, or explicit targets like darwin-arm64, darwin-x64, linux-arm64, linux-x64, windows-x64)
-- `--watch` - Watch for changes (currently accepted but not applied)
-- `--minify` - Minify output
-- `--sourcemap` - Generate sourcemaps
-- `--bytecode` - Compile to bytecode
+- `--entry` entry file
+- `--outdir` output directory
+- `--outfile` output filename (single executable)
+- `--runtime` runtime target for non-compiled builds (`bun` or `node`)
+- `--targets` compile targets (`native`, `all`, or explicit list)
+- `--watch` accepted by command (currently not applied)
+- `--minify`
+- `--sourcemap`
+- `--bytecode`
+
+Compile caveat:
+- when `--targets` is set (compiled mode), multi-entry `build.entry` arrays are not supported.
 
 ## bunli generate
 
-Generate TypeScript types from command definitions.
-
 ```bash
 bunli generate
-bunli generate --output .bunli/commands.gen.ts
+bunli generate --entry ./cli.ts --directory ./commands --output ./.bunli/commands.gen.ts
+bunli generate --watch
 ```
 
-Uses Babel AST parsing to extract command metadata.
+Options:
+- `--entry` CLI entry file used for command discovery
+- `--directory` optional command source directory fallback
+- `--output` output path (default `./.bunli/commands.gen.ts`)
+- `--watch` watch mode
 
 ## bunli test
 
-Run tests with Bun.
-
 ```bash
 bunli test
-bunli test --coverage
-bunli test --watch
-bunli test --pattern "**/*.test.ts"
+bunli test --pattern "**/*.test.ts" --coverage
+bunli test --all --bail --timeout 30000
 ```
 
-## bunli doctor
+Options:
+- `--pattern` test pattern(s)
+- `--watch`
+- `--coverage`
+- `--bail` stop on first failure
+- `--timeout` timeout in milliseconds
+- `--all` run tests across workspace packages
 
-Run Bunli diagnostics.
+## bunli doctor
 
 ```bash
 bunli doctor completions
 bunli doctor completions --generatedPath ./.bunli/commands.gen.ts
+bunli doctor completions --strict
 ```
 
 ## bunli release
 
-Create releases (npm publish, optional GitHub release).
-
 ```bash
 bunli release
-bunli release --version patch
-bunli release --npm
-bunli release --github
+bunli release --version patch --npm --github
+bunli release --dry
 ```
+
+Options:
+- `--version` (`patch` | `minor` | `major` | explicit version)
+- `--tag` custom git tag format
+- `--npm` publish to npm
+- `--github` create GitHub release
+- `--dry` dry run
+- `--all` workspace release (currently not implemented)
+
+Behavior notes:
+- defaults resolve from config: `npm=true`, `github=false`, `tagFormat="v{{version}}"` unless overridden.
+- `--no-npm` and `--no-github` are treated as unsupported; use `--npm=false` / `--github=false` instead.
 
 ## bunli init
 
-Initialize new Bunli CLI project.
-
 ```bash
 bunli init my-cli
-create-bunli
+bunli init --name my-cli --template advanced --dir ./apps/my-cli
 ```
+
+Options:
+- `--name` project name
+- `--template` (`basic` | `advanced` | `monorepo`)
+- `--dir` target directory
+- `--git` boolean flag (disable forwarding is currently unreliable in `bunli init`)
+- `--install` boolean flag (disable forwarding is currently unreliable in `bunli init`)
+- `--package-manager` (`bun` | `pnpm` | `yarn` | `npm`) is forwarded by `bunli init`, but currently not consumed by `create-bunli` install flow
+
+If you need reliable disable behavior today, call `create-bunli` directly:
+`bunx create-bunli my-cli --git=false --install=false`.
 
 ## bunli.config.ts
 
 ```typescript
+import { defineConfig } from "@bunli/core"
+
 export default defineConfig({
   name: "mycli",
   version: "1.0.0",
 
   commands: {
-    directory: "./commands"  // Optional: tooling/codegen discovery directory
+    entry: "./cli.ts",
+    directory: "./commands"
   },
 
   build: {
     entry: "./cli.ts",
     outdir: "./dist",
     targets: ["darwin-arm64", "linux-x64"],
+    compress: false,
+    external: ["fsevents"],
     minify: true,
     sourcemap: true
   },
 
   dev: {
     watch: true,
-    port: 3000,
-    inspect: true
+    inspect: false
   },
 
   test: {
-    pattern: "**/*.test.ts",
-    coverage: true
+    pattern: ["**/*.test.ts", "**/*.spec.ts"],
+    coverage: false,
+    watch: false
   },
 
   release: {
     npm: true,
-    github: true,
-    tagFormat: "v${version}"
+    github: false,
+    tagFormat: "v{{version}}"
   }
 })
 ```
