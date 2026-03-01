@@ -43,13 +43,39 @@ const myCommand = defineCommand({
     </box>
   ),
   handler: async () => {
-    // CLI mode handler (used with --no-tui or in non-interactive environments)
+    // Non-TUI fallback when render is skipped
     console.log('Deploying application...')
   }
 })
 
 cli.command(myCommand)
 await cli.run()
+```
+
+### TUI Execution Semantics
+
+- `--tui` / `--interactive` force `render` mode when a command provides `render`.
+- `--no-tui` disables alternate-buffer `render` mode. If `handler` exists, Bunli runs the handler.
+- `--no-tui` still allows `render` only when `bufferMode: 'standard'` is explicitly configured.
+
+### Render Lifecycle (Destroy-Driven)
+
+`registerTuiRenderer()` waits until the renderer is destroyed. Commands that use `render` must eventually call `renderer.destroy()` (for example on submit/cancel/quit), or the command will not exit.
+
+```typescript
+import { useKeyboard, useRenderer } from '@bunli/tui'
+
+function DeployTUI() {
+  const renderer = useRenderer()
+
+  useKeyboard((key) => {
+    if (key.name === 'q' || (key.ctrl && key.name === 'c')) {
+      renderer.destroy()
+    }
+  })
+
+  return <text>Press q to quit</text>
+}
 ```
 
 ## Buffer Modes (Alternate vs Standard)
@@ -143,8 +169,7 @@ export const myCommand = defineCommand({
 
 ```typescript
 import { defineCommand } from '@bunli/core'
-import { SchemaForm } from '@bunli/tui'
-import type { SelectOption } from '@opentui/core'
+import { SchemaForm, useRenderer } from '@bunli/tui'
 import { z } from 'zod'
 
 const configSchema = z.object({
@@ -153,9 +178,10 @@ const configSchema = z.object({
 })
 
 function ConfigTUI() {
-  const regions: SelectOption[] = [
-    { name: 'US East', value: 'us-east', description: 'US East region' },
-    { name: 'US West', value: 'us-west', description: 'US West region' }
+  const renderer = useRenderer()
+  const regions = [
+    { label: 'US East', value: 'us-east', hint: 'US East region' },
+    { label: 'US West', value: 'us-west', hint: 'US West region' }
   ]
 
   return (
@@ -180,7 +206,7 @@ function ConfigTUI() {
       onSubmit={(values) => {
         console.log('Validated form values:', values)
       }}
-      onCancel={() => process.exit(0)}
+      onCancel={() => renderer.destroy()}
     />
   )
 }
@@ -195,17 +221,18 @@ export const configureCommand = defineCommand({
 ### Using OpenTUI Hooks
 
 ```typescript
-import { useKeyboard, useTimeline, useTerminalDimensions } from '@bunli/tui'
+import { useKeyboard, useRenderer, useTimeline, useTerminalDimensions } from '@bunli/tui'
 
 function InteractiveTUI({ command }) {
   const [count, setCount] = useState(0)
   const { width, height } = useTerminalDimensions()
+  const renderer = useRenderer()
   
   const timeline = useTimeline({ duration: 2000 })
   
   useKeyboard((key) => {
     if (key.name === 'q') {
-      process.exit(0)
+      renderer.destroy()
     }
     if (key.name === 'space') {
       setCount(prev => prev + 1)
@@ -301,11 +328,13 @@ function Screen() {
 A schema-driven container for controlled interactive forms.
 
 ```typescript
+const renderer = useRenderer()
+
 <Form 
   title="My Form"
   schema={schema}
   onSubmit={(values) => console.log(values)}
-  onCancel={() => process.exit(0)}
+  onCancel={() => renderer.destroy()}
 >
   {/* Form fields */}
 </Form>
@@ -394,8 +423,8 @@ A controlled select field bound to form context.
   label="Environment"
   name="env"
   options={[
-    { name: 'Development', value: 'dev', description: 'Development environment' },
-    { name: 'Production', value: 'prod', description: 'Production environment' }
+    { label: 'Development', value: 'dev', hint: 'Development environment' },
+    { label: 'Production', value: 'prod', hint: 'Production environment' }
   ]}
   defaultValue="dev"
   onChange={setEnvironment}
@@ -477,18 +506,20 @@ function App() {
 
 ## OpenTUI Hooks
 
-The plugin re-exports useful OpenTUI React hooks:
+The package re-exports useful OpenTUI React hooks:
 
 ### useKeyboard
 
 Handle keyboard events.
 
 ```typescript
-import { useKeyboard } from '@bunli/tui'
+import { useKeyboard, useRenderer } from '@bunli/tui'
+
+const renderer = useRenderer()
 
 useKeyboard((key) => {
   if (key.name === 'escape') {
-    process.exit(0)
+    renderer.destroy()
   }
 })
 ```
@@ -542,26 +573,31 @@ useOnResize((width, height) => {
 })
 ```
 
-## Plugin Configuration
+## Renderer Registration
+
+Register the TUI renderer once before running commands with `render`:
 
 ```typescript
-import { tuiPlugin } from '@bunli/tui'
+import { createCLI } from '@bunli/core'
+import { registerTuiRenderer } from '@bunli/tui'
+// or side-effect import: import '@bunli/tui/register'
 
-const plugin = tuiPlugin({
-  renderer: {
-    exitOnCtrlC: false,
-    targetFps: 30,
-    enableMouseMovement: true
-  },
-  theme: 'dark',
-  autoForm: false
+registerTuiRenderer()
+
+const cli = await createCLI({
+  name: 'my-app',
+  version: '1.0.0',
+  tui: {
+    renderer: {
+      bufferMode: 'alternate',
+      targetFps: 30,
+      useMouse: false
+    }
+  }
 })
 ```
 
-**Options:**
-- `renderer?: CliRendererConfig` - OpenTUI renderer configuration
-- `theme?: 'light' | 'dark' | ThemeConfig` - Theme configuration
-- `autoForm?: boolean` - Enable auto-form generation (disabled for now)
+Renderer options are passed via `createCLI({ tui: { renderer } })` and optional command-level overrides in `command.tui.renderer`.
 
 ## OpenTUI Components
 
@@ -599,7 +635,7 @@ See the `examples/tui-demo` directory for complete examples:
 
 ## TypeScript Support
 
-The plugin provides full TypeScript support:
+The package provides full TypeScript support:
 
 ```typescript
 import type { TuiComponent, TuiComponentProps } from '@bunli/tui'

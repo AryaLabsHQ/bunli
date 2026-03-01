@@ -20,7 +20,7 @@ bun cli.ts greet -n "Bunli" -l -t 3
 # Force TUI mode (OpenTUI render path)
 bun cli.ts greet --name "TUI" --tui
 
-# Force non-TUI mode (handler path)
+# Disable alternate-buffer TUI render (this example falls back to handler)
 bun cli.ts greet --name "CLI" --no-tui
 ```
 
@@ -102,6 +102,12 @@ tui: {
 ```
 
 So `--tui` renders in the alternate (full-screen) buffer for interactive showcase behavior.
+
+Bunli default policy is:
+- Interactive terminal and not CI: `alternate`
+- Non-interactive terminal or CI: `standard`
+
+`--no-tui` disables alternate-buffer rendering. Standard-buffer rendering can still run when explicitly configured.
 
 ## Development
 

@@ -16,7 +16,8 @@ export const GLOBAL_FLAGS = {
   },
   'no-tui': {
     schema: z.boolean().default(false),
-    description: 'Disable TUI mode, use CLI handler instead'
+    description:
+      'Disable alternate-buffer TUI render; use handler instead (standard-buffer render may still run when explicitly configured)'
   },
   help: {
     schema: z.boolean().default(false),

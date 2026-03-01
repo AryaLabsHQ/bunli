@@ -35,8 +35,8 @@ const schema = z.object({
 })
 
 const frameworkOptions: SelectOption[] = [
-  { value: "react", name: "React" },
-  { value: "vue", name: "Vue" }
+  { value: "react", label: "React" },
+  { value: "vue", label: "Vue" }
 ]
 
 <Form
@@ -115,8 +115,8 @@ const schema = z.object({
       name: "plan",
       label: "Plan",
       options: [
-        { value: "free", name: "Free" },
-        { value: "pro", name: "Pro" }
+        { value: "free", label: "Free" },
+        { value: "pro", label: "Pro" }
       ]
     },
     {
@@ -181,3 +181,9 @@ export const logs = defineCommand({
   render: () => <text content="Streaming logs..." />
 })
 ```
+
+Runtime notes:
+- Default `bufferMode` is `"alternate"` on interactive terminals.
+- When TUI is forced in non-interactive/CI terminals, default `bufferMode` becomes `"standard"`.
+- `--no-tui` disables alternate-buffer rendering; explicitly configured standard-buffer render can still run.
+- `render` commands should call `renderer.destroy()` to exit cleanly.

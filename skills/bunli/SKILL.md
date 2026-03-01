@@ -74,7 +74,7 @@ Define Command?
 ├─ With options → Add options: { options: { debug: option(z.boolean(), { short: "d" }) } }
 ├─ Nested commands → Use defineGroup({ name: "group", description: "...", commands: [...] })
 ├─ With alias → Add alias: "m" for "mycmd"
-└─ With TUI → Add render (and optionally keep handler for --no-tui / non-interactive flow)
+└─ With TUI → Add render (optionally keep handler; --no-tui disables alternate-buffer render, but explicit standard-buffer render may still run)
 ```
 
 ### "I need to add options"
@@ -146,6 +146,16 @@ Advanced TUI?
 ├─ Full Flexbox layout control → Use opentui skill
 ├─ Custom renderables → Use opentui skill
 └─ Just need Bunli components/forms/charts → Use @bunli/tui (covered here)
+```
+
+### "I need predictable TUI buffer behavior"
+
+```
+Buffer Mode?
+├─ Global default policy → interactive + non-CI uses alternate; non-interactive/CI uses standard
+├─ Force project-wide mode → set tui.renderer.bufferMode in defineConfig
+├─ Per-command override → set command.tui.renderer.bufferMode
+└─ --no-tui behavior → disables alternate-buffer render; explicit standard-buffer render may still run
 ```
 
 ## Product Index

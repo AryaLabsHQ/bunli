@@ -149,6 +149,8 @@ const command = defineCommand({
 })
 ```
 
+Render lifecycle: commands using `render` should call `renderer.destroy()` (for example on submit, cancel, or quit) so the command exits cleanly.
+
 ### Plugin System
 Extend functionality with type-safe plugins:
 
