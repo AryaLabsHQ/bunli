@@ -23,9 +23,10 @@ describe('@bunli/tui prompt adapters', () => {
     restoreRuntime = null
   })
 
-  afterEach(() => {
+  afterEach(async () => {
     restoreRuntime?.()
     restoreRuntime = null
+    await __promptInternalsForTests.disposeGlobalOpenTuiSession()
   })
 
   test('password preserves whitespace exactly', async () => {
@@ -134,6 +135,22 @@ describe('@bunli/tui prompt adapters', () => {
     } finally {
       process.env.CI = originalCI
     }
+  })
+
+  test('global OpenTUI singleton can be disposed and recreated safely', async () => {
+    const first = __promptInternalsForTests.ensureGlobalOpenTuiSession()
+    expect(first).toBeDefined()
+    expect(__promptInternalsForTests.peekGlobalOpenTuiSession()).toBe(first)
+
+    await __promptInternalsForTests.disposeGlobalOpenTuiSession()
+    expect(__promptInternalsForTests.peekGlobalOpenTuiSession()).toBeUndefined()
+
+    await __promptInternalsForTests.disposeGlobalOpenTuiSession()
+    expect(__promptInternalsForTests.peekGlobalOpenTuiSession()).toBeUndefined()
+
+    const second = __promptInternalsForTests.ensureGlobalOpenTuiSession()
+    expect(second).toBeDefined()
+    expect(second).not.toBe(first)
   })
 
   test('select numeric shortcut helper resolves expected option', () => {

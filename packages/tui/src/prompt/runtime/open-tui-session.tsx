@@ -36,14 +36,19 @@ export interface OpenTuiRendererSession {
   dispose: () => Promise<void>
 }
 
-export function createOpenTuiRendererSession(): OpenTuiRendererSession {
+interface OpenTuiSessionDependencies {
+  createRenderer: typeof createCliRenderer
+  createReactRoot: typeof createRoot
+  destroyEvent: string
+}
+
+function createOpenTuiRendererSessionWithDependencies(deps: OpenTuiSessionDependencies): OpenTuiRendererSession {
   let renderer: Awaited<ReturnType<typeof createCliRenderer>> | undefined
   let initializePromise: Promise<void> | undefined
   let statusRoot: ReturnType<typeof createRoot> | undefined
   let promptRoot: ReturnType<typeof createRoot> | undefined
   let promptRender: (() => void) | undefined
   let activePromptCancel: (() => void) | undefined
-  let rawCancelHandlerInstalled = false
   const historyEntries: HistoryEntry[] = []
   let statusLine: { content: string; fg: string } | undefined
 
@@ -62,33 +67,31 @@ export function createOpenTuiRendererSession(): OpenTuiRendererSession {
     if (initializePromise) return initializePromise
 
     initializePromise = (async () => {
-      renderer = await createCliRenderer({
+      renderer = await deps.createRenderer({
         useAlternateScreen: false,
         useConsole: false,
         exitOnCtrlC: false,
         targetFps: 30,
         useMouse: false
       })
-      renderer.disableStdoutInterception()
+      const activeRenderer = renderer
+      activeRenderer.disableStdoutInterception()
 
-      if (!rawCancelHandlerInstalled) {
-        rawCancelHandlerInstalled = true
-        renderer.prependInputHandler((sequence) => {
-          if (shouldLogRawSequence(sequence)) {
-            debugInput(`raw seq="${formatDebugSequence(sequence)}" activePrompt=${Boolean(activePromptCancel)}`)
-          }
-          if (!isEscapeRawSequence(sequence) && !isCtrlCRawSequence(sequence)) return false
-          if (isCtrlCRawSequence(sequence)) {
-            emitInterruptSignal('raw')
-            return true
-          }
-          if (activePromptCancel) {
-            activePromptCancel()
-            return true
-          }
-          return false
-        })
-      }
+      activeRenderer.prependInputHandler((sequence) => {
+        if (shouldLogRawSequence(sequence)) {
+          debugInput(`raw seq="${formatDebugSequence(sequence)}" activePrompt=${Boolean(activePromptCancel)}`)
+        }
+        if (!isEscapeRawSequence(sequence) && !isCtrlCRawSequence(sequence)) return false
+        if (isCtrlCRawSequence(sequence)) {
+          emitInterruptSignal('raw')
+          return true
+        }
+        if (activePromptCancel) {
+          activePromptCancel()
+          return true
+        }
+        return false
+      })
     })()
 
     await initializePromise
@@ -140,7 +143,7 @@ export function createOpenTuiRendererSession(): OpenTuiRendererSession {
       const activeRenderer = renderer
       if (!activeRenderer || !statusLine) return
 
-      const root = statusRoot ?? createRoot(activeRenderer)
+      const root = statusRoot ?? deps.createReactRoot(activeRenderer)
       statusRoot = root
       const linesToRender = historyRenderLines()
       const width = Math.max(1, (process.stdout.columns ?? 80) - 1)
@@ -173,7 +176,7 @@ export function createOpenTuiRendererSession(): OpenTuiRendererSession {
     if (!activeRenderer) return OPEN_TUI_CANCEL
 
     clearStatusLine()
-    const root = createRoot(activeRenderer)
+    const root = deps.createReactRoot(activeRenderer)
     promptRoot = root
 
     return await new Promise<T | OpenTuiCancel>((resolve) => {
@@ -212,23 +215,26 @@ export function createOpenTuiRendererSession(): OpenTuiRendererSession {
         settle(OPEN_TUI_CANCEL)
       }
 
+      const onRendererDestroy = () => {
+        if (settled) return
+        settled = true
+        cleanup()
+        resolve(OPEN_TUI_CANCEL)
+      }
+
       const cleanup = () => {
         if (cleanedUp) return
         cleanedUp = true
         if (activePromptCancel === onSigint) activePromptCancel = undefined
         process.off('SIGINT', onSigint)
+        activeRenderer.off(deps.destroyEvent, onRendererDestroy)
         activeRenderer.keyInput.off('keypress', onGlobalKeypress)
         promptRender = undefined
         promptRoot = undefined
         root.unmount()
       }
 
-      activeRenderer.once(CliRenderEvents.DESTROY, () => {
-        if (settled) return
-        settled = true
-        cleanup()
-        resolve(OPEN_TUI_CANCEL)
-      })
+      activeRenderer.on(deps.destroyEvent, onRendererDestroy)
 
       process.on('SIGINT', onSigint)
       activeRenderer.keyInput.on('keypress', onGlobalKeypress)
@@ -322,6 +328,18 @@ export async function runOpenTuiTextPrompt(args: {
       />
     )
   }, session)
+}
+
+export function createOpenTuiRendererSession(): OpenTuiRendererSession {
+  return createOpenTuiRendererSessionWithDependencies({
+    createRenderer: createCliRenderer,
+    createReactRoot: createRoot,
+    destroyEvent: CliRenderEvents.DESTROY
+  })
+}
+
+export const __openTuiSessionInternalsForTests = {
+  createOpenTuiRendererSessionWithDependencies
 }
 
 export async function runOpenTuiConfirmPrompt(args: {

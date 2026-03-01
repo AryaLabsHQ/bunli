@@ -1188,8 +1188,25 @@ function findOptionByToken<T>(token: string, options: SelectOption<T>[]): Select
 }
 
 let globalOpenTuiSession: OpenTuiRendererSession | undefined
+let globalOpenTuiSessionCleanupRegistered = false
+
+async function disposeGlobalOpenTuiSession(): Promise<void> {
+  const session = globalOpenTuiSession
+  globalOpenTuiSession = undefined
+  if (!session) return
+  await session.dispose()
+}
+
+function registerGlobalOpenTuiSessionCleanup(): void {
+  if (globalOpenTuiSessionCleanupRegistered) return
+  globalOpenTuiSessionCleanupRegistered = true
+  process.once('beforeExit', () => {
+    void disposeGlobalOpenTuiSession().catch(() => {})
+  })
+}
 
 function getGlobalOpenTuiSession(): OpenTuiRendererSession {
+  registerGlobalOpenTuiSessionCleanup()
   globalOpenTuiSession ??= createOpenTuiRendererSession()
   return globalOpenTuiSession
 }
@@ -1428,7 +1445,10 @@ export const __promptInternalsForTests = {
   canPromptInEnvironment,
   isCIEnvironmentFromEnv,
   resolvePromptSymbolMode,
-  resolveTextInput
+  resolveTextInput,
+  ensureGlobalOpenTuiSession: () => getGlobalOpenTuiSession(),
+  peekGlobalOpenTuiSession: () => globalOpenTuiSession,
+  disposeGlobalOpenTuiSession
 }
 
 async function validateWithSchema<TOut = unknown>(value: string, options: PromptOptions): Promise<TOut> {
