@@ -1,4 +1,5 @@
-import type { BunliUtils } from '@bunli/utils'
+import type { PromptApi, PromptSpinnerFactory } from '@bunli/core'
+import type { Colors } from '@bunli/utils'
 import { processTemplate, resolveTemplateSource, isLocalTemplate, getBundledTemplatePath } from './template-engine.js'
 import type { CreateOptions } from './types.js'
 import { Result, TaggedError } from 'better-result'
@@ -15,9 +16,9 @@ interface CreateProjectOptions extends CreateOptions {
   name: string
   dir: string
   template: string
-  prompt: BunliUtils['prompt']
-  spinner: BunliUtils['spinner']
-  colors: BunliUtils['colors']
+  prompt: PromptApi
+  spinner: PromptSpinnerFactory
+  colors: Colors
   shell: typeof Bun.$
 }
 

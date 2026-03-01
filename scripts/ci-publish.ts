@@ -11,14 +11,21 @@ const toErrorMessage = (error: unknown): string =>
 const tryAsync = <TValue, TError>(
   fn: () => Promise<TValue>,
   mapError: (cause: unknown) => TError
-) =>
-  Result.tryPromise({ try: fn, catch: mapError })
+): Promise<Result<TValue, TError>> =>
+  fn()
+    .then((value) => Result.ok<TValue, TError>(value))
+    .catch((cause) => Result.err<TValue, TError>(mapError(cause)))
 
 const trySync = <TValue, TError>(
-  fn: () => Awaited<TValue>,
+  fn: () => TValue,
   mapError: (cause: unknown) => TError
-) =>
-  Result.try({ try: fn, catch: mapError })
+): Result<TValue, TError> => {
+  try {
+    return Result.ok<TValue, TError>(fn())
+  } catch (cause) {
+    return Result.err<TValue, TError>(mapError(cause))
+  }
+}
 
 type PublishedPackage = { name: string; version: string }
 type PublishablePackage = { dir: string; name: string; version: string }

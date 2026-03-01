@@ -53,7 +53,8 @@ export default defineCommand({
   
   handler: async ({ flags, colors, spinner, shell, prompt }) => {
     const spin = spinner('Syncing with remote...')
-    
+    let createdStashHash: string | null = null
+
     try {
       // Get current branch if not specified
       const currentBranch = flags.branch || (await shell`git branch --show-current`).stdout.toString().trim()
@@ -68,8 +69,15 @@ export default defineCommand({
         
         if (stashChanges) {
           spin.update('Stashing changes...')
+          const { stdout: stashTopBefore } = await shell`git stash list --format=%H -n 1`
           await shell`git stash push -m "Auto-stash before sync"`
-          console.log(colors.yellow('📦 Changes stashed'))
+          const { stdout: stashTopAfter } = await shell`git stash list --format=%H -n 1`
+          const beforeHash = stashTopBefore.toString().trim()
+          const afterHash = stashTopAfter.toString().trim()
+          if (afterHash && afterHash !== beforeHash) {
+            createdStashHash = afterHash
+          }
+          console.log(colors.yellow('INFO Changes stashed'))
         }
       }
       
@@ -80,23 +88,23 @@ export default defineCommand({
       if (flags.prune) {
         spin.update('Pruning remote branches...')
         await shell`git remote prune ${flags.remote}`
-        console.log(colors.green('🧹 Pruned remote branches'))
+        console.log(colors.green('OK Pruned remote branches'))
       }
       
       // Check if there are incoming changes
       const { stdout: behind } = await shell`git rev-list --count HEAD..${flags.remote}/${currentBranch}`
       const { stdout: ahead } = await shell`git rev-list --count ${flags.remote}/${currentBranch}..HEAD`
       
-      const behindCount = parseInt(behind.toString().trim())
-      const aheadCount = parseInt(ahead.toString().trim())
+      const behindCount = parseInt(behind.toString().trim(), 10)
+      const aheadCount = parseInt(ahead.toString().trim(), 10)
       
       if (behindCount === 0 && aheadCount === 0) {
-        spin.succeed('✅ Already up to date')
+        spin.succeed('Already up to date')
         console.log(colors.green('No changes to sync'))
         return
       }
       
-      console.log(colors.bold('\n📊 Sync Status:'))
+      console.log(colors.bold('\nSync status:'))
       console.log(`  Behind: ${colors.red(String(behindCount))} commits`)
       console.log(`  Ahead: ${colors.green(String(aheadCount))} commits`)
       
@@ -106,10 +114,10 @@ export default defineCommand({
         
         if (flags.rebase) {
           await shell`git pull --rebase ${flags.remote} ${currentBranch}`
-          console.log(colors.green('✅ Rebased successfully'))
+          console.log(colors.green('OK Rebased successfully'))
         } else {
           await shell`git pull ${flags.remote} ${currentBranch}`
-          console.log(colors.green('✅ Merged successfully'))
+          console.log(colors.green('OK Merged successfully'))
         }
       }
       
@@ -123,30 +131,39 @@ export default defineCommand({
         if (pushChanges) {
           spin.update('Pushing changes...')
           await shell`git push ${flags.remote} ${currentBranch}`
-          console.log(colors.green('✅ Pushed successfully'))
+          console.log(colors.green('OK Pushed successfully'))
         }
       }
       
       // Restore stashed changes if any
-      const { stdout: stashList } = await shell`git stash list`
-      if (stashList.includes('Auto-stash before sync')) {
-        const restoreStash = await prompt.confirm(
-          'Restore stashed changes?',
-          { default: true }
-        )
-        
-        if (restoreStash) {
-          spin.update('Restoring stashed changes...')
-          await shell`git stash pop`
-          console.log(colors.green('✅ Stashed changes restored'))
+      if (createdStashHash) {
+        const { stdout: stashHashesOutput } = await shell`git stash list --format=%H`
+        const stashHashes = stashHashesOutput
+          .toString()
+          .split('\n')
+          .map((entry) => entry.trim())
+          .filter(Boolean)
+        const stashIndex = stashHashes.findIndex((hash) => hash === createdStashHash)
+        if (stashIndex >= 0) {
+          const restoreStash = await prompt.confirm(
+            'Restore stashed changes?',
+            { default: true }
+          )
+
+          if (restoreStash) {
+            spin.update('Restoring stashed changes...')
+            const stashRef = `stash@{${stashIndex}}`
+            await shell`git stash pop ${stashRef}`
+            console.log(colors.green('OK Stashed changes restored'))
+          }
         }
       }
       
-      spin.succeed('✅ Sync completed successfully!')
+      spin.succeed('Sync completed successfully')
       
       // Show final status
       const { stdout: finalStatus } = await shell`git status -sb`
-      console.log(colors.bold('\n📋 Final Status:'))
+      console.log(colors.bold('\nFinal status:'))
       console.log(colors.dim(finalStatus.toString()))
       
     } catch (error) {
@@ -156,7 +173,7 @@ export default defineCommand({
       // Check if there are conflicts
       const { stdout: conflictStatus } = await shell`git status --porcelain`
       if (conflictStatus.includes('UU') || conflictStatus.includes('AA')) {
-        console.log(colors.yellow('\n⚠️  Merge conflicts detected. Resolve them and try again.'))
+        console.log(colors.yellow('\nWARN Merge conflicts detected. Resolve them and try again.'))
         console.log(colors.dim('Use "git status" to see conflicted files'))
       }
     }

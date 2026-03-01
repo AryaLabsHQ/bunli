@@ -1,13 +1,6 @@
 import { defineCommand, option } from '@bunli/core'
 import { z } from 'zod'
-
-// Type for the merged plugin stores
-type DevServerStore = {
-  metrics: {
-    recordEvent: (name: string, data?: any) => void
-  }
-  config: any
-}
+import { hasConfigStore, hasMetricsStore } from './store-guards.js'
 
 const buildCommand = defineCommand({
   name: 'build',
@@ -69,19 +62,17 @@ const buildCommand = defineCommand({
     console.log(colors.green(`✓ Source maps: ${sourcemap ? 'Yes' : 'No'}`))
     
     // Access plugin context - now properly typed!
-    if (context?.store) {
-      if ('metrics' in context.store) {
-        context.store.metrics.recordEvent('build_completed', { 
-          output, 
-          minify, 
-          sourcemap, 
-          target 
-        })
-      }
-      
-      if ('config' in context.store) {
-        console.log(colors.dim(`Build config: ${JSON.stringify(context.store.config, null, 2)}`))
-      }
+    if (hasMetricsStore(context?.store)) {
+      context.store.metrics.recordEvent('build_completed', { 
+        output, 
+        minify, 
+        sourcemap, 
+        target 
+      })
+    }
+
+    if (hasConfigStore(context?.store)) {
+      console.log(colors.dim(`Build config: ${JSON.stringify(context.store.config, null, 2)}`))
     }
   }
 })

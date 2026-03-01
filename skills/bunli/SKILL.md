@@ -1,6 +1,6 @@
 ---
 name: bunli
-description: "Build type-safe CLIs with Bun. Use when: (1) Creating a new CLI application with Bun, (2) Adding commands with defineCommand/option(), (3) Building a plugin system, (4) Using prompts/spinners/colors for interactive CLIs, (5) Building TUI components (basic), (6) Publishing CLI to npm. For advanced TUI (custom components, animations, full layout control), use the 'opentui' skill. Covers: defineCommand, option() APIs, plugin architecture, bunli CLI commands (dev/build/generate/test/release/init/doctor), create-bunli scaffolding, and utilities."
+description: "Build type-safe CLIs with Bun. Use when: (1) Creating a new CLI application with Bun, (2) Adding commands with defineCommand/option(), (3) Building a plugin system, (4) Using prompt/spinner APIs for interactive CLIs, (5) Building TUI components, (6) Publishing CLI to npm. For advanced TUI (custom components, animations, full layout control), use the 'opentui' skill. Covers: defineCommand, option() APIs, plugin architecture, bunli CLI commands (dev/build/generate/test/release/init/doctor), create-bunli scaffolding, and utilities."
 ---
 
 # Bunli Skill
@@ -16,7 +16,7 @@ bunli init my-cli
 # Or manually:
 mkdir my-cli && cd my-cli
 npm init -y
-bun add @bunli/core @bunli/utils
+bun add @bunli/core @bunli/utils @bunli/tui
 bun add -d bunli typescript
 ```
 
@@ -35,7 +35,8 @@ const hello = defineCommand({
     name: option(z.string().default("World"), { short: "n", description: "Name to greet" }),
     count: option(z.coerce.number().default(1), { short: "c", description: "Number of times" })
   },
-  handler: ({ flags }) => {
+  handler: ({ flags, signal }) => {
+    if (signal.aborted) return
     for (let i = 0; i < flags.count; i++) {
       console.log(`Hello, ${flags.name}!`)
     }
@@ -59,6 +60,7 @@ Find current versions:
 ```bash
 npm view @bunli/core      # Latest version
 npm view @bunli/utils    # Latest version
+npm view @bunli/tui      # Latest version
 npm view bunli           # CLI version
 ```
 
@@ -72,7 +74,7 @@ Define Command?
 ├─ With options → Add options: { options: { debug: option(z.boolean(), { short: "d" }) } }
 ├─ Nested commands → Use defineGroup({ name: "group", description: "...", commands: [...] })
 ├─ With alias → Add alias: "m" for "mycmd"
-└─ With render (TUI) → Add render function instead of handler
+└─ With TUI → Add render (optionally keep handler; --no-tui disables alternate-buffer render, but explicit standard-buffer render may still run)
 ```
 
 ### "I need to add options"
@@ -139,11 +141,21 @@ Build?
 
 ```
 Advanced TUI?
-├─ Custom components beyond Form/ProgressBar → Use opentui skill
+├─ Custom components beyond Bunli's built-in form/layout set → Use opentui skill
 ├─ Advanced animations (timeline, keyframes) → Use opentui skill
 ├─ Full Flexbox layout control → Use opentui skill
 ├─ Custom renderables → Use opentui skill
-└─ Just need basic forms/progress → Use @bunli/tui (covered here)
+└─ Just need Bunli components/forms/charts → Use @bunli/tui (covered here)
+```
+
+### "I need predictable TUI buffer behavior"
+
+```
+Buffer Mode?
+├─ Global default policy → interactive + non-CI uses alternate; non-interactive/CI uses standard
+├─ Force project-wide mode → set tui.renderer.bufferMode in defineConfig
+├─ Per-command override → set command.tui.renderer.bufferMode
+└─ --no-tui behavior → disables alternate-buffer render; explicit standard-buffer render may still run
 ```
 
 ## Product Index
@@ -225,11 +237,11 @@ const myPlugin = createPlugin({
 
 ### Using Prompts
 ```typescript
-import { prompt, confirm, select } from "@bunli/utils"
+import { prompt } from "@bunli/tui/prompt"
 
 const name = await prompt("What is your name?")
-const proceed = await confirm("Continue?")
-const framework = await select("Choose framework", {
+const proceed = await prompt.confirm("Continue?")
+const framework = await prompt.select("Choose framework", {
   options: [
     { label: "React", value: "react" },
     { label: "Vue", value: "vue" },
@@ -243,7 +255,8 @@ const framework = await select("Choose framework", {
 | Package | Purpose |
 |---------|---------|
 | `@bunli/core` | CLI framework (defineCommand, option, createCLI) |
-| `@bunli/utils` | Prompts, spinners, colors |
+| `@bunli/utils` | Colors and validation utilities |
+| `@bunli/tui/prompt` | Prompt and spinner APIs |
 | `@bunli/tui` | Terminal UI components |
 | `bunli` | CLI for building CLIs |
 | `create-bunli` | Project scaffolding |
@@ -264,8 +277,8 @@ Bunli uses **OpenTUI** as its terminal rendering engine. Understanding when to u
 - Building CLI applications with commands and options
 - Plugin architecture (auth, config, completions)
 - Type-safe CLI with Zod validation
-- Interactive prompts (`prompt`, `confirm`, `select`)
-- Basic TUI components (`Form`, `FormField`, `SelectField`, `ProgressBar`)
+- Interactive prompts via `@bunli/tui/prompt`
+- Bunli TUI components (`Form`, `SchemaForm`, `DataTable`, `ProgressBar`, and more)
 - Publishing CLI to npm
 
 ### Use OpenTUI skill when:
@@ -281,7 +294,8 @@ Bunli uses **OpenTUI** as its terminal rendering engine. Understanding when to u
 ```typescript
 // Bunli TUI uses OpenTUI under the hood
 import { registerTuiRenderer } from "@bunli/tui"  // Sets up OpenTUI
-import { Form, FormField } from "@bunli/tui"       // Bunli's React components
+import { Form, SchemaForm } from "@bunli/tui"      // Bunli's React components
+import { prompt } from "@bunli/tui/prompt"         // Prompt + spinner runtime
 import { useTimeline } from "@bunli/tui"          // Re-exported from opentui
 
 // Drop down to OpenTUI for advanced control
@@ -292,6 +306,7 @@ import { createCliRenderer } from "@opentui/core"
 **Package relationship:**
 - `@bunli/tui` wraps `@opentui/react`
 - `registerTuiRenderer()` calls OpenTUI's `createCliRenderer()`
+- `@bunli/tui/prompt` provides prompt + spinner APIs used in handlers
 - Bunli TUI hooks (`useKeyboard`, `useTimeline`) are re-exported from OpenTUI
 - Renderer options map to OpenTUI renderer settings
 

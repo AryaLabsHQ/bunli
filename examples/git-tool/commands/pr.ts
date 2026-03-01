@@ -80,7 +80,7 @@ export default defineCommand({
     
     try {
       // Get current branch if head not specified
-      const headBranch = flags.head || (await shell`git branch --show-current`).toString().trim()
+      const headBranch = flags.head || (await shell`git branch --show-current`).stdout.toString().trim()
       
       // Check if we have uncommitted changes
       const { stdout: status } = await shell`git status --porcelain`
@@ -97,7 +97,7 @@ export default defineCommand({
           
           await shell`git add .`
           await shell`git commit -m ${commitMessage}`
-          console.log(colors.green('✅ Changes committed'))
+          console.log(colors.green('OK Changes committed'))
         }
       }
       
@@ -112,7 +112,7 @@ export default defineCommand({
         if (pushBranch) {
           spin.update('Pushing branch to remote...')
           await shell`git push -u origin ${headBranch}`
-          console.log(colors.green('✅ Branch pushed to remote'))
+          console.log(colors.green('OK Branch pushed to remote'))
         }
       }
       
@@ -137,9 +137,9 @@ export default defineCommand({
       const prNumber = Math.floor(Math.random() * 1000) + 1
       const prUrl = `https://github.com/example/repo/pull/${prNumber}`
       
-      spin.succeed(`✅ Pull request created!`)
+      spin.succeed('Pull request created')
       
-      console.log(colors.bold('\n📋 Pull Request Details:'))
+      console.log(colors.bold('\nPull request details:'))
       console.log(`  Title: ${colors.cyan(flags.title)}`)
       console.log(`  Base: ${colors.cyan(flags.base)} ← ${colors.cyan(headBranch)}`)
       console.log(`  Draft: ${colors.cyan(flags.draft ? 'Yes' : 'No')}`)

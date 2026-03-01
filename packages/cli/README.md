@@ -258,9 +258,21 @@ export default defineConfig({
   dev: {
     watch: true,
     inspect: false
+  },
+
+  tui: {
+    renderer: {
+      bufferMode: 'alternate' // or 'standard'
+    }
   }
 })
 ```
+
+Default `tui.renderer.bufferMode` policy:
+- Interactive terminal and not CI: `'alternate'`
+- Non-interactive terminal or CI: `'standard'`
+
+`--no-tui` disables alternate-buffer rendering. If standard-buffer rendering is explicitly configured, render mode may still run.
 
 ### Build Behavior
 

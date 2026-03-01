@@ -1,6 +1,6 @@
 # Type Safety Patterns
 
-## StandardSchema Integration
+## StandardSchema integration
 
 Bunli uses `@standard-schema/spec` for validation with full type inference.
 
@@ -12,13 +12,12 @@ const opts = {
   name: option(z.string(), { description: "Your name" })
 }
 
-// TypeScript infers: { name: string }
-type Flags = InferOptions<typeof opts>
+// Option schemas are inferred into handler `flags` types automatically.
 ```
 
-## Generated Types
+## Generated types
 
-The `@bunli/generator` parses command files and generates TypeScript types.
+`@bunli/generator` parses command files and generates TypeScript types.
 
 ```typescript
 // .bunli/commands.gen.ts (auto-generated)
@@ -26,34 +25,13 @@ export interface RegisteredCommands {
   hello: Command<{ name: typeof nameOption }, {}, "hello">
 }
 
-// Type-safe command execution
+// Type-safe execution
 cli.execute("hello", { name: "World" })
 ```
 
-## Type Utilities
-
-From `packages/core/src/utils/type-helpers.ts`:
+## Module augmentation
 
 ```typescript
-// Convert union to intersection
-type T = UnionToIntersection<{ a: 1 } | { b: 2 }>
-// → { a: 1 } & { b: 2 }
-
-// Pick required properties
-type T = PickRequired<{ a?: string; b: string }>
-// → { b: string }
-
-// Pick optional properties
-type T = PickOptional<{ a?: string; b: string }>
-// → { a?: string }
-```
-
-## Module Augmentation
-
-Extend `RegisteredCommands` for type-safe CLI:
-
-```typescript
-// In your command file
 declare module "@bunli/core" {
   interface RegisteredCommands {
     mycmd: typeof myCommand
@@ -61,22 +39,24 @@ declare module "@bunli/core" {
 }
 ```
 
-## Handler Type Inference
+## Handler type inference
 
 ```typescript
 type Handler<TFlags, TStore, TCommandName> =
   (args: HandlerArgs<TFlags, TStore, TCommandName>) => void | Promise<void>
 
 interface HandlerArgs<TFlags, TStore, TCommandName> {
-  flags: TFlags           // Inferred from options
-  positional: string[]   // Positional arguments
-  shell: Bun.$           // Bun shell
+  flags: TFlags
+  positional: string[]
+  shell: typeof Bun.$
   env: typeof process.env
   cwd: string
-  prompt: typeof import("@bunli/utils").prompt
-  spinner: typeof import("@bunli/utils").spinner
+  prompt: typeof import("@bunli/tui/prompt").prompt
+  spinner: typeof import("@bunli/tui/prompt").spinner
   colors: typeof import("@bunli/utils").colors
   terminal: TerminalInfo
   runtime: RuntimeInfo
+  signal: AbortSignal
+  context?: import("@bunli/core/plugin").CommandContext<Record<string, unknown>>
 }
 ```

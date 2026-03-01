@@ -19,13 +19,23 @@ Provides OpenTUI integration for building rich terminal UIs.
 ```typescript
 import { registerTuiRenderer } from '@bunli/tui'
 
-plugins: [registerTuiRenderer()]
+registerTuiRenderer()
+```
+
+Or use side-effect registration:
+
+```typescript
+import '@bunli/tui/register'
 ```
 
 ## EXPORTS
 
 ### Hooks (from @opentui/react)
-- `useKeyboard`, `useRenderer`, `useTerminalDimensions`
+- `useKeyboard`, `useRenderer`, `useTerminalDimensions`, `useTimeline`, `useOnResize`
+
+### Types
+- `PromptApi`, `SyncBatcher`, `SyncBatcherOptions`
+- `SelectOption`, `KeyEvent`, `CliRendererConfig` (from `@opentui/core`)
 
 ### Styling (from @opentui/core)
-- `bold`, `fg`, `italic`, `t`
+- `bold`, `fg`, `italic`, `t`, `TextAttributes`

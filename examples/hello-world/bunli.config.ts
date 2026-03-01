@@ -1,6 +1,6 @@
-import { defineConfig } from '@bunli/core'
+import { defineConfig, type BunliConfig, type BunliConfigInput } from '@bunli/core'
 
-export default defineConfig({
+const config: BunliConfigInput = {
   name: 'hello-world',
   version: '1.0.0',
   description: 'Hello World - Simplest possible Bunli CLI',
@@ -21,8 +21,12 @@ export default defineConfig({
   },
   tui: {
     renderer: {
-      // Keep output in the main terminal buffer for easier local demo/testing.
-      bufferMode: 'standard'
+      // Showcase full-screen interactive behavior in the alternate buffer.
+      bufferMode: 'alternate'
     }
   }
-})
+}
+
+const bunliConfig: BunliConfig = defineConfig(config)
+
+export default bunliConfig

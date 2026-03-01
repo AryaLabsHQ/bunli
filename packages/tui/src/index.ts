@@ -1,10 +1,13 @@
-// Export TUI renderer registration
 export { registerTuiRenderer } from './renderer.js'
-
-// Export component library
 export * from './components/index.js'
+export * from './runtime/index.js'
+export { createSyncBatcher, type SyncBatcher, type SyncBatcherOptions } from './utils/sync-batcher.js'
 
-// Re-export useful OpenTUI React hooks and types
+export { prompt, type PromptApi, PromptCancelledError, isCancel } from './prompt/index.js'
+export * as inline from './inline/index.js'
+export * as interactive from './interactive/index.js'
+export * as charts from './charts/index.js'
+
 export {
   useKeyboard,
   useRenderer,
@@ -13,14 +16,12 @@ export {
   useOnResize
 } from '@opentui/react'
 
-// Re-export useful OpenTUI core types and utilities
 export type {
   SelectOption,
   KeyEvent,
   CliRendererConfig
 } from '@opentui/core'
 
-// Re-export text styling utilities
 export {
   bold,
   fg,

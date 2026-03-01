@@ -7,7 +7,8 @@ import { loadConfig } from '@bunli/core'
 import { findEntry } from '../utils/find-entry.js'
 import { $ } from 'bun'
 import path from 'node:path'
-import type { BunliUtils } from '@bunli/utils'
+import type { PromptSpinnerFactory } from '@bunli/core'
+import type { Colors } from '@bunli/utils'
 
 
 const BuildCommandError = TaggedError('BuildCommandError')<{
@@ -75,8 +76,8 @@ export default defineCommand({
 
 async function runBuild(
   flags: Record<string, unknown>,
-  spinner: BunliUtils['spinner'],
-  colors: BunliUtils['colors']
+  spinner: PromptSpinnerFactory,
+  colors: Colors
 ): Promise<Result<void, BuildCommandErrorType>> {
   const config = await loadConfig()
 

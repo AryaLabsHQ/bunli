@@ -54,20 +54,20 @@ export default defineCommand({
       const { stdout: currentBranch } = await shell`git branch --show-current`
       const { stdout: remoteUrl } = await shell`git remote get-url origin 2>/dev/null || echo "No remote"`
       
-      console.log(colors.bold('📊 Git Status'))
+      console.log(colors.bold('Git status'))
       console.log('='.repeat(50))
       
       // Current branch
-      console.log(`\n🌿 Branch: ${colors.cyan(currentBranch.toString().trim())}`)
+      console.log(`\nBranch: ${colors.cyan(currentBranch.toString().trim())}`)
       
       // Remote information
       if (flags.remote || flags.detailed) {
-        console.log(`🔗 Remote: ${colors.cyan(remoteUrl.toString().trim())}`)
+        console.log(`Remote: ${colors.cyan(remoteUrl.toString().trim())}`)
         
         // Check if branch is tracking remote
         const { stdout: tracking } = await shell`git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null || echo "No tracking"`
         if (tracking.toString().trim() !== 'No tracking') {
-          console.log(`📡 Tracking: ${colors.cyan(tracking.toString().trim())}`)
+          console.log(`Tracking: ${colors.cyan(tracking.toString().trim())}`)
           
           // Show ahead/behind
           const { stdout: behind } = await shell`git rev-list --count HEAD..@{u} 2>/dev/null || echo "0"`
@@ -77,20 +77,20 @@ export default defineCommand({
           const aheadCount = parseInt(ahead.toString().trim())
           
           if (behindCount > 0) {
-            console.log(`⬇️  Behind: ${colors.red(String(behindCount))} commits`)
+            console.log(`Behind: ${colors.red(String(behindCount))} commits`)
           }
           if (aheadCount > 0) {
-            console.log(`⬆️  Ahead: ${colors.green(String(aheadCount))} commits`)
+            console.log(`Ahead: ${colors.green(String(aheadCount))} commits`)
           }
           if (behindCount === 0 && aheadCount === 0) {
-            console.log(`✅ ${colors.green('Up to date')}`)
+            console.log(`OK ${colors.green('Up to date')}`)
           }
         }
       }
       
       // Working directory status
       if (status.toString().trim()) {
-        console.log(`\n📁 Working Directory:`)
+        console.log(`\nWorking directory:`)
         
         const lines = status.toString().trim().split('\n')
         const staged = lines.filter((line: string) => line.startsWith('A ') || line.startsWith('M ') || line.startsWith('D '))
@@ -103,7 +103,7 @@ export default defineCommand({
             staged.forEach((line: string) => {
               const file = line.substring(2)
               const status = line[0]
-              const icon = status === 'A' ? '➕' : status === 'M' ? '📝' : '🗑️'
+              const icon = status === 'A' ? '+' : status === 'M' ? '~' : '-'
               console.log(`    ${icon} ${colors.green(file)}`)
             })
           }
@@ -115,7 +115,7 @@ export default defineCommand({
             modified.forEach((line: string) => {
               const file = line.substring(2)
               const status = line[1]
-              const icon = status === 'M' ? '📝' : '🗑️'
+              const icon = status === 'M' ? '~' : '-'
               console.log(`    ${icon} ${colors.yellow(file)}`)
             })
           }
@@ -126,17 +126,17 @@ export default defineCommand({
           if (flags.detailed) {
             untracked.forEach((line: string) => {
               const file = line.substring(2)
-              console.log(`    ❓ ${colors.red(file)}`)
+              console.log(`    ? ${colors.red(file)}`)
             })
           }
         }
       } else {
-        console.log(`\n✅ ${colors.green('Working directory clean')}`)
+        console.log(`\nOK ${colors.green('Working directory clean')}`)
       }
       
       // Branch information
       if (flags.branches || flags.detailed) {
-        console.log(`\n🌿 Branches:`)
+        console.log(`\nBranches:`)
         
         const { stdout: localBranches } = await shell`git branch --list`
         const { stdout: remoteBranches } = await shell`git branch -r --list 2>/dev/null || echo ""`
@@ -152,7 +152,7 @@ export default defineCommand({
           localBranches.toString().trim().split('\n').forEach((branch: string) => {
             const isCurrent = branch.startsWith('*')
             const name = branch.replace('* ', '').trim()
-            const icon = isCurrent ? '🌿' : '📁'
+            const icon = isCurrent ? '*' : '-'
             const color = isCurrent ? colors.cyan : colors.dim
             console.log(`    ${icon} ${color(name)}`)
           })
@@ -161,7 +161,7 @@ export default defineCommand({
       
       // Commit history
       if (flags.history) {
-        console.log(`\n📜 Recent Commits (${flags.history}):`)
+        console.log(`\nRecent commits (${flags.history}):`)
         
         const { stdout: commits } = await shell`git log --oneline -${flags.history} --pretty=format:"%h %s (%an, %ar)"`
         commits.toString().trim().split('\n').forEach((commit: string, index: number) => {
@@ -173,7 +173,7 @@ export default defineCommand({
       
       // Summary
       if (!flags.detailed && !flags.branches && !flags.remote && !flags.history) {
-        console.log(colors.dim('\n💡 Use --detailed, --branches, --remote, or --history for more information'))
+        console.log(colors.dim('\nHint: use --detailed, --branches, --remote, or --history for more information'))
       }
       
     } catch (error) {

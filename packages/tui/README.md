@@ -5,12 +5,13 @@ A React-based Terminal User Interface library for Bunli CLI framework, powered b
 ## Features
 
 - **React-based Components**: Build TUIs using familiar React patterns and JSX
-- **Component Library**: Pre-built form components like `Form`, `FormField`, `SelectField`, and `ProgressBar`
+- **Component Library**: Form, layout, feedback, data-display, and chart components for alternate-buffer TUIs
 - **OpenTUI Integration**: Full access to OpenTUI's React hooks and components
 - **Type Safety**: Complete TypeScript support with proper type inference
 - **Animation Support**: Built-in timeline system for smooth animations
 - **Keyboard Handling**: Easy keyboard event management with `useKeyboard`
 - **First-Class TUI Support**: TUI rendering is a first-class feature, not a plugin
+- **Theme System**: Preset themes with token overrides via `ThemeProvider`/`createTheme`
 
 ## Installation
 
@@ -42,13 +43,39 @@ const myCommand = defineCommand({
     </box>
   ),
   handler: async () => {
-    // CLI mode handler (used with --no-tui or in non-interactive environments)
+    // Non-TUI fallback when render is skipped
     console.log('Deploying application...')
   }
 })
 
 cli.command(myCommand)
 await cli.run()
+```
+
+### TUI Execution Semantics
+
+- `--tui` / `--interactive` force `render` mode when a command provides `render`.
+- `--no-tui` disables alternate-buffer `render` mode. If `handler` exists, Bunli runs the handler.
+- `--no-tui` still allows `render` only when `bufferMode: 'standard'` is explicitly configured.
+
+### Render Lifecycle (Destroy-Driven)
+
+`registerTuiRenderer()` waits until the renderer is destroyed. Commands that use `render` must eventually call `renderer.destroy()` (for example on submit/cancel/quit), or the command will not exit.
+
+```typescript
+import { useKeyboard, useRenderer } from '@bunli/tui'
+
+function DeployTUI() {
+  const renderer = useRenderer()
+
+  useKeyboard((key) => {
+    if (key.name === 'q' || (key.ctrl && key.name === 'c')) {
+      renderer.destroy()
+    }
+  })
+
+  return <text>Press q to quit</text>
+}
 ```
 
 ## Buffer Modes (Alternate vs Standard)
@@ -72,8 +99,48 @@ const cli = await createCLI({
 Notes:
 - `bufferMode: 'alternate'` is the default for interactive terminals.
 - `bufferMode: 'standard'` is the default for non-interactive / CI environments when TUI is forced via `--tui`.
+- Mouse tracking is disabled by default (`useMouse: false`) to avoid leaking raw mouse escape sequences after exit in standard-buffer workflows. Enable explicitly when needed.
 
 ## Usage
+
+### Module Split
+
+Use subpath exports depending on mode:
+
+- `@bunli/tui/prompt`: inline prompt runtime for standard-buffer command flows.
+- `@bunli/tui/interactive`: alternate-buffer interactive components.
+- `@bunli/tui/charts`: terminal-native chart primitives.
+- `@bunli/tui`: root export that re-exports shared components/hooks.
+
+### Clack Migration Quick Map
+
+Use this when replacing a clack mental model with Bunli-native APIs:
+
+```typescript
+// clack
+// import { intro, outro, confirm, select, multiselect, log } from '@clack/prompts'
+
+// bunli
+import { prompt } from '@bunli/tui/prompt'
+
+prompt.intro('Setup')
+const confirmed = await prompt.confirm('Continue?', { default: true })
+const env = await prompt.select('Environment', {
+  options: [
+    { label: 'Development', value: 'dev' },
+    { label: 'Production', value: 'prod' }
+  ]
+})
+const features = await prompt.multiselect('Features', {
+  options: [
+    { label: 'Testing', value: 'testing' },
+    { label: 'Docker', value: 'docker' }
+  ],
+  initialValues: ['testing']
+})
+prompt.log.success(`Selected ${env}`)
+prompt.outro('Done')
+```
 
 ### Basic TUI Component
 
@@ -102,36 +169,45 @@ export const myCommand = defineCommand({
 
 ```typescript
 import { defineCommand } from '@bunli/core'
-import { FormField, SelectField } from '@bunli/tui'
-import type { SelectOption } from '@opentui/core'
-import { useState } from 'react'
+import { SchemaForm, useRenderer } from '@bunli/tui'
+import { z } from 'zod'
+
+const configSchema = z.object({
+  apiUrl: z.string().url('Enter a valid URL'),
+  region: z.enum(['us-east', 'us-west'])
+})
 
 function ConfigTUI() {
-  const [apiUrl, setApiUrl] = useState('')
-  const [region, setRegion] = useState('us-east')
-
-  const regions: SelectOption[] = [
-    { name: 'US East', value: 'us-east', description: 'US East region' },
-    { name: 'US West', value: 'us-west', description: 'US West region' }
+  const renderer = useRenderer()
+  const regions = [
+    { label: 'US East', value: 'us-east', hint: 'US East region' },
+    { label: 'US West', value: 'us-west', hint: 'US West region' }
   ]
 
   return (
-    <box title="Configure Settings" border padding={2} style={{ flexDirection: 'column' }}>
-      <FormField
-        label="API URL"
-        name="apiUrl"
-        placeholder="https://api.example.com"
-        required
-        value={apiUrl}
-        onChange={setApiUrl}
-      />
-      <SelectField
-        label="Region"
-        name="region"
-        options={regions}
-        onChange={setRegion}
-      />
-    </box>
+    <SchemaForm
+      title="Configure Settings"
+      schema={configSchema}
+      fields={[
+        {
+          kind: 'text',
+          name: 'apiUrl',
+          label: 'API URL',
+          placeholder: 'https://api.example.com',
+          required: true
+        },
+        {
+          kind: 'select',
+          name: 'region',
+          label: 'Region',
+          options: regions
+        }
+      ]}
+      onSubmit={(values) => {
+        console.log('Validated form values:', values)
+      }}
+      onCancel={() => renderer.destroy()}
+    />
   )
 }
 
@@ -145,17 +221,18 @@ export const configureCommand = defineCommand({
 ### Using OpenTUI Hooks
 
 ```typescript
-import { useKeyboard, useTimeline, useTerminalDimensions } from '@bunli/tui'
+import { useKeyboard, useRenderer, useTimeline, useTerminalDimensions } from '@bunli/tui'
 
 function InteractiveTUI({ command }) {
   const [count, setCount] = useState(0)
   const { width, height } = useTerminalDimensions()
+  const renderer = useRenderer()
   
   const timeline = useTimeline({ duration: 2000 })
   
   useKeyboard((key) => {
     if (key.name === 'q') {
-      process.exit(0)
+      renderer.destroy()
     }
     if (key.name === 'space') {
       setCount(prev => prev + 1)
@@ -182,15 +259,82 @@ function InteractiveTUI({ command }) {
 
 ## Component Library
 
-### Form
+Interactive components are available from `@bunli/tui/interactive` and root exports.
 
-A container component for building forms with keyboard navigation.
+Included primitives:
+- Form: `Form`, `SchemaForm`, `FormField`, `SelectField`
+- Form v2: `NumberField`, `PasswordField`, `TextareaField`, `CheckboxField`, `MultiSelectField`
+- Layout: `Container`, `Stack`, `Grid`, `Panel`, `Card`, `Divider`, `SectionHeader`
+- Navigation/flow: `Tabs`, `Menu`, `CommandPalette`, `Modal`
+- Dialog orchestration: `DialogProvider`, `useDialogManager`, `DialogDismissedError`
+- Feedback: `Alert`, `Badge`, `Toast`, `ProgressBar`, `EmptyState`
+- Data display: `List`, `Table`, `DataTable`, `KeyValueList`, `Stat`, `Markdown`, `Diff`
+- Charts: `BarChart`, `LineChart`, `Sparkline` from `@bunli/tui/charts`
+- Focus/keyboard scope: `FocusScopeProvider`, `useFocusScope`, `useScopedKeyboard`
+
+### Keyboard Contracts
+
+Default keyboard bindings for interactive primitives:
+
+- `Modal`: `Esc` / `Ctrl+C` close, `Tab`/`Shift+Tab` focus trap
+- `Dialog confirm`: `Left`/`h`/`y` -> confirm, `Right`/`l`/`n` -> cancel choice, `Tab` toggle, `Enter` submit
+- `Dialog choose`: `Up`/`k` previous, `Down`/`j` next, `Enter` submit. Disabled options are skipped for selection/navigation.
+- `Menu`: `Up`/`k`, `Down`/`j`, `Enter`
+- `Tabs`: `Left`/`h` previous tab, `Right`/`l` next tab
+- `CommandPalette`: `Up`/`k`, `Down`/`j`, `Enter`
+- `DataTable`: `Left`/`h` previous sort column, `Right`/`l` next sort column, `Up`/`k` previous row, `Down`/`j` next row, `Enter` select row
+- `Form`: `Tab`/`Shift+Tab` field navigation, `Ctrl+S` submit, `Ctrl+R` reset, `F8`/`Shift+F8` jump error fields, `Esc` cancel
+
+### Dialog Manager
+
+Use the dialog manager to stack confirm/choose flows with consistent priority handling and dismissal semantics.
 
 ```typescript
+import { useDialogManager, DialogDismissedError } from '@bunli/tui/interactive'
+
+function Screen() {
+  const dialogs = useDialogManager()
+
+  async function deploy() {
+    try {
+      const confirmed = await dialogs.confirm({
+        title: 'Deploy',
+        message: 'Ship this release now?'
+      })
+      if (!confirmed) return
+
+      const target = await dialogs.choose({
+        title: 'Target',
+        options: [
+          { label: 'Staging', value: 'staging', section: 'General' },
+          { label: 'Production', value: 'production', section: 'Protected', disabled: true }
+        ]
+      })
+
+      console.log('Deploying to', target)
+    } catch (error) {
+      if (error instanceof DialogDismissedError) {
+        console.log('Dialog dismissed')
+      }
+    }
+  }
+
+  return <box />
+}
+```
+
+### Form
+
+A schema-driven container for controlled interactive forms.
+
+```typescript
+const renderer = useRenderer()
+
 <Form 
   title="My Form"
+  schema={schema}
   onSubmit={(values) => console.log(values)}
-  onCancel={() => process.exit(0)}
+  onCancel={() => renderer.destroy()}
 >
   {/* Form fields */}
 </Form>
@@ -198,12 +342,57 @@ A container component for building forms with keyboard navigation.
 
 **Props:**
 - `title: string` - Form title
-- `onSubmit: (values: Record<string, any>) => void` - Submit handler
+- `schema: StandardSchemaV1` - Validation schema (Zod and other Standard Schema adapters supported)
+- `onSubmit: (values) => void | Promise<void>` - Submit handler with schema-validated values
 - `onCancel?: () => void` - Cancel handler (optional)
+- `onValidationError?: (errors: Record<string, string>) => void` - Validation error callback
+- `initialValues?: Partial<InferOutput<schema>>` - Initial controlled values
+- `validateOnChange?: boolean` - Validate while typing/selecting (default `true`)
+- `submitHint?: string` - Footer hint override
+- `onReset?: () => void` - Reset callback
+- `onDirtyChange?: (isDirty, dirtyFields) => void` - Dirty-state callback
+- `onSubmitStateChange?: ({ isSubmitting, isValidating }) => void` - async state callback
+- `scopeId?: string` - keyboard scope boundary id for nested interactive flows
+
+### SchemaForm
+
+A higher-level schema form builder that renders fields from descriptors.
+
+```typescript
+<SchemaForm
+  title="Deploy"
+  schema={schema}
+  fields={[
+    { kind: 'text', name: 'service', label: 'Service' },
+    { kind: 'select', name: 'env', label: 'Environment', options: envOptions },
+    { kind: 'checkbox', name: 'telemetry', label: 'Enable telemetry' },
+    {
+      kind: 'textarea',
+      name: 'notes',
+      label: 'Release notes',
+      visibleWhen: (values) => values.env === 'production'
+    }
+  ]}
+  onSubmit={(values) => console.log(values)}
+/>
+```
+
+Supported `SchemaForm` field kinds:
+- `text`
+- `select`
+- `multiselect`
+- `number`
+- `password`
+- `textarea`
+- `checkbox`
+
+Field-level behavior:
+- `visibleWhen(values) => boolean` for conditional rendering.
+- `deriveDefault(values) => unknown` for dependent default initialization.
 
 ### FormField
 
-A text input field with label and validation.
+A controlled text field bound to form context.
 
 ```typescript
 <FormField
@@ -211,9 +400,7 @@ A text input field with label and validation.
   name="username"
   placeholder="Enter username"
   required
-  value={username}
-  onChange={setUsername}
-  onSubmit={handleSubmit}
+  defaultValue=""
 />
 ```
 
@@ -222,22 +409,24 @@ A text input field with label and validation.
 - `name: string` - Field name
 - `placeholder?: string` - Placeholder text
 - `required?: boolean` - Whether field is required
-- `value?: string` - Current value
+- `description?: string` - Helper text
+- `defaultValue?: string` - Initial value for form state
 - `onChange?: (value: string) => void` - Change handler
 - `onSubmit?: (value: string) => void` - Submit handler
 
 ### SelectField
 
-A dropdown selection field.
+A controlled select field bound to form context.
 
 ```typescript
 <SelectField
   label="Environment"
   name="env"
   options={[
-    { name: 'Development', value: 'dev', description: 'Development environment' },
-    { name: 'Production', value: 'prod', description: 'Production environment' }
+    { label: 'Development', value: 'dev', hint: 'Development environment' },
+    { label: 'Production', value: 'prod', hint: 'Production environment' }
   ]}
+  defaultValue="dev"
   onChange={setEnvironment}
 />
 ```
@@ -247,7 +436,9 @@ A dropdown selection field.
 - `name: string` - Field name
 - `options: SelectOption[]` - Available options
 - `required?: boolean` - Whether field is required
-- `onChange?: (value: string) => void` - Change handler
+- `description?: string` - Helper text
+- `defaultValue?: SelectOption['value']` - Initial selected value
+- `onChange?: (value: SelectOption['value']) => void` - Change handler
 
 ### ProgressBar
 
@@ -266,20 +457,69 @@ A progress bar component for showing completion status.
 - `label?: string` - Progress label
 - `color?: string` - Progress bar color
 
+### Chart Primitives
+
+`@bunli/tui/charts` supports negative and sparse values, axis labels, and multi-series palettes.
+
+```typescript
+import { BarChart, LineChart } from '@bunli/tui/charts'
+
+<BarChart
+  series={[
+    { name: 'build', points: [{ label: 'Mon', value: -2 }, { label: 'Tue', value: 6 }] },
+    { name: 'test', points: [{ label: 'Mon', value: null }, { label: 'Tue', value: 4 }] }
+  ]}
+  axis={{ yLabel: 'Jobs', xLabel: 'Day', showRange: true }}
+/>
+
+<LineChart
+  series={{ name: 'latency', points: [{ value: 120 }, { value: 98 }, { value: null }, { value: 104 }] }}
+  axis={{ yLabel: 'ms' }}
+/>
+```
+
+### ThemeProvider and Tokens
+
+Use `ThemeProvider` to apply a built-in theme preset or token overrides.
+
+```typescript
+import { ThemeProvider, createTheme } from '@bunli/tui/interactive'
+
+const customTheme = createTheme({
+  preset: 'dark',
+  tokens: {
+    accent: '#3ec7ff',
+    textSuccess: '#3cd89b'
+  }
+})
+
+function App() {
+  return (
+    <ThemeProvider theme={customTheme}>
+      <Panel title="Deploy status">
+        <Alert tone="success" message="Ready to ship" />
+      </Panel>
+    </ThemeProvider>
+  )
+}
+```
+
 ## OpenTUI Hooks
 
-The plugin re-exports useful OpenTUI React hooks:
+The package re-exports useful OpenTUI React hooks:
 
 ### useKeyboard
 
 Handle keyboard events.
 
 ```typescript
-import { useKeyboard } from '@bunli/tui'
+import { useKeyboard, useRenderer } from '@bunli/tui'
+
+const renderer = useRenderer()
 
 useKeyboard((key) => {
   if (key.name === 'escape') {
-    process.exit(0)
+    renderer.destroy()
   }
 })
 ```
@@ -333,26 +573,31 @@ useOnResize((width, height) => {
 })
 ```
 
-## Plugin Configuration
+## Renderer Registration
+
+Register the TUI renderer once before running commands with `render`:
 
 ```typescript
-import { tuiPlugin } from '@bunli/tui'
+import { createCLI } from '@bunli/core'
+import { registerTuiRenderer } from '@bunli/tui'
+// or side-effect import: import '@bunli/tui/register'
 
-const plugin = tuiPlugin({
-  renderer: {
-    exitOnCtrlC: false,
-    targetFps: 30,
-    enableMouseMovement: true
-  },
-  theme: 'dark',
-  autoForm: false
+registerTuiRenderer()
+
+const cli = await createCLI({
+  name: 'my-app',
+  version: '1.0.0',
+  tui: {
+    renderer: {
+      bufferMode: 'alternate',
+      targetFps: 30,
+      useMouse: false
+    }
+  }
 })
 ```
 
-**Options:**
-- `renderer?: CliRendererConfig` - OpenTUI renderer configuration
-- `theme?: 'light' | 'dark' | ThemeConfig` - Theme configuration
-- `autoForm?: boolean` - Enable auto-form generation (disabled for now)
+Renderer options are passed via `createCLI({ tui: { renderer } })` and optional command-level overrides in `command.tui.renderer`.
 
 ## OpenTUI Components
 
@@ -390,7 +635,7 @@ See the `examples/tui-demo` directory for complete examples:
 
 ## TypeScript Support
 
-The plugin provides full TypeScript support:
+The package provides full TypeScript support:
 
 ```typescript
 import type { TuiComponent, TuiComponentProps } from '@bunli/tui'

@@ -9,6 +9,7 @@ The absolute simplest possible Bunli CLI with a single command. Perfect starting
 - Basic command definition
 - Simple flag handling
 - OpenTUI `render` + CLI `handler` dual mode
+- Component-library showcase command (`showcase --tui`)
 - Minimal configuration
 - Type generation for enhanced DX
 
@@ -127,8 +128,8 @@ const color = await prompt.select('Favorite color?', {
 })
 const confirmed = await prompt.confirm('Continue?')
 
-prompt.clack.intro('Setup')
-prompt.clack.outro('Done')
+prompt.intro('Setup')
+prompt.outro('Done')
 ```
 
 ### OpenTUI Rendering
@@ -147,6 +148,8 @@ const command = defineCommand({
   }
 })
 ```
+
+Render lifecycle: commands using `render` should call `renderer.destroy()` (for example on submit, cancel, or quit) so the command exits cleanly.
 
 ### Plugin System
 Extend functionality with type-safe plugins:

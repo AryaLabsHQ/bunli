@@ -68,6 +68,7 @@ Remove ANSI codes from text.
 
 ```typescript
 const plain = colors.strip(coloredText)
+const safeForLogs = colors.strip(colors.bold(colors.green("ok")))
 ```
 
 ## TTY Detection

@@ -12,6 +12,8 @@ Create engaging CLI experiences with interactive prompts, confirmations, and sel
 Bunli provides several built-in prompt utilities through the handler context:
 
 ```typescript
+import { PromptCancelledError } from '@bunli/tui/prompt'
+
 export default defineCommand({
   handler: async ({ prompt }) => {
     // Text input
@@ -34,21 +36,95 @@ export default defineCommand({
 })
 ```
 
-Bunli prompts are implemented on top of `@clack/prompts`. For advanced primitives (like `intro/outro`), use `prompt.clack`:
+Bunli prompt primitives are provided by `@bunli/tui/prompt`, and the handler `prompt` utility exposes lifecycle helpers like `intro/outro/note/cancel`:
 
 ```typescript
 export default defineCommand({
   handler: async ({ prompt }) => {
-    prompt.clack.intro('Setup')
-    const name = await prompt.clack.text({ message: 'Name' })
-    if (prompt.clack.isCancel(name)) {
-      prompt.clack.cancel('Cancelled')
-      return
-    }
-    prompt.clack.outro('Done')
+    prompt.intro('Setup')
+    const name = await prompt.text('Name:')
+    prompt.outro('Done')
   }
 })
 ```
+
+## Clack Mental Model Mapping
+
+If you're migrating from `@clack/prompts`, use this quick mapping:
+
+```typescript
+// clack mental model -> bunli prompt runtime
+intro('Setup')                     // -> prompt.intro('Setup')
+outro('Done')                      // -> prompt.outro('Done')
+log.info('message')                // -> prompt.log.info('message')
+const ok = await confirm('Continue?') // -> await prompt.confirm('Continue?')
+
+// Choice-based prompts use object options in Bunli:
+const env = await prompt.select('Environment', {
+  options: [
+    { label: 'Development', value: 'dev' },
+    { label: 'Production', value: 'prod' }
+  ],
+  default: 'dev'
+})
+
+const features = await prompt.multiselect('Features', {
+  options: [
+    { label: 'Testing', value: 'testing' },
+    { label: 'Docker', value: 'docker' }
+  ],
+  initialValues: ['testing']
+})
+```
+
+## Alternate-Buffer Dialog Flows
+
+For richer TUI flows in `render()` paths, use `@bunli/tui/interactive` dialog primitives:
+
+```tsx
+import { useDialogManager, DialogDismissedError } from '@bunli/tui/interactive'
+
+function DeployScreen() {
+  const dialogs = useDialogManager()
+
+  async function deploy() {
+    try {
+      const env = await dialogs.choose({
+        title: 'Target environment',
+        options: [
+          { label: 'Development', value: 'dev', section: 'General' },
+          { label: 'Staging', value: 'staging', section: 'General' },
+          { label: 'Production', value: 'prod', section: 'Protected', disabled: true }
+        ]
+      })
+
+      const confirmed = await dialogs.confirm({
+        title: 'Confirm deploy',
+        message: `Deploy to ${env}?`
+      })
+
+      if (confirmed) {
+        // run deploy
+      }
+    } catch (error) {
+      if (error instanceof DialogDismissedError) {
+        // dismissed by Esc / Ctrl+C
+      }
+    }
+  }
+
+  return <box />
+}
+```
+
+`choose` semantics:
+- Disabled options are skipped for selection/navigation.
+- `initialIndex` is normalized to the nearest enabled option.
+- Dialog rejects when no enabled options exist.
+
+Keyboard defaults:
+- `confirm`: `Left/h/y`, `Right/l/n`, `Tab`, `Enter`
+- `choose`: `Up/k`, `Down/j`, `Enter`
 
 ## Text Input Prompts
 
@@ -195,7 +271,7 @@ export default defineCommand({
   name: 'create',
   handler: async ({ prompt, colors }) => {
     const projectType = await prompt.select('What type of project?', {
-      choices: [
+      options: [
         { value: 'web', label: 'Web Application' },
         { value: 'api', label: 'REST API' },
         { value: 'cli', label: 'CLI Tool' },
@@ -204,7 +280,7 @@ export default defineCommand({
     })
     
     const framework = await prompt.select('Choose a framework:', {
-      choices: projectType === 'web' ? [
+      options: projectType === 'web' ? [
         { value: 'next', label: 'Next.js' },
         { value: 'remix', label: 'Remix' },
         { value: 'astro', label: 'Astro' }
@@ -227,14 +303,15 @@ export default defineCommand({
   name: 'install',
   handler: async ({ prompt, spinner }) => {
     const features = await prompt.multiselect('Select features to install:', {
-      choices: [
-        { value: 'auth', label: 'Authentication', selected: true },
-        { value: 'db', label: 'Database', selected: true },
+      options: [
+        { value: 'auth', label: 'Authentication' },
+        { value: 'db', label: 'Database' },
         { value: 'email', label: 'Email Service' },
         { value: 'storage', label: 'File Storage' },
         { value: 'cache', label: 'Caching Layer' },
         { value: 'queue', label: 'Job Queue' }
       ],
+      initialValues: ['auth', 'db'],
       min: 1,
       max: 4
     })
@@ -261,7 +338,6 @@ export default defineCommand({
     const username = await prompt('Username:')
     
     const password = await prompt.password('Password:', {
-      mask: '*',
       validate: (value) => {
         if (value.length < 8) {
           return 'Password must be at least 8 characters'
@@ -271,9 +347,7 @@ export default defineCommand({
     })
     
     // For sensitive operations, confirm password
-    const confirmPassword = await prompt.password('Confirm password:', {
-      mask: '*'
-    })
+    const confirmPassword = await prompt.password('Confirm password:')
     
     if (password !== confirmPassword) {
       console.log(colors.red('✗'), 'Passwords do not match')
@@ -310,20 +384,21 @@ export default defineCommand({
     })
     
     const features = await prompt.multiselect('Select features:', {
-      choices: [
-        { value: 'tests', label: 'Testing framework', selected: true },
-        { value: 'lint', label: 'Linting', selected: true },
-        { value: 'format', label: 'Code formatting', selected: true },
-        { value: 'git', label: 'Git repository', selected: true },
+      options: [
+        { value: 'tests', label: 'Testing framework' },
+        { value: 'lint', label: 'Linting' },
+        { value: 'format', label: 'Code formatting' },
+        { value: 'git', label: 'Git repository' },
         { value: 'ci', label: 'CI/CD pipeline' }
-      ]
+      ],
+      initialValues: ['tests', 'lint', 'format', 'git']
     })
     
     // Step 3: Advanced Options
     let database = null
     if (await prompt.confirm('Configure database?')) {
       database = await prompt.select('Database type:', {
-        choices: [
+        options: [
           { value: 'sqlite', label: 'SQLite' },
           { value: 'postgres', label: 'PostgreSQL' },
           { value: 'mysql', label: 'MySQL' },
@@ -381,7 +456,7 @@ export default defineCommand({
   name: 'config',
   handler: async ({ prompt, colors }) => {
     const action = await prompt.select('What would you like to do?', {
-      choices: [
+      options: [
         { value: 'view', label: 'View current configuration' },
         { value: 'edit', label: 'Edit configuration' },
         { value: 'reset', label: 'Reset to defaults' }
@@ -390,7 +465,7 @@ export default defineCommand({
     
     if (action === 'edit') {
       const section = await prompt.select('Which section to edit?', {
-        choices: [
+        options: [
           { value: 'general', label: 'General Settings' },
           { value: 'api', label: 'API Configuration' },
           { value: 'advanced', label: 'Advanced Options' }
@@ -400,7 +475,7 @@ export default defineCommand({
       switch (section) {
         case 'general':
           const theme = await prompt.select('Color theme:', {
-            choices: [
+            options: [
               { value: 'auto', label: 'Auto (system)' },
               { value: 'light', label: 'Light' },
               { value: 'dark', label: 'Dark' }
@@ -471,8 +546,8 @@ interface PromptOptions {
 
 ```typescript
 interface SelectOptions<T> {
-  // Available choices
-  choices: Array<{
+  // Available options
+  options: Array<{
     value: T
     label: string
     hint?: string
@@ -504,7 +579,7 @@ export default defineCommand({
       const input = await prompt('Enter value:')
       // Process input
     } catch (error) {
-      if (error.message === 'Prompt cancelled') {
+      if (error instanceof PromptCancelledError) {
         console.log(colors.yellow('\nOperation cancelled'))
         process.exit(0)
       }
@@ -527,8 +602,8 @@ const commands = listCommands()
 const setupApi = getCommandApi('setup')
 
 // Use command options for dynamic prompt generation
-const availablePresets = Object.keys(setupApi.options.preset?.choices || {})
-const projectTypes = Object.keys(setupApi.options.type?.choices || {})
+const availablePresets = Object.keys(setupApi.options.preset?.options || {})
+const projectTypes = Object.keys(setupApi.options.type?.options || {})
 
 // Type-safe interactive command execution
 async function runInteractiveCommand(commandName: string, options: any) {
@@ -583,4 +658,4 @@ test('interactive setup', async () => {
 - [Type Generation Guide](/docs/guides/type-generation) - Learn about code generation
 - [Testing](/docs/guides/testing) - Test interactive commands
 - [Building Your First CLI](/docs/guides/building-your-first-cli) - Complete example
-- [@bunli/utils](/docs/packages/utils) - Utility functions reference
+- [@bunli/tui](/docs/packages/tui) - TUI and prompt runtime reference

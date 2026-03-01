@@ -96,39 +96,47 @@ export const buildCommand = defineCommand({
 
 ### 2. Interactive Prompts
 ```typescript
-import { prompt } from '@bunli/core'
+import { prompt } from '@bunli/tui/prompt'
 
 // Text input
 const name = await prompt.text('Project name?')
 
 // Selection
-const framework = await prompt.select('Framework?', [
-  'React', 'Vue', 'Svelte', 'Solid'
-])
+const framework = await prompt.select('Framework?', {
+  options: [
+    { label: 'React', value: 'react' },
+    { label: 'Vue', value: 'vue' },
+    { label: 'Svelte', value: 'svelte' },
+    { label: 'Solid', value: 'solid' }
+  ]
+})
 
 // Confirmation
 const confirmed = await prompt.confirm('Deploy to production?')
 
 // Multi-select
-const features = await prompt.multiselect('Features?', [
-  'TypeScript', 'ESLint', 'Prettier', 'Testing'
-])
+const features = await prompt.multiselect('Features?', {
+  options: [
+    { label: 'TypeScript', value: 'typescript' },
+    { label: 'ESLint', value: 'eslint' },
+    { label: 'Prettier', value: 'prettier' },
+    { label: 'Testing', value: 'testing' }
+  ]
+})
 ```
 
 ### 3. Progress Indicators
 ```typescript
-import { spinner } from '@bunli/core'
-
-spinner.start('Building project...')
+const spin = spinner('Building project...')
 
 // Simulate build steps
 const steps = ['Compiling', 'Bundling', 'Optimizing', 'Writing']
 for (const step of steps) {
-  spinner.text = step
+  spin.update(step)
   await new Promise(resolve => setTimeout(resolve, 500))
 }
 
-spinner.succeed('Build completed!')
+spin.succeed('Build completed!')
 ```
 
 ### 4. Conditional Flows
@@ -232,14 +240,24 @@ handler: async ({ prompt, colors }) => {
   const description = await prompt.text('Description?')
   
   // Step 2: Framework selection
-  const framework = await prompt.select('Framework?', [
-    'React', 'Vue', 'Svelte', 'Solid'
-  ])
+  const framework = await prompt.select('Framework?', {
+    options: [
+      { label: 'React', value: 'react' },
+      { label: 'Vue', value: 'vue' },
+      { label: 'Svelte', value: 'svelte' },
+      { label: 'Solid', value: 'solid' }
+    ]
+  })
   
   // Step 3: Features
-  const features = await prompt.multiselect('Features?', [
-    'TypeScript', 'ESLint', 'Prettier', 'Testing'
-  ])
+  const features = await prompt.multiselect('Features?', {
+    options: [
+      { label: 'TypeScript', value: 'typescript' },
+      { label: 'ESLint', value: 'eslint' },
+      { label: 'Prettier', value: 'prettier' },
+      { label: 'Testing', value: 'testing' }
+    ]
+  })
   
   // Step 4: Confirmation
   console.log(colors.cyan('\nConfiguration:'))

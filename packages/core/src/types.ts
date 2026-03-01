@@ -8,6 +8,7 @@ export interface TuiRenderOptions {
   exitOnCtrlC?: boolean
   targetFps?: number
   enableMouseMovement?: boolean
+  useMouse?: boolean
   /**
    * Terminal buffer mode for OpenTUI-backed renderers.
    * - 'alternate': full-screen alternate buffer (smcup/rmcup semantics)
@@ -17,12 +18,23 @@ export interface TuiRenderOptions {
   [key: string]: unknown
 }
 
+export interface CommandTuiOptions {
+  /**
+   * Command-level renderer overrides.
+   * These merge on top of global `config.tui.renderer`.
+   */
+  renderer?: TuiRenderOptions
+}
+
 export interface RenderArgs<TFlags = Record<string, unknown>, TStore = {}> extends HandlerArgs<TFlags, TStore> {
   command: Command<any, TStore>
   rendererOptions?: TuiRenderOptions
 }
 
 export type RenderFunction<TFlags = Record<string, unknown>, TStore = {}> = (args: RenderArgs<TFlags, TStore>) => RenderResult
+
+export type PromptApi = typeof import('@bunli/tui/prompt').prompt
+export type PromptSpinnerFactory = typeof import('@bunli/tui/prompt').spinner
 
 // Core Bunli types
 /**
@@ -65,6 +77,9 @@ export interface CLI<TStore = {}> {
 interface BaseCommand<TOptions extends Options = Options, TStore = {}, TName extends string = string> {
   name: TName
   description: string
+  options?: TOptions
+  tui?: CommandTuiOptions
+  commands?: Command<any, TStore, any>[]
   alias?: string | string[]
 }
 
@@ -120,8 +135,8 @@ export interface HandlerArgs<TFlags = Record<string, unknown>, TStore = {}, TCom
   env: typeof process.env
   cwd: string
   // Utilities
-  prompt: typeof import('@bunli/utils').prompt
-  spinner: typeof import('@bunli/utils').spinner
+  prompt: PromptApi
+  spinner: PromptSpinnerFactory
   colors: typeof import('@bunli/utils').colors
   // Plugin context (if plugins are loaded)
   context?: import('./plugin/types.js').CommandContext<Record<string, unknown>>
@@ -129,6 +144,8 @@ export interface HandlerArgs<TFlags = Record<string, unknown>, TStore = {}, TCom
   terminal: TerminalInfo
   // Runtime information
   runtime: RuntimeInfo
+  // Cooperative cancellation signal for interrupt handling.
+  signal: AbortSignal
 }
 
 export interface TerminalInfo {

@@ -8,6 +8,7 @@ Bunli is a minimal, type-safe CLI framework designed specifically for Bun. It le
 
 ### Core
 - **[@bunli/core](./packages/core)** - Core framework with type-safe command definitions
+- **[@bunli/tui](./packages/tui)** - OpenTUI-backed renderer, components, and prompt runtime
 - **[@bunli/utils](./packages/utils)** - Shared utilities (prompts, spinners, colors)
 - **[@bunli/test](./packages/test)** - Testing utilities for CLI applications
 - **[@bunli/generator](./packages/generator)** - Generate TypeScript definitions from commands

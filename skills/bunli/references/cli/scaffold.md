@@ -7,19 +7,35 @@ Initialize new Bunli CLI projects.
 ```bash
 # Interactive
 bunli init my-cli
-create-bunli
+bunx create-bunli my-cli
 
 # With template
-create-bunli my-cli --template basic
-create-bunli my-cli --template advanced
-create-bunli my-cli --template monorepo
+bunx create-bunli my-cli --template basic
+bunx create-bunli my-cli --template advanced
+bunx create-bunli my-cli --template monorepo
 
-# Remote template (GitHub shorthand)
-create-bunli my-cli --template user/repo
-create-bunli my-cli --template github:user/repo
+# Remote template
+bunx create-bunli my-cli --template user/repo
+bunx create-bunli my-cli --template github:user/repo
+
+# Disable features via explicit booleans
+bunx create-bunli my-cli --git=false --install=false
 ```
 
-Note: local filesystem template paths are not currently supported.
+Current limitation:
+- `file:` / `./` / `../` template inputs are detected as local, but current `create-bunli` flow rewrites local templates to bundled template paths. Treat local path templates as not reliably supported in this branch.
+
+## create-bunli options
+
+- `--template` template source
+- `--dir` destination directory
+- `--git` boolean (use `--git=false` to disable)
+- `--install` boolean (use `--install=false` to disable)
+- `--offline` prefer cached templates
+
+`bunli init` also exposes `--package-manager`, but `create-bunli` currently installs with `bun install` regardless.
+
+`bunli init` forwarding for disabling git/install currently uses `--no-git` / `--no-install`, which are ignored by `create-bunli` in this branch. Use `create-bunli --git=false --install=false` directly when needed.
 
 ## Templates
 
@@ -27,96 +43,48 @@ Note: local filesystem template paths are not currently supported.
 
 Simple CLI with one example command.
 
-```
-my-cli/
-├── src/
-│   ├── commands/
-│   │   └── hello.ts
-│   └── index.ts
-├── bunli.config.ts
-├── package.json
-└── tsconfig.json
-```
-
 ### advanced
 
-CLI with multiple commands.
-
-```
-my-cli/
-├── src/
-│   ├── commands/
-│   │   ├── init.ts
-│   │   ├── validate.ts
-│   │   ├── serve.ts
-│   │   └── config.ts
-│   └── index.ts
-├── bunli.config.ts
-├── package.json
-└── tsconfig.json
-```
+CLI with multiple commands and richer examples.
 
 ### monorepo
 
 Multi-package monorepo structure.
 
-```
-my-cli/
-├── packages/
-│   ├── cli/
-│   │   └── src/
-│   ├── core/
-│   │   └── src/
-│   └── utils/
-│       └── src/
-├── bunli.config.ts
-├── package.json
-├── turbo.json
-└── tsconfig.json
-```
-
-## Manual Setup
+## Manual setup
 
 ```bash
-# Initialize npm project
 npm init -y
-
-# Install dependencies
 bun add @bunli/core @bunli/utils @bunli/tui
 bun add -d bunli typescript
-
-# Create entry point
 mkdir -p src/commands
+```
 
-# Create src/index.ts
+```typescript
+// src/index.ts
 import { createCLI } from "@bunli/core"
-import helloCommand from "./commands/hello.js"
+import { hello } from "./commands/hello.js"
 
 const cli = await createCLI({
   name: "my-cli",
-  version: "0.1.0",
+  version: "0.1.0"
 })
 
-// Register commands
-cli.command(helloCommand)
-
-// Run CLI
+cli.command(hello)
 await cli.run()
 ```
 
-> **Important:** `createCLI` returns a `Promise`, and commands must be registered via `cli.command()` before calling `cli.run()`.
+`createCLI` returns a `Promise`, and commands are registered explicitly via `cli.command(...)`.
 
-## Project Structure
+## Project structure
 
-```
+```text
 my-cli/
-├── cli.ts                 # CLI entry point (or src/index.ts)
-├── commands/              # Command definitions (or src/commands/)
+├── cli.ts                # CLI entry point (or src/index.ts)
+├── commands/             # Command definitions (or src/commands/)
 │   ├── greet.ts
 │   └── math.ts
-├── bunli.config.ts       # Configuration
+├── bunli.config.ts
 ├── package.json
 └── tsconfig.json
 ```
-
-Note: You can use `src/` prefix or place files at root level. Entry can be auto-detected; set `commands.entry` or `build.entry` in `bunli.config.ts` when auto-detection is ambiguous.
