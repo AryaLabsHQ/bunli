@@ -1,9 +1,11 @@
 ---
-"bunli": minor
-"@bunli/core": minor
-"@bunli/utils": minor
-"@bunli/tui": minor
 "create-bunli": minor
+"@bunli/runtime": minor
+"@bunli/utils": minor
+"@bunli/core": minor
+"@bunli/test": minor
+"bunli": minor
+"@bunli/tui": minor
 ---
 
 introducing `@bunli/tui` component-library
