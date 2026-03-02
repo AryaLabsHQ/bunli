@@ -1,9 +1,9 @@
 import { createCliRenderer } from '@opentui/core'
 import { CliRenderEvents } from '@opentui/core'
 import { createRoot } from '@opentui/react'
+import { AppRuntimeProvider } from '@bunli/runtime'
 import type { ReactElement } from 'react'
 import { resolveOpenTuiRendererOptions, type TuiRenderOptions } from './options.js'
-import { AppRuntimeProvider } from './runtime/app-runtime.js'
 
 export interface RunTuiRenderArgs {
   command: {

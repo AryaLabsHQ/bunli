@@ -1,3 +1,57 @@
-// Intentionally minimal root export.
-// Prefer subpath imports from @bunli/runtime/{renderer,prompt,options,events,transport}.
+// Canonical runtime surface. Prefer importing runtime and context APIs from @bunli/runtime.
 export type { OpenTuiRendererOptions, TuiRenderOptions } from './options.js'
+
+export {
+  AppRuntimeProvider,
+  type AppRuntimeProviderProps,
+  RouteStoreProvider,
+  useRouteStore,
+  createInitialRouteState,
+  applyNavigate,
+  applyReplace,
+  applyBack,
+  canApplyBack,
+  type RouteStore,
+  type RouteState,
+  type RouteStoreProviderProps,
+  CommandRegistryProvider,
+  useCommandRegistry,
+  useCommandRegistryItems,
+  normalizeBinding,
+  commandToPaletteItem,
+  shouldCleanupRegisteredCommand,
+  type CommandRegistry,
+  type CommandRegistryProviderProps,
+  type RuntimeCommand,
+  type CommandPaletteItem
+} from './runtime/index.js'
+
+export {
+  FocusScopeProvider,
+  useFocusScope,
+  useScopedKeyboard,
+  dispatchScopedKeyboardEvent,
+  type FocusScopeProviderProps,
+  type ScopedKeyHandler,
+  type UseFocusScopeOptions,
+  type UseScopedKeyboardOptions,
+  OverlayHostProvider,
+  OverlayPortal,
+  type OverlayHostProviderProps,
+  type OverlayPortalProps,
+  DialogProvider,
+  useDialogManager,
+  DialogDismissedError,
+  sortDialogs,
+  getTopDialog,
+  getSelectableIndices,
+  getResolvedChooseIndex,
+  getAdjacentSelectableIndex,
+  type ChooseDialogOption,
+  type ChooseDialogOptions,
+  type ConfirmDialogOptions,
+  type DialogManager,
+  type DialogOpenOptions,
+  type DialogProviderProps,
+  type DialogRenderContext
+} from './components/index.js'

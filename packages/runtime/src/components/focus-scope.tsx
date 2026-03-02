@@ -25,7 +25,7 @@ interface DispatchOptions {
   activeScopeId?: string
 }
 
-function dispatchScopedKeyboardEvent(
+export function dispatchScopedKeyboardEvent(
   key: KeyEvent,
   listeners: ScopedKeyboardListener[],
   options: DispatchOptions
@@ -209,8 +209,4 @@ export function useScopedKeyboard(
   })
 
   return isActive
-}
-
-export const __focusScopeInternalsForTests = {
-  dispatchScopedKeyboardEvent
 }

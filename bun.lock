@@ -269,7 +269,7 @@
     },
     "packages/runtime": {
       "name": "@bunli/runtime",
-      "version": "0.1.0",
+      "version": "0.0.0",
       "dependencies": {
         "@opentui/core": "^0.1.84",
         "@opentui/react": "^0.1.84",
@@ -307,6 +307,7 @@
       "name": "@bunli/tui",
       "version": "0.4.2",
       "dependencies": {
+        "@bunli/runtime": "workspace:^",
         "@opentui/core": "^0.1.84",
         "@opentui/react": "^0.1.84",
         "@standard-schema/spec": "^1.1.0",

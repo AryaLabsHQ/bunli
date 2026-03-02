@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, test } from 'bun:test'
+import { AppRuntimeProvider as RuntimeAppRuntimeProvider } from '@bunli/runtime'
 import { testRender } from '@opentui/react/test-utils'
 import { act, useEffect, useRef, type ReactNode } from 'react'
 import {
@@ -6,9 +7,9 @@ import {
   DialogProvider,
   useDialogManager,
   type DialogManager
-} from '../src/components/dialog-manager.js'
-import { FocusScopeProvider } from '../src/components/focus-scope.js'
-import { OverlayHostProvider } from '../src/components/overlay-host.js'
+} from '@bunli/runtime'
+import { FocusScopeProvider } from '@bunli/runtime'
+import { OverlayHostProvider } from '@bunli/runtime'
 
 type TestSetup = Awaited<ReturnType<typeof testRender>>
 
@@ -41,8 +42,12 @@ function withProviders(node: ReactNode) {
   )
 }
 
-async function setup(node: ReactNode): Promise<TestSetup> {
-  const rendered = await testRender(withProviders(node), {
+function withRuntimeProvider(node: ReactNode) {
+  return <RuntimeAppRuntimeProvider>{node}</RuntimeAppRuntimeProvider>
+}
+
+async function setup(node: ReactNode, wrap = withProviders): Promise<TestSetup> {
+  const rendered = await testRender(wrap(node), {
     width: 90,
     height: 28,
     useConsole: false,
@@ -71,6 +76,19 @@ afterEach(async () => {
 })
 
 describe('@bunli/tui dialog manager integration', () => {
+  test('runtime AppRuntimeProvider can drive @bunli/tui useDialogManager without context mismatch', async () => {
+    let hasManager = false
+
+    function Harness() {
+      const dialogs = useDialogManager()
+      hasManager = Boolean(dialogs)
+      return null
+    }
+
+    await setup(<Harness />, withRuntimeProvider)
+    expect(hasManager).toBe(true)
+  })
+
   test('confirm resolves on Enter', async () => {
     let resolvedValue: boolean | null = null
     let rejectedError: unknown = null

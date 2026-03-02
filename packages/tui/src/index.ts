@@ -1,5 +1,4 @@
 export * from './components/index.js'
-export * from './runtime/index.js'
 export { createSyncBatcher, type SyncBatcher, type SyncBatcherOptions } from './utils/sync-batcher.js'
 
 export * as inline from './inline/index.js'

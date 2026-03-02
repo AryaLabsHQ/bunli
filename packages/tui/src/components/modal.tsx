@@ -2,8 +2,8 @@ import { useEffect, useId, useRef, type ReactNode } from 'react'
 import type { BoxRenderable, Renderable } from '@opentui/core'
 import { useRenderer } from '@opentui/react'
 import { createKeyMatcher } from './keymap.js'
-import { useScopedKeyboard } from './focus-scope.js'
-import { OverlayPortal } from './overlay-host.js'
+import { useScopedKeyboard } from '@bunli/runtime'
+import { OverlayPortal } from '@bunli/runtime'
 import { useTuiTheme } from './theme.js'
 
 export interface ModalProps {

@@ -1,9 +1,15 @@
 import { describe, expect, test } from 'bun:test'
-import { __routeStoreInternalsForTests } from '../src/runtime/route-store.js'
+import {
+  applyBack,
+  applyNavigate,
+  applyReplace,
+  canApplyBack,
+  createInitialRouteState
+} from '@bunli/runtime'
 
 describe('@bunli/tui route store', () => {
   test('createInitialRouteState initializes route and history', () => {
-    const state = __routeStoreInternalsForTests.createInitialRouteState('overview')
+    const state = createInitialRouteState('overview')
     expect(state).toEqual({
       route: 'overview',
       previousRoute: null,
@@ -12,8 +18,8 @@ describe('@bunli/tui route store', () => {
   })
 
   test('applyNavigate appends route history', () => {
-    const initial = __routeStoreInternalsForTests.createInitialRouteState('overview')
-    const next = __routeStoreInternalsForTests.applyNavigate(initial, 'data')
+    const initial = createInitialRouteState('overview')
+    const next = applyNavigate(initial, 'data')
     expect(next.route).toBe('data')
     expect(next.previousRoute).toBe('overview')
     expect(next.history).toEqual(['overview', 'data'])
@@ -25,7 +31,7 @@ describe('@bunli/tui route store', () => {
       previousRoute: 'overview',
       history: ['overview', 'data']
     }
-    const next = __routeStoreInternalsForTests.applyReplace(initial, 'charts')
+    const next = applyReplace(initial, 'charts')
     expect(next.route).toBe('charts')
     expect(next.previousRoute).toBe('data')
     expect(next.history).toEqual(['overview', 'charts'])
@@ -37,21 +43,21 @@ describe('@bunli/tui route store', () => {
       previousRoute: 'data',
       history: ['overview', 'data', 'charts']
     }
-    const next = __routeStoreInternalsForTests.applyBack(initial)
+    const next = applyBack(initial)
     expect(next.route).toBe('data')
     expect(next.previousRoute).toBe('charts')
     expect(next.history).toEqual(['overview', 'data'])
   })
 
   test('canApplyBack reflects whether history has a previous entry', () => {
-    const single = __routeStoreInternalsForTests.createInitialRouteState('overview')
+    const single = createInitialRouteState('overview')
     const multiple = {
       route: 'charts',
       previousRoute: 'data',
       history: ['overview', 'data', 'charts']
     }
 
-    expect(__routeStoreInternalsForTests.canApplyBack(single)).toBe(false)
-    expect(__routeStoreInternalsForTests.canApplyBack(multiple)).toBe(true)
+    expect(canApplyBack(single)).toBe(false)
+    expect(canApplyBack(multiple)).toBe(true)
   })
 })

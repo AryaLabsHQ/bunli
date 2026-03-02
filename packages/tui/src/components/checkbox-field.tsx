@@ -1,5 +1,5 @@
 import { useId } from 'react'
-import { useScopedKeyboard } from './focus-scope.js'
+import { useScopedKeyboard } from '@bunli/runtime'
 import { useFormField } from './form-context.js'
 import { createKeyMatcher } from './keymap.js'
 import { useTuiTheme } from './theme.js'

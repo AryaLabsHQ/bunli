@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import type { KeyEvent } from '@opentui/core'
-import { __focusScopeInternalsForTests } from '../src/components/focus-scope.js'
+import { dispatchScopedKeyboardEvent } from '@bunli/runtime'
 
 function createKey(name: string) {
   let defaultPrevented = false
@@ -37,7 +37,7 @@ describe('@bunli/tui focus scope', () => {
     const calls: string[] = []
     const key = createKey('enter')
 
-    const handled = __focusScopeInternalsForTests.dispatchScopedKeyboardEvent(
+    const handled = dispatchScopedKeyboardEvent(
       key,
       [
         {
@@ -74,7 +74,7 @@ describe('@bunli/tui focus scope', () => {
     const calls: string[] = []
     const key = createKey('escape')
 
-    const handled = __focusScopeInternalsForTests.dispatchScopedKeyboardEvent(
+    const handled = dispatchScopedKeyboardEvent(
       key,
       [
         {
@@ -111,7 +111,7 @@ describe('@bunli/tui focus scope', () => {
     const calls: string[] = []
     const key = createKey('x')
 
-    const handled = __focusScopeInternalsForTests.dispatchScopedKeyboardEvent(
+    const handled = dispatchScopedKeyboardEvent(
       key,
       [
         {

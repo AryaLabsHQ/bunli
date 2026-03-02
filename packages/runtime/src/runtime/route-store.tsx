@@ -8,7 +8,7 @@ import {
   type ReactNode
 } from 'react'
 
-interface RouteState {
+export interface RouteState {
   route: string
   previousRoute: string | null
   history: string[]
@@ -29,7 +29,7 @@ export interface RouteStoreProviderProps {
   initialRoute?: string
 }
 
-function createInitialRouteState(initialRoute: string): RouteState {
+export function createInitialRouteState(initialRoute: string): RouteState {
   return {
     route: initialRoute,
     previousRoute: null,
@@ -37,7 +37,7 @@ function createInitialRouteState(initialRoute: string): RouteState {
   }
 }
 
-function applyNavigate(state: RouteState, nextRoute: string): RouteState {
+export function applyNavigate(state: RouteState, nextRoute: string): RouteState {
   return {
     route: nextRoute,
     previousRoute: state.route,
@@ -45,7 +45,7 @@ function applyNavigate(state: RouteState, nextRoute: string): RouteState {
   }
 }
 
-function applyReplace(state: RouteState, nextRoute: string): RouteState {
+export function applyReplace(state: RouteState, nextRoute: string): RouteState {
   const nextHistory = state.history.length > 0 ? [...state.history] : [nextRoute]
   if (nextHistory.length === 0) {
     nextHistory.push(nextRoute)
@@ -59,7 +59,7 @@ function applyReplace(state: RouteState, nextRoute: string): RouteState {
   }
 }
 
-function applyBack(state: RouteState): RouteState {
+export function applyBack(state: RouteState): RouteState {
   if (!canApplyBack(state)) {
     return state
   }
@@ -74,7 +74,7 @@ function applyBack(state: RouteState): RouteState {
   }
 }
 
-function canApplyBack(state: RouteState): boolean {
+export function canApplyBack(state: RouteState): boolean {
   return state.history.length > 1
 }
 
@@ -146,12 +146,4 @@ export function useRouteStore(): RouteStore {
     throw new Error('Route store is not available. Wrap your app in <RouteStoreProvider>.')
   }
   return context
-}
-
-export const __routeStoreInternalsForTests = {
-  createInitialRouteState,
-  applyNavigate,
-  applyReplace,
-  applyBack,
-  canApplyBack
 }

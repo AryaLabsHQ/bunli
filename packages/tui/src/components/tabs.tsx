@@ -1,6 +1,6 @@
 import { useId, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
-import { useScopedKeyboard } from './focus-scope.js'
+import { useScopedKeyboard } from '@bunli/runtime'
 import { createKeyMatcher } from './keymap.js'
 import { useTuiTheme } from './theme.js'
 

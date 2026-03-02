@@ -49,7 +49,7 @@ export interface CommandRegistryProviderProps {
   initialCommands?: RuntimeCommand[]
 }
 
-function normalizeBinding(binding: string): string {
+export function normalizeBinding(binding: string): string {
   return binding.trim().toLowerCase()
 }
 
@@ -57,7 +57,7 @@ function isCommandVisible(command: RuntimeCommand): boolean {
   return command.visible !== false
 }
 
-function commandToPaletteItem(command: RuntimeCommand): CommandPaletteItem {
+export function commandToPaletteItem(command: RuntimeCommand): CommandPaletteItem {
   const keybindHint = command.keybinds && command.keybinds.length > 0
     ? command.keybinds.map(normalizeBinding).join(', ')
     : null
@@ -70,8 +70,8 @@ function commandToPaletteItem(command: RuntimeCommand): CommandPaletteItem {
   }
 }
 
-function shouldCleanupRegisteredCommand(
-  entry: Pick<RegisteredCommand, 'id' | 'registrationId'>,
+export function shouldCleanupRegisteredCommand(
+  entry: { id: string; registrationId: number },
   commandId: string,
   registrationId: number
 ): boolean {
@@ -218,10 +218,4 @@ export function useCommandRegistryItems(): CommandPaletteItem[] {
         .map(commandToPaletteItem),
     [registry.commands]
   )
-}
-
-export const __commandRegistryInternalsForTests = {
-  normalizeBinding,
-  commandToPaletteItem,
-  shouldCleanupRegisteredCommand
 }

@@ -92,7 +92,7 @@ export interface DialogManager {
 
 const DialogManagerContext = createContext<DialogManager | null>(null)
 
-function sortDialogs(entries: DialogEntry[]): DialogEntry[] {
+export function sortDialogs(entries: DialogEntry[]): DialogEntry[] {
   return [...entries].sort((left, right) => {
     if (left.priority !== right.priority) {
       return left.priority - right.priority
@@ -101,7 +101,7 @@ function sortDialogs(entries: DialogEntry[]): DialogEntry[] {
   })
 }
 
-function getTopDialog(entries: DialogEntry[]): DialogEntry | null {
+export function getTopDialog(entries: DialogEntry[]): DialogEntry | null {
   if (entries.length === 0) return null
 
   return [...entries].sort((left, right) => {
@@ -198,7 +198,7 @@ const chooseKeymap = createKeyMatcher({
   submit: ['enter']
 })
 
-function getSelectableIndices<TValue>(options: Array<ChooseDialogOption<TValue>>): number[] {
+export function getSelectableIndices<TValue>(options: Array<ChooseDialogOption<TValue>>): number[] {
   const selectable: number[] = []
   for (let index = 0; index < options.length; index += 1) {
     if (!options[index]?.disabled) {
@@ -208,7 +208,7 @@ function getSelectableIndices<TValue>(options: Array<ChooseDialogOption<TValue>>
   return selectable
 }
 
-function getResolvedChooseIndex<TValue>(
+export function getResolvedChooseIndex<TValue>(
   options: Array<ChooseDialogOption<TValue>>,
   initialIndex: number
 ): number {
@@ -228,7 +228,7 @@ function getResolvedChooseIndex<TValue>(
   return selectable[0] ?? -1
 }
 
-function getAdjacentSelectableIndex<TValue>(
+export function getAdjacentSelectableIndex<TValue>(
   options: Array<ChooseDialogOption<TValue>>,
   currentIndex: number,
   delta: -1 | 1
@@ -625,23 +625,4 @@ export function useDialogManager(): DialogManager {
     throw new Error('Dialog manager is not available. Wrap your app in <DialogProvider>.')
   }
   return context
-}
-
-type TestDialogEntry = {
-  id: string
-  order: number
-  priority: number
-  node: ReactNode
-}
-
-export const __dialogManagerInternalsForTests = {
-  sortDialogs(entries: TestDialogEntry[]): TestDialogEntry[] {
-    return sortDialogs(entries)
-  },
-  getTopDialog(entries: TestDialogEntry[]): TestDialogEntry | null {
-    return getTopDialog(entries)
-  },
-  getSelectableIndices,
-  getResolvedChooseIndex,
-  getAdjacentSelectableIndex
 }

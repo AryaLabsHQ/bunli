@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import { FormContext, type FormFieldRegistration } from './form-context.js'
-import { useScopedKeyboard } from './focus-scope.js'
+import { useScopedKeyboard } from '@bunli/runtime'
 import { validateFormValues, type FormErrors } from './form-engine.js'
 import { createKeyMatcher } from './keymap.js'
 import { useTuiTheme } from './theme.js'

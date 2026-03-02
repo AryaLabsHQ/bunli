@@ -1,14 +1,18 @@
 import { describe, expect, test } from 'bun:test'
-import { __commandRegistryInternalsForTests } from '../src/runtime/command-registry.js'
+import {
+  commandToPaletteItem,
+  normalizeBinding,
+  shouldCleanupRegisteredCommand
+} from '@bunli/runtime'
 
 describe('@bunli/tui command registry', () => {
   test('normalizeBinding trims and lowercases keys', () => {
-    expect(__commandRegistryInternalsForTests.normalizeBinding(' Ctrl+K ')).toBe('ctrl+k')
-    expect(__commandRegistryInternalsForTests.normalizeBinding('Shift+Tab')).toBe('shift+tab')
+    expect(normalizeBinding(' Ctrl+K ')).toBe('ctrl+k')
+    expect(normalizeBinding('Shift+Tab')).toBe('shift+tab')
   })
 
   test('commandToPaletteItem composes section, hint, and keybind metadata', () => {
-    const item = __commandRegistryInternalsForTests.commandToPaletteItem({
+    const item = commandToPaletteItem({
       id: 'view.data',
       title: 'Open Data tab',
       section: 'View',
@@ -26,13 +30,13 @@ describe('@bunli/tui command registry', () => {
     const currentEntry = { id: 'view.data', registrationId: 8 }
 
     expect(
-      __commandRegistryInternalsForTests.shouldCleanupRegisteredCommand(currentEntry, 'view.data', 8)
+      shouldCleanupRegisteredCommand(currentEntry, 'view.data', 8)
     ).toBe(true)
     expect(
-      __commandRegistryInternalsForTests.shouldCleanupRegisteredCommand(currentEntry, 'view.data', 9)
+      shouldCleanupRegisteredCommand(currentEntry, 'view.data', 9)
     ).toBe(false)
     expect(
-      __commandRegistryInternalsForTests.shouldCleanupRegisteredCommand(currentEntry, 'view.charts', 8)
+      shouldCleanupRegisteredCommand(currentEntry, 'view.charts', 8)
     ).toBe(false)
   })
 })

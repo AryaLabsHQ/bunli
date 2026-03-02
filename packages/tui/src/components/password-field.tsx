@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
 import { useFormContext, useFormField } from './form-context.js'
-import { useScopedKeyboard } from './focus-scope.js'
+import { useScopedKeyboard } from '@bunli/runtime'
 import { useTuiTheme } from './theme.js'
 
 export interface PasswordFieldProps {

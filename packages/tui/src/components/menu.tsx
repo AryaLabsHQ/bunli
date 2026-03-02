@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useId, useMemo, useState } from 'react'
 import type { KeyEvent } from '@opentui/core'
-import { useScopedKeyboard } from './focus-scope.js'
+import { useScopedKeyboard } from '@bunli/runtime'
 import { createKeyMatcher } from './keymap.js'
 import { useTuiTheme } from './theme.js'
 import { displayWidth, formatFixedWidth, type TextOverflowMode } from './text-layout.js'

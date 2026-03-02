@@ -21,10 +21,6 @@
       "types": "./dist/charts/index.d.ts",
       "default": "./src/charts/index.tsx"
     },
-    "./runtime": {
-      "types": "./dist/runtime/index.d.ts",
-      "default": "./src/runtime/index.ts"
-    },
     "./utils/sync-batcher": {
       "types": "./dist/utils/sync-batcher.d.ts",
       "default": "./src/utils/sync-batcher.ts"
@@ -36,6 +32,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@bunli/runtime": "workspace:^",
     "@opentui/core": "^0.1.84",
     "@opentui/react": "^0.1.84",
     "@standard-schema/spec": "^1.1.0",
