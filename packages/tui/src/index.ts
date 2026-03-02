@@ -1,9 +1,7 @@
-export { registerTuiRenderer } from './renderer.js'
 export * from './components/index.js'
 export * from './runtime/index.js'
 export { createSyncBatcher, type SyncBatcher, type SyncBatcherOptions } from './utils/sync-batcher.js'
 
-export { prompt, type PromptApi, PromptCancelledError, isCancel } from './prompt/index.js'
 export * as inline from './inline/index.js'
 export * as interactive from './interactive/index.js'
 export * as charts from './charts/index.js'

@@ -1,5 +1,3 @@
-import type { CLIOption } from '@bunli/core'
-
 export interface TuiRendererOptions {
   exitOnCtrlC?: boolean
   targetFps?: number

@@ -39,7 +39,7 @@ export default defineCommand({
   prompts: {
     title: 'Interactive Prompts',
     code: `import { defineCommand } from '@bunli/core'
-import { prompt } from '@bunli/tui/prompt'
+import { prompt } from '@bunli/runtime/prompt'
 
 export default defineCommand({
   name: 'init',

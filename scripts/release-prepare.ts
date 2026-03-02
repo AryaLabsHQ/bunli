@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { $ } from 'bun'
-import * as p from '@bunli/tui/prompt'
+import * as p from '@bunli/runtime/prompt'
 import { readdir, readFile, writeFile } from 'fs/promises'
 import { existsSync } from 'node:fs'
 import { join } from 'path'
@@ -117,7 +117,7 @@ function printPromptUxSmokeChecklist(): void {
       'Manual prompt UX smoke checklist:',
       '1) Non-TTY fallback: run a prompt command with CI=1 and confirm fallbackValue path.',
       '2) Inline wizard flow: run task-runner setup and verify select/multiselect/password rendering.',
-      '3) Alternate-buffer showcase: run hello-world showcase with --tui and verify terminal cleanup on exit.'
+      '3) Alternate-buffer showcase: run hello-world showcase and verify terminal cleanup on exit.'
     ].join('\n'),
     'Release Checklist'
   )

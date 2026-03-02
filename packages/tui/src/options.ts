@@ -1,4 +1,21 @@
-import type { TuiRenderOptions } from '@bunli/core'
+export interface TuiRenderOptions {
+  exitOnCtrlC?: boolean
+  targetFps?: number
+  enableMouseMovement?: boolean
+  useMouse?: boolean
+  /**
+   * Terminal buffer mode for OpenTUI-backed renderers.
+   * - 'alternate': full-screen alternate buffer
+   * - 'standard': render in the main buffer
+   */
+  bufferMode?: 'alternate' | 'standard'
+  /**
+   * Legacy renderer flag kept for backwards compatibility.
+   * Prefer `bufferMode`.
+   */
+  useAlternateScreen?: boolean
+  [key: string]: unknown
+}
 
 export function getUseAlternateScreen(options: TuiRenderOptions | undefined): boolean {
   const mode = options?.bufferMode

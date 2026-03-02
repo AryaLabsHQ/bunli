@@ -164,7 +164,7 @@
       "name": "@bunli/core",
       "version": "0.7.0",
       "dependencies": {
-        "@bunli/tui": "workspace:^",
+        "@bunli/runtime": "workspace:^",
         "@bunli/utils": "workspace:^",
         "@standard-schema/spec": "^1.1.0",
         "@standard-schema/utils": "^0.3.0",
@@ -267,6 +267,28 @@
         "zod": "^4.0.0",
       },
     },
+    "packages/runtime": {
+      "name": "@bunli/runtime",
+      "version": "0.1.0",
+      "dependencies": {
+        "@opentui/core": "^0.1.84",
+        "@opentui/react": "^0.1.84",
+        "@standard-schema/spec": "^1.1.0",
+        "@standard-schema/utils": "^0.3.0",
+        "debug": "^4.4.3",
+        "zod": "^4.3.6",
+      },
+      "devDependencies": {
+        "@types/bun": "catalog:",
+        "@types/react": "19.2.10",
+        "react": "^19.2.4",
+        "typescript": "^5.8.3",
+      },
+      "peerDependencies": {
+        "@opentui/core": "^0.1.75",
+        "react": "^19.2.4",
+      },
+    },
     "packages/test": {
       "name": "@bunli/test",
       "version": "0.4.2",
@@ -285,7 +307,6 @@
       "name": "@bunli/tui",
       "version": "0.4.2",
       "dependencies": {
-        "@bunli/core": "workspace:^",
         "@opentui/core": "^0.1.84",
         "@opentui/react": "^0.1.84",
         "@standard-schema/spec": "^1.1.0",
@@ -377,6 +398,8 @@
     "@bunli/plugin-config": ["@bunli/plugin-config@workspace:packages/plugin-config"],
 
     "@bunli/plugin-mcp": ["@bunli/plugin-mcp@workspace:packages/plugin-mcp"],
+
+    "@bunli/runtime": ["@bunli/runtime@workspace:packages/runtime"],
 
     "@bunli/test": ["@bunli/test@workspace:packages/test"],
 
