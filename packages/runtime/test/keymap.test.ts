@@ -39,7 +39,7 @@ function createKey(params: {
   } as KeyEvent
 }
 
-describe('@bunli/tui keymap', () => {
+describe('@bunli/runtime keymap', () => {
   test('normalizes aliases and modifiers', () => {
     const key = createKey({ name: 'return', ctrl: true })
     expect(eventToBinding(key)).toBe('ctrl+enter')

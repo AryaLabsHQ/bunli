@@ -3,8 +3,8 @@ import type { StandardSchemaV1 } from '@standard-schema/spec'
 import { FormContext, type FormFieldRegistration } from './form-context.js'
 import { useScopedKeyboard } from '@bunli/runtime'
 import { validateFormValues, type FormErrors } from './form-engine.js'
-import { createKeyMatcher } from './keymap.js'
-import { useTuiTheme } from './theme.js'
+import { createKeyMatcher } from '@bunli/runtime'
+import { useTuiTheme } from '@bunli/runtime'
 
 export interface FormProps<TSchema extends StandardSchemaV1 = StandardSchemaV1> {
   title: string

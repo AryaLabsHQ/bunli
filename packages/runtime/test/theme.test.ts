@@ -5,7 +5,7 @@ import {
   lightThemeTokens
 } from '../src/components/theme.js'
 
-describe('@bunli/tui theme tokens', () => {
+describe('@bunli/runtime theme tokens', () => {
   test('createTheme uses dark preset by default', () => {
     const theme = createTheme()
     expect(theme.name).toBe('dark')

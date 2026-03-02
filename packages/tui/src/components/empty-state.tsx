@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { useTuiTheme } from './theme.js'
+import { useTuiTheme } from '@bunli/runtime'
 
 export interface EmptyStateProps {
   title: string

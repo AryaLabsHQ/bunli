@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { darkThemeTokens } from '../src/components/theme.js'
+import { darkThemeTokens } from '@bunli/runtime'
 import { resolveVariantStyle } from '../src/components/variant.js'
 
 describe('@bunli/tui variant contracts', () => {

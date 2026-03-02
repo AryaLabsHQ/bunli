@@ -1,4 +1,33 @@
 export {
+  ThemeProvider,
+  createTheme,
+  useTuiTheme,
+  darkThemeTokens,
+  lightThemeTokens,
+  type ThemeProviderProps,
+  type TuiTheme,
+  type TuiThemeInput,
+  type TuiThemeTokens
+} from './theme.js'
+
+export {
+  createKeyMatcher,
+  matchesKeyBinding,
+  eventToBinding,
+  type KeyBinding,
+  type KeymapDefinition,
+  type KeyMatcher
+} from './keymap.js'
+
+export {
+  displayWidth,
+  truncateEnd,
+  padEndTo,
+  formatFixedWidth,
+  type TextOverflowMode
+} from './text-layout.js'
+
+export {
   FocusScopeProvider,
   useFocusScope,
   useScopedKeyboard,

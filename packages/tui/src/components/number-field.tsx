@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useFormField } from './form-context.js'
-import { useTuiTheme } from './theme.js'
+import { useTuiTheme } from '@bunli/runtime'
 
 export interface NumberFieldProps {
   label: string

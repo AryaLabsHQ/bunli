@@ -2,8 +2,8 @@ import { useId, useMemo, useState } from 'react'
 import type { SelectOption } from '@opentui/core'
 import { useScopedKeyboard } from '@bunli/runtime'
 import { useFormField } from './form-context.js'
-import { createKeyMatcher } from './keymap.js'
-import { useTuiTheme } from './theme.js'
+import { createKeyMatcher } from '@bunli/runtime'
+import { useTuiTheme } from '@bunli/runtime'
 
 export interface MultiSelectOption extends SelectOption {
   label?: string

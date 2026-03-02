@@ -1,4 +1,4 @@
-import { useTuiTheme } from '../components/theme.js'
+import { useTuiTheme } from '@bunli/runtime'
 export { useKeyboard, useRenderer, useOnResize, useTerminalDimensions, useTimeline } from '@opentui/react'
 export { createSyncBatcher, type SyncBatcher, type SyncBatcherOptions } from '../utils/sync-batcher.js'
 
@@ -36,9 +36,9 @@ export {
   useTuiTheme,
   darkThemeTokens,
   lightThemeTokens
-} from '../components/theme.js'
+} from '@bunli/runtime'
 export { useFormField } from '../components/form-context.js'
-export { createKeyMatcher, matchesKeyBinding, eventToBinding } from '../components/keymap.js'
+export { createKeyMatcher, matchesKeyBinding, eventToBinding } from '@bunli/runtime'
 export {
   validateFormValues,
   toFormErrors,

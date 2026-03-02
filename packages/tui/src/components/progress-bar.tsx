@@ -1,4 +1,4 @@
-import { useTuiTheme } from './theme.js'
+import { useTuiTheme } from '@bunli/runtime'
 
 export interface ProgressBarProps {
   value: number // 0-100

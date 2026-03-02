@@ -1,4 +1,4 @@
-import { useTuiTheme } from './theme.js'
+import { useTuiTheme } from '@bunli/runtime'
 import {
   resolveVariantStyle,
   type ComponentEmphasis,

@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useId, useMemo, useState } from 'react'
 import type { KeyEvent } from '@opentui/core'
 import { useScopedKeyboard } from '@bunli/runtime'
-import { createKeyMatcher } from './keymap.js'
-import { useTuiTheme } from './theme.js'
-import { displayWidth, formatFixedWidth, type TextOverflowMode } from './text-layout.js'
+import { createKeyMatcher } from '@bunli/runtime'
+import { useTuiTheme } from '@bunli/runtime'
+import { displayWidth, formatFixedWidth, type TextOverflowMode } from '@bunli/runtime'
 
 export interface MenuItem {
   key: string

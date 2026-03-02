@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { useTuiTheme } from '../components/theme.js'
+import { useTuiTheme } from '@bunli/runtime'
 
 export interface SeriesPoint {
   label?: string

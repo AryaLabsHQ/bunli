@@ -1,10 +1,10 @@
 import { useEffect, useId, useRef, type ReactNode } from 'react'
 import type { BoxRenderable, Renderable } from '@opentui/core'
 import { useRenderer } from '@opentui/react'
-import { createKeyMatcher } from './keymap.js'
+import { createKeyMatcher } from '@bunli/runtime'
 import { useScopedKeyboard } from '@bunli/runtime'
 import { OverlayPortal } from '@bunli/runtime'
-import { useTuiTheme } from './theme.js'
+import { useTuiTheme } from '@bunli/runtime'
 
 export interface ModalProps {
   isOpen: boolean

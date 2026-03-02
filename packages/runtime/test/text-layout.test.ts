@@ -6,7 +6,7 @@ import {
   truncateEnd
 } from '../src/components/text-layout.js'
 
-describe('@bunli/tui text layout', () => {
+describe('@bunli/runtime text layout', () => {
   test('displayWidth ignores ANSI and accounts for wide glyphs', () => {
     expect(displayWidth('\u001b[31mred\u001b[0m')).toBe(3)
     expect(displayWidth('hello')).toBe(5)

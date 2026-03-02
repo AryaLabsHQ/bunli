@@ -26,10 +26,35 @@ export * from './tabs.js'
 export * from './menu.js'
 export * from './command-palette.js'
 export * from './data-table.js'
-export * from './theme.js'
 export * from './variant.js'
-export * from './keymap.js'
 export * from './form-context.js'
 export * from './form-engine.js'
+
+export {
+  ThemeProvider,
+  createTheme,
+  useTuiTheme,
+  darkThemeTokens,
+  lightThemeTokens,
+  createKeyMatcher,
+  matchesKeyBinding,
+  eventToBinding,
+  displayWidth,
+  truncateEnd,
+  padEndTo,
+  formatFixedWidth
+} from '@bunli/runtime'
+
+export type {
+  ThemeProviderProps,
+  TuiTheme,
+  TuiThemeInput,
+  TuiThemeTokens,
+  KeyBinding,
+  KeymapDefinition,
+  KeyMatcher,
+  TextOverflowMode
+} from '@bunli/runtime'
+
 export { useKeyboard, useRenderer, useTimeline, useOnResize, useTerminalDimensions } from '@opentui/react'
 export { bold, fg, italic, t, TextAttributes } from '@opentui/core'
