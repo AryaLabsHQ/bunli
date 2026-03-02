@@ -15,7 +15,7 @@ import {
   __promptInternalsForTests
 } from '../src/prompt/index.js'
 
-describe('@bunli/tui prompt adapters', () => {
+describe('@bunli/runtime prompt adapters', () => {
   let restoreRuntime: (() => void) | null = null
   const stripAnsi = (value: string) => value.replace(/\x1b\[[0-9;]*m/g, '')
 
