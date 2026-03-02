@@ -53,7 +53,7 @@ export default defineCommand({
 If you're migrating from `@clack/prompts`, use this quick mapping:
 
 ```typescript
-// clack mental model -> bunli prompt runtime
+// clack mental model -> @bunli/runtime/prompt
 intro('Setup')                     // -> prompt.intro('Setup')
 outro('Done')                      // -> prompt.outro('Done')
 log.info('message')                // -> prompt.log.info('message')
@@ -82,7 +82,7 @@ const features = await prompt.multiselect('Features', {
 For richer TUI flows in `render()` paths, use `@bunli/tui/interactive` dialog primitives:
 
 ```tsx
-import { useDialogManager, DialogDismissedError } from '@bunli/tui/interactive'
+import { useDialogManager, DialogDismissedError } from '@bunli/runtime'
 
 function DeployScreen() {
   const dialogs = useDialogManager()
@@ -658,4 +658,4 @@ test('interactive setup', async () => {
 - [Type Generation Guide](/docs/guides/type-generation) - Learn about code generation
 - [Testing](/docs/guides/testing) - Test interactive commands
 - [Building Your First CLI](/docs/guides/building-your-first-cli) - Complete example
-- [@bunli/tui](/docs/packages/tui) - TUI and prompt runtime reference
+- [@bunli/tui](/docs/packages/tui) - TUI components and render buffer-mode reference

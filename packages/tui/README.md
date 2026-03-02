@@ -264,11 +264,10 @@ Included primitives:
 - Form v2: `NumberField`, `PasswordField`, `TextareaField`, `CheckboxField`, `MultiSelectField`
 - Layout: `Container`, `Stack`, `Grid`, `Panel`, `Card`, `Divider`, `SectionHeader`
 - Navigation/flow: `Tabs`, `Menu`, `CommandPalette`, `Modal`
-- Dialog orchestration: `DialogProvider`, `useDialogManager`, `DialogDismissedError`
 - Feedback: `Alert`, `Badge`, `Toast`, `ProgressBar`, `EmptyState`
 - Data display: `List`, `Table`, `DataTable`, `KeyValueList`, `Stat`, `Markdown`, `Diff`
 - Charts: `BarChart`, `LineChart`, `Sparkline` from `@bunli/tui/charts`
-- Focus/keyboard scope: `FocusScopeProvider`, `useFocusScope`, `useScopedKeyboard`
+- Runtime orchestration/hooks: import from `@bunli/runtime` (`DialogProvider`, `useDialogManager`, `FocusScopeProvider`, `useScopedKeyboard`, etc.)
 
 ### Keyboard Contracts
 
@@ -288,7 +287,7 @@ Default keyboard bindings for interactive primitives:
 Use the dialog manager to stack confirm/choose flows with consistent priority handling and dismissal semantics.
 
 ```typescript
-import { useDialogManager, DialogDismissedError } from '@bunli/tui/interactive'
+import { useDialogManager, DialogDismissedError } from '@bunli/runtime'
 
 function Screen() {
   const dialogs = useDialogManager()

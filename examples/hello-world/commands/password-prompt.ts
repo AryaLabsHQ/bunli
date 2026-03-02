@@ -3,7 +3,7 @@ import { z } from 'zod'
 
 export default defineCommand({
   name: 'password-prompt' as const,
-  description: 'Standard-buffer password prompt demo (clack-like inline flow)',
+  description: 'Standard-buffer password prompt demo (clack-like standard-buffer flow)',
   options: {
     minLength: option(
       z.coerce.number().int().positive().default(8),

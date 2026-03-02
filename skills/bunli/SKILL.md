@@ -155,7 +155,7 @@ Buffer Mode?
 ├─ Global default policy → standard buffer mode
 ├─ Use fullscreen alternate buffer → set tui.renderer.bufferMode = "alternate" in defineConfig
 ├─ Per-command override → set command.tui.renderer.bufferMode
-└─ Keep inline output behavior → set bufferMode = "standard" explicitly
+└─ Keep standard-buffer output behavior → set bufferMode = "standard" explicitly
 ```
 
 ## Product Index
@@ -304,7 +304,7 @@ import { createCliRenderer } from "@opentui/core"
 
 **Package relationship:**
 - `@bunli/tui` wraps `@opentui/react`
-- Bunli auto-wires the OpenTUI runtime for both `render` commands and prompt/spinner wrappers
+- Bunli auto-wires the OpenTUI renderer runtime for `render` commands
 - `@bunli/runtime/prompt` provides prompt + spinner APIs used in handlers
 - Bunli TUI hooks (`useKeyboard`, `useTimeline`) are re-exported from OpenTUI
 - Renderer options map to OpenTUI renderer settings
