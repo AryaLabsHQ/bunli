@@ -421,7 +421,7 @@ function ShowcaseScreen({ theme }: { theme: 'dark' | 'light' }) {
     () => [
       { pkg: isTiny ? 'core' : '@bunli/core', version: '0.6.1', status: 'stable' },
       { pkg: isTiny ? 'tui' : '@bunli/tui', version: '0.4.1', status: 'stable' },
-      { pkg: isTiny ? 'utils' : '@bunli/utils', version: '0.4.0', status: isTiny ? 'legacy' : 'deprecated prompts' }
+      { pkg: isTiny ? 'utils' : '@bunli/utils', version: '0.4.0', status: 'stable' }
     ],
     [isTiny]
   )
@@ -433,8 +433,8 @@ function ShowcaseScreen({ theme }: { theme: 'dark' | 'light' }) {
       { key: 'buffer mode', value: 'alternate (fullscreen)' },
       { key: 'focus strategy', value: 'scope stack + overlays' },
       { key: 'active region', value: activeRegion },
-      { key: 'prompt owner', value: isTiny ? 'tui/prompt' : '@bunli/tui/prompt' },
-      { key: 'legacy clack', value: 'removed' }
+      { key: 'prompt owner', value: isTiny ? 'runtime/prompt' : '@bunli/runtime/prompt' },
+      { key: 'prompt stack', value: 'bunli runtime' }
     ],
     [activeRegion, isTiny, terminalHeight, terminalWidth]
   )
@@ -769,8 +769,8 @@ const showcaseCommand = defineCommand({
   },
   render: ({ flags }) => <ShowcaseScreen theme={flags.theme as 'dark' | 'light'} />,
   handler: async ({ colors }) => {
-    console.log(colors.bold('Run with --tui to view the interactive showcase'))
-    console.log('Example: bun cli.ts showcase --tui')
+    console.log(colors.bold('Run in an interactive terminal to view the showcase UI'))
+    console.log('Example: bun cli.ts showcase')
   }
 })
 

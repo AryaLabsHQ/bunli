@@ -11,7 +11,7 @@ import { Callout } from 'fumadocs-ui/components/callout';
 Shared utilities for building CLI applications. Includes spinners, colors, and validation helpers.
 
 <Callout type="info">
-  Prompt primitives now live in `@bunli/tui/prompt`.
+  Prompt primitives now live in `@bunli/runtime/prompt`.
 </Callout>
 
 ## Installation
@@ -40,10 +40,10 @@ Shared utilities for building CLI applications. Includes spinners, colors, and v
 
 ## Prompts
 
-Prompt APIs are provided by `@bunli/tui/prompt`:
+Prompt APIs are provided by `@bunli/runtime/prompt`:
 
 ```typescript
-import { prompt } from '@bunli/tui/prompt'
+import { prompt } from '@bunli/runtime/prompt'
 
 const name = await prompt('What is your name?')
 const proceed = await prompt.confirm('Continue?', { default: true })

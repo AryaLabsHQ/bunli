@@ -155,7 +155,7 @@ const features = await prompt.multiselect('Features:', {
     { value: 'testing', label: 'Testing', hint: 'Jest setup' },
     { value: 'linting', label: 'Linting', hint: 'ESLint config' }
   ],
-  default: ['testing']
+  initialValues: ['testing']
 })
 
 // Text input with validation

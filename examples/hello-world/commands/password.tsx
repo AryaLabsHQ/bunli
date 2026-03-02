@@ -105,8 +105,8 @@ const passwordCommand = defineCommand({
   },
   render: ({ flags }) => <PasswordScreen theme={flags.theme as ThemeMode} />,
   handler: async ({ colors }) => {
-    console.log(colors.bold('Run with --tui to view the password input showcase'))
-    console.log('Example: bun cli.ts password --tui')
+    console.log(colors.bold('Run in an interactive terminal to view the password input showcase'))
+    console.log('Example: bun cli.ts password')
   }
 })
 

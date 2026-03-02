@@ -9,7 +9,7 @@ The absolute simplest possible Bunli CLI with a single command. Perfect starting
 - Basic command definition
 - Simple flag handling
 - OpenTUI `render` + CLI `handler` dual mode
-- Component-library showcase command (`showcase --tui`)
+- Component-library showcase command (`showcase`)
 - Minimal configuration
 - Type generation for enhanced DX
 
@@ -95,7 +95,7 @@ import { z } from 'zod'
 export default defineCommand({
   options: {
     port: option(
-      z.number().min(1000).max(65535),
+      z.coerce.number().min(1000).max(65535),
       { short: 'p', description: 'Port number' }
     )
   }
@@ -133,13 +133,9 @@ prompt.outro('Done')
 ```
 
 ### OpenTUI Rendering
-Use `render` for interactive terminal UI and global flags for mode selection:
+Use `render` for interactive terminal UI. Commands with `render` run directly without TUI flags:
 
 ```typescript
-import { registerTuiRenderer } from '@bunli/tui'
-
-registerTuiRenderer()
-
 const command = defineCommand({
   name: 'greet',
   render: ({ flags }) => <GreetProgress name={String(flags.name)} />,
@@ -148,6 +144,9 @@ const command = defineCommand({
   }
 })
 ```
+
+Bunli auto-wires the OpenTUI runtime for both `render` commands and prompt/spinner wrappers, so manual registration is not required.
+Buffer mode defaults to `standard`; use `tui.renderer.bufferMode: 'alternate'` when you explicitly want fullscreen alternate-buffer behavior.
 
 Render lifecycle: commands using `render` should call `renderer.destroy()` (for example on submit, cancel, or quit) so the command exits cleanly.
 

@@ -23,15 +23,11 @@ bun add @bunli/tui react
 
 ```typescript
 import { createCLI, defineCommand } from '@bunli/core'
-import { registerTuiRenderer } from '@bunli/tui'
 
 const cli = await createCLI({
   name: 'my-app',
   version: '1.0.0'
 })
-
-// Register TUI renderer to enable render() functions
-registerTuiRenderer()
 
 // Define a command with TUI using the render property
 const myCommand = defineCommand({
@@ -52,15 +48,17 @@ cli.command(myCommand)
 await cli.run()
 ```
 
+Bunli auto-wires the OpenTUI runtime. Runtime APIs now come from `@bunli/runtime`, while `@bunli/tui` focuses on UI components and hooks.
+
 ### TUI Execution Semantics
 
-- `--tui` / `--interactive` force `render` mode when a command provides `render`.
-- `--no-tui` disables alternate-buffer `render` mode. If `handler` exists, Bunli runs the handler.
-- `--no-tui` still allows `render` only when `bufferMode: 'standard'` is explicitly configured.
+- Commands with `render` run in interactive terminals.
+- Non-interactive terminals fall back to `handler` when present.
+- Configure fullscreen flows explicitly with `bufferMode: 'alternate'`.
 
 ### Render Lifecycle (Destroy-Driven)
 
-`registerTuiRenderer()` waits until the renderer is destroyed. Commands that use `render` must eventually call `renderer.destroy()` (for example on submit/cancel/quit), or the command will not exit.
+Commands that use `render` must eventually call `renderer.destroy()` (for example on submit/cancel/quit), or the command will not exit.
 
 ```typescript
 import { useKeyboard, useRenderer } from '@bunli/tui'
@@ -97,8 +95,8 @@ const cli = await createCLI({
 ```
 
 Notes:
-- `bufferMode: 'alternate'` is the default for interactive terminals.
-- `bufferMode: 'standard'` is the default for non-interactive / CI environments when TUI is forced via `--tui`.
+- `bufferMode: 'standard'` is the default.
+- Use `bufferMode: 'alternate'` for fullscreen/blocking experiences.
 - Mouse tracking is disabled by default (`useMouse: false`) to avoid leaking raw mouse escape sequences after exit in standard-buffer workflows. Enable explicitly when needed.
 
 ## Usage
@@ -107,10 +105,10 @@ Notes:
 
 Use subpath exports depending on mode:
 
-- `@bunli/tui/prompt`: inline prompt runtime for standard-buffer command flows.
 - `@bunli/tui/interactive`: alternate-buffer interactive components.
 - `@bunli/tui/charts`: terminal-native chart primitives.
 - `@bunli/tui`: root export that re-exports shared components/hooks.
+- `@bunli/runtime/prompt`: imperative prompt/spinner runtime.
 
 ### Clack Migration Quick Map
 
@@ -121,7 +119,7 @@ Use this when replacing a clack mental model with Bunli-native APIs:
 // import { intro, outro, confirm, select, multiselect, log } from '@clack/prompts'
 
 // bunli
-import { prompt } from '@bunli/tui/prompt'
+import { prompt } from '@bunli/runtime/prompt'
 
 prompt.intro('Setup')
 const confirmed = await prompt.confirm('Continue?', { default: true })
@@ -573,29 +571,7 @@ useOnResize((width, height) => {
 })
 ```
 
-## Renderer Registration
-
-Register the TUI renderer once before running commands with `render`:
-
-```typescript
-import { createCLI } from '@bunli/core'
-import { registerTuiRenderer } from '@bunli/tui'
-// or side-effect import: import '@bunli/tui/register'
-
-registerTuiRenderer()
-
-const cli = await createCLI({
-  name: 'my-app',
-  version: '1.0.0',
-  tui: {
-    renderer: {
-      bufferMode: 'alternate',
-      targetFps: 30,
-      useMouse: false
-    }
-  }
-})
-```
+## Renderer Configuration
 
 Renderer options are passed via `createCLI({ tui: { renderer } })` and optional command-level overrides in `command.tui.renderer`.
 

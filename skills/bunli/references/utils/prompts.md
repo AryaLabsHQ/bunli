@@ -9,7 +9,7 @@ import {
   isCancel,
   assertNotCancelled,
   promptOrExit
-} from "@bunli/tui/prompt"
+} from "@bunli/runtime/prompt"
 ```
 
 In command handlers, prefer injected prompt utilities:

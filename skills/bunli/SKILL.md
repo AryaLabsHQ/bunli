@@ -71,17 +71,17 @@ npm view bunli           # CLI version
 ```
 Define Command?
 ├─ Basic command → defineCommand({ name: "mycmd", description: "...", handler: ({ flags }) => {...} })
-├─ With options → Add options: { options: { debug: option(z.boolean(), { short: "d" }) } }
+├─ With options → Add options: { options: { debug: option(z.coerce.boolean(), { short: "d" }) } }
 ├─ Nested commands → Use defineGroup({ name: "group", description: "...", commands: [...] })
 ├─ With alias → Add alias: "m" for "mycmd"
-└─ With TUI → Add render (optionally keep handler; --no-tui disables alternate-buffer render, but explicit standard-buffer render may still run)
+└─ With TUI → Add render (optionally keep handler; render commands run without TUI flags)
 ```
 
 ### "I need to add options"
 
 ```
 Add Options?
-├─ Boolean flag → option(z.boolean(), { short: "d", description: "Debug output" })
+├─ Boolean flag → option(z.coerce.boolean(), { short: "d", description: "Debug output" })
 ├─ String input → option(z.string(), { description: "Name" })
 ├─ Number input → option(z.coerce.number(), { description: "Port" })
 ├─ Enum/choice → option(z.enum(["dev", "prod"]), { description: "Environment" })
@@ -89,7 +89,7 @@ Add Options?
 └─ Required → option(z.string().min(1))
 ```
 
-> **Important**: Use `z.coerce.number()` for numeric flags because CLI args are strings. Enums should use `z.enum(...)`, and booleans can use `z.boolean()` (the parser handles `"true"`/`"false"`).
+> **Important**: Use `z.coerce.number()` and `z.coerce.boolean()` for numeric and boolean flags because CLI args are strings. Enums should use `z.enum(...)`.
 >
 > `-v` is reserved globally for `--version`, so avoid `short: "v"` for command-local options.
 
@@ -119,7 +119,7 @@ Use Prompt?
 ```
 Validation Errors?
 ├─ Numbers not working → Use z.coerce.number() instead of z.number()
-├─ Booleans not working → Pass --flag=true/false (z.boolean() is supported)
+├─ Booleans not working → Use z.coerce.boolean(); pass --flag=true/false for explicit values
 ├─ Enums not working → Use z.enum([...]), not z.coerce.enum(...)
 ├─ createCLI returns Promise → Use await createCLI() or .then()
 └─ Commands not registering → Use cli.command(cmd), not commands: [cmd]
@@ -152,10 +152,10 @@ Advanced TUI?
 
 ```
 Buffer Mode?
-├─ Global default policy → interactive + non-CI uses alternate; non-interactive/CI uses standard
-├─ Force project-wide mode → set tui.renderer.bufferMode in defineConfig
+├─ Global default policy → standard buffer mode
+├─ Use fullscreen alternate buffer → set tui.renderer.bufferMode = "alternate" in defineConfig
 ├─ Per-command override → set command.tui.renderer.bufferMode
-└─ --no-tui behavior → disables alternate-buffer render; explicit standard-buffer render may still run
+└─ Keep inline output behavior → set bufferMode = "standard" explicitly
 ```
 
 ## Product Index
@@ -237,7 +237,7 @@ const myPlugin = createPlugin({
 
 ### Using Prompts
 ```typescript
-import { prompt } from "@bunli/tui/prompt"
+import { prompt } from "@bunli/runtime/prompt"
 
 const name = await prompt("What is your name?")
 const proceed = await prompt.confirm("Continue?")
@@ -256,7 +256,7 @@ const framework = await prompt.select("Choose framework", {
 |---------|---------|
 | `@bunli/core` | CLI framework (defineCommand, option, createCLI) |
 | `@bunli/utils` | Colors and validation utilities |
-| `@bunli/tui/prompt` | Prompt and spinner APIs |
+| `@bunli/runtime/prompt` | Prompt and spinner APIs |
 | `@bunli/tui` | Terminal UI components |
 | `bunli` | CLI for building CLIs |
 | `create-bunli` | Project scaffolding |
@@ -277,7 +277,7 @@ Bunli uses **OpenTUI** as its terminal rendering engine. Understanding when to u
 - Building CLI applications with commands and options
 - Plugin architecture (auth, config, completions)
 - Type-safe CLI with Zod validation
-- Interactive prompts via `@bunli/tui/prompt`
+- Interactive prompts via `@bunli/runtime/prompt`
 - Bunli TUI components (`Form`, `SchemaForm`, `DataTable`, `ProgressBar`, and more)
 - Publishing CLI to npm
 
@@ -293,9 +293,8 @@ Bunli uses **OpenTUI** as its terminal rendering engine. Understanding when to u
 
 ```typescript
 // Bunli TUI uses OpenTUI under the hood
-import { registerTuiRenderer } from "@bunli/tui"  // Sets up OpenTUI
 import { Form, SchemaForm } from "@bunli/tui"      // Bunli's React components
-import { prompt } from "@bunli/tui/prompt"         // Prompt + spinner runtime
+import { prompt } from "@bunli/runtime/prompt"         // Prompt + spinner runtime
 import { useTimeline } from "@bunli/tui"          // Re-exported from opentui
 
 // Drop down to OpenTUI for advanced control
@@ -305,8 +304,8 @@ import { createCliRenderer } from "@opentui/core"
 
 **Package relationship:**
 - `@bunli/tui` wraps `@opentui/react`
-- `registerTuiRenderer()` calls OpenTUI's `createCliRenderer()`
-- `@bunli/tui/prompt` provides prompt + spinner APIs used in handlers
+- Bunli auto-wires the OpenTUI runtime for both `render` commands and prompt/spinner wrappers
+- `@bunli/runtime/prompt` provides prompt + spinner APIs used in handlers
 - Bunli TUI hooks (`useKeyboard`, `useTimeline`) are re-exported from OpenTUI
 - Renderer options map to OpenTUI renderer settings
 

@@ -11,17 +11,11 @@ bun install
 # Run the CLI
 bun cli.ts greet --name "World" --loud
 bun cli.ts password-prompt
-bun cli.ts password --tui
-bun cli.ts showcase --tui
+bun cli.ts password
+bun cli.ts showcase
 
 # Or with short flags
 bun cli.ts greet -n "Bunli" -l -t 3
-
-# Force TUI mode (OpenTUI render path)
-bun cli.ts greet --name "TUI" --tui
-
-# Disable alternate-buffer TUI render (this example falls back to handler)
-bun cli.ts greet --name "CLI" --no-tui
 ```
 
 ## What This Example Shows
@@ -31,12 +25,12 @@ bun cli.ts greet --name "CLI" --no-tui
 - **Type coercion** (string → boolean, string → number)
 - **Default values** and **short flags**
 - **Colored output** with built-in utilities
-- **OpenTUI integration** with `render` + global TUI flags
+- **OpenTUI integration** with `render` + `handler` command composition
 - **Standard-buffer password prompt demo** with `prompt.password`
 - **Password input demo** with `Form`, `Input`, and `PasswordField`
 - **Component library showcase** for `@bunli/tui/interactive` + `@bunli/tui/charts`
 
-Showcase controls (`bun cli.ts showcase --tui`):
+Showcase controls (`bun cli.ts showcase`):
 - `q` or `Esc`: quit
 - `m`: toggle modal
 - `c`: open confirm dialog
@@ -86,7 +80,7 @@ const greetCommand = defineCommand({
 1. **`defineCommand`** - Creates a command with options and handler
 2. **`option()`** - Wraps Zod schemas with CLI metadata (short flags, descriptions)
 3. **Type coercion** - `z.coerce.boolean()` converts strings to booleans
-4. **Dual execution path** - `render` for TUI, `handler` for non-TUI
+4. **Command composition** - commands can provide both `render` and `handler`
 5. **Handler context** - Access to `flags`, `colors`, `spinner`, etc.
 
 ## TUI Buffer Mode
@@ -101,13 +95,10 @@ tui: {
 }
 ```
 
-So `--tui` renders in the alternate (full-screen) buffer for interactive showcase behavior.
+Bunli uses `standard` buffer mode by default.
+This example opts into fullscreen behavior with `bufferMode: 'alternate'`.
 
-Bunli default policy is:
-- Interactive terminal and not CI: `alternate`
-- Non-interactive terminal or CI: `standard`
-
-`--no-tui` disables alternate-buffer rendering. Standard-buffer rendering can still run when explicitly configured.
+Use `tui.renderer.bufferMode` globally, or `command.tui.renderer.bufferMode` per command, when you want explicit alternate-buffer rendering.
 
 ## Development
 

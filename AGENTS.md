@@ -11,7 +11,7 @@ Minimal, type-safe CLI framework for Bun with advanced plugin system. Uses Zod f
 
 ```
 ./
-├── packages/           # 11 core packages
+├── packages/           # 12 core packages
 │   ├── core/           # CLI framework (defineCommand, plugins)
 │   ├── cli/            # bunli CLI toolchain
 │   ├── utils/          # colors, prompts, spinners
@@ -22,6 +22,7 @@ Minimal, type-safe CLI framework for Bun with advanced plugin system. Uses Zod f
 │   ├── plugin-completions/
 │   ├── plugin-config/
 │   ├── plugin-mcp/
+│   ├── runtime/        # OpenTUI runtime (prompt/renderer/events/transport)
 │   └── tui/
 ├── examples/           # 4 working examples
 ├── apps/web/           # Next.js docs site
@@ -35,7 +36,8 @@ Minimal, type-safe CLI framework for Bun with advanced plugin system. Uses Zod f
 | Add command | `packages/cli/src/commands/` | Use `defineCommand` pattern |
 | Plugin system | `packages/core/src/plugin/` | `createPlugin<T>()` with typed store |
 | Type generation | `packages/generator/src/` | Creates `commands.gen.ts` |
-| Utilities | `packages/utils/src/` | colors, prompt, spinner, validation |
+| Utilities | `packages/utils/src/` | colors, validation |
+| Runtime | `packages/runtime/src/` | OpenTUI prompt/renderer runtime |
 | Tests | `packages/*/test/*.test.ts` | Bun test runner |
 
 ## CODE MAP
@@ -100,6 +102,7 @@ bun run release
 | `packages/plugin-completions/` | Shell completions |
 | `packages/generator/` | Type generation |
 | `packages/test/` | Testing utilities |
+| `packages/runtime/` | OpenTUI runtime patterns |
 | `packages/tui/` | TUI components |
 | `packages/create-bunli/` | Scaffolding patterns |
 | `examples/*/` | Example-specific patterns |

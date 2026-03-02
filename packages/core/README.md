@@ -130,7 +130,7 @@ await cli.run()
 
 ### TUI Renderer Buffer Mode
 
-When using `command.render` with `@bunli/tui`, configure buffer behavior via `tui.renderer.bufferMode`:
+When using `command.render`, configure buffer behavior via `tui.renderer.bufferMode`:
 
 ```typescript
 import { defineConfig } from '@bunli/core'
@@ -145,10 +145,8 @@ export default defineConfig({
 ```
 
 Default policy:
-- Interactive terminal and not CI: `'alternate'`
-- Non-interactive terminal or CI: `'standard'`
-
-`--no-tui` disables alternate-buffer rendering. Explicit standard-buffer rendering may still run.
+- `'standard'` by default
+- set `'alternate'` explicitly for fullscreen/blocking terminal flows
 
 ## API Reference
 

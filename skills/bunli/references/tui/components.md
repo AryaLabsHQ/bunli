@@ -3,13 +3,7 @@
 ## Overview
 
 Bunli TUI provides React-based terminal UI components built on `@opentui/react`.
-Use `registerTuiRenderer()` once at startup to enable `command.render`.
-
-```typescript
-import { registerTuiRenderer } from "@bunli/tui"
-
-registerTuiRenderer()
-```
+Bunli auto-wires the OpenTUI runtime for both `render` commands and prompt/spinner wrappers, so no manual registration is required.
 
 ## Core components
 
@@ -183,7 +177,7 @@ export const logs = defineCommand({
 ```
 
 Runtime notes:
-- Default `bufferMode` is `"alternate"` on interactive terminals.
-- When TUI is forced in non-interactive/CI terminals, default `bufferMode` becomes `"standard"`.
-- `--no-tui` disables alternate-buffer rendering; explicitly configured standard-buffer render can still run.
+- Default `bufferMode` is `"standard"`.
+- Use `bufferMode: "alternate"` when you explicitly want fullscreen alternate-buffer rendering.
+- Per-command `tui.renderer.bufferMode` overrides global config.
 - `render` commands should call `renderer.destroy()` to exit cleanly.

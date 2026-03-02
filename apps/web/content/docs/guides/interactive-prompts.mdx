@@ -12,7 +12,7 @@ Create engaging CLI experiences with interactive prompts, confirmations, and sel
 Bunli provides several built-in prompt utilities through the handler context:
 
 ```typescript
-import { PromptCancelledError } from '@bunli/tui/prompt'
+import { PromptCancelledError } from '@bunli/runtime/prompt'
 
 export default defineCommand({
   handler: async ({ prompt }) => {
@@ -36,7 +36,7 @@ export default defineCommand({
 })
 ```
 
-Bunli prompt primitives are provided by `@bunli/tui/prompt`, and the handler `prompt` utility exposes lifecycle helpers like `intro/outro/note/cancel`:
+Bunli prompt primitives are provided by `@bunli/runtime/prompt`, and the handler `prompt` utility exposes lifecycle helpers like `intro/outro/note/cancel`:
 
 ```typescript
 export default defineCommand({

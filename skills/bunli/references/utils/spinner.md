@@ -3,7 +3,7 @@
 ## Import
 
 ```typescript
-import { spinner } from "@bunli/tui/prompt"
+import { spinner } from "@bunli/runtime/prompt"
 ```
 
 In command handlers, prefer injected spinner utilities:
@@ -44,7 +44,7 @@ interface SpinnerOptions {
 }
 ```
 
-`SpinnerAnimation` is exported from `@bunli/tui/prompt`.
+`SpinnerAnimation` is exported from `@bunli/runtime/prompt`.
 
 ## Basic usage
 
