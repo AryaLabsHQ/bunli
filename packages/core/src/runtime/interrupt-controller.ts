@@ -4,6 +4,13 @@ interface InterruptControllerOptions {
   onLog?: (message: string) => void
 }
 
+export class ProcessTerminatedError extends Error {
+  constructor(message = 'Terminated') {
+    super(message)
+    this.name = 'ProcessTerminatedError'
+  }
+}
+
 export interface InterruptController {
   signal: AbortSignal
   raiseInterrupt: (message: string) => void
@@ -16,7 +23,7 @@ export interface InterruptController {
 export function createInterruptController(options: InterruptControllerOptions = {}): InterruptController {
   const abortController = new AbortController()
   let interrupted = false
-  let rejectInterrupted: ((error: PromptCancelledError) => void) | undefined
+  let rejectInterrupted: ((error: PromptCancelledError | ProcessTerminatedError) => void) | undefined
 
   const interruptedPromise = new Promise<never>((_resolve, reject) => {
     rejectInterrupted = reject
@@ -24,16 +31,20 @@ export function createInterruptController(options: InterruptControllerOptions = 
   // Prevent unhandled rejections if `work` wins the race and an interrupt arrives later.
   interruptedPromise.catch(() => {})
 
-  const raiseInterrupt = (message: string) => {
+  const raiseInterrupt = (message: string, kind: 'cancel' | 'terminate' = 'cancel') => {
     if (interrupted) return
     interrupted = true
     options.onLog?.(`raiseInterrupt message="${message}"`)
     abortController.abort(message)
+    if (kind === 'terminate') {
+      rejectInterrupted?.(new ProcessTerminatedError(message))
+      return
+    }
     rejectInterrupted?.(new PromptCancelledError(message))
   }
 
-  const onSigint = () => raiseInterrupt('Cancelled')
-  const onSigterm = () => raiseInterrupt('Terminated')
+  const onSigint = () => raiseInterrupt('Cancelled', 'cancel')
+  const onSigterm = () => raiseInterrupt('Terminated', 'terminate')
 
   const attach = () => {
     process.on('SIGINT', onSigint)

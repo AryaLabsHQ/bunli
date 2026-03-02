@@ -25,6 +25,10 @@ function nonInteractiveTerminal(): TerminalInfo {
   }
 }
 
+async function delay(ms: number): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, ms))
+}
+
 describe('TUI renderer option plumbing', () => {
   afterEach(() => {
     process.exitCode = undefined
@@ -245,5 +249,107 @@ describe('TUI renderer option plumbing', () => {
     await cli.run(['cancel-render'])
 
     expect(exitCodes).toEqual([0])
+  })
+
+  test('interrupt waits for in-flight handler work before returning', async () => {
+    let handlerCompleted = false
+
+    const cli = await createCLI({
+      name: 'test-cli',
+      version: '0.0.0',
+      plugins: []
+    }, {
+      getTerminalInfo: interactiveTerminal
+    })
+
+    cli.command({
+      name: 'slow-handler',
+      description: 'slow-handler',
+      handler: async () => {
+        await delay(40)
+        handlerCompleted = true
+      }
+    })
+
+    const runPromise = cli.run(['slow-handler'])
+    setTimeout(() => {
+      process.emit('SIGINT')
+    }, 5)
+
+    await runPromise
+    expect(handlerCompleted).toBe(true)
+  })
+
+  test('SIGTERM is treated as termination and reports exitCode 1', async () => {
+    const exitCodes: number[] = []
+
+    const cli = await createCLI({
+      name: 'test-cli',
+      version: '0.0.0',
+      plugins: [
+        {
+          name: 'capture-exit-code',
+          afterCommand(context) {
+            exitCodes.push(context.exitCode ?? -1)
+          }
+        }
+      ]
+    }, {
+      getTerminalInfo: interactiveTerminal
+    })
+
+    cli.command({
+      name: 'term-handler',
+      description: 'term-handler',
+      handler: async () => {
+        await delay(40)
+      }
+    })
+
+    const execPromise = cli.execute('term-handler')
+    setTimeout(() => {
+      process.emit('SIGTERM')
+    }, 5)
+
+    await expect(execPromise).rejects.toThrow('Terminated')
+    expect(exitCodes).toEqual([1])
+  })
+
+  test('interrupt during afterCommand does not execute hooks twice', async () => {
+    let afterCommandCalls = 0
+    let resolveAfterStart: (() => void) | undefined
+    const afterStarted = new Promise<void>((resolve) => {
+      resolveAfterStart = resolve
+    })
+
+    const cli = await createCLI({
+      name: 'test-cli',
+      version: '0.0.0',
+      plugins: [
+        {
+          name: 'slow-after-command',
+          async afterCommand() {
+            afterCommandCalls += 1
+            resolveAfterStart?.()
+            await delay(40)
+          }
+        }
+      ]
+    }, {
+      getTerminalInfo: nonInteractiveTerminal
+    })
+
+    cli.command({
+      name: 'after-hook',
+      description: 'after-hook',
+      handler: async () => {}
+    })
+
+    const execPromise = cli.execute('after-hook')
+    await afterStarted
+    process.emit('SIGINT')
+    await execPromise
+
+    expect(afterCommandCalls).toBe(1)
   })
 })

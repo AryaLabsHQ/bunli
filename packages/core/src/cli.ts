@@ -20,7 +20,7 @@ import type { CommandContext } from './plugin/context.js'
 import { GLOBAL_FLAGS } from './global-flags.js'
 import { loadGeneratedStores } from './generated.js'
 import { createLogger } from './utils/logger.js'
-import { createInterruptController } from './runtime/interrupt-controller.js'
+import { createInterruptController, ProcessTerminatedError } from './runtime/interrupt-controller.js'
 import { runTuiRender } from './runtime/tui-render.js'
 import { Result, TaggedError } from 'better-result'
 import { validateValue } from './validation.js'
@@ -491,6 +491,16 @@ export async function createCLI<
     let context: CommandContext<TStore> | undefined
     let promptSession: ReturnType<typeof createPromptSession> | undefined
     let interruptController: ReturnType<typeof createInterruptController> | undefined
+    let afterCommandPromise: Promise<void> | undefined
+
+    const runAfterCommandOnce = async (exitCode: number): Promise<void> => {
+      if (!(mergedConfig.plugins && mergedConfig.plugins.length > 0 && context)) return
+      if (!afterCommandPromise) {
+        afterCommandPromise = pluginManager.runAfterCommand(context, { exitCode })
+      }
+      await afterCommandPromise
+    }
+
     try {
       const mergedOptions: Record<string, CLIOption<any>> = { ...GLOBAL_FLAGS, ...(command.options || {}) }
       const parsed = await parseArgs(argv, mergedOptions, command.name)
@@ -583,25 +593,31 @@ export async function createCLI<
         })
       })()
 
-      await interruptController.race(commandRunPromise)
-
-      if (mergedConfig.plugins && mergedConfig.plugins.length > 0 && context) {
-        await interruptController.race(pluginManager.runAfterCommand(context, { exitCode: 0 }))
+      try {
+        await interruptController.race(commandRunPromise)
+      } catch (error) {
+        if (error instanceof PromptCancelledError || error instanceof ProcessTerminatedError) {
+          interruptLogger.debug('interrupt observed command=%s; waiting for in-flight work to settle', command.name)
+          try {
+            await commandRunPromise
+          } catch (commandError) {
+            interruptLogger.debug('in-flight command settled with error after interrupt command=%s: %O', command.name, commandError)
+          }
+        }
+        throw error
       }
+
+      await runAfterCommandOnce(0)
       return Result.ok(undefined)
     } catch (error) {
       if (error instanceof PromptCancelledError) {
         interruptLogger.debug('PromptCancelledError command=%s -> graceful-cancel', command.name)
         process.exitCode = 0
-        if (mergedConfig.plugins && mergedConfig.plugins.length > 0 && context) {
-          await pluginManager.runAfterCommand(context, { exitCode: 0 })
-        }
+        await runAfterCommandOnce(0)
         return Result.ok(undefined)
       }
 
-      if (mergedConfig.plugins && mergedConfig.plugins.length > 0 && context) {
-        await pluginManager.runAfterCommand(context, { exitCode: 1 })
-      }
+      await runAfterCommandOnce(1)
 
       if (error instanceof SchemaError || error instanceof OptionValidationError) {
         return Result.err(error)
