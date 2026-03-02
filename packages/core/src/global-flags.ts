@@ -5,20 +5,6 @@ import type { CLIOption } from './types.js'
  * Built-in global flags available to all commands
  */
 export const GLOBAL_FLAGS = {
-  interactive: {
-    schema: z.boolean().default(false),
-    short: 'i',
-    description: 'Run in interactive TUI mode'
-  },
-  tui: {
-    schema: z.boolean().default(false),
-    description: 'Force TUI mode (same as --interactive)'
-  },
-  'no-tui': {
-    schema: z.boolean().default(false),
-    description:
-      'Disable alternate-buffer TUI render; use handler instead (standard-buffer render may still run when explicitly configured)'
-  },
   help: {
     schema: z.boolean().default(false),
     short: 'h',
@@ -32,9 +18,6 @@ export const GLOBAL_FLAGS = {
 } satisfies Record<string, CLIOption>
 
 export type GlobalFlags = {
-  interactive: boolean
-  tui: boolean
-  'no-tui': boolean
   help: boolean
   version: boolean
 }

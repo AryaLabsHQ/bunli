@@ -1,76 +1,80 @@
-import { describe, test, expect, afterEach } from 'bun:test'
+import { afterEach, describe, expect, test } from 'bun:test'
 import { createCLI } from '../src/cli.js'
-import { registerTuiRenderer, clearTuiRenderer } from '../src/tui/registry.js'
-import { PromptCancelledError } from '@bunli/tui/prompt'
+import { PromptCancelledError } from '@bunli/runtime/prompt'
+import type { TerminalInfo } from '../src/types.js'
+
+function interactiveTerminal(): TerminalInfo {
+  return {
+    width: 120,
+    height: 40,
+    isInteractive: true,
+    isCI: false,
+    supportsColor: true,
+    supportsMouse: true
+  }
+}
+
+function nonInteractiveTerminal(): TerminalInfo {
+  return {
+    width: 80,
+    height: 24,
+    isInteractive: false,
+    isCI: false,
+    supportsColor: false,
+    supportsMouse: false
+  }
+}
 
 describe('TUI renderer option plumbing', () => {
   afterEach(() => {
-    clearTuiRenderer()
     process.exitCode = undefined
   })
 
-  test('core forwards rendererOptions (including bufferMode default) to the registered renderer', async () => {
-    let captured: any = null
-
-    registerTuiRenderer(async (args) => {
-      captured = args
-    })
+  test('core forwards rendererOptions (including bufferMode default) to the TUI render bridge', async () => {
+    let capturedBufferMode: unknown
 
     const cli = await createCLI({
       name: 'test-cli',
       version: '0.0.0',
-      plugins: [],
+      plugins: []
+    }, {
+      getTerminalInfo: interactiveTerminal,
+      runTuiRender: async (args) => {
+        capturedBufferMode = (args.rendererOptions as Record<string, unknown> | undefined)?.bufferMode
+      }
     })
 
     cli.command({
       name: 'ui',
       description: 'ui',
-      render: () => null,
+      render: () => null
     })
 
-    await cli.run(['ui', '--tui'])
+    await cli.run(['ui'])
 
-    expect(captured).toBeTruthy()
-    expect(captured.rendererOptions).toBeTruthy()
-    // In unit tests stdout is often non-TTY; default should be 'standard' in that case.
-    expect(captured.rendererOptions.bufferMode).toBe('standard')
+    expect(capturedBufferMode).toBe('standard')
+  })
+
+  test('auto-wires @bunli/runtime renderer for render commands without manual registration', async () => {
+    const cli = await createCLI({
+      name: 'test-cli',
+      version: '0.0.0',
+      plugins: []
+    }, {
+      getTerminalInfo: interactiveTerminal
+    })
+
+    cli.command({
+      name: 'ui',
+      description: 'ui',
+      render: () => null
+    })
+
+    await expect(cli.execute('ui')).rejects.toThrow('TUI render result is missing')
   })
 
   test('config tui.renderer.bufferMode is forwarded', async () => {
-    let captured: any = null
-
-    registerTuiRenderer(async (args) => {
-      captured = args
-    })
-
-    const cli = await createCLI({
-      name: 'test-cli',
-      version: '0.0.0',
-      plugins: [],
-      tui: {
-        renderer: {
-          bufferMode: 'alternate',
-        },
-      },
-    })
-
-    cli.command({
-      name: 'ui',
-      description: 'ui',
-      render: () => null,
-    })
-
-    await cli.run(['ui', '--tui'])
-
-    expect(captured?.rendererOptions?.bufferMode).toBe('alternate')
-  })
-
-  test('command-level tui.renderer overrides global config', async () => {
-    let captured: any = null
-
-    registerTuiRenderer(async (args) => {
-      captured = args
-    })
+    let capturedBufferMode: unknown
 
     const cli = await createCLI({
       name: 'test-cli',
@@ -80,6 +84,41 @@ describe('TUI renderer option plumbing', () => {
         renderer: {
           bufferMode: 'alternate'
         }
+      }
+    }, {
+      getTerminalInfo: interactiveTerminal,
+      runTuiRender: async (args) => {
+        capturedBufferMode = (args.rendererOptions as Record<string, unknown> | undefined)?.bufferMode
+      }
+    })
+
+    cli.command({
+      name: 'ui',
+      description: 'ui',
+      render: () => null
+    })
+
+    await cli.run(['ui'])
+
+    expect(capturedBufferMode).toBe('alternate')
+  })
+
+  test('command-level tui.renderer overrides global config', async () => {
+    let capturedBufferMode: unknown
+
+    const cli = await createCLI({
+      name: 'test-cli',
+      version: '0.0.0',
+      plugins: [],
+      tui: {
+        renderer: {
+          bufferMode: 'alternate'
+        }
+      }
+    }, {
+      getTerminalInfo: interactiveTerminal,
+      runTuiRender: async (args) => {
+        capturedBufferMode = (args.rendererOptions as Record<string, unknown> | undefined)?.bufferMode
       }
     })
 
@@ -94,23 +133,24 @@ describe('TUI renderer option plumbing', () => {
       render: () => null
     })
 
-    await cli.run(['ui', '--tui'])
+    await cli.run(['ui'])
 
-    expect(captured?.rendererOptions?.bufferMode).toBe('standard')
+    expect(capturedBufferMode).toBe('standard')
   })
 
-  test('--no-tui takes precedence over --tui and --interactive', async () => {
+  test('non-interactive terminals fall back to handler when present', async () => {
     let renderCalled = false
     let handlerCalled = false
-
-    registerTuiRenderer(async () => {
-      renderCalled = true
-    })
 
     const cli = await createCLI({
       name: 'test-cli',
       version: '0.0.0',
       plugins: []
+    }, {
+      getTerminalInfo: nonInteractiveTerminal,
+      runTuiRender: async () => {
+        renderCalled = true
+      }
     })
 
     cli.command({
@@ -122,39 +162,28 @@ describe('TUI renderer option plumbing', () => {
       render: () => null
     })
 
-    await cli.run(['ui', '--tui', '--interactive', '--no-tui'])
+    await cli.run(['ui'])
 
     expect(renderCalled).toBe(false)
     expect(handlerCalled).toBe(true)
   })
 
-  test('--no-tui still allows explicitly standard-buffer render commands', async () => {
-    let renderCalled = false
-
-    registerTuiRenderer(async () => {
-      renderCalled = true
-    })
-
+  test('render-only commands error on non-interactive terminals', async () => {
     const cli = await createCLI({
       name: 'test-cli',
       version: '0.0.0',
       plugins: []
+    }, {
+      getTerminalInfo: nonInteractiveTerminal
     })
 
     cli.command({
       name: 'inline-ui',
       description: 'inline-ui',
-      tui: {
-        renderer: {
-          bufferMode: 'standard'
-        }
-      },
-      render: () => null
+      render: () => null,
     })
 
-    await cli.run(['inline-ui', '--no-tui'])
-
-    expect(renderCalled).toBe(true)
+    await expect(cli.execute('inline-ui')).rejects.toThrow('Command does not provide a handler for non-TUI execution')
   })
 
   test('handler PromptCancelledError exits gracefully and reports exitCode 0 to plugins', async () => {
@@ -189,10 +218,6 @@ describe('TUI renderer option plumbing', () => {
   test('render PromptCancelledError exits gracefully and reports exitCode 0 to plugins', async () => {
     const exitCodes: number[] = []
 
-    registerTuiRenderer(async () => {
-      throw new PromptCancelledError('Cancelled')
-    })
-
     const cli = await createCLI({
       name: 'test-cli',
       version: '0.0.0',
@@ -204,6 +229,11 @@ describe('TUI renderer option plumbing', () => {
           }
         }
       ]
+    }, {
+      getTerminalInfo: interactiveTerminal,
+      runTuiRender: async () => {
+        throw new PromptCancelledError('Cancelled')
+      }
     })
 
     cli.command({
@@ -212,7 +242,7 @@ describe('TUI renderer option plumbing', () => {
       render: () => null
     })
 
-    await cli.run(['cancel-render', '--tui'])
+    await cli.run(['cancel-render'])
 
     expect(exitCodes).toEqual([0])
   })

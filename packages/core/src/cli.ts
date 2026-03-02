@@ -13,15 +13,15 @@ import { ConfigLoadError, ConfigNotFoundError, loadConfigResult } from './config
 import { parseArgs } from './parser.js'
 import { SchemaError, getDotPath } from '@standard-schema/utils'
 import { colors } from '@bunli/utils'
-import { PromptCancelledError, createPromptSession } from '@bunli/tui/prompt'
+import { PromptCancelledError, createPromptSession } from '@bunli/runtime/prompt'
 import { PluginManager } from './plugin/manager.js'
 import type { BunliPlugin, MergeStores } from './plugin/types.js'
 import type { CommandContext } from './plugin/context.js'
-import { GLOBAL_FLAGS, type GlobalFlags } from './global-flags.js'
-import { getTuiRenderer } from './tui/registry.js'
+import { GLOBAL_FLAGS } from './global-flags.js'
 import { loadGeneratedStores } from './generated.js'
 import { createLogger } from './utils/logger.js'
 import { createInterruptController } from './runtime/interrupt-controller.js'
+import { runTuiRender } from './runtime/tui-render.js'
 import { Result, TaggedError } from 'better-result'
 import { validateValue } from './validation.js'
 
@@ -53,16 +53,12 @@ export class OptionValidationError extends TaggedError('OptionValidationError')<
 
 function resolveRendererOptions(
   configured: Record<string, unknown> | undefined,
-  commandConfigured: Record<string, unknown> | undefined,
-  terminal: TerminalInfo
+  commandConfigured: Record<string, unknown> | undefined
 ): Record<string, unknown> {
   const merged = {
     ...(configured ?? {}),
     ...(commandConfigured ?? {})
   }
-
-  const bufferModeDefault: 'alternate' | 'standard' =
-    terminal.isInteractive && !terminal.isCI ? 'alternate' : 'standard'
 
   const configuredBufferMode =
     (merged.bufferMode === 'alternate' || merged.bufferMode === 'standard')
@@ -71,9 +67,14 @@ function resolveRendererOptions(
 
   return {
     ...merged,
-    bufferMode: configuredBufferMode ?? bufferModeDefault,
-    __bufferModeExplicit: configuredBufferMode !== undefined
+    bufferMode: configuredBufferMode ?? 'standard'
   }
+}
+
+interface CreateCLIRuntimeDeps {
+  createPromptSession?: typeof createPromptSession
+  runTuiRender?: typeof runTuiRender
+  getTerminalInfo?: () => TerminalInfo
 }
 
 export async function createCLI<
@@ -82,7 +83,8 @@ export async function createCLI<
   configOverride?: BunliConfigInput & {
     plugins?: TPlugins 
     generated?: string | boolean  // Optional, defaults to true
-  }
+  },
+  runtimeDeps: CreateCLIRuntimeDeps = {}
 ): Promise<CLI<MergeStores<TPlugins>>> {
   type TStore = MergeStores<TPlugins>
   
@@ -160,6 +162,11 @@ export async function createCLI<
       supportsColor: isInteractive && !isCI && process.env.TERM !== 'dumb',
       supportsMouse: isInteractive && !isCI && process.env.TERM_PROGRAM !== 'Apple_Terminal'
     }
+  }
+  const cliDeps = {
+    createPromptSession: runtimeDeps.createPromptSession ?? createPromptSession,
+    runTuiRender: runtimeDeps.runTuiRender ?? runTuiRender,
+    getTerminalInfo: runtimeDeps.getTerminalInfo ?? getTerminalInfo
   }
   const pluginManager = new PluginManager<TStore>()
   
@@ -318,7 +325,7 @@ export async function createCLI<
 
   // Helper to show help for a command
   function showHelp(cmd?: Command<any, TStore>, path: string[] = []) {
-    const terminalInfo = getTerminalInfo()
+    const terminalInfo = cliDeps.getTerminalInfo()
     const terminalWidth = terminalInfo.width || 80
     const helpRenderer = fullConfig.help?.renderer
     if (typeof helpRenderer === 'function') {
@@ -402,36 +409,15 @@ export async function createCLI<
   
   function shouldUseRender(
     command: Command<any, any>,
-    flags: GlobalFlags & Record<string, unknown>,
-    terminal: TerminalInfo,
-    rendererOptions: Record<string, unknown>
+    terminal: TerminalInfo
   ): boolean {
     if (!command.render) return false
-
-    const noTui = Boolean((flags as Record<string, unknown>)['no-tui'])
-    const forceTui = Boolean((flags as Record<string, unknown>)['tui'] || (flags as Record<string, unknown>)['interactive'])
-    const bufferMode = rendererOptions.bufferMode === 'alternate' ? 'alternate' : 'standard'
-    const explicitBufferMode = rendererOptions.__bufferModeExplicit === true
-
-    // `--no-tui` disables fullscreen/alternate scenes, but still allows standard-buffer OpenTUI flows.
-    if (noTui && bufferMode === 'alternate') return false
-    if (noTui && bufferMode === 'standard') return explicitBufferMode
-
-    // Explicit flags take precedence
-    if (forceTui) return true
-
-    // Fallback to terminal detection
     return terminal.isInteractive && !terminal.isCI
   }
 
   function ensureRenderAvailable(command: Command<any, any>) {
     if (!command.render) {
       throw new Error(`Command ${command.name} does not support TUI rendering.`)
-    }
-    if (!getTuiRenderer()) {
-      throw new Error(
-        `TUI renderer not registered. Import '@bunli/tui/register' or call registerTuiRenderer before running commands with render.`
-      )
     }
   }
 
@@ -534,29 +520,27 @@ export async function createCLI<
         context = beforeResult.value
       }
 
-      const terminalInfo = getTerminalInfo()
-      const globalFlags = parsed.flags as GlobalFlags & Record<string, unknown>
+      const terminalInfo = cliDeps.getTerminalInfo()
       const rendererOptions = resolveRendererOptions(
         (resolvedConfig.tui?.renderer ?? {}) as Record<string, unknown>,
-        (command.tui?.renderer ?? {}) as Record<string, unknown>,
-        terminalInfo
+        (command.tui?.renderer ?? {}) as Record<string, unknown>
       )
       const runtimeInfo: RuntimeInfo = {
         startTime: Date.now(),
         args: argv,
         command: invokedCommandName ?? command.name
       }
-      promptSession = createPromptSession()
+      promptSession = cliDeps.createPromptSession()
       interruptController = createInterruptController({
         onLog: (message) => interruptLogger.debug('command=%s %s', command.name, message)
       })
       interruptController.attach()
 
-      const render = shouldUseRender(command, globalFlags, terminalInfo, rendererOptions)
+      const render = shouldUseRender(command, terminalInfo)
       const commandRunPromise = (async () => {
         if (render) {
           ensureRenderAvailable(command)
-          await getTuiRenderer<Record<string, unknown>, TStore>()?.({
+          await cliDeps.runTuiRender({
             command,
             flags: parsed.flags,
             positional: parsed.positional,
@@ -576,13 +560,6 @@ export async function createCLI<
         }
 
         if (!command.handler) {
-          if (command.render && globalFlags['no-tui'] && rendererOptions.bufferMode === 'alternate') {
-            throw new CommandExecutionError({
-              message: 'Command only provides alternate-buffer TUI rendering and was disabled by --no-tui',
-              command: command.name,
-              cause: undefined
-            })
-          }
           throw new CommandExecutionError({
             message: 'Command does not provide a handler for non-TUI execution',
             command: command.name,
