@@ -1,0 +1,69 @@
+{
+  "name": "@bunli/runtime",
+  "version": "0.1.0",
+  "description": "Runtime renderer and prompt primitives for Bunli",
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./src/index.ts"
+    },
+    "./renderer": {
+      "types": "./dist/renderer.d.ts",
+      "default": "./src/renderer.tsx"
+    },
+    "./prompt": {
+      "types": "./dist/prompt/index.d.ts",
+      "default": "./src/prompt/index.ts"
+    },
+    "./options": {
+      "types": "./dist/options.d.ts",
+      "default": "./src/options.ts"
+    },
+    "./events": {
+      "types": "./dist/events.d.ts",
+      "default": "./src/events.ts"
+    },
+    "./transport": {
+      "types": "./dist/transport.d.ts",
+      "default": "./src/transport.ts"
+    }
+  },
+  "scripts": {
+    "build": "bun run scripts/build.ts",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@opentui/core": "^0.1.84",
+    "@opentui/react": "^0.1.84",
+    "@standard-schema/spec": "^1.1.0",
+    "@standard-schema/utils": "^0.3.0",
+    "debug": "^4.4.3",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "@types/react": "19.2.10",
+    "react": "^19.2.4",
+    "typescript": "^5.8.3"
+  },
+  "peerDependencies": {
+    "@opentui/core": "^0.1.75",
+    "react": "^19.2.4"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "keywords": [
+    "bunli",
+    "runtime",
+    "tui",
+    "prompt",
+    "terminal"
+  ],
+  "author": "Bunli Contributors",
+  "license": "MIT"
+}
