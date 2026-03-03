@@ -1,5 +1,12 @@
 # @bunli/generator
 
+## 0.6.4
+
+### Patch Changes
+
+- Updated dependencies [f1c404a]
+  - @bunli/core@0.8.0
+
 ## 0.6.3
 
 ### Patch Changes
