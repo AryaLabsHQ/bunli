@@ -1,32 +1,66 @@
-import { registerTuiRenderer as coreRegisterTuiRenderer } from '@bunli/core'
-import type { RenderArgs } from '@bunli/core'
 import { createCliRenderer } from '@opentui/core'
 import { CliRenderEvents } from '@opentui/core'
 import { createRoot } from '@opentui/react'
+import { AppRuntimeProvider } from '@bunli/runtime'
 import type { ReactElement } from 'react'
-import { resolveOpenTuiRendererOptions } from './options.js'
+import { resolveOpenTuiRendererOptions, type TuiRenderOptions } from './options.js'
 
-export function registerTuiRenderer(): void {
-  coreRegisterTuiRenderer(async (args: RenderArgs<any, any>) => {
-    const component = args.command.render?.(args)
+export interface RunTuiRenderArgs {
+  command: {
+    // Bunli core passes a richer RenderArgs shape; keep this contract permissive.
+    render?: (args: any) => unknown
+  }
+  rendererOptions?: TuiRenderOptions
+}
 
-    if (!component) {
-      throw new Error('TUI render result is missing. Ensure command.render returns JSX.')
-    }
+interface RendererDependencies {
+  createRenderer: typeof createCliRenderer
+  createReactRoot: typeof createRoot
+  destroyEvent: string
+}
 
-    const renderer = await createCliRenderer(resolveOpenTuiRendererOptions(args.rendererOptions))
+function renderWithProviders(component: ReactElement) {
+  return (
+    <AppRuntimeProvider>
+      {component}
+    </AppRuntimeProvider>
+  )
+}
 
-    try {
-      const done = new Promise<void>((resolve) => {
-        renderer.once(CliRenderEvents.DESTROY, () => resolve())
-      })
+async function runTuiRenderWithDependencies(
+  args: RunTuiRenderArgs,
+  deps: RendererDependencies
+): Promise<void> {
+  const component = args.command.render?.(args)
 
-      const root = createRoot(renderer)
-      root.render(component as ReactElement)
+  if (!component) {
+    throw new Error('TUI render result is missing. Ensure command.render returns JSX.')
+  }
 
-      await done
-    } finally {
-      renderer.destroy()
-    }
+  const renderer = await deps.createRenderer(resolveOpenTuiRendererOptions(args.rendererOptions))
+
+  try {
+    const done = new Promise<void>((resolve) => {
+      renderer.once(deps.destroyEvent, () => resolve())
+    })
+
+    const root = deps.createReactRoot(renderer)
+    root.render(renderWithProviders(component as ReactElement))
+
+    await done
+  } finally {
+    renderer.destroy()
+  }
+}
+
+export async function runTuiRender(args: RunTuiRenderArgs): Promise<void> {
+  await runTuiRenderWithDependencies(args, {
+    createRenderer: createCliRenderer,
+    createReactRoot: createRoot,
+    destroyEvent: CliRenderEvents.DESTROY
   })
+}
+
+export const __rendererInternalsForTests = {
+  runTuiRenderWithDependencies
 }

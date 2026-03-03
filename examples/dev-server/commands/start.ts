@@ -1,5 +1,6 @@
 import { defineCommand, option } from '@bunli/core'
 import { z } from 'zod'
+import { hasConfigStore, hasMetricsStore } from './store-guards.js'
 
 const startCommand = defineCommand({
   name: 'start',
@@ -54,14 +55,14 @@ const startCommand = defineCommand({
     }
     
     // Access plugin context
-    if (context?.store && 'metrics' in context.store) {
+    if (hasMetricsStore(context?.store)) {
       context.store.metrics.recordEvent('server_started', { port, host })
     }
     
     console.log(colors.dim('\nPress Ctrl+C to stop the server'))
     
     // Simulate long-running server
-    if (context?.store && 'config' in context.store) {
+    if (hasConfigStore(context?.store)) {
       console.log(colors.dim(`Config loaded: ${JSON.stringify(context.store.config, null, 2)}`))
     }
     

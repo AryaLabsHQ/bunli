@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "build": "turbo run build --filter='./packages/*'",
-    "typecheck": "turbo run typecheck --filter='./packages/*'",
+    "typecheck": "turbo run typecheck --filter='./packages/*' && bun run typecheck:scripts",
+    "typecheck:scripts": "tsc --noEmit -p scripts/tsconfig.json",
     "test:coverage": "bun test --coverage --coverage-reporter=lcov --coverage-dir=coverage",
     "examples:generate": "turbo run generate --filter='@bunli-examples/*'",
     "examples:typecheck": "turbo run typecheck --filter='@bunli-examples/*'",
@@ -22,8 +23,8 @@
     "release:publish": "bun run build && bun run ci:publish"
   },
   "devDependencies": {
+    "@bunli/tui": "workspace:^",
     "@changesets/cli": "^2.29.8",
-    "@clack/prompts": "^1.0.0",
     "@types/bun": "catalog:",
     "ai": "^6.0.72",
     "better-result": "catalog:",

@@ -4,28 +4,29 @@
 
 ## OVERVIEW
 
-Provides OpenTUI integration for building rich terminal UIs.
+Provides OpenTUI React components and UI primitives for Bunli.
+Runtime prompt/renderer wiring lives in `@bunli/runtime`.
 
 ## WHERE TO LOOK
 
 | Task | Location |
 |------|----------|
 | Main exports | `src/index.ts` |
-| Renderer registration | `src/register.ts` |
 | Components | `src/components/` |
 
 ## PATTERNS
 
-```typescript
-import { registerTuiRenderer } from '@bunli/tui'
-
-plugins: [registerTuiRenderer()]
-```
+Use `@bunli/runtime` for prompt/spinner and render runtime APIs.
+`@bunli/tui` should stay focused on components/hooks/theming.
 
 ## EXPORTS
 
 ### Hooks (from @opentui/react)
-- `useKeyboard`, `useRenderer`, `useTerminalDimensions`
+- `useKeyboard`, `useRenderer`, `useTerminalDimensions`, `useTimeline`, `useOnResize`
+
+### Types
+- `SyncBatcher`, `SyncBatcherOptions`
+- `SelectOption`, `KeyEvent`, `CliRendererConfig` (from `@opentui/core`)
 
 ### Styling (from @opentui/core)
-- `bold`, `fg`, `italic`, `t`
+- `bold`, `fg`, `italic`, `t`, `TextAttributes`

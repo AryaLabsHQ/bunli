@@ -10,7 +10,9 @@ export default defineCommand({
     name: option(
       z.string()
         .min(1, 'Branch name cannot be empty')
-        .regex(/^[a-zA-Z0-9._-]+$/, 'Branch name can only contain letters, numbers, dots, underscores, and hyphens'),
+        .regex(/^[a-zA-Z0-9._/-]+$/, 'Branch name can only contain letters, numbers, dots, underscores, hyphens, and slashes')
+        .refine((value) => !value.startsWith('/') && !value.endsWith('/'), 'Branch name cannot start or end with "/"')
+        .refine((value) => !value.includes('..'), 'Branch name cannot include ".."'),
       { 
         short: 'n', 
         description: 'Branch name' 
@@ -77,11 +79,13 @@ export default defineCommand({
         }
         
         await shell`git branch ${flags.force ? '-D' : '-d'} ${flags.name}`
-        spin.succeed(`✅ Deleted branch '${flags.name}'`)
+        spin.succeed(`Deleted branch '${flags.name}'`)
         
       } else {
         // Create or switch branch
         spin.update(`Creating branch '${flags.name}' from '${flags.base}'...`)
+        const { stdout: initialBranchOutput } = await shell`git branch --show-current`
+        const initialBranch = initialBranchOutput.toString().trim()
         
         // Check if branch already exists
         const { stdout: existingBranches } = await shell`git branch --list ${flags.name}`
@@ -98,10 +102,12 @@ export default defineCommand({
         
         if (!flags.switch) {
           // Switch back to original branch
-          await shell`git checkout ${flags.base}`
+          if (initialBranch && initialBranch !== flags.name) {
+            await shell`git checkout ${initialBranch}`
+          }
         }
         
-        spin.succeed(`✅ Created branch '${flags.name}' from '${flags.base}'`)
+        spin.succeed(`Created branch '${flags.name}' from '${flags.base}'`)
         
         if (flags.switch) {
           console.log(colors.cyan(`Switched to branch '${flags.name}'`))
@@ -112,7 +118,7 @@ export default defineCommand({
       const { stdout: currentBranch } = await shell`git branch --show-current`
       const { stdout: allBranches } = await shell`git branch --list`
       
-      console.log(colors.bold('\n📋 Branch Status:'))
+      console.log(colors.bold('\nBranch status:'))
       console.log(`  Current: ${colors.cyan(currentBranch.toString().trim())}`)
       console.log(`  Branches: ${colors.dim(String(allBranches.toString().trim().split('\n').length))} total`)
       

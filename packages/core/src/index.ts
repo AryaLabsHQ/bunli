@@ -34,6 +34,8 @@ export type {
   HelpRenderContext,
   HelpRenderer,
   RenderResult,
+  PromptApi,
+  PromptSpinnerFactory,
   RegisteredCommands,
   CommandOptions
 } from './types.js'
@@ -41,9 +43,6 @@ export type {
 // Export global flags
 export { GLOBAL_FLAGS } from './global-flags.js'
 export type { GlobalFlags } from './global-flags.js'
-
-// Export TUI registry
-export { registerTuiRenderer, clearTuiRenderer, getTuiRenderer } from './tui/registry.js'
 
 // Note: Plugin system is exported via subpath export
 // Usage: import { PluginManager, createPlugin } from '@bunli/core/plugin'

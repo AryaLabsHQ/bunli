@@ -10,15 +10,12 @@ bun install
 
 # Run the CLI
 bun cli.ts greet --name "World" --loud
+bun cli.ts password-prompt
+bun cli.ts password
+bun cli.ts showcase
 
 # Or with short flags
 bun cli.ts greet -n "Bunli" -l -t 3
-
-# Force TUI mode (OpenTUI render path)
-bun cli.ts greet --name "TUI" --tui
-
-# Force non-TUI mode (handler path)
-bun cli.ts greet --name "CLI" --no-tui
 ```
 
 ## What This Example Shows
@@ -28,7 +25,17 @@ bun cli.ts greet --name "CLI" --no-tui
 - **Type coercion** (string → boolean, string → number)
 - **Default values** and **short flags**
 - **Colored output** with built-in utilities
-- **OpenTUI integration** with `render` + global TUI flags
+- **OpenTUI integration** with `render` + `handler` command composition
+- **Standard-buffer password prompt demo** with `prompt.password`
+- **Password input demo** with `Form`, `Input`, and `PasswordField`
+- **Component library showcase** for `@bunli/tui/interactive` + `@bunli/tui/charts`
+
+Showcase controls (`bun cli.ts showcase`):
+- `q` or `Esc`: quit
+- `m`: toggle modal
+- `c`: open confirm dialog
+- `p`: open choose dialog
+- `t`: show toast
 
 ## The Command
 
@@ -73,7 +80,7 @@ const greetCommand = defineCommand({
 1. **`defineCommand`** - Creates a command with options and handler
 2. **`option()`** - Wraps Zod schemas with CLI metadata (short flags, descriptions)
 3. **Type coercion** - `z.coerce.boolean()` converts strings to booleans
-4. **Dual execution path** - `render` for TUI, `handler` for non-TUI
+4. **Command composition** - commands can provide both `render` and `handler`
 5. **Handler context** - Access to `flags`, `colors`, `spinner`, etc.
 
 ## TUI Buffer Mode
@@ -83,12 +90,15 @@ This example configures:
 ```typescript
 tui: {
   renderer: {
-    bufferMode: 'standard'
+    bufferMode: 'alternate'
   }
 }
 ```
 
-So `--tui` renders in the main terminal buffer (scrollback-friendly).
+Bunli uses `standard` buffer mode by default.
+This example opts into fullscreen behavior with `bufferMode: 'alternate'`.
+
+Use `tui.renderer.bufferMode` globally, or `command.tui.renderer.bufferMode` per command, when you want explicit alternate-buffer rendering.
 
 ## Development
 
@@ -113,7 +123,7 @@ To add a new command:
 1. Create a new file in `commands/` (e.g., `commands/help.ts`)
 2. Define the command using `defineCommand`
 3. Export it as default
-4. Import and register it in `cli.ts`
+4. Import and register it in `cli.ts` (see `showcase` command)
 5. Run `bun run generate` to update types
 
 ## Next Steps

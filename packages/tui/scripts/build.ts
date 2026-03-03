@@ -16,8 +16,8 @@ try {
   console.warn('⚠️  TypeScript compilation had errors, but continuing build...')
 }
 
-// Copy source files to dist for runtime (Bun runs TypeScript directly)
+// Prepare dist directory (types only; runtime uses src exports)
 console.log('📦 Preparing distribution...')
-await $`cp -r ${rootDir}/src/* ${rootDir}/dist/`
+await $`mkdir -p ${rootDir}/dist`
 
 console.log('✅ Build complete!')

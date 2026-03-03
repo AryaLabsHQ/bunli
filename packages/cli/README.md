@@ -258,9 +258,19 @@ export default defineConfig({
   dev: {
     watch: true,
     inspect: false
+  },
+
+  tui: {
+    renderer: {
+      bufferMode: 'alternate' // or 'standard'
+    }
   }
 })
 ```
+
+Default `tui.renderer.bufferMode` policy:
+- `'standard'` by default
+- set `'alternate'` explicitly for fullscreen/blocking terminal flows
 
 ### Build Behavior
 

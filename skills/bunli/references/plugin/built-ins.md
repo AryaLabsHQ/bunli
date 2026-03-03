@@ -7,26 +7,10 @@ Detects AI coding assistants from environment variables.
 ```typescript
 import { aiAgentPlugin } from "@bunli/plugin-ai-detect"
 
-// Usage
 const plugin = aiAgentPlugin()
-
-// Detected AI agents:
-// - CLAUDECODE, CLAUDE_CODE
-// - CURSOR_AGENT
-// - CODEX_CI, CODEX_THREAD_ID, CODEX_SANDBOX
-// - AMP_CURRENT_THREAD_ID or AGENT=amp
-// - GEMINI_CLI
-// - OPENCODE=1
 ```
 
-Access in handler via plugin `context`:
-```typescript
-handler: ({ context }) => {
-  if (context?.env.isAIAgent) {
-    console.log("Running in AI:", context.env.aiAgents)
-  }
-}
-```
+Adds AI-related fields via plugin augmentation (`context.env.isAIAgent`, `context.env.aiAgents`) and can also project data into plugin store.
 
 ## @bunli/plugin-completions
 
@@ -36,15 +20,15 @@ Generates shell completions.
 import { completionsPlugin } from "@bunli/plugin-completions"
 
 const plugin = completionsPlugin({
-  generatedPath: ".bunli/commands.gen.ts", // bunli-generated command metadata module
+  generatedPath: ".bunli/commands.gen.ts",
   commandName: "mycli",
   executable: "mycli",
   includeAliases: true,
   includeGlobalFlags: true
 })
-
-// Generates: bash, zsh, fish, powershell completions
 ```
+
+Note: package name is `@bunli/plugin-completions`, while the registered runtime plugin name is `completions`.
 
 ## @bunli/plugin-config
 
@@ -60,13 +44,9 @@ const plugin = configMergerPlugin({
     ".{{name}}rc.json",
     ".config/{{name}}.json"
   ],
-  mergeStrategy: "deep",  // or "shallow"
+  mergeStrategy: "deep"
 })
 ```
-
-Template variables:
-- `{{name}}` - App name from config
-- `~` - Home directory
 
 ## @bunli/plugin-mcp
 
@@ -76,32 +56,32 @@ Converts MCP tools to CLI commands.
 import { mcpPlugin } from "@bunli/plugin-mcp"
 
 const plugin = mcpPlugin({
-  toolsProvider: async (context) => [
+  toolsProvider: async () => [
     {
       namespace: "server",
-      tools: [
-        { name: "tool1", description: "...", inputSchema: {...} }
-      ]
+      tools: [{ name: "tool1", description: "...", inputSchema: { type: "object" } }]
     }
   ],
   createHandler: (namespace, toolName) => async ({ flags }) => {
-    return mcpClient.callTool(toolName, flags)
+    return mcpClient.callTool(`${namespace}:${toolName}`, flags)
   },
-  sync: true  // Generate TypeScript types
+  sync: { outputDir: ".bunli" } // or sync: true
 })
-
-// Creates commands: server:tool1, server:tool2, ...
 ```
 
-## Plugin Composition
+`sync` accepts:
+- `true` (default output dir `.bunli`)
+- `{ outputDir?: string }`
+
+## Plugin composition
 
 ```typescript
 import { composePlugins } from "@bunli/core/plugin"
 
 const app = composePlugins(
   aiAgentPlugin(),
-  configMergerPlugin({ sources: [...] }),
+  configMergerPlugin({ sources: [] }),
   completionsPlugin(),
-  myCustomPlugin()
+  mcpPlugin({ toolsProvider, createHandler })
 )
 ```

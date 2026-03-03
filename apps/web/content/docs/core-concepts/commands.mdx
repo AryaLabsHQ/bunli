@@ -80,11 +80,15 @@ handler: async ({ flags, positional, shell, env, cwd, prompt, spinner, colors })
   // shell - Bun Shell for running commands (Bun.$)
   // env - Environment variables (process.env)
   // cwd - Current working directory
-  // prompt - Interactive prompts (auto-imported from @bunli/utils)
+  // prompt - Interactive prompts (auto-imported from @bunli/runtime/prompt)
   // spinner - Progress indicators (auto-imported from @bunli/utils)
   // colors - Terminal colors (auto-imported from @bunli/utils)
 }
 ```
+
+<Callout type="info">
+  Commands with `render` run directly without TUI flags. Buffer mode defaults to `standard`; set `tui.renderer.bufferMode: 'alternate'` (globally or per-command) for fullscreen UI.
+</Callout>
 
 ### Using Positional Arguments
 

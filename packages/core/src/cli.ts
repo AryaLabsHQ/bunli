@@ -12,18 +12,21 @@ import { bunliConfigStrictSchema, bunliConfigSchema } from './config.js'
 import { ConfigLoadError, ConfigNotFoundError, loadConfigResult } from './config-loader.js'
 import { parseArgs } from './parser.js'
 import { SchemaError, getDotPath } from '@standard-schema/utils'
-import { PromptCancelledError, colors, prompt, spinner } from '@bunli/utils'
+import { colors } from '@bunli/utils'
+import { PromptCancelledError, createPromptSession } from '@bunli/runtime/prompt'
 import { PluginManager } from './plugin/manager.js'
 import type { BunliPlugin, MergeStores } from './plugin/types.js'
 import type { CommandContext } from './plugin/context.js'
-import { GLOBAL_FLAGS, type GlobalFlags } from './global-flags.js'
-import { getTuiRenderer } from './tui/registry.js'
+import { GLOBAL_FLAGS } from './global-flags.js'
 import { loadGeneratedStores } from './generated.js'
 import { createLogger } from './utils/logger.js'
+import { createInterruptController, ProcessTerminatedError } from './runtime/interrupt-controller.js'
+import { runTuiRender } from './runtime/tui-render.js'
 import { Result, TaggedError } from 'better-result'
 import { validateValue } from './validation.js'
 
 const logger = createLogger('core:cli')
+const interruptLogger = createLogger('core:interrupt')
 
 export class InvalidConfigError extends TaggedError('InvalidConfigError')<{
   message: string
@@ -50,20 +53,28 @@ export class OptionValidationError extends TaggedError('OptionValidationError')<
 
 function resolveRendererOptions(
   configured: Record<string, unknown> | undefined,
-  terminal: TerminalInfo
+  commandConfigured: Record<string, unknown> | undefined
 ): Record<string, unknown> {
-  const bufferModeDefault: 'alternate' | 'standard' =
-    terminal.isInteractive && !terminal.isCI ? 'alternate' : 'standard'
+  const merged = {
+    ...(configured ?? {}),
+    ...(commandConfigured ?? {})
+  }
 
   const configuredBufferMode =
-    (configured?.bufferMode === 'alternate' || configured?.bufferMode === 'standard')
-      ? (configured.bufferMode as 'alternate' | 'standard')
+    (merged.bufferMode === 'alternate' || merged.bufferMode === 'standard')
+      ? (merged.bufferMode as 'alternate' | 'standard')
       : undefined
 
   return {
-    ...(configured ?? {}),
-    bufferMode: configuredBufferMode ?? bufferModeDefault
+    ...merged,
+    bufferMode: configuredBufferMode ?? 'standard'
   }
+}
+
+interface CreateCLIRuntimeDeps {
+  createPromptSession?: typeof createPromptSession
+  runTuiRender?: typeof runTuiRender
+  getTerminalInfo?: () => TerminalInfo
 }
 
 export async function createCLI<
@@ -72,7 +83,8 @@ export async function createCLI<
   configOverride?: BunliConfigInput & {
     plugins?: TPlugins 
     generated?: string | boolean  // Optional, defaults to true
-  }
+  },
+  runtimeDeps: CreateCLIRuntimeDeps = {}
 ): Promise<CLI<MergeStores<TPlugins>>> {
   type TStore = MergeStores<TPlugins>
   
@@ -150,6 +162,11 @@ export async function createCLI<
       supportsColor: isInteractive && !isCI && process.env.TERM !== 'dumb',
       supportsMouse: isInteractive && !isCI && process.env.TERM_PROGRAM !== 'Apple_Terminal'
     }
+  }
+  const cliDeps = {
+    createPromptSession: runtimeDeps.createPromptSession ?? createPromptSession,
+    runTuiRender: runtimeDeps.runTuiRender ?? runTuiRender,
+    getTerminalInfo: runtimeDeps.getTerminalInfo ?? getTerminalInfo
   }
   const pluginManager = new PluginManager<TStore>()
   
@@ -308,7 +325,7 @@ export async function createCLI<
 
   // Helper to show help for a command
   function showHelp(cmd?: Command<any, TStore>, path: string[] = []) {
-    const terminalInfo = getTerminalInfo()
+    const terminalInfo = cliDeps.getTerminalInfo()
     const terminalWidth = terminalInfo.width || 80
     const helpRenderer = fullConfig.help?.renderer
     if (typeof helpRenderer === 'function') {
@@ -392,27 +409,15 @@ export async function createCLI<
   
   function shouldUseRender(
     command: Command<any, any>,
-    flags: GlobalFlags & Record<string, unknown>,
     terminal: TerminalInfo
   ): boolean {
     if (!command.render) return false
-
-    // Explicit flags take precedence
-    if ((flags as Record<string, unknown>)['no-tui']) return false
-    if ((flags as Record<string, unknown>)['tui'] || (flags as Record<string, unknown>)['interactive']) return true
-
-    // Fallback to terminal detection
     return terminal.isInteractive && !terminal.isCI
   }
 
   function ensureRenderAvailable(command: Command<any, any>) {
     if (!command.render) {
       throw new Error(`Command ${command.name} does not support TUI rendering.`)
-    }
-    if (!getTuiRenderer()) {
-      throw new Error(
-        `TUI renderer not registered. Import '@bunli/tui/register' or call registerTuiRenderer before running commands with render.`
-      )
     }
   }
 
@@ -484,6 +489,18 @@ export async function createCLI<
     invokedCommandName?: string
   ): Promise<Result<void, RunCommandError>> {
     let context: CommandContext<TStore> | undefined
+    let promptSession: ReturnType<typeof createPromptSession> | undefined
+    let interruptController: ReturnType<typeof createInterruptController> | undefined
+    let afterCommandPromise: Promise<void> | undefined
+
+    const runAfterCommandOnce = async (exitCode: number): Promise<void> => {
+      if (!(mergedConfig.plugins && mergedConfig.plugins.length > 0 && context)) return
+      if (!afterCommandPromise) {
+        afterCommandPromise = pluginManager.runAfterCommand(context, { exitCode })
+      }
+      await afterCommandPromise
+    }
+
     try {
       const mergedOptions: Record<string, CLIOption<any>> = { ...GLOBAL_FLAGS, ...(command.options || {}) }
       const parsed = await parseArgs(argv, mergedOptions, command.name)
@@ -513,42 +530,51 @@ export async function createCLI<
         context = beforeResult.value
       }
 
-      const terminalInfo = getTerminalInfo()
-      const globalFlags = parsed.flags as GlobalFlags & Record<string, unknown>
+      const terminalInfo = cliDeps.getTerminalInfo()
+      const rendererOptions = resolveRendererOptions(
+        (resolvedConfig.tui?.renderer ?? {}) as Record<string, unknown>,
+        (command.tui?.renderer ?? {}) as Record<string, unknown>
+      )
       const runtimeInfo: RuntimeInfo = {
         startTime: Date.now(),
         args: argv,
         command: invokedCommandName ?? command.name
       }
+      promptSession = cliDeps.createPromptSession()
+      interruptController = createInterruptController({
+        onLog: (message) => interruptLogger.debug('command=%s %s', command.name, message)
+      })
+      interruptController.attach()
 
-      const render = shouldUseRender(command, globalFlags, terminalInfo)
-      if (render) {
-        ensureRenderAvailable(command)
-        await getTuiRenderer<Record<string, unknown>, TStore>()?.({
-          command,
-          flags: parsed.flags,
-          positional: parsed.positional,
-          shell: Bun.$,
-          env: process.env,
-          cwd: process.cwd(),
-          prompt,
-          spinner,
-          colors,
-          terminal: terminalInfo,
-          runtime: runtimeInfo,
-          rendererOptions: resolveRendererOptions(
-            (resolvedConfig.tui?.renderer ?? {}) as Record<string, unknown>,
-            terminalInfo
-          ),
-          ...(context ? { context } : {})
-        })
-      } else {
+      const render = shouldUseRender(command, terminalInfo)
+      const commandRunPromise = (async () => {
+        if (render) {
+          ensureRenderAvailable(command)
+          await cliDeps.runTuiRender({
+            command,
+            flags: parsed.flags,
+            positional: parsed.positional,
+            shell: Bun.$,
+            env: process.env,
+            cwd: process.cwd(),
+            prompt: promptSession.prompt,
+            spinner: promptSession.spinner,
+            colors,
+            terminal: terminalInfo,
+            runtime: runtimeInfo,
+            signal: interruptController.signal,
+            rendererOptions,
+            ...(context ? { context } : {})
+          })
+          return
+        }
+
         if (!command.handler) {
-          return Result.err(new CommandExecutionError({
+          throw new CommandExecutionError({
             message: 'Command does not provide a handler for non-TUI execution',
             command: command.name,
             cause: undefined
-          }))
+          })
         }
 
         await command.handler({
@@ -557,30 +583,41 @@ export async function createCLI<
           shell: Bun.$,
           env: process.env,
           cwd: process.cwd(),
-          prompt,
-          spinner,
+          prompt: promptSession.prompt,
+          spinner: promptSession.spinner,
           colors,
           terminal: terminalInfo,
           runtime: runtimeInfo,
+          signal: interruptController.signal,
           ...(context ? { context } : {})
         })
+      })()
+
+      try {
+        await interruptController.race(commandRunPromise)
+      } catch (error) {
+        if (error instanceof PromptCancelledError || error instanceof ProcessTerminatedError) {
+          interruptLogger.debug('interrupt observed command=%s; waiting for in-flight work to settle', command.name)
+          try {
+            await commandRunPromise
+          } catch (commandError) {
+            interruptLogger.debug('in-flight command settled with error after interrupt command=%s: %O', command.name, commandError)
+          }
+        }
+        throw error
       }
 
-      if (mergedConfig.plugins && mergedConfig.plugins.length > 0 && context) {
-        await pluginManager.runAfterCommand(context, { exitCode: 0 })
-      }
+      await runAfterCommandOnce(0)
       return Result.ok(undefined)
     } catch (error) {
       if (error instanceof PromptCancelledError) {
-        if (mergedConfig.plugins && mergedConfig.plugins.length > 0 && context) {
-          await pluginManager.runAfterCommand(context, { exitCode: 0 })
-        }
+        interruptLogger.debug('PromptCancelledError command=%s -> graceful-cancel', command.name)
+        process.exitCode = 0
+        await runAfterCommandOnce(0)
         return Result.ok(undefined)
       }
 
-      if (mergedConfig.plugins && mergedConfig.plugins.length > 0 && context) {
-        await pluginManager.runAfterCommand(context, { exitCode: 1 })
-      }
+      await runAfterCommandOnce(1)
 
       if (error instanceof SchemaError || error instanceof OptionValidationError) {
         return Result.err(error)
@@ -599,6 +636,10 @@ export async function createCLI<
         command: command.name,
         cause: error
       }))
+    } finally {
+      interruptLogger.debug('dispose promptSession command=%s', command.name)
+      interruptController?.detach()
+      await promptSession?.dispose()
     }
   }
 

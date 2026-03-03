@@ -25,12 +25,14 @@ describe('@bunli/tui renderer options', () => {
       resolveOpenTuiRendererOptions({
         exitOnCtrlC: undefined,
         targetFps: undefined,
-        enableMouseMovement: undefined
+        enableMouseMovement: undefined,
+        useMouse: undefined
       })
     ).toMatchObject({
       exitOnCtrlC: true,
       targetFps: 30,
-      enableMouseMovement: true
+      enableMouseMovement: true,
+      useMouse: false
     })
   })
 

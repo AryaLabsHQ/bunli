@@ -53,8 +53,7 @@ function createColorFunction(code: number): ColorFunction {
 }
 
 function stripAnsi(text: string): string {
-  // Remove all ANSI escape sequences
-  return text.replace(/\x1b\[[0-9;]*m/g, '')
+  return Bun.stripANSI(text)
 }
 
 export const colors: Colors = {

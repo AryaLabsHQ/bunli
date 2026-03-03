@@ -4,7 +4,8 @@ import { z } from 'zod'
 import { loadConfig } from '@bunli/core'
 import { $ } from 'bun'
 import path from 'node:path'
-import type { BunliUtils } from '@bunli/utils'
+import type { PromptApi, PromptSpinnerFactory } from '@bunli/core'
+import type { Colors } from '@bunli/utils'
 import shimTemplate from './shim-template.txt' with { type: 'text' }
 
 interface PackageJson {
@@ -163,9 +164,9 @@ export default defineCommand({
 async function releaseSingle(
   flags: ReleaseFlags,
   config: BunliConfig,
-  prompt: BunliUtils['prompt'],
-  spinner: BunliUtils['spinner'],
-  colors: BunliUtils['colors']
+  prompt: PromptApi,
+  spinner: PromptSpinnerFactory,
+  colors: Colors
 ) {
   const pkg = await loadPackageJson()
   const originalPackageJson = await Bun.file('package.json').text()
@@ -369,7 +370,7 @@ async function loadPackageJson(): Promise<PackageJson> {
   return Bun.file('package.json').json()
 }
 
-export async function determineVersion(versionFlag: string | undefined, current: string, prompt: BunliUtils['prompt']): Promise<string> {
+export async function determineVersion(versionFlag: string | undefined, current: string, prompt: PromptApi): Promise<string> {
   if (versionFlag) {
     if (['patch', 'minor', 'major'].includes(versionFlag)) {
       return bumpVersion(current, versionFlag as 'patch' | 'minor' | 'major')
@@ -436,8 +437,8 @@ async function publishPlatformPackages(opts: {
   newVersion: string
   binaryConfig: NonNullable<BunliConfig['release']['binary']>
   dry: boolean
-  spinner: BunliUtils['spinner']
-  colors: BunliUtils['colors']
+  spinner: PromptSpinnerFactory
+  colors: Colors
 }): Promise<PublishedPlatformPackage[]> {
   const { context, pkg, cliBinName, newVersion, binaryConfig, dry, spinner, colors } = opts
   const published: PublishedPlatformPackage[] = []
