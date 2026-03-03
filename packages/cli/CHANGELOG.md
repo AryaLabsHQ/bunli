@@ -1,5 +1,24 @@
 # bunli
 
+## 0.8.0
+
+### Minor Changes
+
+- f1c404a: introducing `@bunli/tui` component-library
+
+  - move prompt runtime ownership to `@bunli/tui` with inline + interactive modes
+  - drop `@bunli/utils` prompt/clack exports and update usage across the toolchain
+  - add schema-driven interactive form engine and expanded themed interactive component primitives
+  - add charts (`bar`, `line`, `sparkline`) and subpath exports (`/prompt`, `/inline`, `/interactive`, `/charts`)
+
+### Patch Changes
+
+- Updated dependencies [f1c404a]
+  - @bunli/utils@0.5.0
+  - @bunli/core@0.8.0
+  - @bunli/generator@0.6.4
+  - @bunli/plugin-completions@0.3.4
+
 ## 0.7.1
 
 ### Patch Changes
