@@ -42,6 +42,24 @@ interface OpenTuiSessionDependencies {
   destroyEvent: string
 }
 
+const SHELL_TERMINAL_RESET_SEQUENCE = '\x1b[?1004l\x1b[?2004l\x1b[?1006l\x1b[?1003l\x1b[?1002l\x1b[?1000l\x1b[<u\x1b[>4;0m\x1b[?25h'
+
+const forceRestoreShellTerminalModes = () => {
+  if (!process.stdout.isTTY) return
+  try {
+    process.stdout.write(SHELL_TERMINAL_RESET_SEQUENCE)
+  } catch {
+    // Ignore write failures during teardown.
+  }
+  if (process.stdin.isTTY && typeof process.stdin.setRawMode === 'function') {
+    try {
+      process.stdin.setRawMode(false)
+    } catch {
+      // Ignore raw mode restoration failures during teardown.
+    }
+  }
+}
+
 function createOpenTuiRendererSessionWithDependencies(deps: OpenTuiSessionDependencies): OpenTuiRendererSession {
   let renderer: Awaited<ReturnType<typeof createCliRenderer>> | undefined
   let initializePromise: Promise<void> | undefined
@@ -51,6 +69,7 @@ function createOpenTuiRendererSessionWithDependencies(deps: OpenTuiSessionDepend
   let activePromptCancel: (() => void) | undefined
   const historyEntries: HistoryEntry[] = []
   let statusLine: { content: string; fg: string } | undefined
+  let disposed = false
 
   const historyLines = () => historyEntries.flatMap((entry) => entry.lines)
   const historyRenderLines = () => {
@@ -59,6 +78,7 @@ function createOpenTuiRendererSessionWithDependencies(deps: OpenTuiSessionDepend
   }
 
   const initialize = async () => {
+    if (disposed) return
     if (renderer?.isDestroyed) {
       renderer = undefined
       initializePromise = undefined
@@ -137,11 +157,12 @@ function createOpenTuiRendererSessionWithDependencies(deps: OpenTuiSessionDepend
   }
 
   const renderStatusLine = (content: string, fg = '#8fa1b5') => {
+    if (disposed) return
     statusLine = { content, fg }
     void (async () => {
       await initialize()
       const activeRenderer = renderer
-      if (!activeRenderer || !statusLine) return
+      if (!activeRenderer || !statusLine || disposed) return
 
       const root = statusRoot ?? deps.createReactRoot(activeRenderer)
       statusRoot = root
@@ -261,22 +282,35 @@ function createOpenTuiRendererSessionWithDependencies(deps: OpenTuiSessionDepend
   }
 
   const dispose = async () => {
+    disposed = true
     clearStatusLine()
     promptRender = undefined
     promptRoot?.unmount()
     promptRoot = undefined
-    if (!renderer) return
-
-    if (!renderer.isDestroyed) {
-      renderer.currentRenderBuffer.clear()
-      renderer.nextRenderBuffer.clear()
-      renderer.requestRender()
-      await renderer.idle()
+    if (!renderer) {
+      forceRestoreShellTerminalModes()
+      return
     }
 
-    if (!renderer.isDestroyed) renderer.destroy()
-    renderer = undefined
-    initializePromise = undefined
+    try {
+      if (!renderer.isDestroyed) {
+        try {
+          renderer.suspend()
+        } catch {
+          // Best-effort: suspend may throw if renderer is mid-shutdown.
+        }
+        renderer.currentRenderBuffer.clear()
+        renderer.nextRenderBuffer.clear()
+        renderer.requestRender()
+        await renderer.idle()
+      }
+
+      if (!renderer.isDestroyed) renderer.destroy()
+    } finally {
+      renderer = undefined
+      initializePromise = undefined
+      forceRestoreShellTerminalModes()
+    }
   }
 
   return {

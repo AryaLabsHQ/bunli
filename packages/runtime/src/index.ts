@@ -2,8 +2,10 @@
 export type { OpenTuiRendererOptions, TuiRenderOptions } from './options.js'
 
 export {
-  AppRuntimeProvider,
-  type AppRuntimeProviderProps,
+  RuntimeProvider,
+  useRuntime,
+  type RuntimeContextValue,
+  type RuntimeProviderProps,
   RouteStoreProvider,
   useRouteStore,
   createInitialRouteState,
@@ -75,3 +77,38 @@ export {
   type DialogProviderProps,
   type DialogRenderContext
 } from './components/index.js'
+
+export {
+  createPromptSession,
+  PromptCancelledError,
+  assertNotCancelled,
+  promptOrExit,
+  isCancel,
+  CANCEL,
+  text,
+  password,
+  confirm,
+  select,
+  multiselect,
+  group,
+  intro,
+  outro,
+  note,
+  log,
+  cancel,
+  rawSpinner,
+  type Cancel,
+  type PromptMode,
+  type PromptOptions,
+  type ConfirmOptions,
+  type SelectOption,
+  type SelectOptions,
+  type MultiSelectOptions,
+  type SpinnerAnimation,
+  type SpinnerOptions,
+  type Spinner,
+  type PromptApi,
+  type PromptSession,
+  type PromptSpinnerFactory,
+  type BunliPrompt
+} from './prompt/index.js'
