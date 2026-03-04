@@ -1,5 +1,12 @@
 # @bunli/tui
 
+## 0.5.2
+
+### Patch Changes
+
+- Updated dependencies [cd1d24d]
+  - @bunli/runtime@0.2.0
+
 ## 0.5.1
 
 ### Patch Changes
