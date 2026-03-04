@@ -22,19 +22,27 @@ function isPackageResolvable(packageName: string): boolean {
   }
 }
 
-function toOpenTuiPlatformPackage(platform: string): string {
-  const normalizedPlatform = platform.startsWith('windows-')
-    ? platform.replace('windows-', 'win32-')
-    : platform
-  return `@opentui/core-${normalizedPlatform}`
+function parseTargetPlatformPair(target: string): { os: string, cpu: string } | null {
+  const normalizedTarget = target.startsWith('bun-')
+    ? target.slice(4)
+    : target
+  const [rawOs, cpu] = normalizedTarget.split('-')
+  if (!rawOs || !cpu) return null
+
+  const os = rawOs === 'windows' ? 'win32' : rawOs
+  return { os, cpu }
 }
 
-function toInstallOverrideHint(platform: string): string | null {
-  const normalizedPlatform = platform.startsWith('windows-')
-    ? platform.replace('windows-', 'win32-')
-    : platform
-  const [os, cpu] = normalizedPlatform.split('-')
-  if (!os || !cpu) return null
+function toOpenTuiPlatformPackage(target: string): string | null {
+  const pair = parseTargetPlatformPair(target)
+  if (!pair) return null
+  return `@opentui/core-${pair.os}-${pair.cpu}`
+}
+
+function toInstallOverrideHint(target: string): string | null {
+  const pair = parseTargetPlatformPair(target)
+  if (!pair) return null
+  const { os, cpu } = pair
   return `bun install --os ${os} --cpu ${cpu}`
 }
 
@@ -192,6 +200,10 @@ async function runBuild(
             platform,
             packageName: toOpenTuiPlatformPackage(platform)
           }))
+          .filter(
+            (entry): entry is { platform: string, packageName: string } =>
+              Boolean(entry.packageName)
+          )
           .filter(({ packageName }) => !isPackageResolvable(packageName))
 
         if (missingOpenTuiTargets.length > 0) {

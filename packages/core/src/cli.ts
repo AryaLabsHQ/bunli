@@ -13,7 +13,7 @@ import { ConfigLoadError, ConfigNotFoundError, loadConfigResult } from './config
 import { parseArgs } from './parser.js'
 import { SchemaError, getDotPath } from '@standard-schema/utils'
 import { colors } from '@bunli/utils'
-import { PromptCancelledError, createPromptSession } from '@bunli/runtime'
+import { PromptCancelledError, createPromptSession } from '@bunli/runtime/prompt'
 import { PluginManager } from './plugin/manager.js'
 import type { BunliPlugin, MergeStores } from './plugin/types.js'
 import type { CommandContext } from './plugin/context.js'

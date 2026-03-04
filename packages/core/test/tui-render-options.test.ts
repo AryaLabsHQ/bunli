@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { createCLI } from '../src/cli.js'
-import { PromptCancelledError } from '@bunli/runtime'
+import { PromptCancelledError } from '@bunli/runtime/prompt'
 import type { TerminalInfo } from '../src/types.js'
 
 function interactiveTerminal(): TerminalInfo {
