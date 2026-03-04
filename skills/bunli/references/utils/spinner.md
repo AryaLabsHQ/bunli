@@ -3,7 +3,7 @@
 ## Import
 
 ```typescript
-import { spinner } from "@bunli/runtime/prompt"
+// spinner is provided via handler args by Bunli
 ```
 
 In command handlers, prefer injected spinner utilities:

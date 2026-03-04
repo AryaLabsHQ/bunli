@@ -51,18 +51,18 @@ const fields = await validateFields(
 
 ## Prompt APIs
 
-Use `@bunli/runtime/prompt` for prompt primitives and spinners:
+Use handler-injected prompt primitives and spinners (backed by `@bunli/runtime/prompt`):
 
 ```typescript
-import { prompt, spinner } from '@bunli/runtime/prompt'
+handler: async ({ prompt, spinner }) => {
+  const name = await prompt('Project name:')
+  const confirmed = await prompt.confirm('Continue?', { default: true })
+  prompt.intro('Setup')
+  prompt.outro('Done')
 
-const name = await prompt('Project name:')
-const confirmed = await prompt.confirm('Continue?', { default: true })
-prompt.intro('Setup')
-prompt.outro('Done')
-
-const spin = spinner('Loading...')
-spin.succeed('Done')
+  const spin = spinner('Loading...')
+  spin.succeed('Done')
+}
 ```
 
 ## License

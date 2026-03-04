@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from 'react'
 import type { SelectOption } from '@opentui/core'
 import { useFormField } from './form-context.js'
-import { useTuiTheme } from '@bunli/runtime'
+import { useTuiTheme } from '@bunli/runtime/app'
 
 export interface SelectFieldProps {
   label: string

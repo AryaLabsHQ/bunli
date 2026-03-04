@@ -237,17 +237,17 @@ const myPlugin = createPlugin({
 
 ### Using Prompts
 ```typescript
-import { prompt } from "@bunli/runtime/prompt"
-
-const name = await prompt("What is your name?")
-const proceed = await prompt.confirm("Continue?")
-const framework = await prompt.select("Choose framework", {
-  options: [
-    { label: "React", value: "react" },
-    { label: "Vue", value: "vue" },
-    { label: "Svelte", value: "svelte" }
-  ]
-})
+handler: async ({ prompt }) => {
+  const name = await prompt("What is your name?")
+  const proceed = await prompt.confirm("Continue?")
+  const framework = await prompt.select("Choose framework", {
+    options: [
+      { label: "React", value: "react" },
+      { label: "Vue", value: "vue" },
+      { label: "Svelte", value: "svelte" }
+    ]
+  })
+}
 ```
 
 ## Key Packages
@@ -294,7 +294,7 @@ Bunli uses **OpenTUI** as its terminal rendering engine. Understanding when to u
 ```typescript
 // Bunli TUI uses OpenTUI under the hood
 import { Form, SchemaForm } from "@bunli/tui"      // Bunli's React components
-import { prompt } from "@bunli/runtime/prompt"         // Prompt + spinner runtime
+// prompt is provided via handler args by Bunli         // Prompt + spinner runtime
 import { useTimeline } from "@bunli/tui"          // Re-exported from opentui
 
 // Drop down to OpenTUI for advanced control

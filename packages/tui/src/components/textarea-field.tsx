@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react'
 import type { TextareaRenderable } from '@opentui/core'
 import { useFormField } from './form-context.js'
-import { useTuiTheme } from '@bunli/runtime'
+import { useTuiTheme } from '@bunli/runtime/app'
 
 export interface TextareaFieldProps {
   label: string

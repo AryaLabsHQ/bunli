@@ -132,8 +132,8 @@ import { useKeyboard, useRenderer, useTerminalDimensions, useOnResize, useTimeli
 
 ## Runtime exports
 
-Import runtime providers and hooks from `@bunli/runtime`:
-- `AppRuntimeProvider`
+Import runtime providers and hooks from `@bunli/runtime/app`:
+- `RuntimeProvider`
 - `RouteStoreProvider`, `useRouteStore`
 - `CommandRegistryProvider`, `useCommandRegistry`, `useCommandRegistryItems`
 
@@ -180,4 +180,4 @@ Runtime notes:
 - Default `bufferMode` is `"standard"`.
 - Use `bufferMode: "alternate"` when you explicitly want fullscreen alternate-buffer rendering.
 - Per-command `tui.renderer.bufferMode` overrides global config.
-- `render` commands should call `renderer.destroy()` to exit cleanly.
+- `render` commands should call `useRuntime().exit()` to exit cleanly.

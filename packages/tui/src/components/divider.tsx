@@ -1,4 +1,4 @@
-import { useTuiTheme } from '@bunli/runtime'
+import { useTuiTheme } from '@bunli/runtime/app'
 
 export interface DividerProps {
   width?: number

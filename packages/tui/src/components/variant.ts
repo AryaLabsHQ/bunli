@@ -1,4 +1,4 @@
-import type { TuiThemeTokens } from '@bunli/runtime'
+import type { TuiThemeTokens } from '@bunli/runtime/app'
 
 export type ComponentTone = 'default' | 'info' | 'accent' | 'success' | 'warning' | 'danger'
 export type ComponentSize = 'sm' | 'md' | 'lg'

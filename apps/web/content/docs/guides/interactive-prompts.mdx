@@ -82,7 +82,7 @@ const features = await prompt.multiselect('Features', {
 For richer TUI flows in `render()` paths, use `@bunli/tui/interactive` dialog primitives:
 
 ```tsx
-import { useDialogManager, DialogDismissedError } from '@bunli/runtime'
+import { useDialogManager, DialogDismissedError } from '@bunli/runtime/app'
 
 function DeployScreen() {
   const dialogs = useDialogManager()

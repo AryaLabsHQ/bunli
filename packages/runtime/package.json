@@ -9,6 +9,10 @@
       "types": "./dist/index.d.ts",
       "default": "./src/index.ts"
     },
+    "./app": {
+      "types": "./dist/app.d.ts",
+      "default": "./src/app.ts"
+    },
     "./renderer": {
       "types": "./dist/renderer.d.ts",
       "default": "./src/renderer.tsx"

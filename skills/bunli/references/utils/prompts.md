@@ -4,12 +4,16 @@
 
 ```typescript
 import {
-  prompt,
+  createPromptSession,
   PromptCancelledError,
   isCancel,
   assertNotCancelled,
   promptOrExit
 } from "@bunli/runtime/prompt"
+
+const session = createPromptSession()
+await session.initialize()
+const { prompt } = session
 ```
 
 In command handlers, prefer injected prompt utilities:

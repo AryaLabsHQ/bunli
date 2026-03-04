@@ -6,7 +6,7 @@ import {
   getSelectableIndices,
   getResolvedChooseIndex,
   getAdjacentSelectableIndex
-} from '@bunli/runtime'
+} from '@bunli/runtime/app'
 
 describe('@bunli/tui dialog manager', () => {
   test('sortDialogs orders by priority and insertion order', () => {

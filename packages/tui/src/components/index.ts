@@ -43,7 +43,7 @@ export {
   truncateEnd,
   padEndTo,
   formatFixedWidth
-} from '@bunli/runtime'
+} from '@bunli/runtime/app'
 
 export type {
   ThemeProviderProps,
@@ -54,7 +54,7 @@ export type {
   KeymapDefinition,
   KeyMatcher,
   TextOverflowMode
-} from '@bunli/runtime'
+} from '@bunli/runtime/app'
 
 export { useKeyboard, useRenderer, useTimeline, useOnResize, useTerminalDimensions } from '@opentui/react'
 export { bold, fg, italic, t, TextAttributes } from '@opentui/core'

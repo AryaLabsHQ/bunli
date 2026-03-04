@@ -1,8 +1,8 @@
 import { useId } from 'react'
-import { useScopedKeyboard } from '@bunli/runtime'
+import { useScopedKeyboard } from '@bunli/runtime/app'
 import { useFormField } from './form-context.js'
-import { createKeyMatcher } from '@bunli/runtime'
-import { useTuiTheme } from '@bunli/runtime'
+import { createKeyMatcher } from '@bunli/runtime/app'
+import { useTuiTheme } from '@bunli/runtime/app'
 
 export interface CheckboxFieldProps {
   label: string

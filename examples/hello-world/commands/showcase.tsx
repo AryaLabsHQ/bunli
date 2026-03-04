@@ -1,4 +1,5 @@
 import { defineCommand, option } from '@bunli/core'
+import { useRuntime } from '@bunli/runtime/app'
 import {
   Alert,
   Badge,
@@ -21,7 +22,6 @@ import {
   ThemeProvider,
   Toast,
   useKeyboard,
-  useRenderer,
   useTerminalDimensions
 } from '@bunli/tui/interactive'
 import {
@@ -31,7 +31,7 @@ import {
   useCommandRegistryItems,
   useDialogManager,
   useRouteStore
-} from '@bunli/runtime'
+} from '@bunli/runtime/app'
 import { BarChart, LineChart, Sparkline } from '@bunli/tui/charts'
 import type { ScrollBoxRenderable } from '@opentui/core'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -60,7 +60,7 @@ function isPrintableKey(name: string): boolean {
 }
 
 function ShowcaseScreen({ theme }: { theme: 'dark' | 'light' }) {
-  const renderer = useRenderer()
+  const runtime = useRuntime()
   const dialogs = useDialogManager()
   const registry = useCommandRegistry()
   const commandPaletteItems = useCommandRegistryItems()
@@ -205,7 +205,7 @@ function ShowcaseScreen({ theme }: { theme: 'dark' | 'light' }) {
         section: 'App',
         keybinds: ['ctrl+c'],
         run: () => {
-          if (!renderer.isDestroyed) renderer.destroy()
+          runtime.exit()
         }
       },
       {
@@ -314,7 +314,7 @@ function ShowcaseScreen({ theme }: { theme: 'dark' | 'light' }) {
     return () => {
       unregister()
     }
-  }, [canGoBack, focusRegion, goBack, navigate, openConfirmDialog, openEnvironmentPicker, registry, renderer])
+  }, [canGoBack, focusRegion, goBack, navigate, openConfirmDialog, openEnvironmentPicker, registry, runtime])
 
   useKeyboard((key) => {
     if (key.propagationStopped || isOverlayActive) return

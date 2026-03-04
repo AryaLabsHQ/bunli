@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
-import { useTuiTheme } from '@bunli/runtime'
-import { displayWidth, formatFixedWidth, type TextOverflowMode } from '@bunli/runtime'
+import { useTuiTheme } from '@bunli/runtime/app'
+import { displayWidth, formatFixedWidth, type TextOverflowMode } from '@bunli/runtime/app'
 
 export interface KeyValueItem {
   key: string

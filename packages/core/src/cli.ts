@@ -77,6 +77,15 @@ interface CreateCLIRuntimeDeps {
   getTerminalInfo?: () => TerminalInfo
 }
 
+const disableTerminalFocusReporting = () => {
+  if (!process.stdout.isTTY) return
+  try {
+    process.stdout.write('\x1b[?1004l')
+  } catch {
+    // Ignore terminal write failures during shutdown.
+  }
+}
+
 export async function createCLI<
   TPlugins extends readonly BunliPlugin[] = []
 >(
@@ -639,7 +648,11 @@ export async function createCLI<
     } finally {
       interruptLogger.debug('dispose promptSession command=%s', command.name)
       interruptController?.detach()
-      await promptSession?.dispose()
+      try {
+        await promptSession?.dispose()
+      } finally {
+        disableTerminalFocusReporting()
+      }
     }
   }
 
