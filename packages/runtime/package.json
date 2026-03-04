@@ -32,6 +32,10 @@
     "./transport": {
       "types": "./dist/transport.d.ts",
       "default": "./src/transport.ts"
+    },
+    "./image": {
+      "types": "./dist/image/index.d.ts",
+      "default": "./src/image/index.ts"
     }
   },
   "scripts": {
@@ -44,6 +48,7 @@
     "@opentui/react": "^0.1.84",
     "@standard-schema/spec": "^1.1.0",
     "@standard-schema/utils": "^0.3.0",
+    "better-result": "catalog:",
     "debug": "^4.4.3",
     "zod": "^4.3.6"
   },
