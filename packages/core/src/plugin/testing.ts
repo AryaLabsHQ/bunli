@@ -126,7 +126,8 @@ export async function testPluginHooks<TStore = {}>(
       },
       plugins: [],
       tui: {
-        renderer: {}
+        renderer: {},
+        image: {}
       }
     }
     try {

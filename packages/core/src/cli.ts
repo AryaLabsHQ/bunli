@@ -8,6 +8,7 @@ import type {
   TerminalInfo,
   RuntimeInfo
 } from './types.js'
+import type { ResolvedTuiImageOptions } from './types.js'
 import { bunliConfigStrictSchema, bunliConfigSchema } from './config.js'
 import { ConfigLoadError, ConfigNotFoundError, loadConfigResult } from './config-loader.js'
 import { parseArgs } from './parser.js'
@@ -22,6 +23,7 @@ import { loadGeneratedStores } from './generated.js'
 import { createLogger } from './utils/logger.js'
 import { createInterruptController, ProcessTerminatedError } from './runtime/interrupt-controller.js'
 import { runTuiRender } from './runtime/tui-render.js'
+import { resolveImageRenderMode } from '@bunli/runtime/image'
 import { Result, TaggedError } from 'better-result'
 import { validateValue } from './validation.js'
 
@@ -68,6 +70,49 @@ function resolveRendererOptions(
   return {
     ...merged,
     bufferMode: configuredBufferMode ?? 'standard'
+  }
+}
+
+function resolveImageOptions(
+  configured: Record<string, unknown> | undefined,
+  commandConfigured: Record<string, unknown> | undefined,
+  flagMode: unknown
+): ResolvedTuiImageOptions {
+  const merged = {
+    ...(configured ?? {}),
+    ...(commandConfigured ?? {})
+  }
+
+  const configuredMode =
+    (merged.mode === 'off' || merged.mode === 'auto' || merged.mode === 'on')
+      ? merged.mode
+      : undefined
+  const cliFlagMode =
+    (flagMode === 'off' || flagMode === 'auto' || flagMode === 'on')
+      ? flagMode
+      : undefined
+  const protocol =
+    (merged.protocol === 'auto' || merged.protocol === 'kitty')
+      ? merged.protocol
+      : 'auto'
+  const width =
+    (typeof merged.width === 'number' && Number.isFinite(merged.width) && merged.width > 0)
+      ? Math.floor(merged.width)
+      : undefined
+  const height =
+    (typeof merged.height === 'number' && Number.isFinite(merged.height) && merged.height > 0)
+      ? Math.floor(merged.height)
+      : undefined
+
+  return {
+    mode: resolveImageRenderMode({
+      flagMode: cliFlagMode,
+      configMode: configuredMode,
+      defaultMode: 'auto'
+    }),
+    protocol,
+    ...(width !== undefined ? { width } : {}),
+    ...(height !== undefined ? { height } : {})
   }
 }
 
@@ -544,6 +589,11 @@ export async function createCLI<
         (resolvedConfig.tui?.renderer ?? {}) as Record<string, unknown>,
         (command.tui?.renderer ?? {}) as Record<string, unknown>
       )
+      const imageOptions = resolveImageOptions(
+        (resolvedConfig.tui?.image ?? {}) as Record<string, unknown>,
+        (command.tui?.image ?? {}) as Record<string, unknown>,
+        parsed.flags['image-mode']
+      )
       const runtimeInfo: RuntimeInfo = {
         startTime: Date.now(),
         args: argv,
@@ -573,6 +623,7 @@ export async function createCLI<
             runtime: runtimeInfo,
             signal: interruptController.signal,
             rendererOptions,
+            image: imageOptions,
             ...(context ? { context } : {})
           })
           return
@@ -598,6 +649,7 @@ export async function createCLI<
           terminal: terminalInfo,
           runtime: runtimeInfo,
           signal: interruptController.signal,
+          image: imageOptions,
           ...(context ? { context } : {})
         })
       })()
