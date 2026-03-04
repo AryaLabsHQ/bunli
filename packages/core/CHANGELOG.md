@@ -1,5 +1,13 @@
 # @bunli/core
 
+## 0.8.2
+
+### Patch Changes
+
+- cd1d24d: add terminal image preview support via Kitty protocol with --image-mode flag and configurable options.
+- Updated dependencies [cd1d24d]
+  - @bunli/runtime@0.2.0
+
 ## 0.8.1
 
 ### Patch Changes
