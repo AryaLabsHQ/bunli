@@ -1,4 +1,5 @@
 import { defineCommand, option } from '@bunli/core'
+import { useRuntime } from '@bunli/runtime'
 import {
   Card,
   Container,
@@ -8,8 +9,7 @@ import {
   PasswordField,
   SectionHeader,
   ThemeProvider,
-  useKeyboard,
-  useRenderer
+  useKeyboard
 } from '@bunli/tui/interactive'
 import { useState } from 'react'
 import { z } from 'zod'
@@ -22,7 +22,7 @@ const credentialsSchema = z.object({
 })
 
 function PasswordScreen({ theme }: { theme: ThemeMode }) {
-  const renderer = useRenderer()
+  const runtime = useRuntime()
   const [status, setStatus] = useState('Fill both fields and press Enter (or Ctrl+S) to submit.')
   const [lastSubmitted, setLastSubmitted] = useState<{
     username: string
@@ -33,9 +33,7 @@ function PasswordScreen({ theme }: { theme: ThemeMode }) {
     if (key.ctrl || key.meta || key.option) return
     if (key.name !== 'q' && key.name !== 'escape') return
     key.stopPropagation?.()
-    if (!renderer.isDestroyed) {
-      renderer.destroy()
-    }
+    runtime.exit()
   })
 
   return (
@@ -61,7 +59,7 @@ function PasswordScreen({ theme }: { theme: ThemeMode }) {
               setStatus('Validation errors found. Fix highlighted fields.')
             }}
             onCancel={() => {
-              setStatus('Form cancelled.')
+              runtime.exit()
             }}
           >
             <Input

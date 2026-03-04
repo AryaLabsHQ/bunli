@@ -145,10 +145,10 @@ const command = defineCommand({
 })
 ```
 
-Bunli auto-wires the OpenTUI renderer runtime for `render` commands, and prompt/spinner APIs come from `@bunli/runtime/prompt`, so manual registration is not required.
+Bunli auto-wires the OpenTUI renderer runtime for `render` commands, and prompt/spinner APIs come from handler args backed by `@bunli/runtime`, so manual registration is not required.
 Buffer mode defaults to `standard`; use `tui.renderer.bufferMode: 'alternate'` when you explicitly want fullscreen alternate-buffer behavior.
 
-Render lifecycle: commands using `render` should call `renderer.destroy()` (for example on submit, cancel, or quit) so the command exits cleanly.
+Render lifecycle: commands using `render` should call `useRuntime().exit()` (for example on submit, cancel, or quit) so the command exits cleanly without directly owning renderer teardown.
 
 ### Plugin System
 Extend functionality with type-safe plugins:

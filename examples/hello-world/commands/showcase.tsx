@@ -1,4 +1,5 @@
 import { defineCommand, option } from '@bunli/core'
+import { useRuntime } from '@bunli/runtime'
 import {
   Alert,
   Badge,
@@ -21,7 +22,6 @@ import {
   ThemeProvider,
   Toast,
   useKeyboard,
-  useRenderer,
   useTerminalDimensions
 } from '@bunli/tui/interactive'
 import {
@@ -60,7 +60,7 @@ function isPrintableKey(name: string): boolean {
 }
 
 function ShowcaseScreen({ theme }: { theme: 'dark' | 'light' }) {
-  const renderer = useRenderer()
+  const runtime = useRuntime()
   const dialogs = useDialogManager()
   const registry = useCommandRegistry()
   const commandPaletteItems = useCommandRegistryItems()
@@ -205,7 +205,7 @@ function ShowcaseScreen({ theme }: { theme: 'dark' | 'light' }) {
         section: 'App',
         keybinds: ['ctrl+c'],
         run: () => {
-          if (!renderer.isDestroyed) renderer.destroy()
+          runtime.exit()
         }
       },
       {
@@ -314,7 +314,7 @@ function ShowcaseScreen({ theme }: { theme: 'dark' | 'light' }) {
     return () => {
       unregister()
     }
-  }, [canGoBack, focusRegion, goBack, navigate, openConfirmDialog, openEnvironmentPicker, registry, renderer])
+  }, [canGoBack, focusRegion, goBack, navigate, openConfirmDialog, openEnvironmentPicker, registry, runtime])
 
   useKeyboard((key) => {
     if (key.propagationStopped || isOverlayActive) return
@@ -435,7 +435,7 @@ function ShowcaseScreen({ theme }: { theme: 'dark' | 'light' }) {
       { key: 'buffer mode', value: 'alternate (fullscreen)' },
       { key: 'focus strategy', value: 'scope stack + overlays' },
       { key: 'active region', value: activeRegion },
-      { key: 'prompt owner', value: isTiny ? 'runtime/prompt' : '@bunli/runtime/prompt' },
+      { key: 'prompt owner', value: isTiny ? 'runtime' : '@bunli/runtime' },
       { key: 'prompt stack', value: 'bunli runtime' }
     ],
     [activeRegion, isTiny, terminalHeight, terminalWidth]

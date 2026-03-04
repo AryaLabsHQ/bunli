@@ -1,5 +1,6 @@
 import { defineCommand, option } from '@bunli/core'
-import { ProgressBar, useKeyboard, useRenderer } from '@bunli/tui'
+import { useRuntime } from '@bunli/runtime'
+import { ProgressBar, useKeyboard } from '@bunli/tui'
 import { useEffect, useState } from 'react'
 import { z } from 'zod'
 
@@ -13,12 +14,10 @@ function GreetProgress({
   times: number
 }) {
   const [progress, setProgress] = useState(0)
-  const renderer = useRenderer()
+  const runtime = useRuntime()
 
   const closeTui = () => {
-    if (!renderer.isDestroyed) {
-      renderer.destroy()
-    }
+    runtime.exit()
   }
 
   useKeyboard((key) => {
@@ -42,7 +41,7 @@ function GreetProgress({
     if (progress < 100) return
     const timeout = setTimeout(() => closeTui(), 400)
     return () => clearTimeout(timeout)
-  }, [progress, renderer])
+  }, [progress, runtime])
 
   const greeting = `Hello, ${name}!`
   const message = loud ? greeting.toUpperCase() : greeting
