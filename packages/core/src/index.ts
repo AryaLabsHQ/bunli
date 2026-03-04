@@ -22,6 +22,8 @@ export type {
   RenderArgs,
   RenderFunction,
   TuiRenderOptions,
+  TuiImageOptions,
+  ResolvedTuiImageOptions,
   Options,
   CLIOption,
   Group,

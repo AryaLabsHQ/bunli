@@ -13,6 +13,18 @@ describe('@bunli/runtime events/transport', () => {
     expect(parsed.success).toBe(true)
   })
 
+  test('validates image runtime events', () => {
+    const parsed = RuntimeEventSchema.safeParse({
+      type: 'runtime.image.render.result',
+      timestamp: Date.now(),
+      rendered: false,
+      protocol: 'none',
+      reason: 'capability-missing'
+    })
+
+    expect(parsed.success).toBe(true)
+  })
+
   test('emits validated events through transport', async () => {
     const sent: unknown[] = []
     const transport: RuntimeTransport = {

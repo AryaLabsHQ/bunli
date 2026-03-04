@@ -142,6 +142,97 @@ describe('TUI renderer option plumbing', () => {
     expect(capturedBufferMode).toBe('standard')
   })
 
+  test('core resolves image mode precedence: config default auto, command override, and --image-mode flag', async () => {
+    const captured: Array<{ mode: unknown; protocol: unknown; width: unknown; height: unknown }> = []
+
+    const cli = await createCLI({
+      name: 'test-cli',
+      version: '0.0.0',
+      plugins: [],
+      tui: {
+        renderer: {},
+        image: {
+          mode: 'on',
+          protocol: 'kitty',
+          width: 80
+        }
+      }
+    }, {
+      getTerminalInfo: interactiveTerminal,
+      runTuiRender: async (args) => {
+        captured.push({
+          mode: (args as { image?: Record<string, unknown> }).image?.mode,
+          protocol: (args as { image?: Record<string, unknown> }).image?.protocol,
+          width: (args as { image?: Record<string, unknown> }).image?.width,
+          height: (args as { image?: Record<string, unknown> }).image?.height
+        })
+      }
+    })
+
+    cli.command({
+      name: 'ui',
+      description: 'ui',
+      tui: {
+        image: {
+          mode: 'off',
+          height: 20
+        }
+      },
+      render: () => null
+    })
+
+    await cli.run(['ui'])
+    await cli.run(['ui', '--image-mode=auto'])
+
+    expect(captured).toHaveLength(2)
+    expect(captured[0]).toEqual({
+      mode: 'off',
+      protocol: 'kitty',
+      width: 80,
+      height: 20
+    })
+    expect(captured[1]).toEqual({
+      mode: 'auto',
+      protocol: 'kitty',
+      width: 80,
+      height: 20
+    })
+  })
+
+  test('handler receives resolved image options', async () => {
+    let capturedMode: unknown
+    let capturedProtocol: unknown
+
+    const cli = await createCLI({
+      name: 'test-cli',
+      version: '0.0.0',
+      plugins: [],
+      tui: {
+        renderer: {},
+        image: {
+          mode: 'auto',
+          protocol: 'kitty'
+        }
+      }
+    }, {
+      getTerminalInfo: nonInteractiveTerminal
+    })
+
+    cli.command({
+      name: 'status',
+      description: 'status',
+      handler: async (args) => {
+        capturedMode = args.image.mode
+        capturedProtocol = args.image.protocol
+      }
+    })
+
+    await cli.run(['status', '--image-mode=on'])
+
+    expect(capturedMode).toBe('on')
+    expect(capturedProtocol).toBe('kitty')
+  })
+
   test('non-interactive terminals fall back to handler when present', async () => {
     let renderCalled = false
     let handlerCalled = false

@@ -17,6 +17,7 @@ Use subpath imports:
 - `@bunli/runtime/options` - renderer option resolution
 - `@bunli/runtime/events` - zod runtime event contracts
 - `@bunli/runtime/transport` - runtime transport interfaces
+- `@bunli/runtime/image` - terminal image capability + render helpers
 
 The root `@bunli/runtime` export is intentionally minimal and non-authoritative.
 

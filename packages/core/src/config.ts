@@ -138,9 +138,16 @@ export const bunliConfigSchema = z.object({
   tui: z.object({
     renderer: z.object({
       bufferMode: z.enum(['alternate', 'standard']).optional()
-    }).catchall(z.unknown()).default({})
+    }).catchall(z.unknown()).default({}),
+    image: z.object({
+      mode: z.enum(['off', 'auto', 'on']).optional(),
+      protocol: z.enum(['auto', 'kitty']).optional(),
+      width: z.number().int().positive().optional(),
+      height: z.number().int().positive().optional()
+    }).default({})
   }).default({
-    renderer: {}
+    renderer: {},
+    image: {}
   })
 })
 
