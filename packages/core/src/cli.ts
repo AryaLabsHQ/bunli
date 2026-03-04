@@ -13,7 +13,7 @@ import { ConfigLoadError, ConfigNotFoundError, loadConfigResult } from './config
 import { parseArgs } from './parser.js'
 import { SchemaError, getDotPath } from '@standard-schema/utils'
 import { colors } from '@bunli/utils'
-import { PromptCancelledError, createPromptSession } from '@bunli/runtime/prompt'
+import { PromptCancelledError, createPromptSession } from '@bunli/runtime'
 import { PluginManager } from './plugin/manager.js'
 import type { BunliPlugin, MergeStores } from './plugin/types.js'
 import type { CommandContext } from './plugin/context.js'
@@ -75,6 +75,15 @@ interface CreateCLIRuntimeDeps {
   createPromptSession?: typeof createPromptSession
   runTuiRender?: typeof runTuiRender
   getTerminalInfo?: () => TerminalInfo
+}
+
+const disableTerminalFocusReporting = () => {
+  if (!process.stdout.isTTY) return
+  try {
+    process.stdout.write('\x1b[?1004l')
+  } catch {
+    // Ignore terminal write failures during shutdown.
+  }
 }
 
 export async function createCLI<
@@ -639,7 +648,11 @@ export async function createCLI<
     } finally {
       interruptLogger.debug('dispose promptSession command=%s', command.name)
       interruptController?.detach()
-      await promptSession?.dispose()
+      try {
+        await promptSession?.dispose()
+      } finally {
+        disableTerminalFocusReporting()
+      }
     }
   }
 

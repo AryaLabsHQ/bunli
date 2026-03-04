@@ -7,8 +7,42 @@ import { loadConfig } from '@bunli/core'
 import { findEntry } from '../utils/find-entry.js'
 import { $ } from 'bun'
 import path from 'node:path'
+import { createRequire } from 'node:module'
 import type { PromptSpinnerFactory } from '@bunli/core'
 import type { Colors } from '@bunli/utils'
+
+const requireFromBuild = createRequire(import.meta.url)
+
+function isPackageResolvable(packageName: string): boolean {
+  try {
+    requireFromBuild.resolve(`${packageName}/package.json`, { paths: [process.cwd()] })
+    return true
+  } catch {
+    return false
+  }
+}
+
+function toOpenTuiPlatformPackage(platform: string): string {
+  const normalizedPlatform = platform.startsWith('windows-')
+    ? platform.replace('windows-', 'win32-')
+    : platform
+  return `@opentui/core-${normalizedPlatform}`
+}
+
+function toInstallOverrideHint(platform: string): string | null {
+  const normalizedPlatform = platform.startsWith('windows-')
+    ? platform.replace('windows-', 'win32-')
+    : platform
+  const [os, cpu] = normalizedPlatform.split('-')
+  if (!os || !cpu) return null
+  return `bun install --os ${os} --cpu ${cpu}`
+}
+
+function renderShellFailureDetails(result: { stdout?: unknown; stderr?: unknown }): string {
+  const stderrText = String(result.stderr ?? '').trim()
+  const stdoutText = String(result.stdout ?? '').trim()
+  return [stderrText, stdoutText].filter(Boolean).join('\n')
+}
 
 
 const BuildCommandError = TaggedError('BuildCommandError')<{
@@ -152,6 +186,37 @@ async function runBuild(
         platformTargets = targets ?? []
       }
 
+      if (isPackageResolvable('@opentui/core')) {
+        const missingOpenTuiTargets = platformTargets
+          .map((platform) => ({
+            platform,
+            packageName: toOpenTuiPlatformPackage(platform)
+          }))
+          .filter(({ packageName }) => !isPackageResolvable(packageName))
+
+        if (missingOpenTuiTargets.length > 0) {
+          const installHints = Array.from(
+            new Set(
+              missingOpenTuiTargets
+                .map(({ platform }) => toInstallOverrideHint(platform))
+                .filter((hint): hint is string => Boolean(hint))
+            )
+          )
+
+          spin.fail('Build failed')
+          return failBuild(
+            [
+              'Missing OpenTUI platform runtime packages required for standalone compilation:',
+              ...missingOpenTuiTargets.map(({ packageName }) => `- ${packageName}`),
+              '',
+              'Install optional deps for the target architecture(s), for example:',
+              ...installHints.map((hint) => `- ${hint}`),
+              '- bun install --os \'*\' --cpu \'*\'  (CI/release builds targeting multiple platforms)'
+            ].join('\n')
+          )
+        }
+      }
+
       for (const platform of platformTargets) {
         spin.update(`Compiling for ${platform}...`)
         const shouldCreateSubdir = platformTargets.length > 1
@@ -181,9 +246,15 @@ async function runBuild(
           compileArgs.push('--external', extModule)
         }
 
-        const result = await $`bun ${compileArgs}`.quiet()
+        const result = await $`bun ${compileArgs}`.quiet().nothrow()
         if (result.exitCode !== 0) {
-          return failBuild(`Compilation failed for ${platform}`)
+          const detail = renderShellFailureDetails(result)
+          spin.fail('Build failed')
+          return failBuild(
+            detail.length > 0
+              ? `Compilation failed for ${platform}\n${detail}`
+              : `Compilation failed for ${platform}`
+          )
         }
       }
 
@@ -214,6 +285,7 @@ async function runBuild(
       })
 
       if (!result.success) {
+        spin.fail('Build failed')
         return failBuild(`Build failed: ${result.logs.join('\n')}`)
       }
 

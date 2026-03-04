@@ -1,4 +1,4 @@
-import { PromptCancelledError } from '@bunli/runtime/prompt'
+import { PromptCancelledError } from '@bunli/runtime'
 
 interface InterruptControllerOptions {
   onLog?: (message: string) => void
