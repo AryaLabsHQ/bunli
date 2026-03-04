@@ -4,6 +4,8 @@ export type {
   RuntimeRendererStartedEvent,
   RuntimeRendererMissingRenderEvent,
   RuntimeRendererDestroyedEvent,
+  RuntimeImageRenderAttemptEvent,
+  RuntimeImageRenderResultEvent,
   RuntimePromptStartedEvent,
   RuntimePromptCancelledEvent,
   RuntimeTransportErrorEvent,
