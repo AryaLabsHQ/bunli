@@ -1,5 +1,11 @@
 # @bunli/utils
 
+## 0.5.1
+
+### Patch Changes
+
+- b665389: rename useAppRuntime/AppRuntimeProvider to useRuntime/RuntimeProvider and update all usage/docs. Also harden OpenTUI teardown and improve bunli build target preflight/error output.
+
 ## 0.5.0
 
 ### Minor Changes
