@@ -51,8 +51,8 @@ interface HandlerArgs<TFlags, TStore, TCommandName> {
   shell: typeof Bun.$
   env: typeof process.env
   cwd: string
-  prompt: typeof import("@bunli/runtime/prompt").prompt
-  spinner: typeof import("@bunli/runtime/prompt").spinner
+  prompt: import("@bunli/runtime").PromptApi
+  spinner: import("@bunli/runtime").PromptSpinnerFactory
   colors: typeof import("@bunli/utils").colors
   terminal: TerminalInfo
   runtime: RuntimeInfo

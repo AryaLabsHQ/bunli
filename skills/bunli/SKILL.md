@@ -237,17 +237,17 @@ const myPlugin = createPlugin({
 
 ### Using Prompts
 ```typescript
-import { prompt } from "@bunli/runtime/prompt"
-
-const name = await prompt("What is your name?")
-const proceed = await prompt.confirm("Continue?")
-const framework = await prompt.select("Choose framework", {
-  options: [
-    { label: "React", value: "react" },
-    { label: "Vue", value: "vue" },
-    { label: "Svelte", value: "svelte" }
-  ]
-})
+handler: async ({ prompt }) => {
+  const name = await prompt("What is your name?")
+  const proceed = await prompt.confirm("Continue?")
+  const framework = await prompt.select("Choose framework", {
+    options: [
+      { label: "React", value: "react" },
+      { label: "Vue", value: "vue" },
+      { label: "Svelte", value: "svelte" }
+    ]
+  })
+}
 ```
 
 ## Key Packages
@@ -256,7 +256,7 @@ const framework = await prompt.select("Choose framework", {
 |---------|---------|
 | `@bunli/core` | CLI framework (defineCommand, option, createCLI) |
 | `@bunli/utils` | Colors and validation utilities |
-| `@bunli/runtime/prompt` | Prompt and spinner APIs |
+| `@bunli/runtime` | Prompt and spinner APIs |
 | `@bunli/tui` | Terminal UI components |
 | `bunli` | CLI for building CLIs |
 | `create-bunli` | Project scaffolding |
@@ -277,7 +277,7 @@ Bunli uses **OpenTUI** as its terminal rendering engine. Understanding when to u
 - Building CLI applications with commands and options
 - Plugin architecture (auth, config, completions)
 - Type-safe CLI with Zod validation
-- Interactive prompts via `@bunli/runtime/prompt`
+- Interactive prompts via `@bunli/runtime`
 - Bunli TUI components (`Form`, `SchemaForm`, `DataTable`, `ProgressBar`, and more)
 - Publishing CLI to npm
 
@@ -294,7 +294,7 @@ Bunli uses **OpenTUI** as its terminal rendering engine. Understanding when to u
 ```typescript
 // Bunli TUI uses OpenTUI under the hood
 import { Form, SchemaForm } from "@bunli/tui"      // Bunli's React components
-import { prompt } from "@bunli/runtime/prompt"         // Prompt + spinner runtime
+// prompt is provided via handler args by Bunli         // Prompt + spinner runtime
 import { useTimeline } from "@bunli/tui"          // Re-exported from opentui
 
 // Drop down to OpenTUI for advanced control
@@ -305,7 +305,7 @@ import { createCliRenderer } from "@opentui/core"
 **Package relationship:**
 - `@bunli/tui` wraps `@opentui/react`
 - Bunli auto-wires the OpenTUI renderer runtime for `render` commands
-- `@bunli/runtime/prompt` provides prompt + spinner APIs used in handlers
+- `@bunli/runtime` provides prompt + spinner APIs used in handlers
 - Bunli TUI hooks (`useKeyboard`, `useTimeline`) are re-exported from OpenTUI
 - Renderer options map to OpenTUI renderer settings
 
