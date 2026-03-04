@@ -18,12 +18,42 @@ export interface TuiRenderOptions {
   [key: string]: unknown
 }
 
+export interface TuiImageOptions {
+  /**
+   * Terminal image preview mode.
+   * - 'off': skip preview
+   * - 'auto': best-effort preview without hard failure
+   * - 'on': strict preview; downstream render failures should be treated as errors
+   */
+  mode?: 'off' | 'auto' | 'on'
+  /**
+   * Protocol preference for image previews.
+   * v1 supports 'kitty'; 'auto' delegates protocol selection to runtime capability detection.
+   */
+  protocol?: 'auto' | 'kitty'
+  /**
+   * Optional image width/height hints in terminal cells.
+   */
+  width?: number
+  height?: number
+}
+
+export interface ResolvedTuiImageOptions extends TuiImageOptions {
+  mode: 'off' | 'auto' | 'on'
+  protocol: 'auto' | 'kitty'
+}
+
 export interface CommandTuiOptions {
   /**
    * Command-level renderer overrides.
    * These merge on top of global `config.tui.renderer`.
    */
   renderer?: TuiRenderOptions
+  /**
+   * Command-level image preview overrides.
+   * These merge on top of global `config.tui.image`.
+   */
+  image?: TuiImageOptions
 }
 
 export interface RenderArgs<TFlags = Record<string, unknown>, TStore = {}> extends HandlerArgs<TFlags, TStore> {
@@ -146,6 +176,8 @@ export interface HandlerArgs<TFlags = Record<string, unknown>, TStore = {}, TCom
   runtime: RuntimeInfo
   // Cooperative cancellation signal for interrupt handling.
   signal: AbortSignal
+  // Resolved terminal image preview configuration.
+  image: ResolvedTuiImageOptions
 }
 
 export interface TerminalInfo {
