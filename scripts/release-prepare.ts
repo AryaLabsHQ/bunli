@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { $ } from 'bun'
-import * as p from '@bunli/runtime/prompt'
+import * as p from '@bunli/runtime'
 import { readdir, readFile, writeFile } from 'fs/promises'
 import { existsSync } from 'node:fs'
 import { join } from 'path'
