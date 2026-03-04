@@ -360,7 +360,11 @@ export async function testCommand(
         args: options.args || [],
         command: command.name
       },
-      signal: new AbortController().signal
+      signal: new AbortController().signal,
+      image: {
+        mode: 'auto',
+        protocol: 'auto'
+      }
     }
     
     // Execute command handler
