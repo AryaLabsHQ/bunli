@@ -24,8 +24,11 @@ function inferMimeTypeFromPath(path: string): ImageMimeType | undefined {
 
 function mimeTypeToKittyFormat(mimeType: ImageMimeType): number {
   if (mimeType === 'image/png') return 100
-  if (mimeType === 'image/jpeg') return 24
-  return 32
+  throw new ImageRenderError({
+    message: `Unsupported image format for Kitty v1: ${mimeType}`,
+    code: 'unsupported-format',
+    protocol: 'kitty'
+  })
 }
 
 function throwIfAborted(signal: AbortSignal | undefined, protocol: ImageProtocol = 'none'): void {
@@ -90,9 +93,11 @@ async function writeKittyImage(
     const part = payload.slice(start, end)
     const hasMore = index < totalChunks - 1
 
-    const params = [`a=T`, `f=${format}`, `m=${hasMore ? 1 : 0}`]
-    if (options.width) params.push(`c=${options.width}`)
-    if (options.height) params.push(`r=${options.height}`)
+    const params = index === 0
+      ? [`a=T`, `f=${format}`, `m=${hasMore ? 1 : 0}`]
+      : [`m=${hasMore ? 1 : 0}`]
+    if (index === 0 && options.width) params.push(`c=${options.width}`)
+    if (index === 0 && options.height) params.push(`r=${options.height}`)
 
     const sequence = `\x1b_G${params.join(',')};${part}\x1b\\`
     bytesWritten += await writeStdout(options.stdout, sequence)
@@ -158,6 +163,15 @@ async function readInputBytes(input: RenderImageInput): Promise<{ bytes: Uint8Ar
       protocol: 'none'
     })
   }
+}
+
+function ensureSupportedMimeType(mimeType: ImageMimeType): void {
+  if (mimeType === 'image/png') return
+  throw new ImageRenderError({
+    message: `Unsupported image format for Kitty v1: ${mimeType}`,
+    code: 'unsupported-format',
+    protocol: 'kitty'
+  })
 }
 
 export async function renderImage(
@@ -250,6 +264,7 @@ export async function renderImage(
     const resolved = await readInputBytes(input)
     bytes = resolved.bytes
     mimeType = resolved.mimeType
+    ensureSupportedMimeType(mimeType)
   } catch (error) {
     if (error instanceof ImageRenderError) {
       return finalize({

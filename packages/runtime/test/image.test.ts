@@ -146,6 +146,86 @@ describe('@bunli/runtime renderImage', () => {
     expect(output()).toContain('\x1b_G')
   })
 
+  test('rejects non-png input in auto mode without throwing', async () => {
+    const { stdout } = createCaptureStdout(true)
+    const result = await renderImage(
+      {
+        kind: 'bytes',
+        bytes: new Uint8Array([0xff, 0xd8, 0xff, 0xe0]),
+        mimeType: 'image/jpeg'
+      },
+      {
+        mode: 'auto',
+        env: { TERM_PROGRAM: 'kitty', TERM: 'xterm-kitty' },
+        stdout
+      }
+    )
+
+    expect(result.rendered).toBe(false)
+    expect(result.reason).toBe('unsupported-format')
+  })
+
+  test('rejects non-png input in on mode with structured error', async () => {
+    const { stdout } = createCaptureStdout(true)
+    await expect(
+      renderImage(
+        {
+          kind: 'bytes',
+          bytes: new Uint8Array([0xff, 0xd8, 0xff, 0xe0]),
+          mimeType: 'image/jpeg'
+        },
+        {
+          mode: 'on',
+          env: { TERM_PROGRAM: 'kitty', TERM: 'xterm-kitty' },
+          stdout
+        }
+      )
+    ).rejects.toMatchObject({
+      name: 'ImageRenderError',
+      code: 'unsupported-format'
+    })
+  })
+
+  test('sends kitty metadata only on first chunk', async () => {
+    const { stdout, output } = createCaptureStdout(true)
+    const largePngBytes = new Uint8Array(4000)
+    largePngBytes.fill(1)
+
+    const result = await renderImage(
+      {
+        kind: 'bytes',
+        bytes: largePngBytes,
+        mimeType: 'image/png'
+      },
+      {
+        mode: 'on',
+        env: { TERM_PROGRAM: 'kitty', TERM: 'xterm-kitty' },
+        stdout,
+        width: 32,
+        height: 16
+      }
+    )
+
+    expect(result.rendered).toBe(true)
+
+    const chunks = output()
+      .split('\x1b_G')
+      .slice(1)
+      .map((segment) => segment.split(';')[0] ?? '')
+    expect(chunks.length).toBeGreaterThan(1)
+    expect(chunks[0]).toContain('a=T')
+    expect(chunks[0]).toContain('f=100')
+    expect(chunks[0]).toContain('c=32')
+    expect(chunks[0]).toContain('r=16')
+    for (let i = 1; i < chunks.length; i += 1) {
+      expect(chunks[i]).toMatch(/^m=[01]$/)
+      expect(chunks[i]).not.toContain('a=')
+      expect(chunks[i]).not.toContain('f=')
+      expect(chunks[i]).not.toContain('c=')
+      expect(chunks[i]).not.toContain('r=')
+    }
+  })
+
   test('aborted signals throw immediately', async () => {
     const { stdout } = createCaptureStdout(true)
     const controller = new AbortController()

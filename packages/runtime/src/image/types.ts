@@ -12,6 +12,7 @@ export type ImageRenderReason =
   | 'not-interactive'
   | 'capability-missing'
   | 'protocol-unsupported'
+  | 'unsupported-format'
   | 'aborted'
   | 'invalid-input'
   | 'io-error'
