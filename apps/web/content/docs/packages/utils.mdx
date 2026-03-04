@@ -11,7 +11,7 @@ import { Callout } from 'fumadocs-ui/components/callout';
 Shared utilities for building CLI applications. Includes colors and validation helpers.
 
 <Callout type="info">
-  Prompt primitives now live in `@bunli/runtime`.
+  Prompt primitives now live in `@bunli/runtime/prompt`.
 </Callout>
 
 ## Installation
@@ -40,7 +40,7 @@ Shared utilities for building CLI applications. Includes colors and validation h
 
 ## Prompts
 
-Prompt APIs are provided by `@bunli/runtime`:
+Prompt APIs are provided by `@bunli/runtime/prompt`:
 
 ```typescript
 // prompt is provided via handler args by Bunli
@@ -60,7 +60,7 @@ prompt.outro('Done')
 
 ## Spinners
 
-Progress indicators are provided via handler-injected `spinner` (backed by `@bunli/runtime`).
+Progress indicators are provided via handler-injected `spinner` (backed by `@bunli/runtime/prompt`).
 
 ### Basic Usage
 

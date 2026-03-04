@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { RuntimeProvider as RuntimeTestProvider } from '@bunli/runtime'
+import { RuntimeProvider as RuntimeTestProvider } from '@bunli/runtime/app'
 import { testRender } from '@opentui/react/test-utils'
 import { act, useEffect, useRef, type ReactNode } from 'react'
 import {
@@ -7,9 +7,9 @@ import {
   DialogProvider,
   useDialogManager,
   type DialogManager
-} from '@bunli/runtime'
-import { FocusScopeProvider } from '@bunli/runtime'
-import { OverlayHostProvider } from '@bunli/runtime'
+} from '@bunli/runtime/app'
+import { FocusScopeProvider } from '@bunli/runtime/app'
+import { OverlayHostProvider } from '@bunli/runtime/app'
 
 type TestSetup = Awaited<ReturnType<typeof testRender>>
 

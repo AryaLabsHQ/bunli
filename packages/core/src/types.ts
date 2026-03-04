@@ -33,8 +33,8 @@ export interface RenderArgs<TFlags = Record<string, unknown>, TStore = {}> exten
 
 export type RenderFunction<TFlags = Record<string, unknown>, TStore = {}> = (args: RenderArgs<TFlags, TStore>) => RenderResult
 
-export type PromptApi = import('@bunli/runtime').PromptApi
-export type PromptSpinnerFactory = import('@bunli/runtime').PromptSpinnerFactory
+export type PromptApi = import('@bunli/runtime/prompt').PromptApi
+export type PromptSpinnerFactory = import('@bunli/runtime/prompt').PromptSpinnerFactory
 
 // Core Bunli types
 /**

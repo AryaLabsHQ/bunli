@@ -1,5 +1,5 @@
 import { defineCommand, option } from '@bunli/core'
-import { useRuntime } from '@bunli/runtime'
+import { useRuntime } from '@bunli/runtime/app'
 import { ProgressBar, useKeyboard } from '@bunli/tui'
 import { useEffect, useState } from 'react'
 import { z } from 'zod'

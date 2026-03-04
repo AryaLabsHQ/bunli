@@ -87,7 +87,7 @@ handler: ({ flags, positional, shell, env, cwd, prompt, spinner, colors, termina
   // shell: Bun.$
   // env: process.env
   // cwd: current working directory
-  // prompt/spinner: @bunli/runtime APIs
+  // prompt/spinner: @bunli/runtime/prompt APIs
   // colors: @bunli/utils colors
   // terminal: width, height, isInteractive, isCI, supportsColor, supportsMouse
   // runtime: startTime, args, command

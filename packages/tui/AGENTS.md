@@ -5,7 +5,7 @@
 ## OVERVIEW
 
 Provides OpenTUI React components and UI primitives for Bunli.
-Runtime prompt/renderer wiring lives in `@bunli/runtime`.
+Runtime prompt/renderer wiring lives in `@bunli/runtime/prompt` and `@bunli/runtime/renderer`.
 
 ## WHERE TO LOOK
 
@@ -16,7 +16,7 @@ Runtime prompt/renderer wiring lives in `@bunli/runtime`.
 
 ## PATTERNS
 
-Use `@bunli/runtime` for prompt/spinner and render runtime APIs.
+Use `@bunli/runtime/prompt` for prompt/spinner and `@bunli/runtime/app` for shared runtime app primitives.
 `@bunli/tui` should stay focused on components/hooks/theming.
 
 ## EXPORTS

@@ -48,7 +48,7 @@ cli.command(myCommand)
 await cli.run()
 ```
 
-Bunli auto-wires the OpenTUI runtime. Runtime APIs now come from `@bunli/runtime`, while `@bunli/tui` focuses on UI components and hooks.
+Bunli auto-wires the OpenTUI runtime. Runtime/context APIs now come from `@bunli/runtime/app`, prompt/session APIs come from `@bunli/runtime/prompt`, and `@bunli/tui` focuses on UI components and hooks.
 
 ### TUI Execution Semantics
 
@@ -61,7 +61,7 @@ Bunli auto-wires the OpenTUI runtime. Runtime APIs now come from `@bunli/runtime
 Commands that use `render` must eventually call `useRuntime().exit()` (for example on submit/cancel/quit), or the command will not exit.
 
 ```typescript
-import { useRuntime } from '@bunli/runtime'
+import { useRuntime } from '@bunli/runtime/app'
 import { useKeyboard } from '@bunli/tui'
 
 function DeployTUI() {
@@ -109,7 +109,8 @@ Use subpath exports depending on mode:
 - `@bunli/tui/interactive`: alternate-buffer interactive components.
 - `@bunli/tui/charts`: terminal-native chart primitives.
 - `@bunli/tui`: root export that re-exports shared components/hooks.
-- `@bunli/runtime`: runtime lifecycle/context + prompt/session APIs.
+- `@bunli/runtime/app`: runtime lifecycle/context APIs.
+- `@bunli/runtime/prompt`: prompt/session APIs.
 
 ### Clack Migration Quick Map
 
@@ -168,7 +169,7 @@ export const myCommand = defineCommand({
 
 ```typescript
 import { defineCommand } from '@bunli/core'
-import { useRuntime } from '@bunli/runtime'
+import { useRuntime } from '@bunli/runtime/app'
 import { SchemaForm } from '@bunli/tui'
 import { z } from 'zod'
 
@@ -221,7 +222,7 @@ export const configureCommand = defineCommand({
 ### Using OpenTUI Hooks
 
 ```typescript
-import { useRuntime } from '@bunli/runtime'
+import { useRuntime } from '@bunli/runtime/app'
 import { useKeyboard, useTimeline, useTerminalDimensions } from '@bunli/tui'
 
 function InteractiveTUI({ command }) {
@@ -270,7 +271,7 @@ Included primitives:
 - Feedback: `Alert`, `Badge`, `Toast`, `ProgressBar`, `EmptyState`
 - Data display: `List`, `Table`, `DataTable`, `KeyValueList`, `Stat`, `Markdown`, `Diff`
 - Charts: `BarChart`, `LineChart`, `Sparkline` from `@bunli/tui/charts`
-- Runtime orchestration/hooks: import from `@bunli/runtime` (`DialogProvider`, `useDialogManager`, `FocusScopeProvider`, `useScopedKeyboard`, etc.)
+- Runtime orchestration/hooks: import from `@bunli/runtime/app` (`DialogProvider`, `useDialogManager`, `FocusScopeProvider`, `useScopedKeyboard`, etc.)
 
 ### Keyboard Contracts
 
@@ -290,7 +291,7 @@ Default keyboard bindings for interactive primitives:
 Use the dialog manager to stack confirm/choose flows with consistent priority handling and dismissal semantics.
 
 ```typescript
-import { useDialogManager, DialogDismissedError } from '@bunli/runtime'
+import { useDialogManager, DialogDismissedError } from '@bunli/runtime/app'
 
 function Screen() {
   const dialogs = useDialogManager()
@@ -513,7 +514,7 @@ The package re-exports useful OpenTUI React hooks:
 Handle keyboard events.
 
 ```typescript
-import { useRuntime } from '@bunli/runtime'
+import { useRuntime } from '@bunli/runtime/app'
 import { useKeyboard } from '@bunli/tui'
 
 const runtime = useRuntime()

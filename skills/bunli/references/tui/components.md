@@ -3,7 +3,7 @@
 ## Overview
 
 Bunli TUI provides React-based terminal UI components built on `@opentui/react`.
-Bunli auto-wires the OpenTUI renderer runtime for `render` commands, and prompt/spinner APIs are provided by `@bunli/runtime`, so no manual registration is required.
+Bunli auto-wires the OpenTUI renderer runtime for `render` commands, and prompt/spinner APIs are provided by `@bunli/runtime/prompt`, so no manual registration is required.
 
 ## Core components
 
@@ -132,7 +132,7 @@ import { useKeyboard, useRenderer, useTerminalDimensions, useOnResize, useTimeli
 
 ## Runtime exports
 
-Import runtime providers and hooks from `@bunli/runtime`:
+Import runtime providers and hooks from `@bunli/runtime/app`:
 - `RuntimeProvider`
 - `RouteStoreProvider`, `useRouteStore`
 - `CommandRegistryProvider`, `useCommandRegistry`, `useCommandRegistryItems`

@@ -5,7 +5,7 @@ import {
   applyReplace,
   canApplyBack,
   createInitialRouteState
-} from '@bunli/runtime'
+} from '@bunli/runtime/app'
 
 describe('@bunli/tui route store', () => {
   test('createInitialRouteState initializes route and history', () => {

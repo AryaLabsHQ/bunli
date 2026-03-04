@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import type { KeyEvent } from '@opentui/core'
-import { dispatchScopedKeyboardEvent } from '@bunli/runtime'
+import { dispatchScopedKeyboardEvent } from '@bunli/runtime/app'
 
 function createKey(name: string) {
   let defaultPrevented = false

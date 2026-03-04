@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import { useFormField } from './form-context.js'
-import { useTuiTheme } from '@bunli/runtime'
+import { useTuiTheme } from '@bunli/runtime/app'
 
 export interface FormFieldProps {
   label: string

@@ -5,7 +5,7 @@ export {
   promptOrExit,
   isCancel,
   CANCEL
-} from '@bunli/runtime'
+} from '@bunli/runtime/prompt'
 
 export type {
   PromptApi as InlinePromptApi,
@@ -13,4 +13,4 @@ export type {
   PromptSpinnerFactory as InlinePromptSpinnerFactory,
   Spinner as InlineSpinner,
   SpinnerOptions as InlineSpinnerOptions
-} from '@bunli/runtime'
+} from '@bunli/runtime/prompt'

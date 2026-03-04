@@ -44,7 +44,7 @@ interface SpinnerOptions {
 }
 ```
 
-`SpinnerAnimation` is exported from `@bunli/runtime`.
+`SpinnerAnimation` is exported from `@bunli/runtime/prompt`.
 
 ## Basic usage
 

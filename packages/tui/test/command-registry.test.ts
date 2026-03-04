@@ -3,7 +3,7 @@ import {
   commandToPaletteItem,
   normalizeBinding,
   shouldCleanupRegisteredCommand
-} from '@bunli/runtime'
+} from '@bunli/runtime/app'
 
 describe('@bunli/tui command registry', () => {
   test('normalizeBinding trims and lowercases keys', () => {

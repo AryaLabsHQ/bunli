@@ -1,5 +1,5 @@
 import { defineCommand, option } from '@bunli/core'
-import { useRuntime } from '@bunli/runtime'
+import { useRuntime } from '@bunli/runtime/app'
 import {
   Alert,
   Badge,
@@ -31,7 +31,7 @@ import {
   useCommandRegistryItems,
   useDialogManager,
   useRouteStore
-} from '@bunli/runtime'
+} from '@bunli/runtime/app'
 import { BarChart, LineChart, Sparkline } from '@bunli/tui/charts'
 import type { ScrollBoxRenderable } from '@opentui/core'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -435,7 +435,7 @@ function ShowcaseScreen({ theme }: { theme: 'dark' | 'light' }) {
       { key: 'buffer mode', value: 'alternate (fullscreen)' },
       { key: 'focus strategy', value: 'scope stack + overlays' },
       { key: 'active region', value: activeRegion },
-      { key: 'prompt owner', value: isTiny ? 'runtime' : '@bunli/runtime' },
+      { key: 'prompt owner', value: isTiny ? 'runtime/prompt' : '@bunli/runtime/prompt' },
       { key: 'prompt stack', value: 'bunli runtime' }
     ],
     [activeRegion, isTiny, terminalHeight, terminalWidth]

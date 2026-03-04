@@ -9,7 +9,7 @@ import {
   isCancel,
   assertNotCancelled,
   promptOrExit
-} from "@bunli/runtime"
+} from "@bunli/runtime/prompt"
 
 const session = createPromptSession()
 await session.initialize()

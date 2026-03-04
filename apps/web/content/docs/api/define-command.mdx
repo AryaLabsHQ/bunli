@@ -171,7 +171,7 @@ interface HandlerArgs<TFlags> {
   // Current working directory
   cwd: string
   
-  // Interactive prompts (from @bunli/runtime)
+  // Interactive prompts (from @bunli/runtime/prompt)
   prompt: {
     (message: string, options?: PromptOptions): Promise<string>
     confirm(message: string, options?: ConfirmOptions): Promise<boolean>

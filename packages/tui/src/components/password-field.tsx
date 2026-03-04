@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react'
 import { useFormContext, useFormField } from './form-context.js'
-import { useScopedKeyboard } from '@bunli/runtime'
-import { useTuiTheme } from '@bunli/runtime'
+import { useScopedKeyboard } from '@bunli/runtime/app'
+import { useTuiTheme } from '@bunli/runtime/app'
 
 export interface PasswordFieldProps {
   label: string

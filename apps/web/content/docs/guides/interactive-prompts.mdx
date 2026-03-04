@@ -12,7 +12,7 @@ Create engaging CLI experiences with interactive prompts, confirmations, and sel
 Bunli provides several built-in prompt utilities through the handler context:
 
 ```typescript
-import { PromptCancelledError } from '@bunli/runtime'
+import { PromptCancelledError } from '@bunli/runtime/prompt'
 
 export default defineCommand({
   handler: async ({ prompt }) => {
@@ -36,7 +36,7 @@ export default defineCommand({
 })
 ```
 
-Bunli prompt primitives are provided by `@bunli/runtime`, and the handler `prompt` utility exposes lifecycle helpers like `intro/outro/note/cancel`:
+Bunli prompt primitives are provided by `@bunli/runtime/prompt`, and the handler `prompt` utility exposes lifecycle helpers like `intro/outro/note/cancel`:
 
 ```typescript
 export default defineCommand({
@@ -53,7 +53,7 @@ export default defineCommand({
 If you're migrating from `@clack/prompts`, use this quick mapping:
 
 ```typescript
-// clack mental model -> @bunli/runtime
+// clack mental model -> @bunli/runtime/prompt
 intro('Setup')                     // -> prompt.intro('Setup')
 outro('Done')                      // -> prompt.outro('Done')
 log.info('message')                // -> prompt.log.info('message')
@@ -82,7 +82,7 @@ const features = await prompt.multiselect('Features', {
 For richer TUI flows in `render()` paths, use `@bunli/tui/interactive` dialog primitives:
 
 ```tsx
-import { useDialogManager, DialogDismissedError } from '@bunli/runtime'
+import { useDialogManager, DialogDismissedError } from '@bunli/runtime/app'
 
 function DeployScreen() {
   const dialogs = useDialogManager()

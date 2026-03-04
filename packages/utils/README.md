@@ -14,7 +14,7 @@ bun add @bunli/utils
 - terminal colors
 - schema validation helpers
 
-Prompt and spinner APIs were moved to `@bunli/runtime`.
+Prompt and spinner APIs were moved to `@bunli/runtime/prompt`.
 
 ## Usage
 
@@ -51,7 +51,7 @@ const fields = await validateFields(
 
 ## Prompt APIs
 
-Use handler-injected prompt primitives and spinners (backed by `@bunli/runtime`):
+Use handler-injected prompt primitives and spinners (backed by `@bunli/runtime/prompt`):
 
 ```typescript
 handler: async ({ prompt, spinner }) => {

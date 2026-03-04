@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import { FormContext, type FormFieldRegistration } from './form-context.js'
-import { useScopedKeyboard } from '@bunli/runtime'
+import { useScopedKeyboard } from '@bunli/runtime/app'
 import { validateFormValues, type FormErrors } from './form-engine.js'
-import { createKeyMatcher } from '@bunli/runtime'
-import { useTuiTheme } from '@bunli/runtime'
+import { createKeyMatcher } from '@bunli/runtime/app'
+import { useTuiTheme } from '@bunli/runtime/app'
 
 export interface FormProps<TSchema extends StandardSchemaV1 = StandardSchemaV1> {
   title: string
