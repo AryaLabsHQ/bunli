@@ -3,7 +3,7 @@ import { CliRenderEvents } from '@opentui/core'
 import { createRoot } from '@opentui/react'
 import type { ReactElement } from 'react'
 import { resolveOpenTuiRendererOptions, type TuiRenderOptions } from './options.js'
-import { AppRuntimeProvider } from './runtime/app-runtime.js'
+import { RuntimeProvider } from './runtime/app-runtime.js'
 import { emitRuntimeEvent, type RuntimeTransport } from './transport.js'
 
 export interface RunTuiRenderArgs {
@@ -15,21 +15,13 @@ export interface RunTuiRenderArgs {
   transport?: RuntimeTransport
 }
 
-interface RendererDependencies {
+export interface RendererDependencies {
   createRenderer: typeof createCliRenderer
   createReactRoot: typeof createRoot
   destroyEvent: string
 }
 
-function renderWithProviders(component: ReactElement) {
-  return (
-    <AppRuntimeProvider>
-      {component}
-    </AppRuntimeProvider>
-  )
-}
-
-async function runTuiRenderWithDependencies(
+export async function runTuiRenderWithDependencies(
   args: RunTuiRenderArgs,
   deps: RendererDependencies
 ): Promise<void> {
@@ -51,18 +43,33 @@ async function runTuiRenderWithDependencies(
   })
 
   const renderer = await deps.createRenderer(resolvedOptions)
+  let root: ReturnType<typeof createRoot> | undefined
+
+  const destroyRenderer = () => {
+    if (renderer.isDestroyed) return
+    renderer.destroy()
+  }
 
   try {
     const done = new Promise<void>((resolve) => {
       renderer.once(deps.destroyEvent, () => resolve())
     })
 
-    const root = deps.createReactRoot(renderer)
-    root.render(renderWithProviders(component as ReactElement))
+    const requestExit = () => {
+      destroyRenderer()
+    }
+
+    root = deps.createReactRoot(renderer)
+    root.render(
+      <RuntimeProvider onExit={requestExit}>
+        {component as ReactElement}
+      </RuntimeProvider>
+    )
 
     await done
   } finally {
-    renderer.destroy()
+    root?.unmount()
+    destroyRenderer()
     void emitRuntimeEvent(args.transport, {
       type: 'runtime.renderer.destroyed',
       timestamp: Date.now()
@@ -76,8 +83,4 @@ export async function runTuiRender(args: RunTuiRenderArgs): Promise<void> {
     createReactRoot: createRoot,
     destroyEvent: CliRenderEvents.DESTROY
   })
-}
-
-export const __rendererInternalsForTests = {
-  runTuiRenderWithDependencies
 }

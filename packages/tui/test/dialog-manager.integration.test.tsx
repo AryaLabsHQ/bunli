@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { AppRuntimeProvider as RuntimeAppRuntimeProvider } from '@bunli/runtime'
+import { RuntimeProvider as RuntimeTestProvider } from '@bunli/runtime'
 import { testRender } from '@opentui/react/test-utils'
 import { act, useEffect, useRef, type ReactNode } from 'react'
 import {
@@ -43,7 +43,7 @@ function withProviders(node: ReactNode) {
 }
 
 function withRuntimeProvider(node: ReactNode) {
-  return <RuntimeAppRuntimeProvider>{node}</RuntimeAppRuntimeProvider>
+  return <RuntimeTestProvider>{node}</RuntimeTestProvider>
 }
 
 async function setup(node: ReactNode, wrap = withProviders): Promise<TestSetup> {
@@ -76,7 +76,7 @@ afterEach(async () => {
 })
 
 describe('@bunli/tui dialog manager integration', () => {
-  test('runtime AppRuntimeProvider can drive @bunli/tui useDialogManager without context mismatch', async () => {
+  test('runtime RuntimeProvider can drive @bunli/tui useDialogManager without context mismatch', async () => {
     let hasManager = false
 
     function Harness() {

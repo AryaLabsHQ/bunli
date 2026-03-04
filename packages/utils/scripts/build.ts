@@ -13,7 +13,7 @@ for (const entry of entrypoints) {
     outdir: './dist',
     target: 'bun',
     format: 'esm',
-    external: ['bun', '@bunli/tui', '@bunli/runtime', '@bunli/runtime/prompt']
+    external: ['bun', '@bunli/tui', '@bunli/runtime']
   })
 }
 

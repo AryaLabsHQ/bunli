@@ -1642,7 +1642,7 @@ export interface Spinner {
   update(text: string): void
 }
 
-export function spinner(options?: SpinnerOptions | string): Spinner {
+function spinner(options?: SpinnerOptions | string): Spinner {
   const config: SpinnerOptions =
     typeof options === 'string'
       ? { text: options }
@@ -1715,7 +1715,7 @@ export function spinner(options?: SpinnerOptions | string): Spinner {
 export interface PromptSession {
   initialize: () => Promise<void>
   prompt: PromptApi
-  spinner: typeof spinner
+  spinner: PromptSpinnerFactory
   dispose: () => Promise<void>
 }
 
@@ -1734,6 +1734,8 @@ export function createPromptSession(): PromptSession {
   const rendererSession: OpenTuiRendererSession = createOpenTuiRendererSession()
   const flushHistory = () => rendererSession.flushHistoryToStdout()
   const appendHistory = (lines: string[]) => rendererSession.appendHistoryLines(lines)
+  let disposed = false
+  const spinnerDisposers = new Set<() => void>()
 
   const sessionText = async <T = string>(message: string, options: PromptOptions = {}): Promise<T> => {
     return runQueued(async () => {
@@ -1878,6 +1880,7 @@ export function createPromptSession(): PromptSession {
     let running = false
     let currentText = config.text ?? ''
     let startedAt = 0
+    let spinnerDisposed = false
 
     const elapsedSuffix = () =>
       config.showTimer && startedAt > 0
@@ -1891,17 +1894,26 @@ export function createPromptSession(): PromptSession {
     }
 
     const renderFrame = () => {
-      if (!running) return
+      if (!running || disposed || spinnerDisposed) return
       const frame = frames[frameIndex % frames.length] ?? '-'
       frameIndex += 1
       rendererSession.renderStatusLine(`${frame} ${currentText}${elapsedSuffix()}`, '#6ac4ff')
     }
 
+    const disposeSpinner = () => {
+      spinnerDisposed = true
+      running = false
+      stopTimer()
+    }
+    spinnerDisposers.add(disposeSpinner)
+
     const settle = (tone: 'success' | 'error' | 'warning' | 'info', text?: string) => {
       if (text !== undefined) currentText = text
       stopTimer()
       running = false
-      rendererSession.clearStatusLine()
+      if (!disposed && !spinnerDisposed) {
+        rendererSession.clearStatusLine()
+      }
 
       const value = `${currentText}${elapsedSuffix()}`
       if (!value.trim()) return
@@ -1919,6 +1931,7 @@ export function createPromptSession(): PromptSession {
 
     return {
       start(text) {
+        if (disposed || spinnerDisposed) return
         if (text !== undefined) currentText = text
         startedAt = Date.now()
         running = true
@@ -1933,6 +1946,7 @@ export function createPromptSession(): PromptSession {
         timer = setInterval(renderFrame, intervalMs)
       },
       stop(text) {
+        if (disposed || spinnerDisposed) return
         if (text !== undefined) currentText = text
         stopTimer()
         running = false
@@ -1954,6 +1968,7 @@ export function createPromptSession(): PromptSession {
         settle('info', text)
       },
       update(text) {
+        if (disposed || spinnerDisposed) return
         currentText = text
         if (!process.stdout.isTTY) {
           console.log(formatInfoLine(text))
@@ -2051,6 +2066,11 @@ export function createPromptSession(): PromptSession {
     spinner: sessionSpinner,
     async dispose() {
       await runQueued(async () => undefined)
+      disposed = true
+      for (const disposeSpinner of spinnerDisposers) {
+        disposeSpinner()
+      }
+      spinnerDisposers.clear()
       rendererSession.clearStatusLine()
       await rendererSession.dispose()
       flushHistory()
@@ -2072,23 +2092,8 @@ export interface PromptApi {
   log: typeof log
   cancel: typeof cancel
   isCancel: typeof isCancel
-  spinner: typeof spinner
+  spinner: PromptSpinnerFactory
 }
 
-export const prompt = Object.assign(text, {
-  confirm,
-  select,
-  multiselect,
-  password,
-  text,
-  group,
-  intro,
-  outro,
-  note,
-  log,
-  cancel,
-  isCancel,
-  spinner
-}) as PromptApi
-
 export type BunliPrompt = PromptApi
+export type PromptSpinnerFactory = (options?: SpinnerOptions | string) => Spinner

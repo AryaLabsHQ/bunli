@@ -12,7 +12,7 @@ bun add @bunli/runtime react
 
 Use subpath imports:
 - `@bunli/runtime/renderer` - render runner
-- `@bunli/runtime/prompt` - prompt + spinner runtime
+- `@bunli/runtime` - canonical runtime surface (prompt/session APIs, runtime context, components, theming)
 - `@bunli/runtime/options` - renderer option resolution
 - `@bunli/runtime/events` - zod runtime event contracts
 - `@bunli/runtime/transport` - runtime transport interfaces

@@ -1,11 +1,16 @@
 export {
-  intro,
-  outro,
-  note,
-  log,
-  cancel,
+  createPromptSession,
+  PromptCancelledError,
+  assertNotCancelled,
+  promptOrExit,
   isCancel,
-  spinner
-} from '@bunli/runtime/prompt'
+  CANCEL
+} from '@bunli/runtime'
 
-export type { Spinner as InlineSpinner } from '@bunli/runtime/prompt'
+export type {
+  PromptApi as InlinePromptApi,
+  PromptSession as InlinePromptSession,
+  PromptSpinnerFactory as InlinePromptSpinnerFactory,
+  Spinner as InlineSpinner,
+  SpinnerOptions as InlineSpinnerOptions
+} from '@bunli/runtime'
