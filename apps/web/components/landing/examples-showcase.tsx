@@ -39,11 +39,11 @@ export default defineCommand({
   prompts: {
     title: 'Interactive Prompts',
     code: `import { defineCommand } from '@bunli/core'
-import { prompt } from '@bunli/runtime/prompt'
+// prompt is provided via handler args by Bunli
 
 export default defineCommand({
   name: 'init',
-  handler: async () => {
+  handler: async ({ prompt }) => {
     const name = await prompt('Project name:', {
       validate: (value) => value.length > 0
     })

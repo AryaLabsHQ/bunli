@@ -8,10 +8,10 @@ import { Callout } from 'fumadocs-ui/components/callout';
 
 # @bunli/utils
 
-Shared utilities for building CLI applications. Includes spinners, colors, and validation helpers.
+Shared utilities for building CLI applications. Includes colors and validation helpers.
 
 <Callout type="info">
-  Prompt primitives now live in `@bunli/runtime/prompt`.
+  Prompt primitives now live in `@bunli/runtime`.
 </Callout>
 
 ## Installation
@@ -40,10 +40,10 @@ Shared utilities for building CLI applications. Includes spinners, colors, and v
 
 ## Prompts
 
-Prompt APIs are provided by `@bunli/runtime/prompt`:
+Prompt APIs are provided by `@bunli/runtime`:
 
 ```typescript
-import { prompt } from '@bunli/runtime/prompt'
+// prompt is provided via handler args by Bunli
 
 const name = await prompt('What is your name?')
 const proceed = await prompt.confirm('Continue?', { default: true })
@@ -60,47 +60,49 @@ prompt.outro('Done')
 
 ## Spinners
 
-Beautiful progress indicators for long-running operations.
+Progress indicators are provided via handler-injected `spinner` (backed by `@bunli/runtime`).
 
 ### Basic Usage
 
 ```typescript
-import { spinner } from '@bunli/utils'
+handler: async ({ spinner }) => {
+  const spin = spinner('Loading...')
+  spin.start()
 
-const spin = spinner('Loading...')
-spin.start()
+  // Update message
+  spin.update('Processing files...')
 
-// Update message
-spin.update('Processing files...')
+  // Stop with success
+  spin.succeed('Done!')
 
-// Stop with success
-spin.succeed('Done!')
+  // Stop with failure
+  spin.fail('Failed to process')
 
-// Stop with failure
-spin.fail('Failed to process')
+  // Stop with warning
+  spin.warn('Completed with warnings')
 
-// Stop with warning
-spin.warn('Completed with warnings')
-
-// Just stop
-spin.stop()
+  // Just stop
+  spin.stop()
+}
 ```
 
 ### Spinner Patterns
 
 ```typescript
 // With async operation
-const spin = spinner('Downloading...')
-spin.start()
-try {
-  await downloadFile()
-  spin.succeed('Download complete')
-} catch (error) {
-  spin.fail(`Download failed: ${error.message}`)
+handler: async ({ spinner }) => {
+  const spin = spinner('Downloading...')
+  spin.start()
+  try {
+    await downloadFile()
+    spin.succeed('Download complete')
+  } catch (error) {
+    spin.fail(`Download failed: ${error.message}`)
+  }
 }
 
 // Multiple steps
-async function deploy() {
+async function deploy(spinner) {
   const spin = spinner('Deploying application...')
   spin.start()
   
@@ -117,8 +119,11 @@ async function deploy() {
 }
 
 // Info and warning states
-spin.info('Configuration loaded')
-spin.warn('Using default settings')
+handler: async ({ spinner }) => {
+  const spin = spinner('Initializing...')
+  spin.info('Configuration loaded')
+  spin.warn('Using default settings')
+}
 ```
 
 ## Colors

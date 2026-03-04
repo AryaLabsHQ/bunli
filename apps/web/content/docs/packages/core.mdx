@@ -187,8 +187,8 @@ interface HandlerArgs<T> {
   cwd: string
   
   // Utility functions auto-injected by Bunli
-  prompt: typeof import('@bunli/runtime/prompt').prompt
-  spinner: typeof import('@bunli/runtime/prompt').spinner
+  prompt: import('@bunli/runtime').PromptApi
+  spinner: import('@bunli/runtime').PromptSpinnerFactory
   colors: typeof import('@bunli/utils').colors
   
   // Plugin context (when using plugins)
