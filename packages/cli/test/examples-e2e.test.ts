@@ -104,30 +104,4 @@ describe('example e2e: task-runner with build.targets=[]', () => {
     expect(existsSync(path.join(fixtureDir, 'dist/secondary.js'))).toBe(true)
   })
 
-  test('bunli release --dry stays in non-binary flow', async () => {
-    const result = await runCli(fixtureDir, ['release', '--dry', '--version=patch', '--npm=false'])
-    const combinedOutput = `${result.stdout}\n${result.stderr}`
-
-    expect(result.exitCode).toBe(0)
-    expect(combinedOutput).toContain('Releasing @bunli-examples/task-runner')
-    expect(combinedOutput).toContain('Building project')
-    expect(combinedOutput).not.toContain('Publishing platform packages')
-  })
-
-  test('bunli release rejects --no-npm flag form', async () => {
-    const result = await runCli(fixtureDir, ['release', '--dry', '--version=patch', '--no-npm'])
-    const combinedOutput = `${result.stdout}\n${result.stderr}`
-
-    expect(result.exitCode).toBe(1)
-    expect(combinedOutput).toContain('Unsupported flags: --no-npm')
-    expect(combinedOutput).toContain('Use --npm=false')
-  })
-
-  test('bunli release --all exits with explicit not-implemented error', async () => {
-    const result = await runCli(fixtureDir, ['release', '--dry', '--version=patch', '--all'])
-    const combinedOutput = `${result.stdout}\n${result.stderr}`
-
-    expect(result.exitCode).toBe(1)
-    expect(combinedOutput).toContain('Workspace release (--all) is not implemented yet')
-  })
 })

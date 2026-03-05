@@ -1,6 +1,6 @@
 import type { Command, CLI } from '@bunli/core'
 import type { TestOptions, TestResult, MockHandlerArgs, ShellPromise } from './types.js'
-import { createCLI } from '@bunli/core'
+import { createCLI, validateValue } from '@bunli/core'
 
 export async function testCommand(
   command: Command<any>,
@@ -337,9 +337,25 @@ export async function testCommand(
   }
   
   try {
+    const rawFlags = options.flags || {}
+    const resolvedFlags: Record<string, unknown> = { ...rawFlags }
+
+    if (command.options) {
+      for (const [name, opt] of Object.entries(command.options)) {
+        const value = Object.prototype.hasOwnProperty.call(rawFlags, name)
+          ? rawFlags[name]
+          : undefined
+
+        resolvedFlags[name] = await validateValue(value, opt.schema, {
+          option: name,
+          command: command.name
+        })
+      }
+    }
+
     // Create handler args
     const handlerArgs: MockHandlerArgs = {
-      flags: options.flags || {},
+      flags: resolvedFlags,
       positional: options.args || [],
       env: { ...process.env, ...(options.env || {}) },
       cwd: options.cwd || process.cwd(),

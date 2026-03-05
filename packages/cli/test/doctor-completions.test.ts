@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import completionsDoctorCommand from '../src/commands/doctor/completions.js'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
+import { testCommand } from '../../test/src/index.ts'
 
 const repoRoot = path.resolve(import.meta.dir, '../../..')
 const tempBaseDir = path.join(repoRoot, '.tmp-bunli-doctor-e2e')
@@ -14,15 +15,6 @@ interface CliRunResult {
 
 async function runCli(cwd: string, args: string[]): Promise<CliRunResult> {
   const originalCwd = process.cwd()
-  const stdout: string[] = []
-  const stderr: string[] = []
-  const originalLog = console.log
-  const originalError = console.error
-
-  console.log = (...parts: unknown[]) => stdout.push(parts.map(String).join(' '))
-  console.error = (...parts: unknown[]) => stderr.push(parts.map(String).join(' '))
-
-  let exitCode = 0
   try {
     process.chdir(cwd)
     const normalizedArgs = args[0] === 'doctor' ? args.slice(1) : args
@@ -30,49 +22,24 @@ async function runCli(cwd: string, args: string[]): Promise<CliRunResult> {
       throw new Error(`Unsupported test command: ${normalizedArgs.join(' ')}`)
     }
 
-    const strict = normalizedArgs.includes('--strict')
+    const flags: Record<string, unknown> = {}
+    if (normalizedArgs.includes('--strict')) {
+      flags.strict = true
+    }
+
     const generatedPathIndex = normalizedArgs.findIndex((value) => value === '--generatedPath')
-    const generatedPath = generatedPathIndex >= 0
-      ? normalizedArgs[generatedPathIndex + 1] ?? './.bunli/commands.gen.ts'
-      : './.bunli/commands.gen.ts'
-
-    const commandLike = completionsDoctorCommand as unknown as {
-      handler?: (args: {
-        flags: { generatedPath: string, strict: boolean }
-        colors: {
-          green: (value: string) => string
-          yellow: (value: string) => string
-          red: (value: string) => string
-        }
-      }) => Promise<void>
+    if (generatedPathIndex >= 0) {
+      flags.generatedPath = normalizedArgs[generatedPathIndex + 1] ?? './.bunli/commands.gen.ts'
     }
 
-    if (typeof commandLike.handler !== 'function') {
-      throw new Error('Doctor completions command is missing a handler.')
-    }
-
-    await commandLike.handler({
-      flags: { generatedPath, strict },
-      colors: {
-        green: (value) => value,
-        yellow: (value) => value,
-        red: (value) => value
-      }
+    const result = await testCommand(completionsDoctorCommand, {
+      flags,
+      cwd,
     })
-  } catch (error) {
-    exitCode = 1
-    const message = error instanceof Error ? error.message : String(error)
-    stderr.push(`Error: ${message}`)
+
+    return result
   } finally {
     process.chdir(originalCwd)
-    console.log = originalLog
-    console.error = originalError
-  }
-
-  return {
-    exitCode,
-    stdout: stdout.join('\n'),
-    stderr: stderr.join('\n')
   }
 }
 
