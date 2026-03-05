@@ -261,12 +261,20 @@ bunli release --dry
 
 # Note: when npm publish is enabled, --dry executes npm publish in dry-run mode.
 
+# Ignore unfinished release state and start fresh
+bunli release --resume=false
+
 # Disable npm publish
 bunli release --npm=false
 
 # Create GitHub release entry
 bunli release --github=true
 ```
+
+Resumability:
+- Failed non-dry releases persist checkpoints at `.bunli/release-state.json`.
+- Subsequent `bunli release` runs auto-resume from the last incomplete step.
+- `--resume=false` starts a fresh release and ignores the checkpoint file.
 
 For stable, release-ready archives + `checksums.txt` and Homebrew automation, use the
 `bunli-releaser` GitHub Action instead of uploading `dist/` directly.

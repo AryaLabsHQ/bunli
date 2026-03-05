@@ -175,6 +175,9 @@ bunli release --version 2.0.0
 # Dry run
 bunli release --dry
 
+# Ignore unfinished release state and start fresh
+bunli release --resume=false
+
 # Disable npm publish explicitly
 bunli release --npm=false
 
@@ -187,12 +190,20 @@ Release options:
 - `--tag, -t` - Git tag format
 - `--npm` - Publish to npm (`--npm=false` to disable)
 - `--github` - Create GitHub release (`--github=true` to enable)
+- `--resume` - Resume unfinished release state (`--resume=false` to start fresh)
 - `--dry, -d` - Dry run (runs npm publish with `--dry-run` when npm publish is enabled)
 - `--all` - Workspace release mode (currently not implemented; exits with error)
 
 Note: `bunli release` supports npm package release flows, including binary package distribution via `release.binary`
 (`optionalDependencies` + shim launcher). For standalone GitHub release assets, checksums, and Homebrew automation,
 use the `bunli-releaser` GitHub Action.
+
+Resume behavior notes:
+- On failed non-dry runs, Bunli writes checkpoint state to `.bunli/release-state.json`.
+- Next `bunli release` auto-resumes from that state (with an interactive prompt in TTY shells).
+- Side-effectful steps (git tag/push, npm publish, GitHub release) are probed and skipped when already complete.
+- Successful release clears `.bunli/release-state.json`.
+- `--no-resume` is unsupported; use `--resume=false`.
 
 ### Build Options
 

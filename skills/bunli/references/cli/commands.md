@@ -102,12 +102,14 @@ Options:
 - `--tag` custom git tag format
 - `--npm` publish to npm
 - `--github` create GitHub release
+- `--resume` resume unfinished release state
 - `--dry` dry run
 - `--all` workspace release (currently not implemented)
 
 Behavior notes:
 - defaults resolve from config: `npm=true`, `github=false`, `tagFormat="v{{version}}"` unless overridden.
-- `--no-npm` and `--no-github` are treated as unsupported; use `--npm=false` / `--github=false` instead.
+- failed non-dry releases create `.bunli/release-state.json` and subsequent runs resume from it.
+- `--no-npm`, `--no-github`, and `--no-resume` are treated as unsupported; use `--npm=false` / `--github=false` / `--resume=false` instead.
 
 ## bunli init
 
