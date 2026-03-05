@@ -1,5 +1,11 @@
 # bunli
 
+## 0.8.2
+
+### Patch Changes
+
+- 14f51cf: feat(release): add resumable release support with checkpoint persistence
+
 ## 0.8.1
 
 ### Patch Changes
