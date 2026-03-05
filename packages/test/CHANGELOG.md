@@ -1,5 +1,11 @@
 # @bunli/test
 
+## 0.5.2
+
+### Patch Changes
+
+- be23d40: update test utilities
+
 ## 0.5.1
 
 ### Patch Changes
