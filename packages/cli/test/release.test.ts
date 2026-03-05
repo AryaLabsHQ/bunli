@@ -15,7 +15,8 @@ import {
   updatePackageVersion,
 } from '../src/commands/release.ts'
 import releaseCommand from '../src/commands/release.ts'
-import { testCommand, mockPromptResponses } from '@bunli/test'
+import { createInitialReleaseState, writeReleaseState } from '../src/utils/release-state.ts'
+import { testCommand, mockPromptResponses } from '../../test/src/index.ts'
 import type { PromptApi } from '@bunli/core'
 
 // ── Pure unit tests ──────────────────────────────────────────────────────────
@@ -411,6 +412,40 @@ describe('release command - dry run, default config', () => {
     expect(result.stdout).toContain('npmjs.com/package/test-cli')
     expect(result.exitCode).toBe(0)
   })
+
+  test('dry run ignores existing resume state', async () => {
+    const state = createInitialReleaseState({
+      packageName: 'test-cli',
+      targetVersion: '1.0.1',
+      tag: 'v1.0.1',
+      publishNpm: true,
+      publishGitHub: false,
+      binaryEnabled: false,
+      platforms: [],
+    })
+    await writeReleaseState(state)
+
+    const result = await testCommand(releaseCommand, { flags: { version: 'patch', dry: true } })
+    expect(result.stdout).toContain('Dry run ignores resume state')
+    expect(result.exitCode).toBe(0)
+  })
+
+  test('typed --resume=false skips dry-run resume-state notice', async () => {
+    const state = createInitialReleaseState({
+      packageName: 'test-cli',
+      targetVersion: '1.0.1',
+      tag: 'v1.0.1',
+      publishNpm: true,
+      publishGitHub: false,
+      binaryEnabled: false,
+      platforms: [],
+    })
+    await writeReleaseState(state)
+
+    const result = await testCommand(releaseCommand, { flags: { version: 'patch', dry: true, resume: false } })
+    expect(result.stdout).not.toContain('Dry run ignores resume state')
+    expect(result.exitCode).toBe(0)
+  })
 })
 
 // ── Dry run: npm:false in config ──────────────────────────────────────────────
@@ -603,6 +638,36 @@ describe('release command - unsupported workflows', () => {
     try {
       const result = await testCommand(releaseCommand, { flags: { version: 'patch', dry: true, all: true } })
       expect(result.stderr).toContain('Workspace release (--all) is not implemented yet')
+    } finally {
+      process.exit = originalExit
+    }
+  })
+
+  test('rejects legacy --no-npm flag form with typed-flag guidance', async () => {
+    const originalExit = process.exit
+    ;(process.exit as any) = (code: number) => { throw new Error(`EXIT:${code}`) }
+    try {
+      const result = await testCommand(releaseCommand, {
+        flags: { version: 'patch', dry: true },
+        args: ['--no-npm'],
+      })
+      expect(result.stderr).toContain('Unsupported flags: --no-npm')
+      expect(result.stderr).toContain('Use --npm=false, --github=false, or --resume=false')
+    } finally {
+      process.exit = originalExit
+    }
+  })
+
+  test('rejects legacy --no-resume flag form with typed-flag guidance', async () => {
+    const originalExit = process.exit
+    ;(process.exit as any) = (code: number) => { throw new Error(`EXIT:${code}`) }
+    try {
+      const result = await testCommand(releaseCommand, {
+        flags: { version: 'patch', dry: true },
+        args: ['--no-resume'],
+      })
+      expect(result.stderr).toContain('Unsupported flags: --no-resume')
+      expect(result.stderr).toContain('Use --npm=false, --github=false, or --resume=false')
     } finally {
       process.exit = originalExit
     }
