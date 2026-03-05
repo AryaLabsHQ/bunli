@@ -1,9 +1,9 @@
-import type { Command, CLI } from '@bunli/core'
+import type { Command, CLI, Options } from '@bunli/core'
 import type { TestOptions, TestResult, MockHandlerArgs, ShellPromise } from './types.js'
 import { createCLI, validateValue } from '@bunli/core'
 
-export async function testCommand(
-  command: Command<any>,
+export async function testCommand<TOptions extends Options = Options>(
+  command: Command<TOptions>,
   options: TestOptions = {}
 ): Promise<TestResult> {
   const startTime = performance.now()
@@ -340,8 +340,11 @@ export async function testCommand(
     const rawFlags = options.flags || {}
     const resolvedFlags: Record<string, unknown> = { ...rawFlags }
 
-    if (command.options) {
-      for (const [name, opt] of Object.entries(command.options)) {
+    const commandOptions = command.options
+    if (commandOptions) {
+      for (const name in commandOptions) {
+        const opt = commandOptions[name]
+        if (!opt) continue
         const value = Object.prototype.hasOwnProperty.call(rawFlags, name)
           ? rawFlags[name]
           : undefined
