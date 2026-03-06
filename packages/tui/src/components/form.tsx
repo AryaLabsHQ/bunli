@@ -308,7 +308,7 @@ export function Form<TSchema extends StandardSchemaV1>({
     }
   }, [activeFieldName, focusField, getErrorFields])
 
-  useScopedKeyboard(
+  const isActiveScope = useScopedKeyboard(
     keyboardScopeId,
     (key) => {
       if (formKeymap.match('cancel', key)) {
@@ -425,7 +425,7 @@ export function Form<TSchema extends StandardSchemaV1>({
         padding={2}
         style={{
           flexDirection: 'column',
-          borderColor: tokens.border,
+          borderColor: isActiveScope ? tokens.accent : tokens.border,
           backgroundColor: tokens.background
         }}
       >

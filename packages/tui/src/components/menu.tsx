@@ -89,9 +89,10 @@ export function Menu({
   }, [items, maxLineWidth])
   const clearLineWidth = useMemo(() => {
     if (boxed) return lineWidth
+    if (typeof maxLineWidth === 'number') return lineWidth
     const terminalWidth = process.stdout.columns ?? 80
     return Math.max(lineWidth, terminalWidth - 2)
-  }, [boxed, lineWidth])
+  }, [boxed, lineWidth, maxLineWidth])
 
   useEffect(() => {
     setIndex((prev) => {
@@ -170,9 +171,9 @@ export function Menu({
         : null}
       {items.map((item, itemIndex) => {
         const active = itemIndex === index
-        const prefix = active ? '>' : ' '
+        const prefix = active ? '>\u00a0' : '\u00a0\u00a0'
         const disabled = item.disabled ? ' [disabled]' : ''
-        const rawLine = `${prefix} ${item.label}${disabled}${item.description ? ` - ${item.description}` : ''}`
+        const rawLine = `${prefix}${item.label}${disabled}${item.description ? ` - ${item.description}` : ''}`
 
         return (
           <text
@@ -190,7 +191,15 @@ export function Menu({
   }
 
   return (
-    <box border padding={1} style={{ flexDirection: 'column', gap: 1, borderColor: tokens.border }}>
+    <box
+      border
+      padding={1}
+      style={{
+        flexDirection: 'column',
+        gap: 1,
+        borderColor: keyboardEnabled ? tokens.accent : tokens.border
+      }}
+    >
       {rows}
     </box>
   )

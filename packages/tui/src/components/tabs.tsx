@@ -84,7 +84,7 @@ export function Tabs({
           )
         })}
       </box>
-      <box border padding={1} style={{ borderColor: tokens.border }}>
+      <box border padding={1} style={{ borderColor: keyboardEnabled ? tokens.accent : tokens.border }}>
         {activeTab?.content ?? <text content="" />}
       </box>
     </box>

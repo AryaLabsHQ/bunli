@@ -100,9 +100,16 @@ export function PasswordField({
 
   return (
     <box style={{ flexDirection: 'column', marginBottom: 1, gap: 1 }}>
-      <text content={`${label}${required ? ' *' : ''}`} fg={tokens.textPrimary} />
+      <text
+        content={`${field.focused ? '>' : ' '} ${label}${required ? ' *' : ''}`}
+        fg={field.focused ? tokens.accent : tokens.textPrimary}
+      />
       {description ? <text content={description} fg={tokens.textMuted} /> : null}
-      <box border height={3} style={{ borderColor: field.error ? tokens.textDanger : tokens.borderMuted }}>
+      <box
+        border
+        height={3}
+        style={{ borderColor: field.error ? tokens.textDanger : field.focused ? tokens.accent : tokens.borderMuted }}
+      >
         <box style={{ backgroundColor: field.focused ? tokens.backgroundMuted : tokens.background }}>
           <text
             content={display}

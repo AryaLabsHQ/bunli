@@ -94,7 +94,15 @@ export function CommandPalette({
   )
 
   return (
-    <box border padding={1} style={{ flexDirection: 'column', gap: 1, borderColor: tokens.border }}>
+    <box
+      border
+      padding={1}
+      style={{
+        flexDirection: 'column',
+        gap: 1,
+        borderColor: keyboardEnabled ? tokens.accent : tokens.border
+      }}
+    >
       <input
         value={query}
         placeholder={placeholder}
