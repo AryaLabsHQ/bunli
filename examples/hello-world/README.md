@@ -1,6 +1,6 @@
 # Hello World - Bunli CLI
 
-The absolute simplest Bunli CLI example. Perfect for understanding the basics in under 30 seconds.
+The smallest Bunli example in the repo. It focuses on a single greeting command while still showing the `render` + `handler` dual-mode pattern.
 
 ## Quick Start
 
@@ -10,9 +10,6 @@ bun install
 
 # Run the CLI
 bun cli.ts greet --name "World" --loud
-bun cli.ts password-prompt
-bun cli.ts password
-bun cli.ts showcase
 
 # Or with short flags
 bun cli.ts greet -n "Bunli" -l -t 3
@@ -26,16 +23,7 @@ bun cli.ts greet -n "Bunli" -l -t 3
 - **Default values** and **short flags**
 - **Colored output** with built-in utilities
 - **OpenTUI integration** with `render` + `handler` command composition
-- **Standard-buffer password prompt demo** with `prompt.password`
-- **Password input demo** with `Form`, `Input`, and `PasswordField`
-- **Component library showcase** for `@bunli/tui/interactive` + `@bunli/tui/charts`
-
-Showcase controls (`bun cli.ts showcase`):
-- `q` or `Esc`: quit
-- `m`: toggle modal
-- `c`: open confirm dialog
-- `p`: open choose dialog
-- `t`: show toast
+- **Minimal fullscreen TUI flow** via the `greet` command progress render
 
 ## The Command
 
@@ -100,6 +88,8 @@ This example opts into fullscreen behavior with `bufferMode: 'alternate'`.
 
 Use `tui.renderer.bufferMode` globally, or `command.tui.renderer.bufferMode` per command, when you want explicit alternate-buffer rendering.
 
+For a dedicated catalog of `@bunli/tui` components and runtime recipes, use the `apps/tui-gallery` app and the `/docs/guides/tui-gallery` guide.
+
 ## Development
 
 ```bash
@@ -123,7 +113,7 @@ To add a new command:
 1. Create a new file in `commands/` (e.g., `commands/help.ts`)
 2. Define the command using `defineCommand`
 3. Export it as default
-4. Import and register it in `cli.ts` (see `showcase` command)
+4. Import and register it in `cli.ts`
 5. Run `bun run generate` to update types
 
 ## Next Steps
@@ -133,6 +123,8 @@ Ready for more? Try the **[task-runner](../task-runner/README.md)** example to l
 - Interactive prompts and wizards
 - Progress indicators and spinners
 - Real-world task automation
+
+For broader TUI exploration, open the **[TUI Gallery](../../apps/tui-gallery/README.md)** app.
 
 ## Project Structure
 
