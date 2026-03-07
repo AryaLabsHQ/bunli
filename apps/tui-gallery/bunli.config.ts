@@ -19,7 +19,9 @@ const config: BunliConfigInput = {
   },
   tui: {
     renderer: {
-      bufferMode: 'alternate'
+      bufferMode: 'alternate',
+      useMouse: true,
+      enableMouseMovement: true
     }
   }
 }
