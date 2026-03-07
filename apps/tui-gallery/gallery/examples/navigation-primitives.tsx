@@ -15,6 +15,8 @@ export function NavigationPrimitivesExample({
   previewWidth,
   stateKey
 }: GalleryRenderContext) {
+  const [lastAction, setLastAction] = useState('none')
+
   if (stateKey === 'tabs') {
     return (
       <Tabs
@@ -89,8 +91,6 @@ export function NavigationPrimitivesExample({
       />
     )
   }
-
-  const [lastAction, setLastAction] = useState('none')
 
   return (
     <Stack gap={1}>
