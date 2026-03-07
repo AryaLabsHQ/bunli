@@ -1,6 +1,5 @@
 {
   "lockfileVersion": 1,
-  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "bunli-monorepo",
@@ -324,7 +323,7 @@
     },
     "packages/tui": {
       "name": "@bunli/tui",
-      "version": "0.5.2",
+      "version": "0.5.3",
       "dependencies": {
         "@bunli/runtime": "workspace:^",
         "@opentui/core": "^0.1.84",
