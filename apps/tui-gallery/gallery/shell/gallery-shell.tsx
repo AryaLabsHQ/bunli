@@ -1,15 +1,19 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import type { ScrollBoxRenderable } from '@opentui/core'
 import { useRuntime } from '@bunli/runtime/app'
 import {
   Badge,
   Container,
   Divider,
   SectionHeader,
+  SidebarLayout,
   Stack,
   ThemeProvider,
   useKeyboard,
+  resolveSidebarLayoutMode,
   useTerminalDimensions
 } from '@bunli/tui/interactive'
+import type { SidebarLayoutPane } from '@bunli/tui/interactive'
 import { gallerySections } from '../registry/index.js'
 import {
   findCategory,
@@ -36,10 +40,73 @@ function cycleValue<T>(values: T[], current: T): T {
   return values[nextIndex] ?? current
 }
 
-function widthPresetColumns(preset: GalleryWidthPreset, terminalWidth: number): number {
-  if (preset === 'narrow') return Math.min(54, Math.max(36, terminalWidth - 18))
-  if (preset === 'wide') return Math.min(96, Math.max(52, terminalWidth - 10))
-  return Math.min(74, Math.max(44, terminalWidth - 14))
+function paneForFocus(region: GalleryFocusRegion): SidebarLayoutPane {
+  if (region === 'sections' || region === 'categories') return 'sidebar'
+  if (region === 'states') return 'inspector'
+  return 'content'
+}
+
+function focusForPane(current: GalleryFocusRegion, pane: SidebarLayoutPane): GalleryFocusRegion {
+  if (pane === 'sidebar') {
+    return current === 'sections' ? 'sections' : 'categories'
+  }
+
+  if (pane === 'inspector') {
+    return 'states'
+  }
+
+  return current === 'entries' ? 'entries' : 'preview'
+}
+
+function sidebarWidthForPreset(preset: GalleryWidthPreset) {
+  if (preset === 'wide') return 36
+  if (preset === 'narrow') return 28
+  return 32
+}
+
+function inspectorWidthForPreset(preset: GalleryWidthPreset) {
+  if (preset === 'wide') return 40
+  if (preset === 'narrow') return 32
+  return 36
+}
+
+function resolvePaneWidths(
+  preset: GalleryWidthPreset,
+  terminalWidth: number,
+  layoutMode: 'wide' | 'medium' | 'narrow'
+) {
+  const sidebarWidth = sidebarWidthForPreset(preset)
+  const inspectorWidth = inspectorWidthForPreset(preset)
+
+  if (layoutMode === 'narrow') {
+    const singlePaneWidth = Math.max(36, terminalWidth - 10)
+    return {
+      sidebarWidth,
+      inspectorWidth,
+      browseWidth: singlePaneWidth,
+      previewWidth: singlePaneWidth,
+      infoWidth: singlePaneWidth
+    }
+  }
+
+  if (layoutMode === 'medium') {
+    const mainPaneWidth = Math.max(42, terminalWidth - sidebarWidth - 10)
+    return {
+      sidebarWidth,
+      inspectorWidth,
+      browseWidth: sidebarWidth,
+      previewWidth: mainPaneWidth,
+      infoWidth: mainPaneWidth
+    }
+  }
+
+  return {
+    sidebarWidth,
+    inspectorWidth,
+    browseWidth: sidebarWidth,
+    previewWidth: Math.max(42, terminalWidth - sidebarWidth - inspectorWidth - 14),
+    infoWidth: inspectorWidth
+  }
 }
 
 function fallbackEntry(): GalleryEntry {
@@ -67,11 +134,14 @@ export function GalleryShell({
   initialEntryId
 }: GalleryShellProps) {
   const runtime = useRuntime()
-  const { width: terminalWidth = 140 } = useTerminalDimensions()
+  const { width: terminalWidth = 140, height: terminalHeight = 42 } = useTerminalDimensions()
   const [theme, setTheme] = useState<GalleryTheme>(initialTheme)
   const [widthPreset, setWidthPreset] = useState<GalleryWidthPreset>('standard')
   const [focusRegion, setFocusRegion] = useState<GalleryFocusRegion>('entries')
   const [previewFocusToken, setPreviewFocusToken] = useState(0)
+  const browseBodyRef = useRef<ScrollBoxRenderable | null>(null)
+  const previewBodyRef = useRef<ScrollBoxRenderable | null>(null)
+  const infoBodyRef = useRef<ScrollBoxRenderable | null>(null)
 
   const initialSelection = useMemo(
     () =>
@@ -124,6 +194,12 @@ export function GalleryShell({
     if (key.propagationStopped) {
       return
     }
+
+    const scrollTarget = focusRegion === 'sections' || focusRegion === 'categories'
+      ? browseBodyRef.current
+      : focusRegion === 'states'
+        ? infoBodyRef.current
+        : previewBodyRef.current
 
     if (key.ctrl && key.name === 'c') {
       key.stopPropagation?.()
@@ -182,21 +258,42 @@ export function GalleryShell({
       if (nextRegion === 'preview') {
         setPreviewFocusToken((current) => current + 1)
       }
+      return
+    }
+
+    if (scrollTarget && !key.meta && !key.option && key.name === 'pageup') {
+      key.stopPropagation?.()
+      scrollTarget.scrollBy(-1, 'viewport')
+      return
+    }
+
+    if (scrollTarget && !key.meta && !key.option && key.name === 'pagedown') {
+      key.stopPropagation?.()
+      scrollTarget.scrollBy(1, 'viewport')
+      return
+    }
+
+    if (scrollTarget && key.ctrl && key.name === 'u') {
+      key.stopPropagation?.()
+      scrollTarget.scrollBy(-0.5, 'viewport')
+      return
+    }
+
+    if (scrollTarget && key.ctrl && key.name === 'd') {
+      key.stopPropagation?.()
+      scrollTarget.scrollBy(0.5, 'viewport')
     }
   })
 
-  const isNarrow = terminalWidth < 132
-  const categoryWidth = isNarrow ? Math.max(28, terminalWidth - 6) : 28
-  const entryWidth = Math.max(36, terminalWidth - 6)
-  const infoWidth = isNarrow ? Math.max(36, terminalWidth - 6) : widthPreset === 'wide' ? 42 : 38
-  const availableDesktopPreviewWidth = Math.max(44, terminalWidth - categoryWidth - infoWidth - 16)
-  const previewWidth = isNarrow
-    ? widthPresetColumns(widthPreset, terminalWidth)
-    : widthPreset === 'narrow'
-      ? Math.max(44, availableDesktopPreviewWidth - 16)
-      : widthPreset === 'wide'
-        ? availableDesktopPreviewWidth
-        : Math.max(48, availableDesktopPreviewWidth - 8)
+  const shellHeight = Math.max(24, terminalHeight - 2)
+  const layoutMode = resolveSidebarLayoutMode(terminalWidth, 'auto', {
+    mediumMinWidth: 100,
+    wideMinWidth: 132
+  })
+  const paneWidths = resolvePaneWidths(widthPreset, terminalWidth, layoutMode)
+  const categoryWidth = paneWidths.browseWidth
+  const infoWidth = paneWidths.infoWidth
+  const previewWidth = paneWidths.previewWidth
 
   const stateOptions = activeEntry?.states ?? fallbackEntry().states
   const activeState = stateOptions.find((state) => state.key === stateKey) ?? stateOptions[0]
@@ -213,7 +310,12 @@ export function GalleryShell({
     stateKey
   }) ?? <text content='No preview available.' />
 
-  const handleSectionSelect = (nextSectionId: string) => {
+  useEffect(() => {
+    previewBodyRef.current?.scrollTo(0)
+    infoBodyRef.current?.scrollTo(0)
+  }, [entryId, stateKey])
+
+  const handleSectionChange = (nextSectionId: string) => {
     const nextSection = gallerySections.find((section) => section.id === nextSectionId)
     if (!nextSection) return
 
@@ -222,88 +324,88 @@ export function GalleryShell({
     setCategoryId(nextSelection.categoryId)
     setEntryId(nextSelection.entryId)
     setStateKey(firstStateKey(nextSection.categories[0]?.entries[0] ?? activeEntry ?? fallbackEntry()))
+  }
+
+  const handleSectionSelect = (nextSectionId: string) => {
+    handleSectionChange(nextSectionId)
     setFocusRegion('categories')
   }
 
-  const handleCategorySelect = (nextCategoryId: string) => {
+  const handleCategoryChange = (nextCategoryId: string) => {
     const nextCategory = activeSection?.categories.find((category) => category.id === nextCategoryId)
     if (!nextCategory) return
 
     setCategoryId(nextCategory.id)
     setEntryId(nextCategory.entries[0]?.id ?? '')
     setStateKey(firstStateKey(nextCategory.entries[0] ?? activeEntry ?? fallbackEntry()))
+  }
+
+  const handleCategorySelect = (nextCategoryId: string) => {
+    handleCategoryChange(nextCategoryId)
     setFocusRegion('entries')
   }
 
-  const handleEntrySelect = (nextEntryId: string) => {
+  const handleEntryChange = (nextEntryId: string) => {
     const nextEntry = activeCategory?.entries.find((entry) => entry.id === nextEntryId)
     if (!nextEntry) return
 
     setEntryId(nextEntry.id)
     setStateKey(firstStateKey(nextEntry))
+  }
+
+  const handleEntrySelect = (nextEntryId: string) => {
+    handleEntryChange(nextEntryId)
     setFocusRegion('preview')
     setPreviewFocusToken((current) => current + 1)
+  }
+
+  const handleStateChange = (nextStateKey: string) => {
+    setStateKey(nextStateKey)
   }
 
   const handleStateSelect = (nextStateKey: string) => {
-    setStateKey(nextStateKey)
+    handleStateChange(nextStateKey)
     setFocusRegion('preview')
     setPreviewFocusToken((current) => current + 1)
   }
 
-  const layout = (
-    <>
-      <SectionHeader
-        title='TUI Gallery'
-        subtitle='Component examples and runtime recipes for Bunli'
-        trailing={
-          <Stack direction='row' gap={1}>
-            <Badge label={theme} tone='accent' />
-            <Badge label={widthPreset} tone='default' />
-            <Badge label={focusRegion} tone='success' />
-          </Stack>
-        }
-      />
-      <Divider />
-      <text content='F1 sections · F2 categories · F3 entries · F4 preview · F5 states · Alt+T theme · Alt+W width · Ctrl+C quit' />
+  const activePane = paneForFocus(focusRegion)
 
-      {isNarrow ? (
-        <Stack gap={2}>
-          <BrowsePane
-            focusRegion={focusRegion}
-            sections={gallerySections}
-            activeSection={activeSection}
-            activeCategory={activeCategory}
-            categoryId={categoryId}
-            categoryWidth={categoryWidth}
-            entryWidth={entryWidth}
-            sectionId={sectionId}
-            onSectionSelect={handleSectionSelect}
-            onCategorySelect={handleCategorySelect}
-          />
-          <PreviewPane
-            activeCategory={activeCategory}
-            activeEntry={activeEntry}
-            entryId={entryId}
-            focusRegion={focusRegion}
-            previewNode={previewNode}
-            previewWidth={previewWidth}
-            summaryLine={summaryLine}
-            onEntrySelect={handleEntrySelect}
-          />
-          <InfoPane
-            activeEntry={activeEntry}
-            activeState={activeState}
-            focusRegion={focusRegion}
-            infoWidth={infoWidth}
-            stateKey={stateKey}
-            stateOptions={stateOptions}
-            onStateSelect={handleStateSelect}
-          />
-        </Stack>
-      ) : (
-        <Stack direction='row' gap={2}>
-          <box width={categoryWidth}>
+  return (
+    <ThemeProvider theme={theme}>
+      <Container border padding={1} style={{ height: shellHeight }}>
+        <SidebarLayout
+          mode='auto'
+          height='100%'
+          sidebarWidth={paneWidths.sidebarWidth}
+          inspectorWidth={paneWidths.inspectorWidth}
+          activePane={activePane}
+          onActivePaneChange={(pane) => {
+            setFocusRegion((current) => focusForPane(current, pane))
+          }}
+          paneLabels={{
+            sidebar: 'Browse',
+            content: 'Preview',
+            inspector: 'Info'
+          }}
+          header={(
+            <>
+              <SectionHeader
+                title='TUI Gallery'
+                subtitle='Component examples and runtime recipes for Bunli'
+                trailing={
+                  <Stack direction='row' gap={1}>
+                    <Badge label={theme} tone='accent' />
+                    <Badge label={widthPreset} tone='default' />
+                    <Badge label={focusRegion} tone='success' />
+                  </Stack>
+                }
+              />
+              <Divider />
+              <text content='F1 sections · F2 categories · F3 entries · F4 preview · F5 states · PgUp/PgDn scroll · Alt+T theme · Alt+W width · Ctrl+C quit' />
+            </>
+          )}
+          sidebar={(
             <BrowsePane
               focusRegion={focusRegion}
               sections={gallerySections}
@@ -311,46 +413,53 @@ export function GalleryShell({
               activeCategory={activeCategory}
               categoryId={categoryId}
               categoryWidth={categoryWidth}
-              entryWidth={categoryWidth - 6}
+              bodyRef={browseBodyRef}
               sectionId={sectionId}
+              onSectionChange={handleSectionChange}
               onSectionSelect={handleSectionSelect}
+              onCategoryChange={handleCategoryChange}
               onCategorySelect={handleCategorySelect}
+              onFocusRegionChange={setFocusRegion}
             />
-          </box>
-
-          <box width={Math.max(40, previewWidth + 6)} style={{ flexGrow: 1 }}>
+          )}
+          content={(
             <PreviewPane
               activeCategory={activeCategory}
               activeEntry={activeEntry}
               entryId={entryId}
               focusRegion={focusRegion}
+              bodyRef={previewBodyRef}
               previewNode={previewNode}
               previewWidth={previewWidth}
               summaryLine={summaryLine}
+              onEntryChange={handleEntryChange}
               onEntrySelect={handleEntrySelect}
+              onFocusRegionChange={(region) => {
+                setFocusRegion(region)
+                if (region === 'preview') {
+                  setPreviewFocusToken((current) => current + 1)
+                }
+              }}
             />
-          </box>
-
-          <box width={infoWidth}>
+          )}
+          inspector={(
             <InfoPane
               activeEntry={activeEntry}
               activeState={activeState}
               focusRegion={focusRegion}
               infoWidth={infoWidth}
+              bodyRef={infoBodyRef}
               stateKey={stateKey}
               stateOptions={stateOptions}
+              onStateChange={handleStateChange}
               onStateSelect={handleStateSelect}
+              onFocusRegionChange={setFocusRegion}
             />
-          </box>
-        </Stack>
-      )}
-    </>
-  )
-
-  return (
-    <ThemeProvider theme={theme}>
-      <Container border padding={1}>
-        {layout}
+          )}
+          status={(
+            <text content={`status :: ${summaryLine || 'No entry selected'} :: mode=${layoutMode} :: pane=${activePane}`} />
+          )}
+        />
       </Container>
     </ThemeProvider>
   )
