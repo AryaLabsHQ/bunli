@@ -1,6 +1,6 @@
 {
-  "name": "@bunli-examples/hello-world",
-  "version": "1.0.0",
+  "name": "tui-gallery",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -8,6 +8,7 @@
     "dev": "bunli dev",
     "build": "bunli build",
     "typecheck": "tsc --noEmit",
+    "test": "bun test",
     "cli": "bun cli.ts"
   },
   "dependencies": {

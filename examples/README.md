@@ -9,7 +9,6 @@ The absolute simplest possible Bunli CLI with a single command. Perfect starting
 - Basic command definition
 - Simple flag handling
 - OpenTUI `render` + CLI `handler` dual mode
-- Component-library showcase command (`showcase`)
 - Minimal configuration
 - Type generation for enhanced DX
 
@@ -82,6 +81,8 @@ Follow this learning path to master Bunli:
 4. **dev-server** (20 min) - Plugins and advanced patterns
 
 Each example builds on the previous concepts and introduces new patterns.
+
+For a dedicated component and runtime showcase, use [`apps/tui-gallery`](../apps/tui-gallery/README.md) instead of the examples directory.
 
 ## Key Concepts
 

@@ -1,5 +1,6 @@
 {
   "lockfileVersion": 1,
+  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "bunli-monorepo",
@@ -11,6 +12,23 @@
         "better-result": "catalog:",
         "oxlint": "1.50.0",
         "turbo": "^2.8.0",
+        "typescript": "^5.8.3",
+      },
+    },
+    "apps/tui-gallery": {
+      "name": "tui-gallery",
+      "version": "0.1.0",
+      "dependencies": {
+        "@bunli/core": "workspace:^",
+        "@bunli/runtime": "workspace:^",
+        "@bunli/tui": "workspace:^",
+        "react": "^19.2.4",
+        "zod": "^4.3.6",
+      },
+      "devDependencies": {
+        "@types/node": "24.10.1",
+        "@types/react": "19.2.10",
+        "bunli": "workspace:^",
         "typescript": "^5.8.3",
       },
     },
@@ -114,6 +132,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@bunli/core": "workspace:^",
+        "@bunli/runtime": "workspace:^",
         "@bunli/tui": "workspace:^",
         "react": "^19.2.4",
         "zod": "^4.3.6",
@@ -1821,6 +1840,8 @@
     "trough": ["trough@2.2.0", "", {}, "sha512-tmMpK00BjZiUyVyvrBK7knerNgmgvcV/KLVyuma/SC+TQN167GrMRciANTz09+k3zW8L8t60jWO1GpfkZdjTaw=="],
 
     "tslib": ["tslib@2.8.1", "", {}, "sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w=="],
+
+    "tui-gallery": ["tui-gallery@workspace:apps/tui-gallery"],
 
     "turbo": ["turbo@2.8.11", "", { "optionalDependencies": { "turbo-darwin-64": "2.8.11", "turbo-darwin-arm64": "2.8.11", "turbo-linux-64": "2.8.11", "turbo-linux-arm64": "2.8.11", "turbo-windows-64": "2.8.11", "turbo-windows-arm64": "2.8.11" }, "bin": { "turbo": "bin/turbo" } }, "sha512-H+rwSHHPLoyPOSoHdmI1zY0zy0GGj1Dmr7SeJW+nZiWLz2nex8EJ+fkdVabxXFMNEux+aywI4Sae8EqhmnOv4A=="],
 

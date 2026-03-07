@@ -45,18 +45,28 @@ export function SelectField({
 
   return (
     <box style={{ flexDirection: 'column', marginBottom: 1, gap: 1 }}>
-      <text content={`${label}${required ? ' *' : ''}`} fg={tokens.textPrimary} />
+      <text
+        content={`${field.focused ? '>' : ' '} ${label}${required ? ' *' : ''}`}
+        fg={field.focused ? tokens.accent : tokens.textPrimary}
+      />
       {description ? <text content={description} fg={tokens.textMuted} /> : null}
       <box
+        width='100%'
         border
         height={8}
-        style={{ marginTop: 0.5, borderColor: field.error ? tokens.textDanger : tokens.borderMuted }}
+        style={{
+          marginTop: 0.5,
+          borderColor: field.error ? tokens.textDanger : field.focused ? tokens.accent : tokens.borderMuted
+        }}
       >
         <select
           options={options}
           selectedIndex={selectedIndex}
           onChange={handleChange}
           focused={field.focused}
+          style={{
+            flexGrow: 1
+          }}
         />
       </box>
       {field.error ? <text content={field.error} fg={tokens.textDanger} /> : null}

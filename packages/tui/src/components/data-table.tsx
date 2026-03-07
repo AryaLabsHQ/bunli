@@ -142,7 +142,15 @@ export function DataTable({
   const footer = formatFixedWidth('Arrows: navigate/sort | Enter: select row', finalLineWidth, { overflow })
 
   return (
-    <box border padding={1} style={{ flexDirection: 'column', gap: 1, borderColor: tokens.border }}>
+    <box
+      border
+      padding={1}
+      style={{
+        flexDirection: 'column',
+        gap: 1,
+        borderColor: keyboardEnabled ? tokens.accent : tokens.border
+      }}
+    >
       <text content={header} fg={tokens.textPrimary} />
       <text content={separator} fg={tokens.borderMuted} />
       {sortedRows.length === 0 ? (

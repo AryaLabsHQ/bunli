@@ -14,6 +14,7 @@ export { SchemaForm } from '../components/schema-form.js'
 export { ProgressBar as Progress } from '../components/progress-bar.js'
 export { Stack } from '../components/stack.js'
 export { Panel } from '../components/panel.js'
+export { ScrollPanel } from '../components/scroll-panel.js'
 export { Card } from '../components/card.js'
 export { Alert } from '../components/alert.js'
 export { Badge } from '../components/badge.js'
@@ -28,8 +29,10 @@ export { Toast } from '../components/toast.js'
 export { Modal } from '../components/modal.js'
 export { Tabs } from '../components/tabs.js'
 export { Menu } from '../components/menu.js'
+export { NavList, moveSelectableNavIndex } from '../components/nav-list.js'
 export { CommandPalette } from '../components/command-palette.js'
 export { DataTable } from '../components/data-table.js'
+export { SidebarLayout, resolveSidebarLayoutMode } from '../components/sidebar-layout.js'
 export {
   ThemeProvider,
   createTheme,
@@ -57,6 +60,8 @@ export type {
   SchemaFormProps,
   StackProps,
   PanelProps,
+  ScrollPanelProps,
+  ScrollPanelScrollbarOptions,
   CardProps,
   AlertProps,
   BadgeProps,
@@ -74,10 +79,17 @@ export type {
   TabItem,
   MenuProps,
   MenuItem,
+  NavListProps,
+  NavListItem,
   CommandPaletteProps,
   CommandPaletteItem,
   DataTableProps,
   DataTableColumn,
+  SidebarLayoutProps,
+  SidebarLayoutMode,
+  SidebarLayoutResolvedMode,
+  SidebarLayoutPane,
+  SidebarLayoutPaneLabels,
   TuiTheme,
   TuiThemeInput,
   TuiThemeTokens,

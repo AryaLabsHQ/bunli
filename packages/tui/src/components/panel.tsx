@@ -37,7 +37,7 @@ export function Panel({
   borderColor
 }: PanelProps) {
   const { tokens } = useTuiTheme()
-  const style = resolveVariantStyle(tokens, {
+  const panelStyle = resolveVariantStyle(tokens, {
     tone,
     size,
     emphasis,
@@ -50,15 +50,15 @@ export function Panel({
   return (
     <box
       border
-      padding={padded ? style.padding : undefined}
+      padding={padded ? panelStyle.padding : undefined}
       style={{
         flexDirection: 'column',
         gap: 1,
-        backgroundColor: style.bg,
-        borderColor: style.border
+        backgroundColor: panelStyle.bg,
+        borderColor: panelStyle.border
       }}
     >
-      {title ? <text content={title} fg={style.fg} /> : null}
+      {title ? <text content={title} fg={panelStyle.fg} /> : null}
       {subtitle ? <text content={subtitle} fg={tokens.textMuted} /> : null}
       <box style={{ flexDirection: 'column', gap: 1 }}>{children}</box>
       {footer ? <box style={{ marginTop: 1 }}>{footer}</box> : null}

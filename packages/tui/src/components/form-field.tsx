@@ -43,13 +43,19 @@ export function FormField({
 
   return (
     <box style={{ flexDirection: 'column', marginBottom: 1, gap: 1 }}>
-      <text content={`${label}${required ? ' *' : ''}`} fg={tokens.textPrimary} />
+      <text
+        content={`${field.focused ? '>' : ' '} ${label}${required ? ' *' : ''}`}
+        fg={field.focused ? tokens.accent : tokens.textPrimary}
+      />
       {description ? <text content={description} fg={tokens.textMuted} /> : null}
       <box
         title={label}
         border
         height={3}
-        style={{ marginTop: 0.5, borderColor: field.error ? tokens.textDanger : tokens.borderMuted }}
+        style={{
+          marginTop: 0.5,
+          borderColor: field.error ? tokens.textDanger : field.focused ? tokens.accent : tokens.borderMuted
+        }}
       >
         <input
           value={field.value ?? ''}
