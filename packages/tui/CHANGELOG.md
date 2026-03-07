@@ -1,5 +1,11 @@
 # @bunli/tui
 
+## 0.5.3
+
+### Patch Changes
+
+- 4b54954: add NavList, ScrollPanel, and SidebarLayout shell primitives; add accent-colored focus borders to Form, Menu, Tabs, DataTable, CommandPalette, and form field components
+
 ## 0.5.2
 
 ### Patch Changes
