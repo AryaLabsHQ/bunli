@@ -1,8 +1,11 @@
 import type { GallerySection } from '../model.js'
 import { ChartPrimitivesExample } from '../examples/chart-primitives.js'
+import { ContentBlocksExample } from '../examples/content-blocks.js'
 import { CredentialsFormExample } from '../examples/credentials-form.js'
+import { FieldSetExample } from '../examples/field-set.js'
 import { FeedbackPrimitivesExample } from '../examples/feedback-primitives.js'
 import { NavigationPrimitivesExample } from '../examples/navigation-primitives.js'
+import { SchemaFormExample } from '../examples/schema-form.js'
 import { SurfaceCompositionExample } from '../examples/surface-composition.js'
 
 export const componentExamplesSection: GallerySection = {
@@ -34,6 +37,51 @@ export const componentExamplesSection: GallerySection = {
             { label: 'Gallery implementation', path: 'apps/tui-gallery/gallery/examples/credentials-form.tsx' }
           ],
           render: (context) => <CredentialsFormExample {...context} />
+        },
+        {
+          id: 'field-set',
+          kind: 'example',
+          title: 'Field Set',
+          summary: 'Select, MultiSelect, NumberField, TextareaField, and CheckboxField in one composed form example.',
+          usage: [
+            'Use a composed field set when several input primitives contribute to a single workflow.',
+            'This is the lower-level authoring path when you want explicit control over each field.'
+          ],
+          keybindings: ['Tab / Shift+Tab', 'Space', 'Enter', 'Ctrl+S', 'Ctrl+R'],
+          states: [
+            { key: 'baseline', label: 'Baseline', description: 'Balanced default operator profile' },
+            { key: 'release', label: 'Release', description: 'Production-oriented release profile' },
+            { key: 'editorial', label: 'Editorial', description: 'Content-focused archive profile' }
+          ],
+          sourceRefs: [
+            { label: 'Select', path: 'packages/tui/src/components/select-field.tsx' },
+            { label: 'MultiSelect', path: 'packages/tui/src/components/multi-select-field.tsx' },
+            { label: 'NumberField', path: 'packages/tui/src/components/number-field.tsx' },
+            { label: 'TextareaField', path: 'packages/tui/src/components/textarea-field.tsx' },
+            { label: 'CheckboxField', path: 'packages/tui/src/components/checkbox-field.tsx' }
+          ],
+          render: (context) => <FieldSetExample {...context} />
+        },
+        {
+          id: 'schema-form',
+          kind: 'example',
+          title: 'Schema Form',
+          summary: 'Higher-level schema-driven form authoring with field metadata, visibility, and derived defaults.',
+          usage: [
+            'Use SchemaForm when you want to describe form structure declaratively rather than composing every field manually.',
+            'It is best for scaffolds, setup screens, and guided configuration workflows.'
+          ],
+          keybindings: ['Tab / Shift+Tab', 'Space', 'Enter', 'Ctrl+S', 'Ctrl+R'],
+          states: [
+            { key: 'starter', label: 'Starter', description: 'Docs-oriented scaffold defaults' },
+            { key: 'service', label: 'Service', description: 'API/service scaffold defaults' }
+          ],
+          sourceRefs: [
+            { label: 'SchemaForm', path: 'packages/tui/src/components/schema-form.tsx' },
+            { label: 'Form', path: 'packages/tui/src/components/form.tsx' },
+            { label: 'Gallery implementation', path: 'apps/tui-gallery/gallery/examples/schema-form.tsx' }
+          ],
+          render: (context) => <SchemaFormExample {...context} />
         }
       ]
     },
@@ -61,6 +109,26 @@ export const componentExamplesSection: GallerySection = {
             { label: 'SectionHeader', path: 'packages/tui/src/components/section-header.tsx' }
           ],
           render: (context) => <SurfaceCompositionExample {...context} />
+        },
+        {
+          id: 'content-blocks',
+          kind: 'example',
+          title: 'Content Blocks',
+          summary: 'List, Table, Markdown, and Diff grouped into one docs-oriented content example.',
+          usage: [
+            'Use these primitives for docs-adjacent terminal screens, release notes, and compact reference content.',
+            'They are most effective when grouped with stronger layout surfaces rather than shown in isolation.'
+          ],
+          states: [
+            { key: 'reference', label: 'Reference', description: 'Lists and table for compact reference content' },
+            { key: 'markdown', label: 'Markdown', description: 'Docs prose and release note style content' },
+            { key: 'diff', label: 'Diff', description: 'Before/after configuration review' }
+          ],
+          sourceRefs: [
+            { label: 'List / Table / Markdown / Diff', path: 'packages/tui/src/interactive/index.tsx' },
+            { label: 'Gallery implementation', path: 'apps/tui-gallery/gallery/examples/content-blocks.tsx' }
+          ],
+          render: (context) => <ContentBlocksExample {...context} />
         }
       ]
     },
