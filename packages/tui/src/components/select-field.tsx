@@ -51,6 +51,7 @@ export function SelectField({
       />
       {description ? <text content={description} fg={tokens.textMuted} /> : null}
       <box
+        width='100%'
         border
         height={8}
         style={{
@@ -63,6 +64,9 @@ export function SelectField({
           selectedIndex={selectedIndex}
           onChange={handleChange}
           focused={field.focused}
+          style={{
+            flexGrow: 1
+          }}
         />
       </box>
       {field.error ? <text content={field.error} fg={tokens.textDanger} /> : null}
