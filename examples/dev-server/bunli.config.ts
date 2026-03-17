@@ -6,15 +6,17 @@ export default defineConfig({
   description: 'Development server with plugins - Advanced plugin system and configuration management',
   plugins: [],
   commands: {
+    entry: './cli.ts',
     directory: './commands'
   },
   build: {
     entry: 'cli.ts',
     outdir: 'dist',
+    // Native standalone binary optimized for local usage
     targets: ['native'],
     compress: false,
-    minify: false,
-    sourcemap: true
+    minify: true,
+    sourcemap: false
   },
   dev: {
     watch: true,

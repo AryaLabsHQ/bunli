@@ -137,7 +137,7 @@ function generateHint(schema: StandardSchemaV1, value: unknown): string {
   const type = extractSchemaType(schema)
   
   if (type === 'boolean' && typeof value === 'string') {
-    return 'Use --flag or --no-flag for boolean options'
+    return 'Use --flag, --flag=true, or --flag=false for boolean options'
   }
   if (type === 'number' && typeof value === 'string') {
     return 'Provide a numeric value'

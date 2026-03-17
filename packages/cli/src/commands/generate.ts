@@ -1,17 +1,35 @@
 import { defineCommand, option } from '@bunli/core'
+import { Result, TaggedError } from 'better-result'
 import { Generator } from '@bunli/generator'
 import { z } from 'zod'
-import { join } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
+import { watch } from 'node:fs/promises'
 import { isCommandFile } from '@bunli/generator'
 import { loadConfig } from '@bunli/core'
+import { findEntry } from '../utils/find-entry.js'
+import type { PromptSpinnerFactory } from '@bunli/core'
+import type { Colors } from '@bunli/utils'
+
+
+class GenerateCommandError extends TaggedError('GenerateCommandError')<{
+  message: string
+  cause?: unknown
+}>() {}
+
+const failGenerate = (message: string, cause?: unknown): Result<never, GenerateCommandError> =>
+  Result.err(new GenerateCommandError({ message, cause }))
 
 export default defineCommand({
   name: 'generate',
   description: 'Generate command type definitions',
   alias: 'gen',
   options: {
-    commandsDir: option(z.string().optional(), {
-      description: 'Commands directory'
+    entry: option(z.string().optional(), {
+      short: 'e',
+      description: 'CLI entry file used for command discovery'
+    }),
+    directory: option(z.string().optional(), {
+      description: 'Optional command source directory fallback'
     }),
     output: option(z.string().default('./.bunli/commands.gen.ts'), {
       short: 'o',
@@ -24,14 +42,43 @@ export default defineCommand({
   },
   
   async handler({ flags, colors, spinner }) {
+    const result = await runGenerate(flags as Record<string, unknown>, colors, spinner)
+    if (result.isErr()) {
+      throw result.error
+    }
+  }
+})
+
+async function runGenerate(
+  flags: Record<string, unknown>,
+  colors: Colors,
+  spinner: PromptSpinnerFactory
+): Promise<Result<void, GenerateCommandError>> {
     // Load config to get default values
     const config = await loadConfig()
+    const typedFlags = flags as {
+      entry?: string
+      directory?: string
+      output: string
+      watch: boolean
+    }
     
-    const finalCommandsDir = flags.commandsDir || config.commands?.directory || 'commands'
-    const finalOutputFile = flags.output || './.bunli/commands.gen.ts'
+    const configuredEntry = config.commands?.entry || config.build?.entry
+    const configuredEntryFile = Array.isArray(configuredEntry) ? configuredEntry[0] : configuredEntry
+    const discoveredEntry = await findEntry()
+    const finalEntry = typedFlags.entry || configuredEntryFile || discoveredEntry
+    if (!finalEntry) {
+      return failGenerate(
+        'No CLI entry file found. Set commands.entry in bunli.config.ts or pass --entry.'
+      )
+    }
+
+    const finalDirectory = typedFlags.directory || config.commands?.directory
+    const finalOutputFile = typedFlags.output || './.bunli/commands.gen.ts'
     
     const generator = new Generator({
-      commandsDir: finalCommandsDir,
+      entry: finalEntry,
+      directory: finalDirectory,
       outputFile: finalOutputFile,
       config,
       generateReport: config.commands?.generateReport
@@ -39,34 +86,32 @@ export default defineCommand({
     
     // Initial generation
     const spin = spinner('Generating types...')
-    try {
-      await generator.run()
-      spin.succeed('Types generated')
-    } catch (error) {
+    const initialResult = await generator.run()
+    if (Result.isError(initialResult)) {
       spin.fail('Failed to generate types')
-      const message = error instanceof Error ? error.message : String(error)
-      console.error(colors.red(message))
-      return
+      return failGenerate(initialResult.error.message, initialResult.error)
     }
+    spin.succeed('Types generated')
     
-    if (flags.watch) {
-      console.log(colors.cyan(`\n👀 Watching ${finalCommandsDir}...\n`))
-      
-      // Use Bun's native file watching with fs.promises.watch
-      const { watch } = await import('node:fs/promises')
-      
+    if (typedFlags.watch) {
+      const watchDirectory = resolve(finalDirectory || dirname(finalEntry))
+      console.log(colors.cyan(`\n👀 Watching ${watchDirectory}...\n`))
+
       const ac = new AbortController()
       const { signal } = ac
+      let aborted = false
       
       // Handle process termination
-      process.on('SIGINT', () => {
+      const stopWatching = () => {
+        aborted = true
         console.log(colors.dim('\nStopping watcher...'))
         ac.abort()
-        process.exit(0)
-      })
+      }
+      process.on('SIGINT', stopWatching)
+      process.on('SIGTERM', stopWatching)
       
       try {
-        const watcher = watch(finalCommandsDir, { 
+        const watcher = watch(watchDirectory, { 
           recursive: true,
           signal 
         })
@@ -77,25 +122,27 @@ export default defineCommand({
           console.log(colors.dim(`${event.eventType}: ${event.filename}`))
           const spin = spinner('Regenerating...')
           
-          try {
-            await generator.run({
-              type: event.eventType === 'rename' ? 'delete' : 'update',
-              path: join(finalCommandsDir, event.filename)
-            })
-            spin.succeed('Updated')
-          } catch (error) {
+          const updateResult = await generator.run({
+            type: event.eventType === 'rename' ? 'delete' : 'update',
+            path: join(watchDirectory, event.filename)
+          })
+          if (Result.isError(updateResult)) {
             spin.fail('Failed')
-            const message = error instanceof Error ? error.message : String(error)
-            console.error(colors.red(message))
+            console.error(colors.red(updateResult.error.message))
+          } else {
+            spin.succeed('Updated')
           }
         }
       } catch (err) {
-        if (err instanceof Error && err.name === 'AbortError') {
+        if (aborted || signal.aborted) {
           console.log(colors.dim('Watcher stopped'))
-          return
+          return Result.ok(undefined)
         }
-        throw err
+        return failGenerate(err instanceof Error ? err.message : String(err), err)
+      } finally {
+        process.off('SIGINT', stopWatching)
+        process.off('SIGTERM', stopWatching)
       }
     }
-  }
-})
+    return Result.ok(undefined)
+}

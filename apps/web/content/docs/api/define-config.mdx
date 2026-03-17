@@ -30,7 +30,7 @@ interface BunliConfig {
   
   // Command configuration
   commands?: {
-    manifest?: string
+    entry?: string
     directory?: string
   }
   
@@ -52,14 +52,6 @@ interface BunliConfig {
     port?: number
   }
   
-  // Code generation configuration
-  codegen?: {
-    enabled?: boolean
-    commandsDir?: string
-    output?: string
-    watch?: boolean
-  }
-  
   // Test configuration
   test?: {
     pattern?: string | string[]
@@ -73,6 +65,10 @@ interface BunliConfig {
     github?: boolean
     tagFormat?: string
     conventionalCommits?: boolean
+    binary?: {
+      packageNameFormat?: string
+      shimPath?: string
+    }
   }
   
   // Workspace configuration
@@ -115,14 +111,15 @@ export default defineConfig({
 })
 ```
 
-### With Command Manifest
+### With Command Discovery
 
 ```typescript
 export default defineConfig({
   name: 'my-cli',
   version: '1.0.0',
   commands: {
-    manifest: './src/commands/index.ts'
+    entry: './cli.ts',
+    directory: './src/commands'
   }
 })
 ```
@@ -189,18 +186,8 @@ export default defineConfig({
 
 Configure command loading:
 
-- `manifest` - Path to command manifest file for lazy loading
-- `directory` - Directory used by the toolchain/codegen (runtime loading uses a manifest or manual registration)
-
-Example manifest:
-```typescript
-// src/commands/index.ts
-export default {
-  build: () => import('./build.js'),
-  test: () => import('./test.js'),
-  deploy: () => import('./deploy.js')
-}
-```
+- `entry` - CLI entry file used for command discovery/codegen
+- `directory` - Optional fallback directory for command scanning
 
 ### build
 
@@ -232,12 +219,14 @@ Configure testing:
 
 ### release
 
-Configure releases (planned feature):
+Configure releases:
 
 - `npm` - Publish to npm
 - `github` - Create GitHub releases
 - `tagFormat` - Git tag format
 - `conventionalCommits` - Use conventional commits
+- `binary.packageNameFormat` - Naming template for per-platform npm packages
+- `binary.shimPath` - Path to generated ESM shim file (default: `bin/run.mjs`)
 
 ### workspace
 

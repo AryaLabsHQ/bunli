@@ -8,6 +8,7 @@ export interface TuiRenderOptions {
   exitOnCtrlC?: boolean
   targetFps?: number
   enableMouseMovement?: boolean
+  useMouse?: boolean
   /**
    * Terminal buffer mode for OpenTUI-backed renderers.
    * - 'alternate': full-screen alternate buffer (smcup/rmcup semantics)
@@ -17,12 +18,53 @@ export interface TuiRenderOptions {
   [key: string]: unknown
 }
 
+export interface TuiImageOptions {
+  /**
+   * Terminal image preview mode.
+   * - 'off': skip preview
+   * - 'auto': best-effort preview without hard failure
+   * - 'on': strict preview; downstream render failures should be treated as errors
+   */
+  mode?: 'off' | 'auto' | 'on'
+  /**
+   * Protocol preference for image previews.
+   * v1 supports 'kitty'; 'auto' delegates protocol selection to runtime capability detection.
+   */
+  protocol?: 'auto' | 'kitty'
+  /**
+   * Optional image width/height hints in terminal cells.
+   */
+  width?: number
+  height?: number
+}
+
+export interface ResolvedTuiImageOptions extends TuiImageOptions {
+  mode: 'off' | 'auto' | 'on'
+  protocol: 'auto' | 'kitty'
+}
+
+export interface CommandTuiOptions {
+  /**
+   * Command-level renderer overrides.
+   * These merge on top of global `config.tui.renderer`.
+   */
+  renderer?: TuiRenderOptions
+  /**
+   * Command-level image preview overrides.
+   * These merge on top of global `config.tui.image`.
+   */
+  image?: TuiImageOptions
+}
+
 export interface RenderArgs<TFlags = Record<string, unknown>, TStore = {}> extends HandlerArgs<TFlags, TStore> {
   command: Command<any, TStore>
   rendererOptions?: TuiRenderOptions
 }
 
 export type RenderFunction<TFlags = Record<string, unknown>, TStore = {}> = (args: RenderArgs<TFlags, TStore>) => RenderResult
+
+export type PromptApi = import('@bunli/runtime/prompt').PromptApi
+export type PromptSpinnerFactory = import('@bunli/runtime/prompt').PromptSpinnerFactory
 
 // Core Bunli types
 /**
@@ -33,11 +75,6 @@ export interface CLI<TStore = {}> {
    * Register a command
    */
   command<TCommandStore = any>(command: Command<any, TCommandStore>): void
-  
-  /**
-   * Load commands from a manifest
-   */
-  load(manifest: CommandManifest): Promise<void>
   
   /**
    * Initialize the CLI (load config, etc)
@@ -66,24 +103,42 @@ export interface CLI<TStore = {}> {
   ): Promise<void>
 }
 
-// generic Command type that carries options type information
+// generic Command types that carry options type information
 interface BaseCommand<TOptions extends Options = Options, TStore = {}, TName extends string = string> {
   name: TName
   description: string
   options?: TOptions
+  tui?: CommandTuiOptions
   commands?: Command<any, TStore, any>[]
   alias?: string | string[]
-  handler?: Handler<InferOptions<TOptions>, TStore, TName>
-  render?: RenderFunction<InferOptions<TOptions>, TStore>
 }
 
-export type Command<TOptions extends Options = Options, TStore = {}, TName extends string = string> =
-  | (BaseCommand<TOptions, TStore, TName> & { handler: Handler<InferOptions<TOptions>, TStore, TName> })
-  | (BaseCommand<TOptions, TStore, TName> & { render: RenderFunction<InferOptions<TOptions>, TStore> })
-  | (BaseCommand<TOptions, TStore, TName> & {
+interface CommandLeaf<TOptions extends Options = Options, TStore = {}, TName extends string = string>
+  extends BaseCommand<TOptions, TStore, TName> {
+  options?: TOptions
+  handler?: Handler<InferOptions<TOptions>, TStore, TName>
+  render?: RenderFunction<InferOptions<TOptions>, TStore>
+  commands?: undefined
+}
+
+export type RunnableCommand<TOptions extends Options = Options, TStore = {}, TName extends string = string> =
+  | (CommandLeaf<TOptions, TStore, TName> & { handler: Handler<InferOptions<TOptions>, TStore, TName> })
+  | (CommandLeaf<TOptions, TStore, TName> & { render: RenderFunction<InferOptions<TOptions>, TStore> })
+  | (CommandLeaf<TOptions, TStore, TName> & {
       handler: Handler<InferOptions<TOptions>, TStore, TName>
       render: RenderFunction<InferOptions<TOptions>, TStore>
     })
+
+export interface Group<TStore = {}, TName extends string = string> extends BaseCommand<Options, TStore, TName> {
+  commands: Command<any, TStore, any>[]
+  handler?: undefined
+  render?: undefined
+  options?: undefined
+}
+
+export type Command<TOptions extends Options = Options, TStore = {}, TName extends string = string> =
+  | RunnableCommand<TOptions, TStore, TName>
+  | Group<TStore, TName>
 
 // Type helper to extract output types from StandardSchemaV1
 type InferSchema<T> = T extends StandardSchemaV1<any, infer Out>
@@ -110,15 +165,19 @@ export interface HandlerArgs<TFlags = Record<string, unknown>, TStore = {}, TCom
   env: typeof process.env
   cwd: string
   // Utilities
-  prompt: typeof import('@bunli/utils').prompt
-  spinner: typeof import('@bunli/utils').spinner
+  prompt: PromptApi
+  spinner: PromptSpinnerFactory
   colors: typeof import('@bunli/utils').colors
   // Plugin context (if plugins are loaded)
-  context?: import('./plugin/types.js').CommandContext<any>
+  context?: import('./plugin/types.js').CommandContext<Record<string, unknown>>
   // Terminal information
   terminal: TerminalInfo
   // Runtime information
   runtime: RuntimeInfo
+  // Cooperative cancellation signal for interrupt handling.
+  signal: AbortSignal
+  // Resolved terminal image preview configuration.
+  image: ResolvedTuiImageOptions
 }
 
 export interface TerminalInfo {
@@ -158,23 +217,23 @@ export interface CLIOption<S extends StandardSchemaV1 = StandardSchemaV1> {
 // Options must use the CLIOption wrapper
 export type Options = Record<string, CLIOption<any>>
 
-// Command manifest for lazy loading
-export type CommandManifest = {
-  [key: string]: CommandLoader | CommandManifest
-}
-
-export type CommandLoader = () => Promise<{ default: Command<any> }>
-
 // Define command helper with proper type inference
 export function defineCommand<TOptions extends Options = Options, TStore = {}, TName extends string = string>(
-  command: Command<TOptions, TStore> & { name: TName }
-): Command<TOptions, TStore> & { name: TName } {
+  command: RunnableCommand<TOptions, TStore> & { name: TName }
+): RunnableCommand<TOptions, TStore> & { name: TName } {
   return command
 }
 
+// Define non-runnable command group helper
+export function defineGroup<TStore = {}, TName extends string = string>(
+  group: Group<TStore, TName>
+): Group<TStore, TName> {
+  return group
+}
+
 // Import configuration types from schema
-import type { BunliConfig } from './config.js'
-export type { BunliConfig } from './config.js'
+import type { BunliConfig, BunliConfigInput } from './config.js'
+export type { BunliConfig, BunliConfigInput } from './config.js'
 export { bunliConfigSchema } from './config.js'
 export type {
   GeneratedStore,

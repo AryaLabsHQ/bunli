@@ -1,0 +1,86 @@
+---
+title: TUI Gallery
+description: Browse Bunli component examples and runtime recipes in a dedicated terminal app
+---
+
+# TUI Gallery
+
+The TUI Gallery is the dedicated terminal-native showcase for Bunli UI components and runtime interaction patterns.
+
+It replaces the old `showcase` surface that used to live inside `examples/hello-world`, and gives `@bunli/tui` a single place to browse:
+
+- component examples
+- alternate states
+- runtime recipes built on dialogs, command registry, focus scopes, and route store
+
+## Where it lives
+
+The gallery is a dedicated workspace app:
+
+```bash
+apps/tui-gallery
+```
+
+It is not another example app and it is not embedded into the docs site. The website points you to the app and explains how to run it locally.
+
+## Run it
+
+```bash
+cd apps/tui-gallery
+bun install
+bun run generate
+bun run dev gallery
+```
+
+You can also run the command directly:
+
+```bash
+bun cli.ts gallery
+```
+
+## What You Can Browse
+
+### Component Examples
+
+- Forms
+- Layout / Display
+- Feedback / Status
+- Navigation / Data
+- Charts
+
+### Runtime Recipes
+
+- Dialog flows
+- Form workflows
+- Command registry + palette flows
+- Focus handoff between nested widgets
+- Route-store driven screens
+
+## Shell Model
+
+The gallery is organized as a keyboard-first shell with:
+
+- a browse area for sections, categories, and entries
+- a live preview area for the active example or recipe
+- an info pane for states, usage notes, and source references
+
+## Keyboard
+
+- `F1`: focus sections
+- `F2`: focus categories
+- `F3`: focus entries
+- `F4`: focus preview
+- `F5`: focus states
+- `Alt+T`: toggle theme
+- `Alt+W`: cycle width preset
+- `Ctrl+C`: quit
+
+## CLI Options
+
+The `gallery` command supports a small set of initial-state flags:
+
+```bash
+bun cli.ts gallery --theme light
+bun cli.ts gallery --section recipes
+bun cli.ts gallery --entry route-store
+```

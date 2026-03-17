@@ -1,6 +1,6 @@
 {
   "name": "bunli",
-  "version": "0.5.3",
+  "version": "0.8.2",
   "type": "module",
   "description": "The Bunli CLI toolchain for developing, building, and distributing CLIs",
   "bin": {
@@ -47,13 +47,16 @@
     "prepublishOnly": "bun run build"
   },
   "dependencies": {
-    "@bunli/core": "workspace:*",
-    "@bunli/generator": "workspace:*",
-    "@bunli/utils": "workspace:*",
+    "@bunli/core": "workspace:^",
+    "@bunli/generator": "workspace:^",
+    "@bunli/plugin-completions": "workspace:^",
+    "@bunli/utils": "workspace:^",
+    "better-result": "catalog:",
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@types/bun": "1.3.7",
+    "@bunli/test": "workspace:^",
+    "@types/bun": "catalog:",
     "typescript": "^5.8.3"
   }
 }

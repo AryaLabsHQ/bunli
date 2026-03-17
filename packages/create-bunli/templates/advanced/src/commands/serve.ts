@@ -7,7 +7,7 @@ const serveCommand = defineCommand({
   description: 'Start a development server',
   options: {
     port: option(
-      z.number().int().min(1).max(65535).default(3000),
+      z.coerce.number().int().min(1).max(65535).default(3000),
       {
         short: 'p',
         description: 'Port to listen on'

@@ -42,14 +42,14 @@ import type { BunliPlugin, PluginFactory, MergeStores } from './types.js'
  * myPlugin({ prefix: 'Hello' })
  * ```
  */
+export function createPlugin<TOptions, TStore = {}>(
+  factory: (options: TOptions) => BunliPlugin<TStore>
+): (options: TOptions) => BunliPlugin<TStore>
+
 // Overload for direct plugin
 export function createPlugin<TStore = {}>(
   plugin: BunliPlugin<TStore>
 ): BunliPlugin<TStore>
-
-export function createPlugin<TOptions, TStore = {}>(
-  factory: (options: TOptions) => BunliPlugin<TStore>
-): (options: TOptions) => BunliPlugin<TStore>
 
 export function createPlugin<T>(
   input: T

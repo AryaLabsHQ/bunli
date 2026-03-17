@@ -8,7 +8,7 @@ export default defineCommand({
     // Test pattern with regex validation
     pattern: option(
       z.string()
-        .regex(/^[a-zA-Z0-9._-]+$/, 'Pattern can only contain letters, numbers, dots, underscores, and hyphens')
+        .min(1, 'Pattern cannot be empty')
         .default('**/*.test.ts'),
       { 
         short: 'p', 
@@ -99,6 +99,7 @@ export default defineCommand({
   
   handler: async ({ flags, colors, spinner }) => {
     const spin = spinner('Running tests...')
+    let completionFailed = false
     
     try {
       // Simulate test discovery
@@ -126,12 +127,12 @@ export default defineCommand({
         if (file.includes('api')) {
           failed++
           if (flags.verbose) {
-            console.log(colors.red(`  ❌ ${file}: API endpoint test failed`))
+            console.log(colors.red(`  FAIL ${file}: API endpoint test failed`))
           }
         } else {
           passed++
           if (flags.verbose) {
-            console.log(colors.green(`  ✅ ${file}: All tests passed`))
+            console.log(colors.green(`  OK   ${file}: All tests passed`))
           }
         }
       }
@@ -142,10 +143,16 @@ export default defineCommand({
       
       const coverage = 85.5 // Simulated coverage
       
-      if (coverage >= flags.coverage) {
-        spin.succeed(`Tests completed! ${passed} passed, ${failed} failed`)
+      const hasFailedTests = failed > 0
+      const hasCoverageGap = coverage < flags.coverage
+      if (hasFailedTests || hasCoverageGap) {
+        const reason = hasCoverageGap
+          ? `coverage ${coverage}% is below threshold ${flags.coverage}%`
+          : `${failed} test file(s) failed`
+        spin.fail(`Tests completed with failures: ${reason}`)
+        completionFailed = true
       } else {
-        spin.fail(`Tests completed but coverage ${coverage}% is below threshold ${flags.coverage}%`)
+        spin.succeed(`Tests completed! ${passed} passed, ${failed} failed`)
       }
       
       console.log(colors.bold('\nTest Results:'))
@@ -164,12 +171,22 @@ export default defineCommand({
       }
       
       if (flags.watch) {
-        console.log(colors.yellow('\n👀 Watching for changes...'))
+        console.log(colors.yellow('\nWatching for changes...'))
+      }
+
+      if (hasFailedTests || hasCoverageGap) {
+        const message = hasCoverageGap
+          ? `Coverage ${coverage}% is below required ${flags.coverage}%`
+          : `${failed} test file(s) failed`
+        throw new Error(message)
       }
       
     } catch (error) {
-      spin.fail('Tests failed')
+      if (!completionFailed) {
+        spin.fail('Tests failed')
+      }
       console.error(colors.red(`Error: ${error instanceof Error ? error.message : String(error)}`))
+      throw error
     }
   }
 })

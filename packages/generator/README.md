@@ -16,27 +16,37 @@ The Bunli command type generator that creates TypeScript definitions from your C
 
 ```typescript
 import { Generator } from '@bunli/generator'
+import { Result } from 'better-result'
 
 const generator = new Generator({
-  commandsDir: './commands',
-  outputFile: './commands.gen.ts'
+  entry: './src/cli.ts',
+  directory: './src/commands',
+  outputFile: './.bunli/commands.gen.ts'
 })
 
-await generator.run()
+const runResult = await generator.run()
+if (Result.isError(runResult)) {
+  console.error(runResult.error.message)
+}
 ```
 
 ### With Watch Mode
 
 ```typescript
 import { Generator } from '@bunli/generator'
+import { Result } from 'better-result'
 
 const generator = new Generator({
-  commandsDir: './commands',
-  outputFile: './commands.gen.ts'
+  entry: './src/cli.ts',
+  directory: './src/commands',
+  outputFile: './.bunli/commands.gen.ts'
 })
 
 // Initial generation
-await generator.run()
+const runResult = await generator.run()
+if (Result.isError(runResult)) {
+  console.error(runResult.error.message)
+}
 
 // Watch for changes (integrated with Bun's watch mode)
 // This is handled automatically by bunli dev
@@ -76,7 +86,7 @@ export function listCommands(): Array<{...}>
 
 ## Command File Structure
 
-The generator scans for files matching `**/*.{ts,tsx,js,jsx}` and looks for `defineCommand` calls:
+The generator discovers command modules from your CLI entry (`commands.entry` / `build.entry`) and parses default-exported `defineCommand` / `defineGroup` calls:
 
 ```typescript
 import { defineCommand, option } from '@bunli/core'
@@ -129,7 +139,7 @@ export default defineConfig({
 ```typescript
 class Generator {
   constructor(config: GeneratorConfig)
-  async run(event?: GeneratorEvent): Promise<void>
+  async run(event?: GeneratorEvent): Promise<Result<void, GeneratorRunError>>
   getConfig(): GeneratorConfig
   updateConfig(updates: Partial<GeneratorConfig>): void
 }
@@ -139,7 +149,8 @@ class Generator {
 
 ```typescript
 interface GeneratorConfig {
-  commandsDir: string
+  entry: string
+  directory?: string
   outputFile: string
   config?: any
 }

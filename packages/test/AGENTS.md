@@ -1,33 +1,34 @@
 # @bunli/test
 
-**CLI testing utilities for Bunli projects.**
+**Testing utilities for Bunli CLIs.**
 
 ## OVERVIEW
 
-Provides `testCommand()` helper and assertion utilities for testing CLI commands.
+Provides testing helpers for CLI commands and full CLI testing.
 
 ## WHERE TO LOOK
 
 | Task | Location |
 |------|----------|
-| Test utilities | `src/index.ts` |
-| CLI test examples | `test/cli.test.ts` |
+| Main exports | `src/index.ts` |
+| Command testing | `src/test-command.ts` |
+| CLI testing | `src/test-cli.ts` |
 
 ## PATTERNS
 
 ```typescript
-import { testCommand } from '@bunli/test'
+import { testCommand, expectCommand } from '@bunli/test'
 
-const result = await testCommand(myCommand, {
-  flags: { verbose: true },
-  args: ['file.txt']
+// Test a single command
+await testCommand(myCommand, {
+  args: ['--flag', 'value'],
+  expected: { output: '...' }
 })
-expect(result.exitCode).toBe(0)
-expect(result.stdout).toContain('output')
+
+// Full CLI test
+await testCLI({
+  bin: 'bunli',
+  args: ['build'],
+  expected: { exitCode: 0 }
+})
 ```
-
-## EXPORTS
-
-- `testCommand()` - Execute command with options
-- Mock utilities for plugin stores
-- Output capture helpers

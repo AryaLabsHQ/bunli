@@ -21,7 +21,7 @@
   },
   "dependencies": {
     "@bunli/core": "latest",
-    "@{{name}}/utils": "workspace:*",
+    "@{{name}}/utils": "workspace:^",
     "zod": "^3.22.0"
   },
   "devDependencies": {

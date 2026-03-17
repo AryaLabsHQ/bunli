@@ -6,7 +6,6 @@ import type { AnalyzeResult } from '../types.js'
 const analyzeCommand = defineCommand({
   name: 'analyze',
   description: 'Analyze files and generate reports',
-  args: z.array(z.string()).min(1).describe('Files to analyze'),
   options: {
     detailed: option(
       z.boolean().default(false),
@@ -16,12 +15,18 @@ const analyzeCommand = defineCommand({
       }
     )
   },
-  handler: async ({ args, flags, colors }) => {
+  handler: async ({ positional, flags, colors }) => {
+    const files = positional
+    if (files.length === 0) {
+      logger.error('Usage: analyze <file...>')
+      process.exit(1)
+    }
+
     logger.info('Starting analysis...')
     
     const results: AnalyzeResult[] = []
     
-    for (const file of args) {
+    for (const file of files) {
       try {
         const result = await analyzeFile(file)
         results.push(result)

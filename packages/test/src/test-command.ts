@@ -1,9 +1,9 @@
-import type { Command, CLI } from '@bunli/core'
+import type { Command, CLI, Options } from '@bunli/core'
 import type { TestOptions, TestResult, MockHandlerArgs, ShellPromise } from './types.js'
-import { createCLI } from '@bunli/core'
+import { createCLI, validateValue } from '@bunli/core'
 
-export async function testCommand(
-  command: Command<any>,
+export async function testCommand<TOptions extends Options = Options>(
+  command: Command<TOptions>,
   options: TestOptions = {}
 ): Promise<TestResult> {
   const startTime = performance.now()
@@ -337,9 +337,28 @@ export async function testCommand(
   }
   
   try {
+    const rawFlags = options.flags || {}
+    const resolvedFlags: Record<string, unknown> = { ...rawFlags }
+
+    const commandOptions = command.options
+    if (commandOptions) {
+      for (const name in commandOptions) {
+        const opt = commandOptions[name]
+        if (!opt) continue
+        const value = Object.prototype.hasOwnProperty.call(rawFlags, name)
+          ? rawFlags[name]
+          : undefined
+
+        resolvedFlags[name] = await validateValue(value, opt.schema, {
+          option: name,
+          command: command.name
+        })
+      }
+    }
+
     // Create handler args
     const handlerArgs: MockHandlerArgs = {
-      flags: options.flags || {},
+      flags: resolvedFlags,
       positional: options.args || [],
       env: { ...process.env, ...(options.env || {}) },
       cwd: options.cwd || process.cwd(),
@@ -359,6 +378,11 @@ export async function testCommand(
         startTime: Date.now(),
         args: options.args || [],
         command: command.name
+      },
+      signal: new AbortController().signal,
+      image: {
+        mode: 'auto',
+        protocol: 'auto'
       }
     }
     

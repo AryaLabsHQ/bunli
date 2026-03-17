@@ -1,5 +1,61 @@
 # @bunli/plugin-ai-detect
 
+## 0.6.3
+
+### Patch Changes
+
+- Updated dependencies [f1c404a]
+  - @bunli/core@0.8.0
+
+## 0.6.2
+
+### Patch Changes
+
+- Updated dependencies [88cfc08]
+  - @bunli/core@0.7.0
+
+## 0.6.1
+
+### Patch Changes
+
+- b481746: chore(deps): use workspace:^ for internal package references instead of workspace:\*
+- Updated dependencies [98fccfb]
+- Updated dependencies [b481746]
+  - @bunli/core@0.6.1
+
+## 0.6.0
+
+### Minor Changes
+
+- 8eff145: Adopt `better-result` for typed error handling with `Result` and `TaggedError`.
+
+  Also split config input/output types and fix CLI cancellation, `execute(commandName, options)`, and generator behavior when `commands/` is missing.
+
+### Patch Changes
+
+- Updated dependencies [8eff145]
+  - @bunli/core@0.6.0
+
+## 0.5.5
+
+### Patch Changes
+
+- @bunli/core@0.5.7
+
+## 0.5.4
+
+### Patch Changes
+
+- Updated dependencies [454d869]
+  - @bunli/core@0.5.6
+
+## 0.5.3
+
+### Patch Changes
+
+- Updated dependencies [5186a7d]
+  - @bunli/core@0.5.5
+
 ## 0.5.2
 
 ### Patch Changes

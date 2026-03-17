@@ -64,8 +64,8 @@ bun cli.ts
 ```
 
 All examples include:
-- `bunli.config.ts` - Configuration with required `commands.directory`
-- `commands/` directory - All command definitions (REQUIRED structure)
+- `bunli.config.ts` - Configuration with `commands.entry` for codegen discovery
+- Command modules registered explicitly via `cli.command(...)`
 - `.bunli/commands.gen.ts` - Generated TypeScript definitions (auto-created)
 - Development scripts using `bunli dev` for hot reload
 - Build scripts using `bunli build` for production
@@ -82,6 +82,8 @@ Follow this learning path to master Bunli:
 
 Each example builds on the previous concepts and introduces new patterns.
 
+For a dedicated component and runtime showcase, use [`apps/tui-gallery`](../apps/tui-gallery/README.md) instead of the examples directory.
+
 ## Key Concepts
 
 ### Schema-Driven Options
@@ -94,7 +96,7 @@ import { z } from 'zod'
 export default defineCommand({
   options: {
     port: option(
-      z.number().min(1000).max(65535),
+      z.coerce.number().min(1000).max(65535),
       { short: 'p', description: 'Port number' }
     )
   }
@@ -127,18 +129,14 @@ const color = await prompt.select('Favorite color?', {
 })
 const confirmed = await prompt.confirm('Continue?')
 
-prompt.clack.intro('Setup')
-prompt.clack.outro('Done')
+prompt.intro('Setup')
+prompt.outro('Done')
 ```
 
 ### OpenTUI Rendering
-Use `render` for interactive terminal UI and global flags for mode selection:
+Use `render` for interactive terminal UI. Commands with `render` run directly without TUI flags:
 
 ```typescript
-import { registerTuiRenderer } from '@bunli/tui'
-
-registerTuiRenderer()
-
 const command = defineCommand({
   name: 'greet',
   render: ({ flags }) => <GreetProgress name={String(flags.name)} />,
@@ -147,6 +145,11 @@ const command = defineCommand({
   }
 })
 ```
+
+Bunli auto-wires the OpenTUI renderer runtime for `render` commands, and prompt/spinner APIs come from handler args backed by `@bunli/runtime/prompt`, so manual registration is not required.
+Buffer mode defaults to `standard`; use `tui.renderer.bufferMode: 'alternate'` when you explicitly want fullscreen alternate-buffer behavior.
+
+Render lifecycle: commands using `render` should call `useRuntime().exit()` (for example on submit, cancel, or quit) so the command exits cleanly without directly owning renderer teardown.
 
 ### Plugin System
 Extend functionality with type-safe plugins:
@@ -165,7 +168,16 @@ export const myPlugin = createPlugin({
 
 ## Building for Distribution
 
-All examples use `bunli.config.ts` for build configuration:
+Examples now intentionally cover different build configurations:
+
+| Example | Build Mode | Key Settings |
+|---------|------------|--------------|
+| `hello-world` | JS bundle mode | `targets: []`, `minify: true`, `sourcemap: true` |
+| `task-runner` | Native standalone binary | `targets: ['native']`, `sourcemap: true` |
+| `git-tool` | Multi-target compressed binaries | `targets: ['darwin-arm64', 'darwin-x64']`, `compress: true`, `minify: true` |
+| `dev-server` | Native optimized binary | `targets: ['native']`, `minify: true`, `sourcemap: false` |
+
+A reference config shape:
 
 ```typescript
 // bunli.config.ts
@@ -176,18 +188,19 @@ export default defineConfig({
   version: '1.0.0',
   description: 'My awesome CLI',
   
-  // REQUIRED: commands directory
+  // Command discovery for tooling/codegen
   commands: {
-    directory: './commands'
+    entry: './cli.ts',
+    directory: './commands' // optional fallback hint
   },
   
-  // REQUIRED: plugins array (can be empty)
+  // Plugins are optional (default: [])
   plugins: [],
   
   build: {
     entry: './cli.ts',
     outdir: './dist',
-    targets: ['native'],  // Default target
+    targets: ['native'],  // Example target
     compress: false,      // Default: false
     minify: false,        // Default: false
     sourcemap: true       // Default: true
@@ -205,6 +218,9 @@ Build commands:
 # Build for current platform
 bun run build
 
+# Bundle mode (no compile): set targets: [] in bunli.config.ts, then run
+bun run build
+
 # Build for specific platforms
 bunli build --targets darwin-arm64,linux-x64
 
@@ -220,6 +236,46 @@ The Bunli CLI handles:
 - Standalone executable creation with Bun's `--compile` flag
 - Multi-platform builds
 - Optional compression for manual distribution (`build.compress`)
+
+## Release Configuration Matrix
+
+Release permutations to test in example projects:
+
+```typescript
+release: {
+  npm: true,                 // or false / --npm=false
+  github: false,             // or true / --github=true
+  tagFormat: 'v{{version}}', // shared by git + GitHub release tags
+  conventionalCommits: true,
+  binary: {
+    packageNameFormat: '{{name}}-{{platform}}',
+    shimPath: 'bin/run.mjs'
+  }
+}
+```
+
+CLI release examples:
+
+```bash
+# Dry run
+bunli release --dry
+
+# Note: when npm publish is enabled, --dry executes npm publish in dry-run mode.
+
+# Ignore unfinished release state and start fresh
+bunli release --resume=false
+
+# Disable npm publish
+bunli release --npm=false
+
+# Create GitHub release entry
+bunli release --github=true
+```
+
+Resumability:
+- Failed non-dry releases persist checkpoints at `.bunli/release-state.json`.
+- Subsequent `bunli release` runs auto-resume from the last incomplete step.
+- `--resume=false` starts a fresh release and ignores the checkpoint file.
 
 For stable, release-ready archives + `checksums.txt` and Homebrew automation, use the
 `bunli-releaser` GitHub Action instead of uploading `dist/` directly.

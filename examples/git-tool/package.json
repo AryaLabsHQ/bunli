@@ -11,12 +11,12 @@
     "cli": "bun cli.ts"
   },
   "dependencies": {
-    "@bunli/core": "workspace:*",
+    "@bunli/core": "workspace:^",
     "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/node": "24.10.1",
-    "bunli": "workspace:*",
+    "bunli": "workspace:^",
     "typescript": "^5.8.3"
   }
 }

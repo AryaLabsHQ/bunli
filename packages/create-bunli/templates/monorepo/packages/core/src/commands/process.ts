@@ -6,7 +6,6 @@ import type { ProcessOptions } from '../types.js'
 const processCommand = defineCommand({
   name: 'process',
   description: 'Process input files',
-  args: z.array(z.string()).min(1).describe('Files to process'),
   options: {
     output: option(
       z.string().optional(),
@@ -30,12 +29,18 @@ const processCommand = defineCommand({
       }
     )
   },
-  handler: async ({ args, flags, spinner }) => {
+  handler: async ({ positional, flags, spinner }) => {
+    const files = positional
+    if (files.length === 0) {
+      logger.error('Usage: process <file...>')
+      process.exit(1)
+    }
+
     const spin = spinner('Processing files...')
     spin.start()
     
     try {
-      for (const file of args) {
+      for (const file of files) {
         if (flags.verbose) {
           logger.info(`Processing ${file}`)
         }
@@ -49,7 +54,7 @@ const processCommand = defineCommand({
         })
       }
       
-      spin.succeed(`Processed ${args.length} files`)
+      spin.succeed(`Processed ${files.length} files`)
     } catch (error) {
       spin.fail('Processing failed')
       logger.error(error)

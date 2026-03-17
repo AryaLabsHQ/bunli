@@ -13,6 +13,7 @@
  */
 
 import { describe, expect, test, beforeAll } from 'bun:test'
+import { Result } from 'better-result'
 import { readFile, writeFile, mkdir } from 'fs/promises'
 import { join, dirname } from 'path'
 import { fetchToolsFromStdio, fetchToolsFromHttp, toolsToJson } from './mcp-client.js'
@@ -121,10 +122,15 @@ describeWithKey('Exa MCP - Stdio', () => {
   })
 
   test('converts to Bunli commands (runtime)', () => {
-    const commands = createCommandsFromMCPTools(tools, {
+    const commandsResult = createCommandsFromMCPTools(tools, {
       namespace: 'exa',
       createHandler: () => async () => {}
     })
+    expect(Result.isOk(commandsResult)).toBe(true)
+    if (Result.isError(commandsResult)) {
+      throw commandsResult.error
+    }
+    const commands = commandsResult.value
 
     expect(commands.length).toBe(tools.length)
 
@@ -189,10 +195,15 @@ describeWithKey('Exa MCP - HTTP', () => {
   })
 
   test('converts to Bunli commands (runtime)', () => {
-    const commands = createCommandsFromMCPTools(tools, {
+    const commandsResult = createCommandsFromMCPTools(tools, {
       namespace: 'exa',
       createHandler: () => async () => {}
     })
+    expect(Result.isOk(commandsResult)).toBe(true)
+    if (Result.isError(commandsResult)) {
+      throw commandsResult.error
+    }
+    const commands = commandsResult.value
 
     expect(commands.length).toBe(tools.length)
 

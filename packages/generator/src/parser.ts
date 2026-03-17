@@ -1,240 +1,697 @@
 import { parse } from '@babel/parser'
 const traverse = require('@babel/traverse').default
 import path from 'node:path'
+import { existsSync } from 'node:fs'
+import { Result } from 'better-result'
 import type { CommandMetadata, OptionMetadata } from './types.js'
 import { createLogger } from '@bunli/core/utils'
+import { ParseCommandError } from './errors.js'
 
 const logger = createLogger('generator:parser')
+const SUPPORTED_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs']
 
-// Utility functions
-function getCommandName(filePath: string, commandsDir: string): string {
-  const dir = commandsDir.replace(/^\.\/?/, '')
-  const relativePath = filePath.replace(dir + '/', '')
-  const withoutExt = relativePath.replace(/\.[^.]+$/, '')
-  
-  if (withoutExt.endsWith('/index')) {
-    return withoutExt.slice(0, -6)
-  }
-  
-  return withoutExt
+interface ParseContext {
+  readonly sourceRoot: string
+  readonly outputFile: string
+  readonly cache: Map<string, Promise<Result<CommandMetadata | null, ParseCommandError>>>
+  readonly inProgress: Set<string>
+  readonly moduleCache: Map<string, Promise<Result<ModuleInfo, ParseCommandError>>>
+  readonly moduleInProgress: Set<string>
+}
+
+interface ImportBinding {
+  filePath: string
+  importedName: string
+}
+
+interface ModuleInfo {
+  variableInitializers: Map<string, any>
+  importBindings: Map<string, ImportBinding>
+  exportedExpressions: Map<string, any>
+}
+
+interface OptionResolverScope {
+  readonly filePath: string
+  readonly variableInitializers: Map<string, any>
+  readonly importBindings: Map<string, ImportBinding>
+  readonly context: ParseContext
 }
 
 function toAbsolute(target: string): string {
   return path.isAbsolute(target) ? target : path.join(process.cwd() || '.', target)
 }
 
+function getCommandName(filePath: string, sourceRoot: string): string {
+  const sourceRootAbsolute = toAbsolute(sourceRoot)
+  const fileAbsolute = toAbsolute(filePath)
+  const relativePath = path.relative(sourceRootAbsolute, fileAbsolute).replace(/\\/g, '/')
+  const withoutExt = relativePath.replace(/\.[^.]+$/, '')
+
+  if (withoutExt.endsWith('/index')) {
+    return withoutExt.slice(0, -6)
+  }
+
+  return withoutExt
+}
+
 function getImportPath(filePath: string, outputFile: string): string {
   const commandAbsolute = toAbsolute(filePath)
   const outputAbsolute = toAbsolute(outputFile)
-  const relativePath = path.relative(path.dirname(outputAbsolute), commandAbsolute)
-  const normalized = relativePath.replace(/\\/g, '/')
-  
-  // Convert .ts extension to .js for ESM imports
-  const withJsExt = normalized.replace(/\.ts$/, '.js')
-  
+  const relativePath = path.relative(path.dirname(outputAbsolute), commandAbsolute).replace(/\\/g, '/')
+  const withJsExt = relativePath.replace(/\.(ts|tsx)$/, '.js')
+
   if (withJsExt.startsWith('../') || withJsExt.startsWith('./')) {
     return withJsExt
   }
   return `./${withJsExt}`
 }
 
-function getExportPath(filePath: string, commandsDir: string, outputFile: string): string {
-  const commandsRoot = toAbsolute(commandsDir)
-  const commandAbsolute = toAbsolute(filePath)
-  const relativePath = path.relative(commandsRoot, commandAbsolute).replace(/\\/g, '/')
+function getExportPath(filePath: string): string {
+  const fileAbsolute = toAbsolute(filePath)
+  const cwdAbsolute = toAbsolute(process.cwd())
+  const relativePath = path.relative(cwdAbsolute, fileAbsolute).replace(/\\/g, '/')
   const withoutExt = relativePath.replace(/\.[^.]+$/, '')
-
-  const cleanedCommandsDir = commandsDir.replace(/^\.\/?/, '')
-  const base = cleanedCommandsDir ? `../${cleanedCommandsDir}` : '..'
-  const result = `${base}/${withoutExt}`
-  return result.startsWith('./') ? result.slice(2) : result
+  return withoutExt.startsWith('.') ? withoutExt : `./${withoutExt}`
 }
 
 export async function parseCommand(
   filePath: string,
-  commandsDir: string,
+  sourceRoot: string,
   outputFile: string
-): Promise<CommandMetadata | null> {
-  try {
-    // Use Bun's native file reading
-    const file = Bun.file(filePath)
-    const content = await file.text()
-    
-    // First, use Bun.Transpiler to quickly scan for defineCommand usage
-    const transpiler = new Bun.Transpiler({ loader: 'tsx' })
-    const scanResult = transpiler.scan(content)
-    
-    // Check if this file exports a command (look for Command in exports or defineCommand usage)
-    const hasCommandExport = scanResult.exports.some(exp => 
-      exp.includes('Command') || exp === 'default'
-    )
-    
-    
-    if (!hasCommandExport) {
-      return null
-    }
-    
-    // Use Babel for detailed parsing only if we found a command
-    const ast = parse(content, {
-      sourceType: 'module',
-      plugins: ['typescript', 'jsx', 'decorators-legacy']
-    })
-
-    let commandMetadata: CommandMetadata | null = null
-
-    traverse(ast, {
-      CallExpression(path: any) {
-        // Look for defineCommand calls
-        if (
-          path.node.callee.type === 'Identifier' &&
-          path.node.callee.name === 'defineCommand'
-        ) {
-          const args = path.node.arguments
-          if (args.length > 0 && args[0]?.type === 'ObjectExpression') {
-            commandMetadata = extractCommandMetadata(
-              args[0],
-              filePath,
-              commandsDir,
-              outputFile
-            )
-          }
-        } else if (
-          path.node.callee.type === 'MemberExpression' &&
-          path.node.callee.property.type === 'Identifier' &&
-          path.node.callee.property.name === 'defineCommand'
-        ) {
-          const args = path.node.arguments
-          if (args.length > 0 && args[0]?.type === 'ObjectExpression') {
-            commandMetadata = extractCommandMetadata(
-              args[0],
-              filePath,
-              commandsDir,
-              outputFile
-            )
-          }
-        }
-      }
-    })
-
-    return commandMetadata
-  } catch (error) {
-    logger.debug('Could not parse command file %s: %O', filePath, error)
-    return null
+): Promise<Result<CommandMetadata | null, ParseCommandError>> {
+  const context: ParseContext = {
+    sourceRoot,
+    outputFile,
+    cache: new Map(),
+    inProgress: new Set(),
+    moduleCache: new Map(),
+    moduleInProgress: new Set()
   }
+
+  return parseCommandWithContext(filePath, context)
 }
 
-function extractCommandMetadata(
+async function parseCommandWithContext(
+  filePath: string,
+  context: ParseContext
+): Promise<Result<CommandMetadata | null, ParseCommandError>> {
+  const absoluteFilePath = toAbsolute(filePath)
+  if (context.inProgress.has(absoluteFilePath)) {
+    return Result.err(new ParseCommandError({
+      filePath: absoluteFilePath,
+      message: `Circular command reference detected while parsing ${absoluteFilePath}`,
+      cause: new Error('Circular command reference')
+    }))
+  }
+
+  const cached = context.cache.get(absoluteFilePath)
+  if (cached) return cached
+
+  const work = parseCommandInternal(absoluteFilePath, context)
+  context.cache.set(absoluteFilePath, work)
+  return work
+}
+
+async function parseCommandInternal(
+  filePath: string,
+  context: ParseContext
+): Promise<Result<CommandMetadata | null, ParseCommandError>> {
+  if (context.inProgress.has(filePath)) {
+    return Result.err(new ParseCommandError({
+      filePath,
+      message: `Circular command reference detected while parsing ${filePath}`,
+      cause: new Error('Circular command reference')
+    }))
+  }
+  context.inProgress.add(filePath)
+
+  const parseResult = await Result.tryPromise({
+    try: async () => {
+      const content = await Bun.file(filePath).text()
+      const transpiler = new Bun.Transpiler({ loader: 'tsx' })
+      const scanResult = transpiler.scan(content)
+
+      const hasCommandCall = content.includes('defineCommand(') || content.includes('defineGroup(')
+      if (!hasCommandCall) {
+        return null
+      }
+
+      const hasDefaultExport = scanResult.exports.includes('default')
+      if (!hasDefaultExport) {
+        throw new Error(
+          `Command module must default-export a defineCommand(...) or defineGroup(...): ${filePath}`
+        )
+      }
+
+      const ast = parse(content, {
+        sourceType: 'module',
+        plugins: ['typescript', 'jsx', 'decorators-legacy']
+      })
+
+      const importBindings = collectImportBindings(ast, filePath)
+      const importMap = collectImportMap(importBindings)
+      const variableInitializers = collectVariableInitializers(ast)
+      const defaultExpr = findDefaultExportExpression(ast, variableInitializers)
+      if (!defaultExpr) {
+        throw new Error(
+          `Default export in ${filePath} is not a command/group definition. Expected defineCommand(...) or defineGroup(...).`
+        )
+      }
+
+      const commandObject = extractCommandObjectExpression(defaultExpr)
+      if (!commandObject) {
+        throw new Error(
+          `Could not extract command metadata from default export in ${filePath}. Expected object literal in defineCommand(...) or defineGroup(...).`
+        )
+      }
+
+      const metadata = await extractCommandMetadata(
+        commandObject,
+        filePath,
+        context,
+        importMap,
+        {
+          filePath,
+          variableInitializers,
+          importBindings,
+          context
+        }
+      )
+
+      if (!metadata.name) {
+        metadata.name = getCommandName(filePath, context.sourceRoot)
+      }
+
+      return metadata
+    },
+    catch: (cause) =>
+      new ParseCommandError({
+        filePath,
+        message: `Could not parse command file ${filePath}`,
+        cause
+      })
+  })
+
+  context.inProgress.delete(filePath)
+  if (Result.isError(parseResult)) {
+    logger.debug('Could not parse command file %s: %O', filePath, parseResult.error)
+  }
+  return parseResult
+}
+
+function collectVariableInitializers(ast: any): Map<string, any> {
+  const bindings = new Map<string, any>()
+  traverse(ast, {
+    VariableDeclarator(path: any) {
+      const id = path.node.id
+      const init = path.node.init
+      if (id?.type === 'Identifier' && init) {
+        bindings.set(id.name, init)
+      }
+    }
+  })
+  return bindings
+}
+
+function findDefaultExportExpression(ast: any, variableInitializers: Map<string, any>): any | null {
+  let result: any | null = null
+  traverse(ast, {
+    ExportDefaultDeclaration(path: any) {
+      const declaration = path.node.declaration
+      if (declaration?.type === 'Identifier') {
+        result = variableInitializers.get(declaration.name) ?? null
+        return
+      }
+      result = declaration
+    }
+  })
+  return result
+}
+
+function extractCommandObjectExpression(node: any): any | null {
+  if (!node) return null
+
+  if (
+    node.type === 'CallExpression' &&
+    (
+      (node.callee?.type === 'Identifier' &&
+        (node.callee.name === 'defineCommand' || node.callee.name === 'defineGroup')) ||
+      (node.callee?.type === 'MemberExpression' &&
+        node.callee.property?.type === 'Identifier' &&
+        (node.callee.property.name === 'defineCommand' || node.callee.property.name === 'defineGroup'))
+    )
+  ) {
+    const arg0 = node.arguments?.[0]
+    if (arg0?.type === 'ObjectExpression') return arg0
+  }
+
+  return null
+}
+
+function collectImportBindings(ast: any, filePath: string): Map<string, ImportBinding> {
+  const bindings = new Map<string, ImportBinding>()
+
+  traverse(ast, {
+    ImportDeclaration(path: any) {
+      const source = path.node.source?.value
+      if (typeof source !== 'string' || !source.startsWith('.')) return
+
+      const resolved = resolveImportPath(filePath, source)
+      if (!resolved) return
+
+      for (const specifier of path.node.specifiers) {
+        if (!specifier?.local?.name) continue
+
+        if (specifier.type === 'ImportDefaultSpecifier') {
+          bindings.set(specifier.local.name, {
+            filePath: resolved,
+            importedName: 'default'
+          })
+          continue
+        }
+
+        if (specifier.type === 'ImportSpecifier') {
+          const importedName = specifier.imported?.name ?? specifier.imported?.value
+          if (typeof importedName === 'string' && importedName.length > 0) {
+            bindings.set(specifier.local.name, {
+              filePath: resolved,
+              importedName
+            })
+          }
+          continue
+        }
+
+        if (specifier.type === 'ImportNamespaceSpecifier') {
+          bindings.set(specifier.local.name, {
+            filePath: resolved,
+            importedName: '*'
+          })
+        }
+      }
+    }
+  })
+
+  return bindings
+}
+
+function collectImportMap(bindings: Map<string, ImportBinding>): Map<string, string> {
+  const importMap = new Map<string, string>()
+  for (const [name, binding] of bindings) {
+    importMap.set(name, binding.filePath)
+  }
+  return importMap
+}
+
+function collectExportedExpressions(ast: any, variableInitializers: Map<string, any>): Map<string, any> {
+  const exports = new Map<string, any>()
+
+  traverse(ast, {
+    ExportDefaultDeclaration(path: any) {
+      const declaration = path.node.declaration
+      if (declaration?.type === 'Identifier') {
+        const init = variableInitializers.get(declaration.name)
+        if (init) exports.set('default', init)
+        return
+      }
+      if (declaration) exports.set('default', declaration)
+    },
+    ExportNamedDeclaration(path: any) {
+      const declaration = path.node.declaration
+
+      if (declaration?.type === 'VariableDeclaration') {
+        for (const decl of declaration.declarations) {
+          const id = decl?.id
+          if (id?.type !== 'Identifier') continue
+          if (decl.init) {
+            exports.set(id.name, decl.init)
+          } else {
+            const init = variableInitializers.get(id.name)
+            if (init) exports.set(id.name, init)
+          }
+        }
+      } else if (declaration?.type === 'FunctionDeclaration' && declaration.id?.name) {
+        exports.set(declaration.id.name, declaration)
+      }
+
+      for (const specifier of path.node.specifiers ?? []) {
+        if (specifier.type !== 'ExportSpecifier') continue
+        const localName = specifier.local?.name ?? specifier.local?.value
+        const exportedName = specifier.exported?.name ?? specifier.exported?.value
+        if (typeof localName !== 'string' || typeof exportedName !== 'string') continue
+        const init = variableInitializers.get(localName)
+        if (init) exports.set(exportedName, init)
+      }
+    }
+  })
+
+  return exports
+}
+
+function resolveImportPath(fromFile: string, specifier: string): string | null {
+  const base = path.resolve(path.dirname(fromFile), specifier)
+  const ext = path.extname(base)
+  const candidates: string[] = []
+
+  if (ext) {
+    if (!SUPPORTED_EXTENSIONS.includes(ext)) {
+      return null
+    }
+
+    candidates.push(base)
+    if (ext === '.js' || ext === '.mjs' || ext === '.cjs') {
+      const stem = base.slice(0, -ext.length)
+      for (const supported of SUPPORTED_EXTENSIONS) {
+        candidates.push(`${stem}${supported}`)
+      }
+    }
+  } else {
+    for (const supported of SUPPORTED_EXTENSIONS) {
+      candidates.push(`${base}${supported}`)
+    }
+    for (const supported of SUPPORTED_EXTENSIONS) {
+      candidates.push(path.join(base, `index${supported}`))
+    }
+  }
+
+  for (const candidate of candidates) {
+    if (existsSync(candidate)) return candidate
+  }
+  return null
+}
+
+async function parseModuleInfoWithContext(
+  filePath: string,
+  context: ParseContext
+): Promise<Result<ModuleInfo, ParseCommandError>> {
+  const absoluteFilePath = toAbsolute(filePath)
+  if (context.moduleInProgress.has(absoluteFilePath)) {
+    return Result.err(new ParseCommandError({
+      filePath: absoluteFilePath,
+      message: `Circular module reference detected while parsing ${absoluteFilePath}`,
+      cause: new Error('Circular module reference')
+    }))
+  }
+
+  const cached = context.moduleCache.get(absoluteFilePath)
+  if (cached) return cached
+
+  const work = parseModuleInfoInternal(absoluteFilePath, context)
+  context.moduleCache.set(absoluteFilePath, work)
+  return work
+}
+
+async function parseModuleInfoInternal(
+  filePath: string,
+  context: ParseContext
+): Promise<Result<ModuleInfo, ParseCommandError>> {
+  if (context.moduleInProgress.has(filePath)) {
+    return Result.err(new ParseCommandError({
+      filePath,
+      message: `Circular module reference detected while parsing ${filePath}`,
+      cause: new Error('Circular module reference')
+    }))
+  }
+
+  context.moduleInProgress.add(filePath)
+
+  const parseResult = await Result.tryPromise({
+    try: async () => {
+      const content = await Bun.file(filePath).text()
+      const ast = parse(content, {
+        sourceType: 'module',
+        plugins: ['typescript', 'jsx', 'decorators-legacy']
+      })
+
+      const variableInitializers = collectVariableInitializers(ast)
+      const importBindings = collectImportBindings(ast, filePath)
+      const exportedExpressions = collectExportedExpressions(ast, variableInitializers)
+
+      return {
+        variableInitializers,
+        importBindings,
+        exportedExpressions
+      }
+    },
+    catch: (cause) =>
+      new ParseCommandError({
+        filePath,
+        message: `Could not parse module file ${filePath}`,
+        cause
+      })
+  })
+
+  context.moduleInProgress.delete(filePath)
+  return parseResult
+}
+
+async function extractCommandMetadata(
   objectExpression: any,
   filePath: string,
-  commandsDir: string,
-  outputFile: string
-): CommandMetadata {
+  context: ParseContext,
+  importMap: Map<string, string>,
+  optionResolver: OptionResolverScope
+): Promise<CommandMetadata> {
   const metadata: CommandMetadata = {
     name: '',
     description: '',
     filePath,
-    importPath: getImportPath(filePath, outputFile),
-    exportPath: getExportPath(filePath, commandsDir, outputFile)
+    importPath: getImportPath(filePath, context.outputFile),
+    exportPath: getExportPath(filePath)
   }
 
-  // Extract properties from the object expression
   for (const prop of objectExpression.properties) {
-    if (prop.type === 'ObjectProperty' && prop.key.type === 'Identifier') {
-      const key = prop.key.name
-      const value = prop.value
+    if (prop.type !== 'ObjectProperty' || prop.key.type !== 'Identifier') continue
 
-      switch (key) {
-        case 'name':
-          metadata.name = extractNameValue(value) ?? ''
-          break
+    const key = prop.key.name
+    const value = prop.value
 
-        case 'description':
-          if (value.type === 'StringLiteral') {
-            metadata.description = value.value
+    switch (key) {
+      case 'name':
+        metadata.name = extractNameValue(value) ?? ''
+        break
+      case 'description':
+        if (value.type === 'StringLiteral') metadata.description = value.value
+        break
+      case 'alias':
+        if (value.type === 'StringLiteral') {
+          metadata.alias = value.value
+        } else if (value.type === 'ArrayExpression') {
+          metadata.alias = value.elements
+            .filter((el: any) => el?.type === 'StringLiteral')
+            .map((el: any) => el.value)
+        }
+        break
+      case 'options':
+        {
+          const extractedOptions = await extractOptions(value, optionResolver)
+          if (Object.keys(extractedOptions).length > 0) {
+            metadata.options = extractedOptions
           }
-          break
-
-        case 'alias':
-          if (value.type === 'StringLiteral') {
-            metadata.alias = value.value
-          } else if (value.type === 'ArrayExpression') {
-            metadata.alias = value.elements
-              .filter((el: any) => el?.type === 'StringLiteral')
-              .map((el: any) => el.value)
-          }
-          break
-
-        case 'options':
-          if (value.type === 'ObjectExpression') {
-            metadata.options = extractOptions(value)
-          }
-          break
-
-        case 'handler':
-          metadata.hasHandler = true
-          break
-
-        case 'render':
-          metadata.hasRender = true
-          break
-
-        case 'commands':
-          metadata.commands = extractNestedCommands(value, filePath, commandsDir, outputFile)
-          break
-      }
+        }
+        break
+      case 'handler':
+        metadata.hasHandler = true
+        break
+      case 'render':
+        metadata.hasRender = true
+        break
+      case 'commands':
+        metadata.commands = await extractNestedCommands(
+          value,
+          filePath,
+          context,
+          importMap,
+          optionResolver
+        )
+        break
     }
   }
-
-  // Always use the file path as the source of truth for command names
-  // This ensures nested commands like 'docker/clean' are properly named
-  metadata.name = getCommandName(filePath, commandsDir)
 
   return metadata
 }
 
-function extractOptions(objectExpression: any): Record<string, OptionMetadata> {
-  const options: Record<string, OptionMetadata> = {}
+async function extractNestedCommands(
+  value: any,
+  parentFile: string,
+  context: ParseContext,
+  importMap: Map<string, string>,
+  optionResolver: OptionResolverScope
+): Promise<CommandMetadata[] | undefined> {
+  if (value.type !== 'ArrayExpression') return undefined
 
-  for (const prop of objectExpression.properties) {
-    if (prop.type === 'ObjectProperty' && prop.key.type === 'Identifier') {
-      const optionName = prop.key.name
-      const optionValue = prop.value
+  const nested: CommandMetadata[] = []
 
-      // Look for option() calls
-      if (
-        optionValue.type === 'CallExpression' &&
-        optionValue.callee.type === 'Identifier' &&
-        optionValue.callee.name === 'option'
-      ) {
-        const args = optionValue.arguments
-        if (args.length >= 1) {
-          const schema = args[0]
-          const metadata = args[1]?.type === 'ObjectExpression' ? args[1] : null
+  for (const element of value.elements) {
+    if (!element) continue
 
-          const { type} = inferSchemaType(schema)
-          const defaultInfo = inferDefault(schema)
-          const enumValues = extractEnumValues(schema)
-          const constraints = extractConstraints(schema)
-          const description = extractDescription(metadata)
-          const fileType = detectFileType(metadata, description)
-
-          options[optionName] = {
-            type,
-            required: inferRequired(schema),
-            hasDefault: defaultInfo.hasDefault,
-            default: defaultInfo.value,
-            description,
-            short: extractShort(metadata),
-            // Enhanced completion metadata
-            enumValues,
-            ...constraints,  // Spread min, max, pattern, literalValue, etc.
-            fileType,  // Add file type for path completions
-            // Schema information
-            schema: extractSchemaDefinition(schema),
-            validator: generateValidator(schema)
-          }
-        }
+    if (element.type === 'ObjectExpression') {
+      const nestedMetadata = await extractCommandMetadata(
+        element,
+        parentFile,
+        context,
+        importMap,
+        optionResolver
+      )
+      if (!nestedMetadata.name) {
+        nestedMetadata.name = getCommandName(parentFile, context.sourceRoot)
       }
+      nested.push(nestedMetadata)
+      continue
+    }
+
+    if (element.type === 'Identifier') {
+      const importedPath = importMap.get(element.name)
+      if (!importedPath) continue
+      const nestedResult = await parseCommandWithContext(importedPath, context)
+      if (Result.isError(nestedResult)) {
+        throw nestedResult.error
+      }
+      if (nestedResult.value) {
+        nested.push(nestedResult.value)
+      }
+      continue
+    }
+
+    if (element.type === 'CallExpression') {
+      const nestedObject = extractCommandObjectExpression(element)
+      if (nestedObject) {
+        const nestedMetadata = await extractCommandMetadata(
+          nestedObject,
+          parentFile,
+          context,
+          importMap,
+          optionResolver
+        )
+        if (nestedMetadata.name) nested.push(nestedMetadata)
+      }
+    }
+  }
+
+  return nested.length > 0 ? nested : undefined
+}
+
+function isOptionCallExpression(node: any): boolean {
+  return Boolean(
+    node &&
+    node.type === 'CallExpression' &&
+    node.callee?.type === 'Identifier' &&
+    node.callee.name === 'option'
+  )
+}
+
+function getObjectPropertyKey(key: any): string | undefined {
+  if (key?.type === 'Identifier') return key.name
+  if (key?.type === 'StringLiteral') return key.value
+  return undefined
+}
+
+async function resolveExpressionNode(
+  node: any,
+  scope: OptionResolverScope,
+  visited: Set<string> = new Set()
+): Promise<{ node: any, scope: OptionResolverScope } | null> {
+  if (!node) return null
+  if (node.type !== 'Identifier') {
+    return { node, scope }
+  }
+
+  const key = `${scope.filePath}:${node.name}`
+  if (visited.has(key)) return null
+
+  const nextVisited = new Set(visited)
+  nextVisited.add(key)
+
+  const localInitializer = scope.variableInitializers.get(node.name)
+  if (localInitializer) {
+    return resolveExpressionNode(localInitializer, scope, nextVisited)
+  }
+
+  const importBinding = scope.importBindings.get(node.name)
+  if (!importBinding || importBinding.importedName === '*') {
+    return null
+  }
+
+  const importedModule = await parseModuleInfoWithContext(importBinding.filePath, scope.context)
+  if (Result.isError(importedModule)) {
+    logger.debug(
+      'Could not resolve imported option symbol %s from %s: %O',
+      node.name,
+      importBinding.filePath,
+      importedModule.error
+    )
+    return null
+  }
+
+  const importedExpression = importedModule.value.exportedExpressions.get(importBinding.importedName)
+  if (!importedExpression) return null
+
+  const importedScope: OptionResolverScope = {
+    filePath: importBinding.filePath,
+    variableInitializers: importedModule.value.variableInitializers,
+    importBindings: importedModule.value.importBindings,
+    context: scope.context
+  }
+
+  return resolveExpressionNode(importedExpression, importedScope, nextVisited)
+}
+
+function buildOptionMetadata(optionCall: any): OptionMetadata | null {
+  const args = optionCall.arguments
+  if (!Array.isArray(args) || args.length < 1) {
+    return null
+  }
+
+  const schema = args[0]
+  const metadata = args[1]?.type === 'ObjectExpression' ? args[1] : null
+  const { type } = inferSchemaType(schema)
+  const defaultInfo = inferDefault(schema)
+  const enumValues = extractEnumValues(schema)
+  const constraints = extractConstraints(schema)
+  const description = extractDescription(metadata)
+  const fileType = detectFileType(metadata, description)
+
+  return {
+    type,
+    required: inferRequired(schema),
+    hasDefault: defaultInfo.hasDefault,
+    default: defaultInfo.value,
+    description,
+    short: extractShort(metadata),
+    enumValues,
+    ...constraints,
+    fileType,
+    schema: extractSchemaDefinition(schema),
+    validator: generateValidator(schema)
+  }
+}
+
+async function extractOptions(
+  value: any,
+  scope: OptionResolverScope
+): Promise<Record<string, OptionMetadata>> {
+  const options: Record<string, OptionMetadata> = {}
+  const resolved = await resolveExpressionNode(value, scope)
+  if (!resolved || resolved.node.type !== 'ObjectExpression') {
+    return options
+  }
+
+  for (const prop of resolved.node.properties) {
+    if (prop.type === 'SpreadElement') {
+      const spreadOptions = await extractOptions(prop.argument, resolved.scope)
+      Object.assign(options, spreadOptions)
+      continue
+    }
+
+    if (prop.type !== 'ObjectProperty') continue
+    const optionName = getObjectPropertyKey(prop.key)
+    if (!optionName) continue
+
+    const optionValue = await resolveExpressionNode(prop.value, resolved.scope)
+    if (!optionValue || !isOptionCallExpression(optionValue.node)) continue
+
+    const built = buildOptionMetadata(optionValue.node)
+    if (built) {
+      options[optionName] = built
     }
   }
 
@@ -242,22 +699,13 @@ function extractOptions(objectExpression: any): Record<string, OptionMetadata> {
 }
 
 function inferDefault(schema: any): any {
-  // Try to extract default value from schema
   if (schema.type === 'CallExpression') {
     const callee = schema.callee
-    if (callee.type === 'MemberExpression') {
-      if (callee.property.type === 'Identifier') {
-        if (callee.property.name === 'default') {
-          const args = schema.arguments
-          if (args.length > 0) {
-            return { hasDefault: true, value: extractLiteralValue(args[0]) }
-          }
-        }
-        if (callee.property.name === 'catch') {
-          const args = schema.arguments
-          if (args.length > 0) {
-            return { hasDefault: true, value: extractLiteralValue(args[0]) }
-          }
+    if (callee.type === 'MemberExpression' && callee.property.type === 'Identifier') {
+      if (callee.property.name === 'default' || callee.property.name === 'catch') {
+        const args = schema.arguments
+        if (args.length > 0) {
+          return { hasDefault: true, value: extractLiteralValue(args[0]) }
         }
       }
     }
@@ -340,9 +788,7 @@ function inferSchemaType(schema: any): { type: string } {
     case 'MemberExpression': {
       const object = inferSchemaType(schema.object).type
       const property = schema.property?.name
-      if (object && property) {
-        return { type: `${object}.${property}` }
-      }
+      if (object && property) return { type: `${object}.${property}` }
       return { type: object || 'unknown' }
     }
     default:
@@ -350,40 +796,21 @@ function inferSchemaType(schema: any): { type: string } {
   }
 }
 
-function extractNestedCommands(value: any, parentFile: string, commandsDir: string, outputFile: string): CommandMetadata[] | undefined {
-  if (value.type !== 'ArrayExpression') return undefined
-  const nested: CommandMetadata[] = []
-  for (const element of value.elements) {
-    if (element?.type === 'ObjectExpression') {
-      const nestedMetadata = extractCommandMetadata(element, parentFile, commandsDir, outputFile)
-      if (nestedMetadata.name) nested.push(nestedMetadata)
-    }
-  }
-  return nested.length ? nested : undefined
-}
-
 function inferRequired(schema: any): boolean {
-  // Check if the schema has .optional() or similar
   if (schema.type === 'CallExpression') {
     const callee = schema.callee
-    if (callee.type === 'MemberExpression') {
-      if (callee.property.type === 'Identifier') {
-        return callee.property.name !== 'optional'
-      }
+    if (callee.type === 'MemberExpression' && callee.property.type === 'Identifier') {
+      return callee.property.name !== 'optional'
     }
   }
-
   return true
 }
 
-/**
- * Extract detailed schema definition for runtime introspection
- */
 function extractSchemaDefinition(schema: any): any {
   if (!schema) return null
 
   switch (schema.type) {
-    case 'CallExpression':
+    case 'CallExpression': {
       const callee = schema.callee
       if (callee.type === 'MemberExpression') {
         return {
@@ -397,26 +824,23 @@ function extractSchemaDefinition(schema: any): any {
         method: callee.name || 'unknown',
         args: schema.arguments?.map((arg: any) => extractSchemaDefinition(arg)) || []
       }
-    
+    }
     case 'MemberExpression':
       return {
         type: 'zod',
         object: extractSchemaDefinition(schema.object),
         property: schema.property?.name || 'unknown'
       }
-    
     case 'Identifier':
       return {
         type: 'zod',
         name: schema.name
       }
-    
     case 'StringLiteral':
       return {
         type: 'literal',
         value: schema.value
       }
-    
     default:
       return {
         type: 'unknown',
@@ -425,13 +849,8 @@ function extractSchemaDefinition(schema: any): any {
   }
 }
 
-/**
- * Generate a runtime validator function for the schema
- */
 function generateValidator(schema: any): string {
   if (!schema) return '() => true'
-
-  // Generate a simple validator based on the schema type
   const { type } = inferSchemaType(schema)
 
   switch (type) {
@@ -450,19 +869,17 @@ function generateValidator(schema: any): string {
   }
 }
 
-/**
- * Extract enum values from z.enum() or z.literal() calls
- */
 function extractEnumValues(schema: any): (string | number)[] | undefined {
   if (!schema) return undefined
 
   if (schema.type === 'CallExpression') {
     const callee = schema.callee
 
-    // Handle z.enum(['a', 'b', 'c'])
-    if (callee.type === 'MemberExpression' &&
-        callee.property?.type === 'Identifier' &&
-        callee.property.name === 'enum') {
+    if (
+      callee.type === 'MemberExpression' &&
+      callee.property?.type === 'Identifier' &&
+      callee.property.name === 'enum'
+    ) {
       const args = schema.arguments
       if (args[0]?.type === 'ArrayExpression') {
         const values = args[0].elements
@@ -472,10 +889,11 @@ function extractEnumValues(schema: any): (string | number)[] | undefined {
       }
     }
 
-    // Handle z.literal('value')
-    if (callee.type === 'MemberExpression' &&
-        callee.property?.type === 'Identifier' &&
-        callee.property.name === 'literal') {
+    if (
+      callee.type === 'MemberExpression' &&
+      callee.property?.type === 'Identifier' &&
+      callee.property.name === 'literal'
+    ) {
       const args = schema.arguments
       if (args[0]) {
         const value = extractLiteralValue(args[0])
@@ -483,17 +901,11 @@ function extractEnumValues(schema: any): (string | number)[] | undefined {
       }
     }
 
-    // Recursively check chained methods for any call expression
-    // This handles cases like z.enum(['a', 'b']).default('a')
     if (callee.type === 'MemberExpression') {
-      // First check the object (the left side of the chain)
       const fromObject = extractEnumValues(callee.object)
-      if (fromObject) {
-        return fromObject
-      }
+      if (fromObject) return fromObject
     }
 
-    // Also check callee itself if it's a call expression
     if (callee.type === 'CallExpression') {
       const fromCallee = extractEnumValues(callee)
       if (fromCallee) return fromCallee
@@ -503,12 +915,8 @@ function extractEnumValues(schema: any): (string | number)[] | undefined {
   return undefined
 }
 
-/**
- * Extract constraints like min, max, regex from Zod schema
- */
 function extractConstraints(schema: any): Partial<OptionMetadata> {
   const constraints: Partial<OptionMetadata> = {}
-
   if (!schema) return constraints
 
   if (schema.type === 'CallExpression') {
@@ -519,65 +927,56 @@ function extractConstraints(schema: any): Partial<OptionMetadata> {
       const args = schema.arguments
 
       switch (methodName) {
-        case 'min':
-          if (args[0]) {
-            const value = extractLiteralValue(args[0])
-            if (typeof value === 'number') {
-              constraints.min = value
-              constraints.minLength = value
-            }
+        case 'min': {
+          const value = args[0] ? extractLiteralValue(args[0]) : undefined
+          if (typeof value === 'number') {
+            constraints.min = value
+            constraints.minLength = value
           }
           break
-
-        case 'max':
-          if (args[0]) {
-            const value = extractLiteralValue(args[0])
-            if (typeof value === 'number') {
-              constraints.max = value
-              constraints.maxLength = value
-            }
+        }
+        case 'max': {
+          const value = args[0] ? extractLiteralValue(args[0]) : undefined
+          if (typeof value === 'number') {
+            constraints.max = value
+            constraints.maxLength = value
           }
           break
-
+        }
         case 'regex':
           if (args[0]?.type === 'RegExpLiteral') {
             constraints.pattern = args[0].pattern
-          } else if (args[0]?.type === 'NewExpression' &&
-                    args[0].callee?.type === 'Identifier' &&
-                    args[0].callee.name === 'RegExp' &&
-                    args[0].arguments[0]?.type === 'StringLiteral') {
+          } else if (
+            args[0]?.type === 'NewExpression' &&
+            args[0].callee?.type === 'Identifier' &&
+            args[0].callee.name === 'RegExp' &&
+            args[0].arguments[0]?.type === 'StringLiteral'
+          ) {
             constraints.pattern = args[0].arguments[0].value
           }
           break
-
         case 'transform':
           constraints.isTransform = true
           break
-
         case 'refine':
           constraints.isRefine = true
           break
-
         case 'array':
           constraints.isArray = true
           break
-
         case 'literal':
-          if (args[0]) {
-            constraints.literalValue = extractLiteralValue(args[0])
-          }
+          if (args[0]) constraints.literalValue = extractLiteralValue(args[0])
           break
       }
 
-      // Recursively check chained methods
       if (callee.object) {
         const parentConstraints = extractConstraints(callee.object)
-        // Merge constraints, current call takes precedence
-        Object.keys(parentConstraints).forEach(key => {
+        for (const key of Object.keys(parentConstraints) as Array<keyof OptionMetadata>) {
           if (!(key in constraints)) {
-            (constraints as any)[key] = (parentConstraints as any)[key]
+            const value = parentConstraints[key]
+            if (value !== undefined) constraints[key] = value
           }
-        })
+        }
       }
     }
   }
@@ -585,12 +984,7 @@ function extractConstraints(schema: any): Partial<OptionMetadata> {
   return constraints
 }
 
-/**
- * Detect file type from option metadata
- * Checks for explicit fileType property and analyzes description for keywords
- */
 function detectFileType(optionConfig: any, description?: string): 'file' | 'directory' | 'path' | undefined {
-  // Check for explicit fileType property
   if (optionConfig?.type === 'ObjectExpression') {
     for (const prop of optionConfig.properties) {
       if (prop.key?.name === 'fileType' && prop.value?.type === 'StringLiteral') {
@@ -602,23 +996,20 @@ function detectFileType(optionConfig: any, description?: string): 'file' | 'dire
     }
   }
 
-  // Analyze description for file-related keywords
   if (description) {
     const lowerDesc = description.toLowerCase()
-
-    // Check for directory-specific keywords
     if (lowerDesc.includes('directory') || lowerDesc.includes('folder') || lowerDesc.includes('dir')) {
       return 'directory'
     }
-
-    // Check for file-specific keywords
-    if (lowerDesc.includes('file path') || lowerDesc.includes('file name') ||
-        lowerDesc.includes('config file') || lowerDesc.includes('output file') ||
-        lowerDesc.includes('input file')) {
+    if (
+      lowerDesc.includes('file path') ||
+      lowerDesc.includes('file name') ||
+      lowerDesc.includes('config file') ||
+      lowerDesc.includes('output file') ||
+      lowerDesc.includes('input file')
+    ) {
       return 'file'
     }
-
-    // Generic path keywords (less specific)
     if (lowerDesc.includes(' path') || lowerDesc.includes('filepath')) {
       return 'path'
     }
@@ -626,4 +1017,3 @@ function detectFileType(optionConfig: any, description?: string): 'file' | 'dire
 
   return undefined
 }
-

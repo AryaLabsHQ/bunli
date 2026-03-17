@@ -151,7 +151,8 @@ bunli generate
 ```
 
 **Options:**
-- `--commandsDir` - Commands directory (defaults to config or `./commands`)
+- `--entry, -e` - CLI entry file used for command discovery
+- `--directory` - Optional fallback command source directory
 - `--output, -o` - Output file (default: `./.bunli/commands.gen.ts`)
 - `--watch, -w` - Watch for changes and regenerate
 
@@ -166,8 +167,11 @@ bunli generate --output ./types/commands.ts
 # Watch for changes
 bunli generate --watch
 
-# Use custom commands directory
-bunli generate --commandsDir ./src/commands
+# Use explicit entry
+bunli generate --entry ./src/cli.ts
+
+# Optional fallback directory
+bunli generate --directory ./src/commands
 ```
 
 <Callout type="info">
@@ -219,10 +223,10 @@ bunli release
 **Options:**
 - `--version, -v` - Version to release (patch/minor/major/x.y.z)
 - `--tag, -t` - Git tag format
-- `--npm` - Publish to npm (default: true)
-- `--github` - Create GitHub release
-- `--dry, -d` - Dry run - show what would be done
-- `--all` - Release all packages (workspace mode)
+- `--npm` - Publish to npm (`--npm=false` to disable)
+- `--github` - Create GitHub release (`--github=true` to enable)
+- `--dry, -d` - Dry run (runs npm publish with `--dry-run` when npm publish is enabled)
+- `--all` - Workspace release mode (currently not implemented)
 
 **Features:**
 - Interactive version selection
@@ -230,7 +234,7 @@ bunli release
 - Git tag creation and pushing
 - npm publishing with proper build step
 - GitHub release creation (notes only; no build artifacts)
-- Workspace support for monorepos
+- Workspace release mode placeholder (`--all` currently not implemented)
 - Dry run mode for testing
 
 **Examples:**
@@ -247,8 +251,8 @@ bunli release --version major --github
 # Dry run to preview changes
 bunli release --dry
 
-# Release all workspace packages
-bunli release --all
+# Disable npm publish
+bunli release --npm=false
 ```
 
 ## Configuration
@@ -265,7 +269,7 @@ export default defineConfig({
   
   // Command configuration
   commands: {
-    manifest: './src/commands/manifest.js',
+    entry: './src/cli.ts',
     directory: './src/commands'
   },
   
@@ -298,8 +302,12 @@ export default defineConfig({
   release: {
     npm: true,
     github: true,
-    tagFormat: 'v${version}',
-    conventionalCommits: true
+    tagFormat: 'v{{version}}',
+    conventionalCommits: true,
+    binary: {
+      packageNameFormat: '{{name}}-{{platform}}',
+      shimPath: 'bin/run.mjs'
+    }
   },
   
   // Workspace configuration (monorepos)
@@ -373,8 +381,8 @@ bunli test --all
 # Build for all platforms (single package)
 bunli build --targets all
 
-# Release all packages
-bunli release --all
+# Workspace release mode is currently not implemented
+# bunli release --all
 
 # Run dev in specific package
 cd packages/my-package && bunli dev

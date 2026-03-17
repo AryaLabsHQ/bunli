@@ -35,7 +35,6 @@ Development options:
 - `--watch, -w` - Watch for changes (default: true)
 - `--inspect, -i` - Enable debugger
 - `--port, -p` - Debugger port (default: 9229)
-- `--commandsDir` - Commands directory for codegen (default: commands)
 - `--generate` - Enable/disable code generation (default: true)
 - `--clearScreen` - Clear screen on reload (default: true)
 
@@ -72,16 +71,20 @@ bunli generate
 # Generate types and watch for changes
 bunli generate --watch
 
-# Custom commands directory
-bunli generate --commandsDir ./src/commands
+# Explicit command discovery entry
+bunli generate --entry ./src/cli.ts
+
+# Optional fallback directory
+bunli generate --directory ./src/commands
 
 # Custom output file
 bunli generate --output ./types/commands.gen.ts
 ```
 
 Generate options:
-- `--commandsDir` - Commands directory to scan (default: commands)
-- `--output, -o` - Output file path (default: ./commands.gen.ts)
+- `--entry, -e` - CLI entry file used for command discovery
+- `--directory` - Optional fallback command source directory
+- `--output, -o` - Output file path (default: ./.bunli/commands.gen.ts)
 - `--watch, -w` - Watch for changes and regenerate
 
 The generator creates type-safe command definitions with:
@@ -96,6 +99,7 @@ The generator creates type-safe command definitions with:
 - `bunli dev` - Run CLI in development mode with hot reloading
 - `bunli build` - Build your CLI for production
 - `bunli generate` - Generate TypeScript definitions from commands
+- `bunli doctor completions` - Validate generated completion metadata
 - `bunli test` - Run tests with Bun test runner
 - `bunli release` - Release your CLI package
 
@@ -171,20 +175,35 @@ bunli release --version 2.0.0
 # Dry run
 bunli release --dry
 
-# Release all workspace packages
-bunli release --all
+# Ignore unfinished release state and start fresh
+bunli release --resume=false
+
+# Disable npm publish explicitly
+bunli release --npm=false
+
+# Create GitHub release entry
+bunli release --github=true
 ```
 
 Release options:
 - `--version, -v` - Version to release (patch/minor/major/x.y.z)
 - `--tag, -t` - Git tag format
-- `--npm` - Publish to npm
-- `--github` - Create GitHub release
-- `--dry, -d` - Dry run - show what would be done
-- `--all` - Release all packages (workspace mode)
+- `--npm` - Publish to npm (`--npm=false` to disable)
+- `--github` - Create GitHub release (`--github=true` to enable)
+- `--resume` - Resume unfinished release state (`--resume=false` to start fresh)
+- `--dry, -d` - Dry run (runs npm publish with `--dry-run` when npm publish is enabled)
+- `--all` - Workspace release mode (currently not implemented; exits with error)
 
-Note: `bunli release` automates version bumps/tags and npm publishing. For standalone binaries, stable
-release asset naming, `checksums.txt`, and Homebrew tap updates, use the `bunli-releaser` GitHub Action.
+Note: `bunli release` supports npm package release flows, including binary package distribution via `release.binary`
+(`optionalDependencies` + shim launcher). For standalone GitHub release assets, checksums, and Homebrew automation,
+use the `bunli-releaser` GitHub Action.
+
+Resume behavior notes:
+- On failed non-dry runs, Bunli writes checkpoint state to `.bunli/release-state.json`.
+- Next `bunli release` auto-resumes from that state (with an interactive prompt in TTY shells).
+- Side-effectful steps (git tag/push, npm publish, GitHub release) are probed and skipped when already complete.
+- Successful release clears `.bunli/release-state.json`.
+- `--no-resume` is unsupported; use `--resume=false`.
 
 ### Build Options
 
@@ -232,6 +251,11 @@ import { defineConfig } from 'bunli'
 export default defineConfig({
   name: 'my-cli',
   version: '1.0.0',
+
+  commands: {
+    entry: './src/cli.ts',
+    directory: './src/commands' // optional fallback hint
+  },
   
   build: {
     entry: './src/cli.ts',
@@ -245,9 +269,19 @@ export default defineConfig({
   dev: {
     watch: true,
     inspect: false
+  },
+
+  tui: {
+    renderer: {
+      bufferMode: 'alternate' // or 'standard'
+    }
   }
 })
 ```
+
+Default `tui.renderer.bufferMode` policy:
+- `'standard'` by default
+- set `'alternate'` explicitly for fullscreen/blocking terminal flows
 
 ### Build Behavior
 

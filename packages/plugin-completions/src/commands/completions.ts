@@ -1,5 +1,6 @@
 import { defineCommand } from '@bunli/core'
 import { RootCommand } from '@bomb.sh/tab'
+import { Result, TaggedError } from 'better-result'
 import type { CompletionsPluginOptions, ShellType } from '../types.js'
 import { loadGeneratedMetadata, resolveCliInfo } from '../utils/metadata.js'
 import { buildRegistry } from '../tab/registry.js'
@@ -9,6 +10,11 @@ const SHELLS: ReadonlyArray<ShellType> = ['bash', 'zsh', 'fish', 'powershell']
 function isShell(value: string): value is ShellType {
   return (SHELLS as readonly string[]).includes(value)
 }
+
+class CompletionProtocolError extends TaggedError('CompletionProtocolError')<{
+  message: string
+  cause: unknown
+}>() {}
 
 export default function completionsCommand(pluginOptions: CompletionsPluginOptions) {
   return defineCommand({
@@ -41,19 +47,36 @@ export default function completionsCommand(pluginOptions: CompletionsPluginOptio
       // Dynamic completion protocol: "my-cli complete -- <args...>"
       // Important: Tab uses a trailing empty-string sentinel to represent "ends with space".
       // Bunli's parseArgs drops empty strings, so we MUST use runtime.args, not parsed positional args.
-      try {
-        const { commands } = await loadGeneratedMetadata(pluginOptions)
-        const root = buildRegistry(commands, {
-          includeAliases: pluginOptions.includeAliases,
-          includeGlobalFlags: pluginOptions.includeGlobalFlags
-        })
-        root.parse(argv)
-      } catch (error) {
+      const metadataResult = await loadGeneratedMetadata(pluginOptions)
+      if (Result.isError(metadataResult)) {
+        console.log(':1')
+        if (process.env.BUNLI_DEBUG_COMPLETIONS) {
+          console.error(colors.red(metadataResult.error.message))
+        }
+        return
+      }
+
+      const parseResult = Result.try({
+        try: () => {
+          const root = buildRegistry(metadataResult.value.commands, {
+            includeAliases: pluginOptions.includeAliases,
+            includeGlobalFlags: pluginOptions.includeGlobalFlags
+          })
+          root.parse(argv)
+        },
+        catch: (cause) =>
+          new CompletionProtocolError({
+            message: 'Completion registry failed to parse protocol arguments.',
+            cause
+          })
+      })
+
+      if (Result.isError(parseResult)) {
         // Shell completion callbacks should always end with a directive line.
         // Avoid printing stack traces that may break completion parsing.
         console.log(':1')
         if (process.env.BUNLI_DEBUG_COMPLETIONS) {
-          console.error(colors.red(error instanceof Error ? error.message : String(error)))
+          console.error(colors.red(parseResult.error.message))
         }
       }
     }

@@ -6,6 +6,7 @@
 import { readFile, access } from 'fs/promises'
 import { join } from 'path'
 import { homedir } from 'os'
+import { Result, TaggedError } from 'better-result'
 import { createPlugin } from '@bunli/core/plugin'
 import { deepMerge } from '@bunli/core/utils'
 import type { BunliPlugin } from '@bunli/core/plugin'
@@ -32,6 +33,29 @@ export interface ConfigPluginOptions {
   stopOnFirst?: boolean
 }
 
+class ConfigFileNotFoundError extends TaggedError('ConfigFileNotFoundError')<{
+  path: string
+  message: string
+  cause: unknown
+}>() {}
+
+class ConfigFileReadError extends TaggedError('ConfigFileReadError')<{
+  path: string
+  message: string
+  cause: unknown
+}>() {}
+
+class ConfigFileParseError extends TaggedError('ConfigFileParseError')<{
+  path: string
+  message: string
+  cause: unknown
+}>() {}
+
+type ReadConfigError =
+  | ConfigFileNotFoundError
+  | ConfigFileReadError
+  | ConfigFileParseError
+
 /**
  * Config merger plugin factory
  */
@@ -49,51 +73,48 @@ export const configMergerPlugin = createPlugin<ConfigPluginOptions, {}>((options
     
     async setup(context) {
       const appName = context.config.name || 'bunli'
-      const configs: any[] = []
+      const configs: Array<Record<string, unknown>> = []
       
       for (const source of sources) {
         // Resolve template variables and home directory
-        const path = source
+        const configPath = source
           .replace(/^~/, homedir())
           .replace(/\{\{name\}\}/g, appName)
-        
-        try {
-          // Check if file exists
-          await access(path)
-          
-          // Read and parse config
-          const content = await readFile(path, 'utf-8')
-          let config: any
-          
-          try {
-            config = JSON.parse(content)
-          } catch (parseError) {
-            context.logger.warn(`Failed to parse config file ${path}: ${parseError}`)
+
+        const loadedConfig = await readConfigSource(configPath)
+        if (Result.isError(loadedConfig)) {
+          if (ConfigFileNotFoundError.is(loadedConfig.error)) {
+            context.logger.debug(`Config file not found: ${configPath}`)
             continue
           }
-          
-          configs.push(config)
-          context.logger.debug(`Loaded config from ${path}`)
-          
-          // Stop if requested
-          if (options.stopOnFirst) {
-            break
+
+          if (ConfigFileParseError.is(loadedConfig.error)) {
+            context.logger.warn(`Failed to parse config file ${configPath}: ${loadedConfig.error.message}`)
+            continue
           }
-        } catch {
-          // File doesn't exist, skip silently
-          context.logger.debug(`Config file not found: ${path}`)
+
+          context.logger.warn(`Failed to load config file ${configPath}: ${loadedConfig.error.message}`)
+          continue
+        }
+
+        configs.push(loadedConfig.value)
+        context.logger.debug(`Loaded config from ${configPath}`)
+
+        // Stop if requested
+        if (options.stopOnFirst) {
+          break
         }
       }
       
       if (configs.length > 0) {
         // Merge all found configs
-        let merged: any
+        let merged: Record<string, unknown>
         
         if (options.mergeStrategy === 'shallow') {
-          merged = Object.assign({}, ...configs)
+          merged = Object.assign({}, ...configs) as Record<string, unknown>
         } else {
           // Deep merge is already available
-          merged = deepMerge(...configs)
+          merged = deepMerge(...configs) as Record<string, unknown>
         }
         
         context.updateConfig(merged)
@@ -105,3 +126,49 @@ export const configMergerPlugin = createPlugin<ConfigPluginOptions, {}>((options
 
 // Default export for convenience
 export default configMergerPlugin
+
+async function readConfigSource(path: string): Promise<Result<Record<string, unknown>, ReadConfigError>> {
+  const existsResult = await Result.tryPromise({
+    try: async () => {
+      await access(path)
+    },
+    catch: (cause) =>
+      new ConfigFileNotFoundError({
+        path,
+        message: `Config file not found: ${path}`,
+        cause
+      })
+  })
+  if (Result.isError(existsResult)) {
+    return existsResult
+  }
+
+  const readResult = await Result.tryPromise({
+    try: async () => await readFile(path, 'utf-8'),
+    catch: (cause) =>
+      new ConfigFileReadError({
+        path,
+        message: `Unable to read config file: ${path}`,
+        cause
+      })
+  })
+  if (Result.isError(readResult)) {
+    return readResult
+  }
+
+  return Result.try({
+    try: () => {
+      const parsed = JSON.parse(readResult.value)
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        throw new Error('Config file must contain a JSON object')
+      }
+      return parsed as Record<string, unknown>
+    },
+    catch: (cause) =>
+      new ConfigFileParseError({
+        path,
+        message: `Invalid JSON in config file: ${path}`,
+        cause
+      })
+  })
+}

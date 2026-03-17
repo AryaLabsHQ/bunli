@@ -1,5 +1,36 @@
 # @bunli/utils
 
+## 0.5.1
+
+### Patch Changes
+
+- 5931e6e: rename useAppRuntime/AppRuntimeProvider to useRuntime/RuntimeProvider and update all usage/docs. Also harden OpenTUI teardown and improve bunli build target preflight/error output.
+
+## 0.5.0
+
+### Minor Changes
+
+- f1c404a: introducing `@bunli/tui` component-library
+
+  - move prompt runtime ownership to `@bunli/tui` with inline + interactive modes
+  - drop `@bunli/utils` prompt/clack exports and update usage across the toolchain
+  - add schema-driven interactive form engine and expanded themed interactive component primitives
+  - add charts (`bar`, `line`, `sparkline`) and subpath exports (`/prompt`, `/inline`, `/interactive`, `/charts`)
+
+## 0.4.0
+
+### Minor Changes
+
+- 8eff145: Adopt `better-result` for typed error handling with `Result` and `TaggedError`.
+
+  Also split config input/output types and fix CLI cancellation, `execute(commandName, options)`, and generator behavior when `commands/` is missing.
+
+## 0.3.3
+
+### Patch Changes
+
+- ff041df: fix(utils): prompts
+
 ## 0.3.2
 
 ### Patch Changes

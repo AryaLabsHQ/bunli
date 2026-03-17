@@ -1,5 +1,52 @@
 import { z } from 'zod'
-import type { PluginConfig } from './plugin/types.js'
+import type { BunliPlugin, PluginConfig } from './plugin/types.js'
+
+function isPluginObject(value: unknown): value is BunliPlugin {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'name' in value &&
+    typeof (value as { name?: unknown }).name === 'string'
+  )
+}
+
+function isPluginConfig(value: unknown): value is PluginConfig {
+  if (typeof value === 'string') return true
+  if (typeof value === 'function') return true
+  if (isPluginObject(value)) return true
+
+  return (
+    Array.isArray(value) &&
+    value.length === 2 &&
+    typeof value[0] === 'function'
+  )
+}
+
+const pluginConfigSchema = z.custom<PluginConfig>(isPluginConfig, {
+  message: 'Invalid plugin configuration'
+})
+
+const commandsConfigSchema = z
+  .object({
+    entry: z.string().optional(),
+    directory: z.string().optional(),
+    generateReport: z.boolean().optional()
+  })
+  .catchall(z.unknown())
+  .superRefine((value, ctx) => {
+    if (Object.prototype.hasOwnProperty.call(value, 'manifest')) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          "commands.manifest has been removed. Register commands explicitly with cli.command(...) and set commands.entry for tooling."
+      })
+    }
+  })
+  .transform((value) => ({
+    entry: value.entry,
+    directory: value.directory,
+    generateReport: value.generateReport
+  }))
 
 /**
  * Comprehensive Bunli configuration schema
@@ -12,23 +59,19 @@ export const bunliConfigSchema = z.object({
   description: z.string().optional(),
     
   // Commands configuration
-  commands: z.object({
-    manifest: z.string().optional(),
-    directory: z.string().optional(),
-    generateReport: z.boolean().optional()
-  }).optional(),
+  commands: commandsConfigSchema.optional(),
   
   // Build configuration - TypeScript REQUIRED
   build: z.object({
     entry: z.string().or(z.array(z.string())).optional(),
     outdir: z.string().optional(),
-    targets: z.array(z.string()).default(['native']),  // Sensible default
+    targets: z.array(z.string()).default([]),
     compress: z.boolean().default(false),
     minify: z.boolean().default(false),
     external: z.array(z.string()).optional(),
     sourcemap: z.boolean().default(true)  // Always include sourcemaps for debugging
   }).default({
-    targets: ['native'],
+    targets: [],
     compress: false,
     minify: false,
     sourcemap: true
@@ -58,7 +101,7 @@ export const bunliConfigSchema = z.object({
   // Workspace configuration
   workspace: z.object({
     packages: z.array(z.string()).optional(),
-    shared: z.any().optional(),
+    shared: z.unknown().optional(),
     versionStrategy: z.enum(['fixed', 'independent']).default('fixed')
   }).default({
     versionStrategy: 'fixed' as const
@@ -69,7 +112,13 @@ export const bunliConfigSchema = z.object({
     npm: z.boolean().default(true),
     github: z.boolean().default(false),
     tagFormat: z.string().default('v{{version}}'),
-    conventionalCommits: z.boolean().default(true)
+    conventionalCommits: z.boolean().default(true),
+    // Binary mode: publish per-platform packages using optionalDependencies pattern.
+    // Platforms are derived from build.targets.
+    binary: z.object({
+      packageNameFormat: z.string().default('{{name}}-{{platform}}'),
+      shimPath: z.string().default('bin/run.mjs'),
+    }).optional()
   }).default({
     npm: true,
     github: false,
@@ -78,20 +127,27 @@ export const bunliConfigSchema = z.object({
   }),
   
   // Plugins configuration
-  plugins: z.array(z.any()).default([]),
+  plugins: z.array(pluginConfigSchema).default([]),
 
   // Help output configuration
   help: z.object({
-    renderer: z.any().optional()
+    renderer: z.unknown().optional()
   }).optional(),
 
   // TUI configuration (applies to `command.render` path)
   tui: z.object({
     renderer: z.object({
       bufferMode: z.enum(['alternate', 'standard']).optional()
-    }).catchall(z.unknown()).default({})
+    }).catchall(z.unknown()).default({}),
+    image: z.object({
+      mode: z.enum(['off', 'auto', 'on']).optional(),
+      protocol: z.enum(['auto', 'kitty']).optional(),
+      width: z.number().int().positive().optional(),
+      height: z.number().int().positive().optional()
+    }).default({})
   }).default({
-    renderer: {}
+    renderer: {},
+    image: {}
   })
 })
 
@@ -99,7 +155,7 @@ export const bunliConfigSchema = z.object({
  * Inferred TypeScript type from the schema (output type with defaults applied)
  * This ensures runtime validation matches compile-time types
  */
-export type BunliConfig = z.infer<typeof bunliConfigSchema>
+export type BunliConfig = z.output<typeof bunliConfigSchema>
 
 /**
  * Input type for config (fields with defaults are optional)

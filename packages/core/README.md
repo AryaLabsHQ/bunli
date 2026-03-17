@@ -128,6 +128,26 @@ cli.command(test)
 await cli.run()
 ```
 
+### TUI Renderer Buffer Mode
+
+When using `command.render`, configure buffer behavior via `tui.renderer.bufferMode`:
+
+```typescript
+import { defineConfig } from '@bunli/core'
+
+export default defineConfig({
+  tui: {
+    renderer: {
+      bufferMode: 'alternate' // or 'standard'
+    }
+  }
+})
+```
+
+Default policy:
+- `'standard'` by default
+- set `'alternate'` explicitly for fullscreen/blocking terminal flows
+
 ## API Reference
 
 ### `defineCommand(config)`

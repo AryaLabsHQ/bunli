@@ -27,7 +27,7 @@ export default defineCommand({
   name: 'deploy',
   options: {
     port: option(
-      z.number()
+      z.coerce.number()
         .int()
         .min(1)
         .max(65535),
@@ -56,8 +56,8 @@ export default defineCommand({
   options: {
     // Basic types
     name: option(z.string()),
-    age: option(z.number()),
-    active: option(z.boolean()),
+    age: option(z.coerce.number()),
+    active: option(z.coerce.boolean()),
     
     // With constraints
     username: option(
@@ -69,7 +69,7 @@ export default defineCommand({
     
     // Optional with default
     timeout: option(
-      z.number().default(30)
+      z.coerce.number().default(30)
     ),
     
     // Complex types
@@ -232,7 +232,7 @@ export default defineCommand({
     description: option(z.string().optional()),
     
     // Optional with default
-    port: option(z.number().default(3000)),
+    port: option(z.coerce.number().default(3000)),
     
     // Nullable option
     config: option(z.string().nullable())

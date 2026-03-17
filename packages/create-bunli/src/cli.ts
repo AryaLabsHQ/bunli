@@ -1,27 +1,24 @@
 #!/usr/bin/env bun
 import { createCLI, defineCommand, option } from '@bunli/core'
 import { z } from 'zod'
-import { create } from './create.js'
+import { create, UserCancelledError } from './create.js'
+import { Result } from 'better-result'
 
-// Custom run to support default behavior
-async function run() {
+async function run(): Promise<void> {
   const args = process.argv.slice(2)
-  
-  // If no arguments or only flags, inject "create" command
+
   if (args.length === 0 || args[0]?.startsWith('-')) {
     process.argv.splice(2, 0, 'create')
-  }
-  // If first arg is not a flag and not "create", it's a project name
-  else if (args[0] && !args[0].startsWith('-') && args[0] !== 'create') {
+  } else if (args[0] && !args[0].startsWith('-') && args[0] !== 'create') {
     process.argv.splice(2, 0, 'create')
   }
-  
+
   const cli = await createCLI({
     name: 'create-bunli',
     version: '0.1.0',
     description: 'Scaffold new Bunli CLI projects'
   })
-  
+
   cli.command(defineCommand({
     name: 'create',
     description: 'Create a new Bunli CLI project',
@@ -48,10 +45,20 @@ async function run() {
         { description: 'Use cached templates when available' }
       )
     },
-    handler: create
+    handler: async (context) => {
+      const result = await create(context)
+      if (Result.isError(result) && !UserCancelledError.is(result.error)) {
+        process.exitCode = 1
+      }
+    }
   }))
-  
+
   await cli.run()
 }
 
-await run()
+try {
+  await run()
+} catch (error) {
+  console.error(error instanceof Error ? error.message : String(error))
+  process.exit(1)
+}

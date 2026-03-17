@@ -2,18 +2,23 @@ import { describe, test, expect, beforeEach, afterEach } from 'bun:test'
 import { createCLI } from '@bunli/core'
 import { completionsPlugin } from '../src/index.js'
 import { resolve } from 'node:path'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import type { CompletionsPluginOptions } from '../src/types.js'
 
 const EXAMPLE_DIR = resolve(import.meta.dir, '../../../examples/task-runner')
+const REPO_ROOT = resolve(import.meta.dir, '../../..')
+const TEMP_BASE_DIR = resolve(REPO_ROOT, '.tmp-plugin-completions-tests')
 const SHELLS = ['bash', 'zsh', 'fish', 'powershell'] as const
 
-async function createTestCLI() {
+async function createTestCLI(overrides: CompletionsPluginOptions = {}) {
   return createCLI({
     name: 'my-cli',
     version: '1.0.0',
     plugins: [
       completionsPlugin({
         commandName: 'my-cli',
-        executable: 'my-cli'
+        executable: 'my-cli',
+        ...overrides
       })
     ] as const
   })
@@ -167,5 +172,162 @@ describe('completions/complete command (Tab protocol)', () => {
     expect(code).toBe(0)
     expect(stderr.trim()).toBe('')
     expect(stdout).toContain('complete --')
+  })
+
+  test('missing generated metadata returns :1 directive without stack trace', async () => {
+    const cli = await createTestCLI({ generatedPath: '.bunli/does-not-exist.ts' })
+    const cap = captureConsole()
+
+    try {
+      await cli.run(['complete', '--', 'deploy'])
+    } finally {
+      cap.restore()
+    }
+
+    expect(cap.stdout().trim()).toBe(':1')
+    expect(cap.stderr().trim()).toBe('')
+  })
+
+  test('deep nested command paths resolve completion candidates across 3 levels', async () => {
+    mkdirSync(TEMP_BASE_DIR, { recursive: true })
+    const fixtureDir = mkdtempSync(resolve(TEMP_BASE_DIR, 'nested-'))
+    try {
+      const generatedDir = resolve(fixtureDir, '.bunli')
+      mkdirSync(generatedDir, { recursive: true })
+      writeFileSync(resolve(fixtureDir, 'package.json'), JSON.stringify({
+        name: 'nested-completions-fixture',
+        version: '0.0.0',
+        type: 'module'
+      }, null, 2))
+      writeFileSync(resolve(generatedDir, 'commands.gen.ts'), `
+export const generated = {
+  list() {
+    return [
+      { metadata: { name: 'config/init', description: 'Initialize config', options: {} } },
+      { metadata: { name: 'config/profile/set', description: 'Set profile value', options: {} } },
+      { metadata: { name: 'config/profile/show', description: 'Show profile value', options: {} } },
+      { metadata: { name: 'status', description: 'Show status', options: {} } }
+    ]
+  }
+}
+`)
+
+      process.chdir(fixtureDir)
+      const cli = await createTestCLI()
+
+      const firstCap = captureConsole()
+      try {
+        await cli.run(['complete', '--', 'config', ''])
+      } finally {
+        firstCap.restore()
+      }
+      const firstOutput = firstCap.stdout()
+      expect(firstOutput).toContain('init\t')
+      expect(firstOutput).toContain('profile\t')
+      expect(firstOutput.trim().split('\n').at(-1) ?? '').toMatch(/^:\d+$/)
+
+      const secondCap = captureConsole()
+      try {
+        await cli.run(['complete', '--', 'config', 'profile', ''])
+      } finally {
+        secondCap.restore()
+      }
+      const secondOutput = secondCap.stdout()
+      expect(secondOutput).toContain('set\t')
+      expect(secondOutput).toContain('show\t')
+      expect(secondOutput.trim().split('\n').at(-1) ?? '').toMatch(/^:\d+$/)
+    } finally {
+      process.chdir(EXAMPLE_DIR)
+      rmSync(fixtureDir, { recursive: true, force: true })
+    }
+  })
+
+  test('group metadata commands are recursively reachable for subcommand and flag completions', async () => {
+    mkdirSync(TEMP_BASE_DIR, { recursive: true })
+    const fixtureDir = mkdtempSync(resolve(TEMP_BASE_DIR, 'nested-group-'))
+    try {
+      const generatedDir = resolve(fixtureDir, '.bunli')
+      mkdirSync(generatedDir, { recursive: true })
+      writeFileSync(resolve(fixtureDir, 'package.json'), JSON.stringify({
+        name: 'nested-group-completions-fixture',
+        version: '0.0.0',
+        type: 'module'
+      }, null, 2))
+      writeFileSync(resolve(generatedDir, 'commands.gen.ts'), `
+export const generated = {
+  list() {
+    return [
+      {
+        name: 'config',
+        metadata: {
+          name: 'config',
+          description: 'Config command group',
+          options: {},
+          commands: [
+            { name: 'init', description: 'Initialize config', options: {} },
+            { name: 'show', description: 'Show current config', options: {} },
+            {
+              name: 'set',
+              description: 'Set a value',
+              options: {
+                key: { type: 'string', required: true, hasDefault: false, description: 'Config key' }
+              }
+            },
+            { name: 'unset', description: 'Unset a value', options: {} }
+          ]
+        }
+      },
+      {
+        name: 'status',
+        metadata: {
+          name: 'status',
+          description: 'Show status',
+          options: {}
+        }
+      }
+    ]
+  }
+}
+`)
+
+      process.chdir(fixtureDir)
+      const cli = await createTestCLI()
+
+      const childrenCap = captureConsole()
+      try {
+        await cli.run(['complete', '--', 'config', ''])
+      } finally {
+        childrenCap.restore()
+      }
+      const childrenOutput = childrenCap.stdout()
+      expect(childrenOutput).toContain('init\t')
+      expect(childrenOutput).toContain('show\t')
+      expect(childrenOutput).toContain('set\t')
+      expect(childrenOutput).toContain('unset\t')
+      expect(childrenOutput.trim().split('\n').at(-1) ?? '').toMatch(/^:\d+$/)
+
+      const partialCap = captureConsole()
+      try {
+        await cli.run(['complete', '--', 'config', 'i'])
+      } finally {
+        partialCap.restore()
+      }
+      const partialOutput = partialCap.stdout()
+      expect(partialOutput).toContain('init\t')
+      expect(partialOutput.trim().split('\n').at(-1) ?? '').toMatch(/^:\d+$/)
+
+      const flagsCap = captureConsole()
+      try {
+        await cli.run(['complete', '--', 'config', 'set', '--'])
+      } finally {
+        flagsCap.restore()
+      }
+      const flagsOutput = flagsCap.stdout()
+      expect(flagsOutput).toContain('--key')
+      expect(flagsOutput.trim().split('\n').at(-1) ?? '').toMatch(/^:\d+$/)
+    } finally {
+      process.chdir(EXAMPLE_DIR)
+      rmSync(fixtureDir, { recursive: true, force: true })
+    }
   })
 })

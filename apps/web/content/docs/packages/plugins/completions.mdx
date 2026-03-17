@@ -28,6 +28,8 @@ bun add @bunli/plugin-completions
 ```typescript
 import { createCLI } from '@bunli/core'
 import { completionsPlugin } from '@bunli/plugin-completions'
+import build from './commands/build.js'
+import deploy from './commands/deploy.js'
 
 const cli = await createCLI({
   name: 'my-cli',
@@ -35,10 +37,8 @@ const cli = await createCLI({
   plugins: [completionsPlugin()] as const
 })
 
-await cli.load({
-  deploy: () => import('./commands/deploy'),
-  build: () => import('./commands/build')
-})
+cli.command(deploy)
+cli.command(build)
 
 await cli.run()
 ```

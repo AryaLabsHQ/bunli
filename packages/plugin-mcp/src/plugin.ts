@@ -7,9 +7,11 @@
 
 import { createPlugin } from '@bunli/core/plugin'
 import type { BunliPlugin } from '@bunli/core/plugin'
+import { Result } from 'better-result'
 import type { McpPluginOptions, McpPluginStore, MCPToolGroup } from './types.js'
 import { createCommandsFromMCPTools } from './converter.js'
 import { generateMCPTypes } from './codegen.js'
+import { McpToolsProviderError } from './errors.js'
 
 /**
  * Create MCP plugin for dynamic command registration
@@ -51,13 +53,19 @@ export function mcpPlugin<TStore = Record<string, unknown>>(
 
     async setup(context) {
       // Fetch tools from user's provider
-      let toolGroups: MCPToolGroup[]
-      try {
-        toolGroups = await options.toolsProvider(context as any)
-      } catch (error) {
-        context.logger.warn(`Failed to fetch MCP tools: ${error}`)
+      const toolGroupsResult = await Result.tryPromise({
+        try: async () => options.toolsProvider(context),
+        catch: (cause) =>
+          new McpToolsProviderError({
+            message: 'Failed to fetch MCP tools from toolsProvider',
+            cause
+          })
+      })
+      if (Result.isError(toolGroupsResult)) {
+        context.logger.warn(toolGroupsResult.error.message)
         return
       }
+      const toolGroups: MCPToolGroup[] = toolGroupsResult.value
 
       // Track registered commands
       const registeredCommands: McpPluginStore['commands'] = []
@@ -70,10 +78,15 @@ export function mcpPlugin<TStore = Record<string, unknown>>(
         }
 
         // Convert tools to commands
-        const commands = createCommandsFromMCPTools(tools, {
+        const commandsResult = createCommandsFromMCPTools<TStore>(tools, {
           namespace,
           createHandler: (toolName) => options.createHandler(namespace, toolName)
         })
+        if (Result.isError(commandsResult)) {
+          context.logger.warn(commandsResult.error.message)
+          continue
+        }
+        const commands = commandsResult.value
 
         // Register each command
         for (const cmd of commands) {
@@ -101,14 +114,14 @@ export function mcpPlugin<TStore = Record<string, unknown>>(
           ? options.sync.outputDir || '.bunli'
           : '.bunli'
 
-        try {
-          await generateMCPTypes({
-            tools: toolGroups,
-            outputDir
-          })
+        const typegenResult = await generateMCPTypes({
+          tools: toolGroups,
+          outputDir
+        })
+        if (Result.isError(typegenResult)) {
+          context.logger.warn(typegenResult.error.message)
+        } else {
           context.logger.debug(`Generated MCP types in ${outputDir}`)
-        } catch (error) {
-          context.logger.warn(`Failed to generate MCP types: ${error}`)
         }
       }
 

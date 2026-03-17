@@ -1,13 +1,15 @@
-import type { BuildOutput, BunPlugin, OnLoadArgs, OnResolveArgs } from 'bun'
+import type { BuildOutput, BunPlugin } from 'bun'
 import { Generator } from './generator.js'
 import type { GeneratorConfig } from './types.js'
 import type { Build } from 'bun'
 import { createLogger } from '@bunli/core/utils'
+import { Result } from 'better-result'
 
 const logger = createLogger('generator:plugin')
 
 export interface BunliCodegenPluginOptions {
-  commandsDir?: string
+  entry?: string
+  directory?: string
   outputFile?: string
   config?: any
   generateReport?: boolean
@@ -22,7 +24,8 @@ export interface BunliCodegenPluginOptions {
  */
 export function bunliCodegenPlugin(options: BunliCodegenPluginOptions = {}): BunPlugin {
   const {
-    commandsDir = 'commands',
+    entry = './cli.ts',
+    directory,
     outputFile = './commands.gen.ts',
     config,
     generateReport
@@ -36,7 +39,8 @@ export function bunliCodegenPlugin(options: BunliCodegenPluginOptions = {}): Bun
     setup(build) {
       // Initialize generator
       generator = new Generator({
-        commandsDir,
+        entry,
+        directory,
         outputFile,
         config,
         generateReport
@@ -45,43 +49,26 @@ export function bunliCodegenPlugin(options: BunliCodegenPluginOptions = {}): Bun
       // Hook into the build start to generate types
       build.onStart(async () => {
         if (generator) {
-          try {
-            logger.debug('Generating command types...')
-            await generator.run()
-            logger.debug('Command types generated')
-          } catch (error) {
-            logger.debug('Failed to generate command types: %s', error instanceof Error ? error.message : String(error))
+          logger.debug('Generating command types...')
+          const generation = await generator.run()
+          if (Result.isError(generation)) {
+            logger.warn(
+              'Failed to generate command types: %s',
+              generation.error.message
+            )
+            return
           }
+          logger.debug('Command types generated')
         }
-      })
-
-      // Hook into file resolution to watch command files
-      build.onResolve({ filter: /^\.\/commands\// }, async (args: OnResolveArgs) => {
-        // This ensures command files are tracked by the bundler
-        return {
-          path: args.path,
-          namespace: 'file'
-        }
-      })
-
-      // Hook into load to process command files
-      build.onLoad({ filter: /\.(ts|tsx|js|jsx)$/, namespace: 'file' }, async (args: OnLoadArgs) => {
-        // Check if this is a command file
-        if (args.path.includes(commandsDir)) {
-          // Let Bun handle the file normally, but we've already generated types
-          return undefined
-        }
-        return undefined
       })
 
       // Hook into end to ensure types are up to date
       build.onEnd(async (result: BuildOutput) => {
         if (result.success && generator) {
           // Regenerate types if build was successful
-          try {
-            await generator.run()
-          } catch (error) {
-            logger.debug('Failed to regenerate types: %s', error instanceof Error ? error.message : String(error))
+          const regeneration = await generator.run()
+          if (Result.isError(regeneration)) {
+            logger.warn('Failed to regenerate types: %s', regeneration.error.message)
           }
         }
       })
@@ -104,7 +91,8 @@ export function bunliCodegenPlugin(options: BunliCodegenPluginOptions = {}): Bun
  *   outdir: './dist',
  *   plugins: [
  *     bunliCodegenPlugin({
- *       commandsDir: './commands',
+ *       entry: './src/cli.ts',
+ *       directory: './src/commands',
  *       outputFile: './commands.gen.ts'
  *     })
  *   ]

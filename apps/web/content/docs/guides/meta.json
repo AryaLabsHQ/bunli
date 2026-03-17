@@ -6,6 +6,7 @@
     "schema-validation",
     "type-generation",
     "interactive-prompts",
+    "tui-gallery",
     "testing",
     "distribution"
   ]

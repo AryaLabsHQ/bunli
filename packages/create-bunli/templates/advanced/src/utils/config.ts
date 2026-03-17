@@ -43,7 +43,7 @@ export async function loadConfig(configPath?: string): Promise<Config> {
     const config = configModule.default || configModule
     
     // Merge with defaults
-    cachedConfig = {
+    const mergedConfig: Config = {
       ...DEFAULT_CONFIG,
       ...config,
       server: {
@@ -51,8 +51,9 @@ export async function loadConfig(configPath?: string): Promise<Config> {
         ...(config.server || {})
       }
     }
-    
-    return cachedConfig
+
+    cachedConfig = mergedConfig
+    return mergedConfig
   } catch (error) {
     console.warn(`Failed to load config from ${finalPath}:`, error)
     return DEFAULT_CONFIG

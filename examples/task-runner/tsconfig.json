@@ -4,12 +4,14 @@
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": false,
     "skipLibCheck": true,
+    "jsxImportSource": "@opentui/react",
     "paths": {
       "~commands/*": ["./.bunli/commands.gen.ts"]
     }
   },
   "include": [
     ".bunli/**/*.ts",
-    "**/*.ts"
+    "**/*.ts",
+    "**/*.tsx"
   ]
 }

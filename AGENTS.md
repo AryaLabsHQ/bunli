@@ -1,25 +1,29 @@
 # PROJECT KNOWLEDGE BASE
 
-**Generated:** 2026-01-29
-**Type:** Bun monorepo (workspace + Turbo)
+**Generated:** 2026-02-27
+**Commit:** ab23dd0
 
 ## OVERVIEW
 
-Minimal, type-safe CLI framework for Bun with advanced plugin system. Uses Zod for command validation, Bun Shell for execution, and Turborepo for builds.
+Minimal, type-safe CLI framework for Bun with advanced plugin system. Uses Zod for command validation, Bun Shell for execution, Turborepo for builds, and better-result for error handling.
 
 ## STRUCTURE
 
 ```
 ./
-├── packages/           # 11 core packages
+├── packages/           # 12 core packages
 │   ├── core/           # CLI framework (defineCommand, plugins)
 │   ├── cli/            # bunli CLI toolchain
 │   ├── utils/          # colors, prompts, spinners
 │   ├── test/           # CLI testing utilities
 │   ├── generator/      # TypeScript type generation
 │   ├── create-bunli/   # Project scaffolding
-│   ├── plugin-*/       # ai-detect, config, completions
-│   └── tui/            # Terminal UI components
+│   ├── plugin-ai-detect/
+│   ├── plugin-completions/
+│   ├── plugin-config/
+│   ├── plugin-mcp/
+│   ├── runtime/        # OpenTUI runtime (prompt/renderer/events/transport)
+│   └── tui/
 ├── examples/           # 4 working examples
 ├── apps/web/           # Next.js docs site
 └── scripts/            # Build/release automation
@@ -32,7 +36,8 @@ Minimal, type-safe CLI framework for Bun with advanced plugin system. Uses Zod f
 | Add command | `packages/cli/src/commands/` | Use `defineCommand` pattern |
 | Plugin system | `packages/core/src/plugin/` | `createPlugin<T>()` with typed store |
 | Type generation | `packages/generator/src/` | Creates `commands.gen.ts` |
-| Utilities | `packages/utils/src/` | colors, prompt, spinner, validation |
+| Utilities | `packages/utils/src/` | colors, validation |
+| Runtime | `packages/runtime/src/` | OpenTUI prompt/renderer runtime |
 | Tests | `packages/*/test/*.test.ts` | Bun test runner |
 
 ## CODE MAP
@@ -43,6 +48,7 @@ Minimal, type-safe CLI framework for Bun with advanced plugin system. Uses Zod f
 | `option()` | `packages/core/src/option/` | Flag definition |
 | `createPlugin` | `packages/core/src/plugin/` | Plugin factory |
 | `createCLI` | `packages/core/src/cli.ts` | CLI entry point |
+| `TaggedError` | `better-result` | Error class pattern |
 
 ## CONVENTIONS
 
@@ -52,6 +58,7 @@ Minimal, type-safe CLI framework for Bun with advanced plugin system. Uses Zod f
 - **Zod validation**: All command options use Zod schemas
 - **Plugin store**: Typed via generics, accessed via context
 - **Test files**: `.test.ts` suffix in `packages/*/test/`
+- **Error handling**: Use `better-result` with `TaggedError` pattern
 
 ## ANTI-PATTERNS (THIS PROJECT)
 
@@ -95,7 +102,8 @@ bun run release
 | `packages/plugin-completions/` | Shell completions |
 | `packages/generator/` | Type generation |
 | `packages/test/` | Testing utilities |
+| `packages/runtime/` | OpenTUI runtime patterns |
 | `packages/tui/` | TUI components |
 | `packages/create-bunli/` | Scaffolding patterns |
 | `examples/*/` | Example-specific patterns |
-| `apps/web/` | Web app documentation |
+| `apps/web/` | Next.js docs site |

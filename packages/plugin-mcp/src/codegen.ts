@@ -7,9 +7,11 @@
 
 import { mkdir, writeFile } from 'fs/promises'
 import { join } from 'path'
+import { Result } from 'better-result'
 import type { GenerateTypesOptions, MCPToolGroup, MCPTool, JSONSchema7 } from './types.js'
 import { extractCommandMetadata, type MCPCommandMetadata } from './converter.js'
 import { toPascalCase, escapeString } from './utils.js'
+import { GenerateMCPTypesError } from './errors.js'
 
 /**
  * Generate TypeScript types for MCP commands
@@ -29,26 +31,38 @@ import { toPascalCase, escapeString } from './utils.js'
  * })
  * ```
  */
-export async function generateMCPTypes(options: GenerateTypesOptions): Promise<void> {
+export async function generateMCPTypes(
+  options: GenerateTypesOptions
+): Promise<Result<void, GenerateMCPTypesError>> {
   const { tools, outputDir } = options
 
-  // Ensure output directory exists
-  await mkdir(outputDir, { recursive: true })
+  return await Result.tryPromise({
+    try: async () => {
+      // Ensure output directory exists
+      await mkdir(outputDir, { recursive: true })
 
-  // Generate a file for each namespace
-  for (const { namespace, tools: toolList } of tools) {
-    if (!toolList || toolList.length === 0) continue
+      // Generate a file for each namespace
+      for (const { namespace, tools: toolList } of tools) {
+        if (!toolList || toolList.length === 0) continue
 
-    const content = generateNamespaceTypes(namespace, toolList)
-    const fileName = `mcp-${namespace}.gen.ts`
-    const filePath = join(outputDir, fileName)
+        const content = generateNamespaceTypes(namespace, toolList)
+        const fileName = `mcp-${namespace}.gen.ts`
+        const filePath = join(outputDir, fileName)
 
-    await writeFile(filePath, content, 'utf-8')
-  }
+        await writeFile(filePath, content, 'utf-8')
+      }
 
-  // Generate index file that re-exports all
-  const indexContent = generateIndexFile(tools)
-  await writeFile(join(outputDir, 'mcp-index.gen.ts'), indexContent, 'utf-8')
+      // Generate index file that re-exports all
+      const indexContent = generateIndexFile(tools)
+      await writeFile(join(outputDir, 'mcp-index.gen.ts'), indexContent, 'utf-8')
+    },
+    catch: (cause) =>
+      new GenerateMCPTypesError({
+        outputDir,
+        message: `Failed to generate MCP types in ${outputDir}`,
+        cause
+      })
+  })
 }
 
 /**

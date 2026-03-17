@@ -27,13 +27,33 @@ interface AIAgentInfo {
 const AI_AGENTS: AIAgentInfo[] = [
   {
     name: 'claude',
-    envVars: ['CLAUDECODE'],
-    detect: (env) => !!env.CLAUDECODE
+    envVars: ['CLAUDECODE', 'CLAUDE_CODE'],
+    detect: (env) => !!env.CLAUDECODE || !!env.CLAUDE_CODE
   },
   {
     name: 'cursor',
     envVars: ['CURSOR_AGENT'],
     detect: (env) => !!env.CURSOR_AGENT
+  },
+  {
+    name: 'codex',
+    envVars: ['CODEX_CI', 'CODEX_THREAD_ID', 'CODEX_SANDBOX'],
+    detect: (env) => !!env.CODEX_CI || !!env.CODEX_THREAD_ID || !!env.CODEX_SANDBOX
+  },
+  {
+    name: 'amp',
+    envVars: ['AMP_CURRENT_THREAD_ID', 'AGENT'],
+    detect: (env) => !!env.AMP_CURRENT_THREAD_ID || env.AGENT === 'amp'
+  },
+  {
+    name: 'gemini',
+    envVars: ['GEMINI_CLI'],
+    detect: (env) => !!env.GEMINI_CLI
+  },
+  {
+    name: 'opencode',
+    envVars: ['OPENCODE'],
+    detect: (env) => env.OPENCODE === '1'
   },
 ]
 
