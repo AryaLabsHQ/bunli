@@ -1,6 +1,6 @@
 import { GLOBAL_FLAGS } from '@bunli/core'
 import type { GeneratedCommandMeta, GeneratedOptionMeta } from '@bunli/core'
-import { RootCommand, type Command as TabCommand, type OptionHandler } from '@bomb.sh/tab'
+import { RootCommand, type Command as TabCommand, type OptionHandler } from '../engine/index.js'
 
 export interface RegistryOptions {
   includeAliases: boolean

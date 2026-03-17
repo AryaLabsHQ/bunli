@@ -22,7 +22,6 @@
     "better-result": "^2.7.0"
   },
   "devDependencies": {
-    "@bomb.sh/tab": "0.0.13",
     "typescript": "^5.8.3"
   },
   "keywords": [
