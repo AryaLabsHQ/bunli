@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite dev --port 3080",
+    "dev": "portless run --name bunli vite dev",
     "build": "vite build",
     "preview": "vite preview",
     "typecheck": "bun run cf-typegen && tsc --noEmit",
