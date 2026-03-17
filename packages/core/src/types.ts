@@ -1,4 +1,5 @@
 import type { StandardSchemaV1 } from '@standard-schema/spec'
+import type { OutputFormat, OutputPolicy } from './output/types.js'
 
 export type { StandardSchemaV1 }
 
@@ -111,6 +112,10 @@ interface BaseCommand<TOptions extends Options = Options, TStore = {}, TName ext
   tui?: CommandTuiOptions
   commands?: Command<any, TStore, any>[]
   alias?: string | string[]
+  /** Controls when output data is displayed. */
+  outputPolicy?: OutputPolicy
+  /** Default output format for this command. */
+  defaultFormat?: OutputFormat
 }
 
 interface CommandLeaf<TOptions extends Options = Options, TStore = {}, TName extends string = string>
@@ -178,6 +183,15 @@ export interface HandlerArgs<TFlags = Record<string, unknown>, TStore = {}, TCom
   signal: AbortSignal
   // Resolved terminal image preview configuration.
   image: ResolvedTuiImageOptions
+  // Output format information
+  /** The resolved output format (e.g. 'toon', 'json', 'yaml', 'md'). */
+  format: OutputFormat
+  /** Whether the user explicitly passed --format. */
+  formatExplicit: boolean
+  /** Whether the consumer is an agent (stdout is not a TTY). */
+  agent: boolean
+  /** Format and write structured data to stdout. */
+  output: (data: unknown) => void
 }
 
 export interface TerminalInfo {

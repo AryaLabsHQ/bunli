@@ -109,3 +109,32 @@ export {
   PluginHookError,
   toErrorMessage
 } from './plugin/errors.js'
+
+// Export output system
+export { format as formatOutput } from './output/formatter.js'
+export { resolveFormat, shouldRenderOutput } from './output/policy.js'
+export type {
+  OutputFormat,
+  OutputPolicy,
+  OutputMeta,
+  OutputEnvelope
+} from './output/types.js'
+
+// Export help rendering
+export {
+  showHelp,
+  renderRootHelp,
+  renderCommandHelp,
+  collectTopLevelCommands,
+  wrapText,
+  formatTwoColumnRows
+} from './help/index.js'
+export type { HelpContext } from './help/index.js'
+
+// Export manifest system
+export {
+  renderIndex as renderManifestIndex,
+  renderFull as renderManifestFull,
+  toJsonSchema,
+  resolveTypeName
+} from './manifest/index.js'

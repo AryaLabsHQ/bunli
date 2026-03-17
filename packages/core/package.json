@@ -21,6 +21,14 @@
     "./generated": {
       "types": "./dist/generated.d.ts",
       "import": "./src/generated.ts"
+    },
+    "./output": {
+      "types": "./dist/output/index.d.ts",
+      "import": "./src/output/index.ts"
+    },
+    "./manifest": {
+      "types": "./dist/manifest/index.d.ts",
+      "import": "./src/manifest/index.ts"
     }
   },
   "files": [
@@ -70,8 +78,10 @@
     "@bunli/utils": "workspace:^",
     "@standard-schema/spec": "^1.1.0",
     "@standard-schema/utils": "^0.3.0",
+    "@toon-format/toon": "^2.1.0",
     "better-result": "catalog:",
     "debug": "^4.4.3",
+    "yaml": "^2.8.2",
     "zod": "^4.3.6"
   }
 }

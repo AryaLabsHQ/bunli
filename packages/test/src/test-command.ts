@@ -383,6 +383,13 @@ export async function testCommand<TOptions extends Options = Options>(
       image: {
         mode: 'auto',
         protocol: 'auto'
+      },
+      format: 'json' as const,
+      formatExplicit: false,
+      agent: true,
+      output: (data: unknown) => {
+        const formatted = JSON.stringify(data, null, 2)
+        stdout.push(formatted)
       }
     }
     
