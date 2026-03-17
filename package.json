@@ -28,7 +28,7 @@
     "@types/bun": "catalog:",
     "ai": "^6.0.72",
     "better-result": "catalog:",
-    "oxlint": "1.50.0",
+    "oxlint": "1.56.0",
     "turbo": "^2.8.0",
     "typescript": "^5.8.3"
   },
@@ -44,7 +44,7 @@
     ],
     "catalog": {
       "better-result": "^2.7.0",
-      "@types/bun": "1.3.9"
+      "@types/bun": "1.3.10"
     }
   }
 }
