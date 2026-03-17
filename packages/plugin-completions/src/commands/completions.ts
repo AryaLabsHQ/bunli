@@ -1,5 +1,5 @@
 import { defineCommand } from '@bunli/core'
-import { RootCommand } from '@bomb.sh/tab'
+import { RootCommand } from '../engine/index.js'
 import { Result, TaggedError } from 'better-result'
 import type { CompletionsPluginOptions, ShellType } from '../types.js'
 import { loadGeneratedMetadata, resolveCliInfo } from '../utils/metadata.js'

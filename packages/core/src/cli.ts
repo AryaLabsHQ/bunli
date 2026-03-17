@@ -26,6 +26,13 @@ import { runTuiRender } from './runtime/tui-render.js'
 import { resolveImageRenderMode } from '@bunli/runtime/image'
 import { Result, TaggedError } from 'better-result'
 import { validateValue } from './validation.js'
+import { findSuggestion } from './utils/levenshtein.js'
+import { resolveFormat, shouldRenderOutput } from './output/policy.js'
+import { format as formatOutput } from './output/formatter.js'
+import type { OutputFormat } from './output/types.js'
+import { renderIndex as renderManifestIndex, renderFull as renderManifestFull } from './manifest/index.js'
+import { showHelp as showHelpImpl } from './help/renderer.js'
+import type { HelpContext } from './help/renderer.js'
 
 const logger = createLogger('core:cli')
 const interruptLogger = createLogger('core:interrupt')
@@ -38,6 +45,8 @@ export class InvalidConfigError extends TaggedError('InvalidConfigError')<{
 export class CommandNotFoundError extends TaggedError('CommandNotFoundError')<{
   message: string
   command: string
+  available: string[]
+  suggestion?: string
 }>() {}
 
 export class CommandExecutionError extends TaggedError('CommandExecutionError')<{
@@ -51,6 +60,7 @@ export class OptionValidationError extends TaggedError('OptionValidationError')<
   command: string
   option: string
   cause: unknown
+  issues: Array<{ message: string; path?: string }>
 }>() {}
 
 function resolveRendererOptions(
@@ -312,6 +322,17 @@ export async function createCLI<
     }
   }
   
+  // Helper to get available top-level command names
+  function getAvailableCommandNames(): string[] {
+    const names = new Set<string>()
+    for (const [name] of commands) {
+      if (!name.includes(' ')) {
+        names.add(name)
+      }
+    }
+    return Array.from(names).sort()
+  }
+
   // Helper to find command by path
   function findCommand(args: string[]): { command: Command<any, any> | undefined; remainingArgs: string[] } {
     // Try to find the deepest matching command
@@ -325,140 +346,17 @@ export async function createCLI<
     return { command: undefined, remainingArgs: args }
   }
   
-  function wrapText(text: string, width: number): string[] {
-    const safeWidth = Math.max(10, width)
-    const words = text.trim().split(/\s+/).filter(Boolean)
-    if (words.length === 0) return ['']
-    const first = words[0]
-    if (!first) return ['']
-    const lines: string[] = []
-    let line = first
-    for (let i = 1; i < words.length; i += 1) {
-      const word = words[i] ?? ''
-      if (!word) continue
-      if ((line + ' ' + word).length <= safeWidth) {
-        line = `${line} ${word}`
-      } else {
-        lines.push(line)
-        line = word
-      }
-    }
-    lines.push(line)
-    return lines
-  }
-
-  function printTwoColumnRows(rows: Array<{ label: string; description: string }>, terminalWidth: number) {
-    const indent = '  '
-    const maxLabel = rows.reduce((max, row) => Math.max(max, row.label.length), 0)
-    const maxColumn = Math.max(18, Math.floor(terminalWidth * 0.4))
-    const labelWidth = Math.min(maxLabel + 2, maxColumn)
-    const descWidth = Math.max(20, terminalWidth - indent.length - labelWidth - 1)
-
-    for (const row of rows) {
-      const label = row.label
-      const description = row.description || ''
-      if (label.length >= labelWidth - 1) {
-        console.log(`${indent}${label}`)
-        const lines = wrapText(description, descWidth)
-        for (const line of lines) {
-          console.log(`${indent}${' '.repeat(labelWidth)}${line}`)
-        }
-        continue
-      }
-      const paddedLabel = label.padEnd(labelWidth)
-      const lines = wrapText(description, descWidth)
-      lines.forEach((line, index) => {
-        if (index === 0) {
-          console.log(`${indent}${paddedLabel}${line}`)
-        } else {
-          console.log(`${indent}${' '.repeat(labelWidth)}${line}`)
-        }
-      })
-    }
-  }
-
-  // Helper to show help for a command
+  // Help rendering — delegates to the extracted help module
   function showHelp(cmd?: Command<any, TStore>, path: string[] = []) {
     const terminalInfo = cliDeps.getTerminalInfo()
-    const terminalWidth = terminalInfo.width || 80
-    const helpRenderer = fullConfig.help?.renderer
-    if (typeof helpRenderer === 'function') {
-      if (!cmd) {
-        const topLevel = new Set<Command<any, TStore>>()
-        for (const [name, command] of commands) {
-          if (!name.includes(' ') && !command.alias?.includes(name)) {
-            topLevel.add(command)
-          }
-        }
-        helpRenderer({
-          cliName: fullConfig.name,
-          version: fullConfig.version,
-          description: fullConfig.description,
-          command: undefined,
-          path,
-          commands: Array.from(topLevel),
-          terminal: terminalInfo
-        })
-        return
-      }
-
-      helpRenderer({
-        cliName: fullConfig.name,
-        version: fullConfig.version,
-        description: fullConfig.description,
-        command: cmd,
-        path,
-        commands: cmd.commands ?? [],
-        terminal: terminalInfo
-      })
-      return
+    const helpCtx: HelpContext = {
+      cliName: fullConfig.name,
+      version: fullConfig.version,
+      description: fullConfig.description,
+      terminal: terminalInfo
     }
-    if (!cmd) {
-      // Show root help
-      console.log(`${fullConfig.name} v${fullConfig.version}`)
-      if (fullConfig.description) {
-        console.log(fullConfig.description)
-      }
-      console.log('\nCommands:')
-      
-      // Show only top-level commands
-      const topLevel = new Set<Command<any, TStore>>()
-      for (const [name, command] of commands) {
-        if (!name.includes(' ') && !command.alias?.includes(name)) {
-          topLevel.add(command)
-        }
-      }
-      
-      const rows = Array.from(topLevel).map((command) => ({
-        label: command.name,
-        description: command.description || ''
-      }))
-      printTwoColumnRows(rows, terminalWidth)
-    } else {
-      // Show command-specific help
-      const fullPath = [...path, cmd.name].join(' ')
-      console.log(`Usage: ${fullConfig.name} ${fullPath} [options]`)
-      console.log(`\n${cmd.description}`)
-      
-      if (cmd.options && Object.keys(cmd.options).length > 0) {
-        console.log('\nOptions:')
-        const rows = Object.entries(cmd.options).map(([name, opt]) => {
-          const option = opt as CLIOption<any>
-          const flag = `--${name}${option.short ? `, -${option.short}` : ''}`
-          return { label: flag, description: option.description || '' }
-        })
-        printTwoColumnRows(rows, terminalWidth)
-      }
-      
-      if (cmd.commands && cmd.commands.length > 0) {
-        console.log('\nSubcommands:')
-        const rows = cmd.commands.map((subCmd) => ({
-          label: subCmd.name,
-          description: subCmd.description || ''
-        }))
-        printTwoColumnRows(rows, terminalWidth)
-      }
-    }
+    const customRenderer = fullConfig.help?.renderer as import('./types.js').HelpRenderer<TStore> | undefined
+    showHelpImpl(helpCtx, commands, customRenderer, cmd, path)
   }
   
   function shouldUseRender(
@@ -497,7 +395,8 @@ export async function createCLI<
           message: `Unknown option '${name}' for command '${commandName}'`,
           command: commandName,
           option: name,
-          cause: value
+          cause: value,
+          issues: [{ message: `Unknown option '${name}'`, path: name }]
         }))
       }
 
@@ -508,7 +407,8 @@ export async function createCLI<
           message: error instanceof Error ? error.message : `Invalid option '${name}'`,
           command: commandName,
           option: name,
-          cause: error
+          cause: error,
+          issues: [{ message: error instanceof Error ? error.message : `Invalid option '${name}'`, path: name }]
         }))
       }
     }
@@ -599,59 +499,123 @@ export async function createCLI<
         args: argv,
         command: invokedCommandName ?? command.name
       }
+
+      // Resolve output format
+      const flagFormat = parsed.flags['format'] as OutputFormat | undefined
+      const { format: resolvedFmt, formatExplicit, agent } = resolveFormat({
+        flagFormat,
+        commandDefault: command.defaultFormat,
+        isTTY: terminalInfo.isInteractive
+      })
+      const renderOutputAllowed = shouldRenderOutput({
+        isTTY: terminalInfo.isInteractive,
+        formatExplicit,
+        policy: command.outputPolicy
+      })
+      const outputHelper = (data: unknown): void => {
+        if (!renderOutputAllowed) return
+        const formatted = formatOutput(data, resolvedFmt)
+        if (formatted) process.stdout.write(formatted + '\n')
+      }
+
       promptSession = cliDeps.createPromptSession()
       interruptController = createInterruptController({
         onLog: (message) => interruptLogger.debug('command=%s %s', command.name, message)
       })
       interruptController.attach()
 
-      const render = shouldUseRender(command, terminalInfo)
+      // Create per-run execution state for preRun/postRun hooks
+      const hasPlugins = mergedConfig.plugins && mergedConfig.plugins.length > 0
+      const executionState = hasPlugins ? pluginManager.createExecutionState() : undefined
+
+      // --format forces non-TUI execution path
+      const render = formatExplicit ? false : shouldUseRender(command, terminalInfo)
       const commandRunPromise = (async () => {
-        if (render) {
-          ensureRenderAvailable(command)
-          await cliDeps.runTuiRender({
-            command,
-            flags: parsed.flags,
-            positional: parsed.positional,
-            shell: Bun.$,
-            env: process.env,
-            cwd: process.cwd(),
-            prompt: promptSession.prompt,
-            spinner: promptSession.spinner,
-            colors,
-            terminal: terminalInfo,
-            runtime: runtimeInfo,
-            signal: interruptController.signal,
-            rendererOptions,
-            image: imageOptions,
-            ...(context ? { context } : {})
-          })
-          return
+        // preRun hooks — immediately before handler
+        if (hasPlugins && context && executionState) {
+          const preRunResult = await pluginManager.runPreRunResult(context, executionState)
+          if (preRunResult.isErr()) {
+            throw new CommandExecutionError({
+              message: preRunResult.error.message,
+              command: command.name,
+              cause: preRunResult.error
+            })
+          }
         }
 
-        if (!command.handler) {
-          throw new CommandExecutionError({
-            message: 'Command does not provide a handler for non-TUI execution',
-            command: command.name,
-            cause: undefined
-          })
+        let handlerError: unknown
+        try {
+          if (render) {
+            ensureRenderAvailable(command)
+            await cliDeps.runTuiRender({
+              command,
+              flags: parsed.flags,
+              positional: parsed.positional,
+              shell: Bun.$,
+              env: process.env,
+              cwd: process.cwd(),
+              prompt: promptSession.prompt,
+              spinner: promptSession.spinner,
+              colors,
+              terminal: terminalInfo,
+              runtime: runtimeInfo,
+              signal: interruptController.signal,
+              rendererOptions,
+              image: imageOptions,
+              format: resolvedFmt,
+              formatExplicit,
+              agent,
+              output: outputHelper,
+              ...(context ? { context } : {})
+            })
+          } else {
+            if (!command.handler) {
+              throw new CommandExecutionError({
+                message: 'Command does not provide a handler for non-TUI execution',
+                command: command.name,
+                cause: undefined
+              })
+            }
+
+            await command.handler({
+              flags: parsed.flags,
+              positional: parsed.positional,
+              shell: Bun.$,
+              env: process.env,
+              cwd: process.cwd(),
+              prompt: promptSession.prompt,
+              spinner: promptSession.spinner,
+              colors,
+              terminal: terminalInfo,
+              runtime: runtimeInfo,
+              signal: interruptController.signal,
+              image: imageOptions,
+              format: resolvedFmt,
+              formatExplicit,
+              agent,
+              output: outputHelper,
+              ...(context ? { context } : {})
+            })
+          }
+        } catch (error) {
+          handlerError = error
         }
 
-        await command.handler({
-          flags: parsed.flags,
-          positional: parsed.positional,
-          shell: Bun.$,
-          env: process.env,
-          cwd: process.cwd(),
-          prompt: promptSession.prompt,
-          spinner: promptSession.spinner,
-          colors,
-          terminal: terminalInfo,
-          runtime: runtimeInfo,
-          signal: interruptController.signal,
-          image: imageOptions,
-          ...(context ? { context } : {})
-        })
+        // postRun hooks — immediately after handler (success or failure)
+        if (hasPlugins && context && executionState) {
+          await pluginManager.runPostRun(
+            context,
+            {
+              exitCode: handlerError ? 1 : 0,
+              ...(handlerError ? { error: handlerError } : {})
+            },
+            executionState
+          )
+        }
+
+        if (handlerError) {
+          throw handlerError
+        }
       })()
 
       try {
@@ -748,6 +712,16 @@ export async function createCLI<
         return
       }
       
+      // Handle --llms and --llms-full manifest flags
+      if (commandArgs.includes('--llms-full')) {
+        console.log(renderManifestFull(fullConfig.name, commands, fullConfig.description))
+        return
+      }
+      if (commandArgs.includes('--llms')) {
+        console.log(renderManifestIndex(fullConfig.name, commands, fullConfig.description))
+        return
+      }
+
       // Handle help flags (only check before -- separator)
       if (commandArgs.includes('--help') || commandArgs.includes('-h')) {
         const helpIndex = Math.max(commandArgs.indexOf('--help'), commandArgs.indexOf('-h'))
@@ -771,7 +745,16 @@ export async function createCLI<
       const { command, remainingArgs } = findCommand(commandArgs)
       
       if (!command) {
-        console.error(`Unknown command: ${commandArgs[0]}`)
+        const available = getAvailableCommandNames()
+        const input = commandArgs[0] ?? ''
+        const suggestion = findSuggestion(input, available)
+        console.error(`Unknown command: ${input}`)
+        if (suggestion) {
+          console.error(`\n  Did you mean ${colors.bold(suggestion)}?`)
+        }
+        if (available.length > 0) {
+          console.error(`\nAvailable commands: ${available.join(', ')}`)
+        }
         process.exit(1)
       }
       
@@ -798,9 +781,15 @@ export async function createCLI<
       const commandPath = commandName.replace(/\//g, ' ').split(' ')
       const { command, remainingArgs } = findCommand(commandPath)
       if (!command) {
+        const available = getAvailableCommandNames()
+        const suggestion = findSuggestion(commandName, available)
         throw new CommandNotFoundError({
-          message: `Command '${commandName}' not found`,
-          command: commandName
+          message: suggestion
+            ? `Command '${commandName}' not found. Did you mean '${suggestion}'?`
+            : `Command '${commandName}' not found`,
+          command: commandName,
+          available,
+          suggestion
         })
       }
       

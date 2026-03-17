@@ -3,8 +3,8 @@
  */
 
 import { homedir } from 'os'
-import { join } from 'path'
 import { PluginLoader } from './loader.js'
+import { configDir, dataDir, stateDir, cacheDir } from '@bunli/utils'
 import { PluginContext, CommandContext, createEnvironmentInfo } from './context.js'
 import { deepMerge } from '../utils/merge.js'
 import { createLogger } from '../utils/logger.js'
@@ -15,13 +15,14 @@ import {
   PluginValidationError,
   toErrorMessage
 } from './errors.js'
-import type { 
-  BunliPlugin, 
-  PluginConfig, 
+import type {
+  BunliPlugin,
+  PluginConfig,
   CommandResult,
   CommandDefinition,
   Middleware
 } from './types.js'
+import { ExecutionState } from './types.js'
 import type { BunliConfigInput, ResolvedConfig } from '../types.js'
 import type { Command } from '../types.js'
 
@@ -117,6 +118,7 @@ export class PluginManager<TStore = {}> {
   async runSetupResult(
     config: BunliConfigInput
   ): Promise<Result<PluginSetupResult, PluginHookError>> {
+    const appName = config.name || 'bunli'
     const context = new PluginContext(
       config,
       new Map(Object.entries(this.combinedStore as Record<string, unknown>)),
@@ -124,7 +126,10 @@ export class PluginManager<TStore = {}> {
       {
         cwd: process.cwd(),
         home: homedir(),
-        config: join(homedir(), '.config', config.name || 'bunli')
+        config: configDir(appName),
+        data: dataDir(appName),
+        state: stateDir(appName),
+        cache: cacheDir(appName),
       }
     )
     
@@ -228,7 +233,77 @@ export class PluginManager<TStore = {}> {
     
     return Result.ok(context)
   }
-  
+
+  /**
+   * Create a fresh ExecutionState for a command run.
+   */
+  createExecutionState(): ExecutionState {
+    return new ExecutionState()
+  }
+
+  /**
+   * Run preRun hooks — called immediately before the command handler.
+   * Lifecycle: beforeCommand → preRun → [handler] → postRun → afterCommand
+   */
+  async runPreRun(
+    context: CommandContext<TStore>,
+    state: ExecutionState
+  ): Promise<void> {
+    const result = await this.runPreRunResult(context, state)
+    if (result.isErr()) {
+      throw result.error
+    }
+  }
+
+  async runPreRunResult(
+    context: CommandContext<TStore>,
+    state: ExecutionState
+  ): Promise<Result<void, PluginHookError>> {
+    for (const plugin of this.plugins) {
+      if (plugin.preRun) {
+        this.logger.debug(`Running preRun for plugin: ${plugin.name}`)
+        try {
+          await plugin.preRun(context, state)
+        } catch (error) {
+          return Result.err(new PluginHookError({
+            message: `Plugin ${plugin.name} preRun failed: ${toErrorMessage(error)}`,
+            plugin: plugin.name,
+            hook: 'preRun',
+            cause: error
+          }))
+        }
+      }
+    }
+    return Result.ok(undefined)
+  }
+
+  /**
+   * Run postRun hooks — called immediately after the command handler.
+   * Lifecycle: beforeCommand → preRun → [handler] → postRun → afterCommand
+   */
+  async runPostRun(
+    context: CommandContext<TStore>,
+    result: CommandResult,
+    state: ExecutionState
+  ): Promise<void> {
+    const fullContext = Object.assign(
+      context,
+      result
+    ) as CommandContext<TStore> & CommandResult
+
+    for (const plugin of this.plugins) {
+      if (plugin.postRun) {
+        this.logger.debug(`Running postRun for plugin: ${plugin.name}`)
+        try {
+          await plugin.postRun(fullContext, state)
+        } catch (error) {
+          // Log but don't fail — handler already executed
+          this.logger.error(`Plugin ${plugin.name} postRun error: ${toErrorMessage(error)}`)
+        }
+      }
+    }
+  }
+
   /**
    * Run afterCommand hooks
    */

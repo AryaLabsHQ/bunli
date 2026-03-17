@@ -19,6 +19,6 @@ export class PluginValidationError extends TaggedError('PluginValidationError')<
 export class PluginHookError extends TaggedError('PluginHookError')<{
   message: string
   plugin: string
-  hook: 'setup' | 'beforeCommand'
+  hook: 'setup' | 'beforeCommand' | 'preRun' | 'postRun'
   cause: unknown
 }>() {}

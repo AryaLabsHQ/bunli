@@ -33,7 +33,7 @@ describe('Config Merger Plugin', () => {
       { name: 'test-app' },
       new Map(),
       createLogger('test'),
-      { cwd: testDir, home: homedir(), config: testDir }
+      { cwd: testDir, home: homedir(), config: testDir, data: testDir, state: testDir, cache: testDir }
     )
     
     // Override updateConfig to capture updates
@@ -66,7 +66,7 @@ describe('Config Merger Plugin', () => {
       { name: 'test-app' },
       new Map(),
       createLogger('test'),
-      { cwd: testDir, home: homedir(), config: testDir }
+      { cwd: testDir, home: homedir(), config: testDir, data: testDir, state: testDir, cache: testDir }
     )
     
     context.updateConfig = (update) => {
@@ -98,7 +98,7 @@ describe('Config Merger Plugin', () => {
       { name: 'my-cli' },
       new Map(),
       createLogger('test'),
-      { cwd: testDir, home: homedir(), config: testDir }
+      { cwd: testDir, home: homedir(), config: testDir, data: testDir, state: testDir, cache: testDir }
     )
     
     context.updateConfig = (update) => {
@@ -121,7 +121,7 @@ describe('Config Merger Plugin', () => {
       { name: 'test-app' },
       new Map(),
       createLogger('test'),
-      { cwd: testDir, home: homedir(), config: testDir }
+      { cwd: testDir, home: homedir(), config: testDir, data: testDir, state: testDir, cache: testDir }
     )
     
     context.updateConfig = (update) => {
@@ -155,7 +155,7 @@ describe('Config Merger Plugin', () => {
       { name: 'test-app' },
       new Map(),
       createLogger('test'),
-      { cwd: testDir, home: homedir(), config: testDir }
+      { cwd: testDir, home: homedir(), config: testDir, data: testDir, state: testDir, cache: testDir }
     )
     
     context.updateConfig = (update) => {
