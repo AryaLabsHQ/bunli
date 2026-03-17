@@ -11,6 +11,30 @@ import type { Result } from 'better-result'
 export type CommandDefinition = Command<any>
 
 /**
+ * Per-run ephemeral state container.
+ * Created fresh for each command execution and shared across plugin hooks.
+ */
+export class ExecutionState {
+  private data = new Map<string, unknown>()
+
+  get<T = unknown>(key: string): T | undefined {
+    return this.data.get(key) as T | undefined
+  }
+
+  set<T = unknown>(key: string, value: T): void {
+    this.data.set(key, value)
+  }
+
+  has(key: string): boolean {
+    return this.data.has(key)
+  }
+
+  delete(key: string): boolean {
+    return this.data.delete(key)
+  }
+}
+
+/**
  * Core plugin interface with store type
  */
 export interface BunliPlugin<TStore = {}> {
@@ -43,7 +67,27 @@ export interface BunliPlugin<TStore = {}> {
   beforeCommand?(
     context: CommandContext<any>
   ): void | Promise<void>
-  
+
+  /**
+   * Pre-run hook - Called immediately before the command handler executes.
+   * Receives an ExecutionState for sharing per-run data between plugins.
+   * Lifecycle: setup → configResolved → beforeCommand → preRun → [handler] → postRun → afterCommand
+   */
+  preRun?(
+    context: CommandContext<any>,
+    state: ExecutionState
+  ): void | Promise<void>
+
+  /**
+   * Post-run hook - Called immediately after the command handler completes.
+   * Receives the command result and the same ExecutionState from preRun.
+   * Lifecycle: setup → configResolved → beforeCommand → preRun → [handler] → postRun → afterCommand
+   */
+  postRun?(
+    context: CommandContext<any> & CommandResult,
+    state: ExecutionState
+  ): void | Promise<void>
+
   /**
    * After command hook - Called after command execution
    * Receives result or error from command
@@ -168,12 +212,21 @@ export interface CommandContext<TStore = {}> {
 export interface PathInfo {
   /** Current working directory */
   cwd: string
-  
+
   /** User home directory */
   home: string
-  
+
   /** Config directory path */
   config: string
+
+  /** Data directory path */
+  data: string
+
+  /** State directory path */
+  state: string
+
+  /** Cache directory path */
+  cache: string
 }
 
 /**
