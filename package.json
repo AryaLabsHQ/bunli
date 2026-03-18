@@ -23,6 +23,7 @@
     "release:publish": "bun run build && bun run ci:publish"
   },
   "devDependencies": {
+    "@bunli/runtime": "workspace:^",
     "@bunli/tui": "workspace:^",
     "@changesets/cli": "^2.29.8",
     "@types/bun": "catalog:",

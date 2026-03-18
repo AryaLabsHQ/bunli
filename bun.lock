@@ -5,6 +5,7 @@
     "": {
       "name": "bunli-monorepo",
       "devDependencies": {
+        "@bunli/runtime": "workspace:^",
         "@bunli/tui": "workspace:^",
         "@changesets/cli": "^2.29.8",
         "@types/bun": "catalog:",
@@ -112,6 +113,7 @@
         "@bunli/core": "workspace:^",
         "@bunli/runtime": "workspace:^",
         "@bunli/tui": "workspace:^",
+        "@opentui/react": "^0.1.84",
         "react": "^19.2.4",
         "zod": "^4.3.6",
       },
