@@ -1,4 +1,13 @@
 import type { BaseLayoutProps } from "fumadocs-ui/layouts/shared";
+import { ThemeSwitcher } from "../components/theme-switcher.js";
+
+function ThemeSwitchWithColorPicker() {
+  return (
+    <div className="flex items-center gap-1">
+      <ThemeSwitcher />
+    </div>
+  );
+}
 
 export function docsLayoutOptions(): BaseLayoutProps {
   return {
@@ -26,6 +35,9 @@ export function docsLayoutOptions(): BaseLayoutProps {
           <span className="font-bold">Bunli</span>
         </>
       ),
+    },
+    themeSwitch: {
+      component: <ThemeSwitchWithColorPicker />,
     },
     links: [
       {

@@ -2,6 +2,7 @@ import { HeadContent, Outlet, Scripts, createRootRoute } from "@tanstack/react-r
 import { RootProvider } from "fumadocs-ui/provider/tanstack";
 import { useEffect } from "react";
 import { Toaster } from "sonner";
+import { ThemeProvider } from "../lib/theme-provider.js";
 import appCss from "../styles.css?url";
 
 const DEFAULT_SITE_URL = "https://bunli.dev";
@@ -14,21 +15,33 @@ export const Route = createRootRoute({
       meta: [
         { charSet: "utf-8" },
         { name: "viewport", content: "width=device-width, initial-scale=1" },
-        { title: "Bunli - The Minimal CLI Framework for Bun" },
+        { title: "Bunli - The CLI Framework for Bun" },
         {
           name: "description",
           content:
-            "Build type-safe CLIs with Bunli. Zero config, full TypeScript support, powered by Bun.",
+            "Build powerful, type-safe CLIs with Bunli. Composable plugins, interactive TUI, full toolchain — powered by Bun.",
         },
-        { property: "og:title", content: "Bunli - The Minimal CLI Framework for Bun" },
+        { property: "og:title", content: "Bunli - The CLI Framework for Bun" },
         {
           property: "og:description",
-          content: "Build type-safe CLIs with zero configuration.",
+          content: "Composable plugins, interactive TUI, full toolchain — powered by Bun.",
         },
         { property: "og:type", content: "website" },
         { property: "og:url", content: siteUrl },
       ],
-      links: [{ rel: "stylesheet", href: appCss }],
+      links: [
+        { rel: "preconnect", href: "https://fonts.googleapis.com" },
+        {
+          rel: "preconnect",
+          href: "https://fonts.gstatic.com",
+          crossOrigin: "anonymous",
+        },
+        {
+          rel: "stylesheet",
+          href: "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap",
+        },
+        { rel: "stylesheet", href: appCss },
+      ],
     };
   },
   component: RootComponent,
@@ -52,12 +65,14 @@ function RootDocument({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className="dark">
       <head>
         <HeadContent />
       </head>
       <body>
-        <RootProvider>{children}</RootProvider>
+        <ThemeProvider>
+          <RootProvider>{children}</RootProvider>
+        </ThemeProvider>
         <Toaster richColors position="top-right" />
         <Scripts />
       </body>

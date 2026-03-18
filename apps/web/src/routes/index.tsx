@@ -2,7 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { HomeLayout } from "fumadocs-ui/layouts/home";
 import { useEffect, useState } from "react";
 import { CTASection } from "@/components/landing/cta-section";
-import { CodeComparison } from "@/components/landing/code-comparison";
 import { ExamplesShowcase } from "@/components/landing/examples-showcase";
 import { FeaturesGrid } from "@/components/landing/features-grid";
 import { Hero } from "@/components/landing/hero";
@@ -17,10 +16,14 @@ export const Route = createFileRoute("/")({
 function HomePage() {
   return (
     <HomeLayout {...docsLayoutOptions()}>
-      <main className="flex flex-1 flex-col">
+      <main className="flex flex-1 flex-col relative">
+        {/* Subtle grid texture overlay */}
+        <div
+          className="fixed inset-0 pointer-events-none opacity-[0.03] grid-texture"
+          aria-hidden="true"
+        />
         <Hero />
         <FeaturesGrid />
-        <CodeComparison />
         <QuickStart />
         <ExamplesShowcase />
         <WorkbenchDemo />
@@ -38,17 +41,36 @@ function WorkbenchDemo() {
   }, []);
 
   return (
-    <section className="px-6 py-24 sm:py-32 lg:px-8 bg-muted/30">
-      <div className="mx-auto max-w-7xl">
-        <div className="mx-auto max-w-2xl text-center mb-8">
-          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-            Interactive Workbench Demo
+    <section className="relative py-24 md:py-32">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="mb-12">
+          <div className="font-mono text-terminal-muted text-sm mb-2">
+            <span className="text-accent">{">"}</span> interactive playground
+          </div>
+          <h2 className="font-mono text-2xl md:text-3xl text-foreground">
+            try it live
           </h2>
-          <p className="mt-4 text-lg text-muted-foreground">
-            Edit <code>src/index.ts</code> and run it live in a terminal-backed sandbox.
+          <p className="font-sans text-terminal-muted mt-3 max-w-xl">
+            Test Bunli commands directly in your browser. Edit the code, run
+            commands, and see results instantly.
           </p>
         </div>
-        {mounted ? <WorkbenchPage embedded /> : null}
+
+        <div className="bg-terminal border border-terminal-border">
+          <div className="flex items-center gap-3 px-4 py-2 border-b border-terminal-border">
+            <span className="font-mono text-xs text-terminal-muted">
+              workbench
+            </span>
+            <span className="font-mono text-xs text-accent ml-auto">live</span>
+          </div>
+          <div className="min-h-[400px]">
+            {mounted ? <WorkbenchPage embedded /> : null}
+          </div>
+        </div>
+
+        <div className="mt-6 font-mono text-sm text-terminal-muted text-center">
+          <span className="text-foreground">cmd+enter</span> to run
+        </div>
       </div>
     </section>
   );
