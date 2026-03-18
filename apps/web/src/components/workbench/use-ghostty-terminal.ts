@@ -55,8 +55,12 @@ export function useGhosttyTerminal(): UseGhosttyTerminalResult {
       });
       const fitAddon = new ghostty.FitAddon();
       terminal.loadAddon(fitAddon);
+
+      // Preserve scroll position — terminal.open() can steal focus and scroll
+      const scrollY = window.scrollY;
       terminal.open(containerRef.current);
       fitAddon.fit();
+      window.scrollTo({ top: scrollY, behavior: "instant" });
 
       terminal.onData((chunk) => {
         for (const handler of dataHandlersRef.current) {
@@ -101,7 +105,10 @@ export function useGhosttyTerminal(): UseGhosttyTerminalResult {
   }, []);
 
   const focus = useCallback(() => {
-    terminalRef.current?.focus();
+    const el = terminalRef.current?.element;
+    if (el) {
+      el.focus({ preventScroll: true });
+    }
   }, []);
 
   const onData = useCallback((handler: (chunk: string) => void) => {

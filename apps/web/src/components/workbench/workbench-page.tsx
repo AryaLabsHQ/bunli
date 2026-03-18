@@ -561,11 +561,11 @@ export function WorkbenchPage({ embedded = false }: WorkbenchPageProps = {}) {
     <div className={embedded ? "w-full" : "mx-auto w-full max-w-[1400px] px-4 py-6 md:px-8 md:py-10"}>
       <section className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card/80 p-3">
         <p className="text-sm text-muted-foreground">
-          Monaco + Ghostty terminal on a single Cloudflare Worker with mounted Hono APIs.
+          Edit code in Monaco, run it in a real Bun sandbox — right here in the browser.
         </p>
         <div className="flex flex-wrap items-center gap-2">
-          <Button asChild variant="outline" size="sm">
-            <a href="/docs">Docs</a>
+          <Button render={<a href="/docs" />} variant="outline" size="sm">
+            Docs
           </Button>
           {isAuthenticated ? (
             <Button variant="outline" size="sm" type="button" onClick={handleSignOut}>
