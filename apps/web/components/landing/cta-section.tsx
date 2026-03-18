@@ -1,64 +1,137 @@
-'use client';
+'use client'
 
-import { useEffect, useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { ArrowRight, Github, Star } from 'lucide-react';
-
-interface GitHubRepoResponse {
-  stargazers_count?: number;
-}
+import { useEffect, useRef, useState, useCallback } from 'react'
+import { Star } from 'lucide-react'
 
 export function CTASection() {
-  const [stars, setStars] = useState<number | null>(null);
+  const [isVisible, setIsVisible] = useState(false)
+  const [stars, setStars] = useState<number | null>(null)
+  const sectionRef = useRef<HTMLElement>(null)
 
   useEffect(() => {
-    // Fetch GitHub stars count
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true)
+          observer.disconnect()
+        }
+      },
+      { threshold: 0.2 }
+    )
+
+    if (sectionRef.current) {
+      observer.observe(sectionRef.current)
+    }
+
+    return () => observer.disconnect()
+  }, [])
+
+  useEffect(() => {
     fetch('https://api.github.com/repos/AryaLabsHQ/bunli')
-      .then(res => res.json() as Promise<GitHubRepoResponse>)
+      .then(res => res.json() as Promise<{ stargazers_count?: number }>)
       .then(data => {
         if (data.stargazers_count) {
           setStars(data.stargazers_count);
         }
       })
       .catch(() => {
-        // Fallback to hardcoded value if API fails
         setStars(2300);
       });
-  }, []);
-  return (
-    <section className="px-6 py-24 sm:py-32 lg:px-8 bg-muted/30">
-      <div className="mx-auto max-w-7xl">
-        <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl mb-4">
-            Start Building in 30 Seconds
-          </h2>
-          <p className="text-lg text-muted-foreground mb-8">
-            Join developers building fast, type-safe CLIs with Bunli
-          </p>
-          
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Button asChild size="lg" className="gap-2">
-              <a href="/docs/getting-started">
-                Get Started
-                <ArrowRight className="h-4 w-4" />
-              </a>
-            </Button>
-            <Button asChild size="lg" variant="outline" className="gap-2">
-              <a href="https://github.com/AryaLabsHQ/bunli" target="_blank" rel="noreferrer">
-                <Github className="h-4 w-4" />
-                View on GitHub
-              </a>
-            </Button>
-          </div>
+  }, [])
 
-          {stars && (
-            <div className="mt-8 flex items-center justify-center gap-2 text-sm text-muted-foreground">
-              <Star className="h-4 w-4 fill-current" />
-              <span>{(stars / 1000).toFixed(1)}k stars on GitHub</span>
-            </div>
-          )}
+  const handleGetStarted = useCallback(() => {
+    window.location.href = '/docs/getting-started'
+  }, [])
+
+  return (
+    <section ref={sectionRef} className="relative py-24 md:py-32">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        {/* ASCII border top */}
+        <div
+          className={`font-mono text-terminal-muted text-sm mb-12 transition-all duration-500 ${
+            isVisible ? 'opacity-100' : 'opacity-0'
+          }`}
+          aria-hidden="true"
+        >
+          {'─'.repeat(40)}
+        </div>
+
+        {/* Terminal prompt */}
+        <div
+          className={`bg-terminal border border-terminal-border inline-block transition-all duration-500 ${
+            isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+          }`}
+          style={{ transitionDelay: '100ms' }}
+        >
+          <div className="px-6 py-4 md:px-8 md:py-5">
+            <button
+              onClick={handleGetStarted}
+              className="font-mono text-lg md:text-xl flex items-center gap-2 group"
+            >
+              <span className="text-accent">$</span>
+              <span className="text-terminal-foreground group-hover:text-accent transition-colors">
+                bun create bunli my-cli
+              </span>
+              <span
+                className="w-2.5 h-5 bg-accent cursor-blink"
+                aria-hidden="true"
+              />
+            </button>
+          </div>
+        </div>
+
+        {/* Action hint */}
+        <div
+          className={`mt-8 font-mono text-terminal-muted text-sm transition-all duration-500 ${
+            isVisible ? 'opacity-100' : 'opacity-0'
+          }`}
+          style={{ transitionDelay: '200ms' }}
+        >
+          press{' '}
+          <kbd className="inline-flex items-center px-2 py-0.5 bg-terminal border border-terminal-border text-terminal-foreground text-xs">
+            enter
+          </kbd>{' '}
+          to get started
+        </div>
+
+        {/* GitHub stars */}
+        <div
+          className={`mt-12 flex items-center justify-center gap-6 transition-all duration-500 ${
+            isVisible ? 'opacity-100' : 'opacity-0'
+          }`}
+          style={{ transitionDelay: '300ms' }}
+        >
+          <a
+            href="https://github.com/AryaLabsHQ/bunli"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-mono text-sm text-terminal-muted hover:text-terminal-foreground transition-colors flex items-center gap-2"
+          >
+            <Star className="w-4 h-4" />
+            <span>{stars ?? '...'}</span>
+          </a>
+          <span className="text-terminal-border">|</span>
+          <a
+            href="https://github.com/AryaLabsHQ/bunli"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-mono text-sm text-terminal-muted hover:text-terminal-foreground transition-colors"
+          >
+            view on github
+          </a>
+        </div>
+
+        {/* ASCII border bottom */}
+        <div
+          className={`font-mono text-terminal-muted text-sm mt-12 transition-all duration-500 ${
+            isVisible ? 'opacity-100' : 'opacity-0'
+          }`}
+          style={{ transitionDelay: '400ms' }}
+          aria-hidden="true"
+        >
+          {'─'.repeat(40)}
         </div>
       </div>
     </section>
-  );
+  )
 }
