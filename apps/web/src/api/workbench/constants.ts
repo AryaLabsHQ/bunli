@@ -12,10 +12,33 @@ export const PRESET_COMMANDS: Record<RunPreset, string> = {
   toolchain: "bun --version && bunli --version && bunli --help",
 };
 
-export const DEFAULT_SOURCE_FILE = `const timestamp = new Date().toISOString();
-const args = Bun.argv.slice(2);
+export const DEFAULT_SOURCE_FILE = `import { createCLI, defineCommand, option } from "bunli";
+import { z } from "zod";
 
-console.log("Hello from bunli sandbox workbench");
-console.log("Timestamp:", timestamp);
-console.log("Args:", args.length ? args.join(", ") : "(none)");
+const hello = defineCommand({
+  name: "hello",
+  description: "Say hello",
+  options: {
+    name: option(z.string().default("world"), {
+      short: "n",
+      description: "Who to greet",
+    }),
+    loud: option(z.boolean().default(false), {
+      short: "l",
+      description: "Shout it",
+    }),
+  },
+  handler({ flags }) {
+    const msg = \`Hello, \${flags.name}!\`;
+    console.log(flags.loud ? msg.toUpperCase() : msg);
+  },
+});
+
+const cli = await createCLI({
+  name: "my-cli",
+  version: "1.0.0",
+  commands: [hello],
+});
+
+await cli.run();
 `;
