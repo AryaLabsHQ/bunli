@@ -35,6 +35,7 @@ export { CommandPalette } from '../components/command-palette.js'
 export { DataTable } from '../components/data-table.js'
 export { SidebarLayout, resolveSidebarLayoutMode } from '../components/sidebar-layout.js'
 export { Spinner } from '../components/spinner.js'
+export { Choose } from '../components/choose.js'
 export {
   ThemeProvider,
   createTheme,
@@ -113,7 +114,9 @@ export type {
   CheckboxSchemaField,
   KeyBinding,
   UseFormFieldOptions,
-  UseFormFieldResult
+  UseFormFieldResult,
+  ChooseProps,
+  ChooseOption
 } from '../components/index.js'
 
 export interface ListProps {

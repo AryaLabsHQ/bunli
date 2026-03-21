@@ -34,6 +34,7 @@ export * from './spinner.js'
 export * from './variant.js'
 export * from './form-context.js'
 export * from './form-engine.js'
+export * from './choose.js'
 
 export {
   ThemeProvider,
