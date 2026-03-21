@@ -37,6 +37,7 @@ export { DataTable } from '../components/data-table.js'
 export { SidebarLayout, resolveSidebarLayoutMode } from '../components/sidebar-layout.js'
 export { Spinner } from '../components/spinner.js'
 export { Choose } from '../components/choose.js'
+export { Pager } from '../components/pager.js'
 export {
   ThemeProvider,
   createTheme,
@@ -99,6 +100,7 @@ export type {
   SidebarLayoutPaneLabels,
   SpinnerProps,
   SpinnerVariant,
+  PagerProps,
   TuiTheme,
   TuiThemeInput,
   TuiThemeTokens,
