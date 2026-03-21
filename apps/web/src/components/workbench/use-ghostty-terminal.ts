@@ -59,6 +59,22 @@ export function useGhosttyTerminal(themeId: string = DEFAULT_THEME_ID): UseGhost
       fitAddon.fit();
       window.scrollTo({ top: scrollY, behavior: "instant" });
 
+      // Prevent clicks on the terminal from scrolling the page
+      const terminalEl = terminal.element;
+      if (terminalEl) {
+        terminalEl.addEventListener("focus", () => {
+          window.scrollTo({ top: window.scrollY, behavior: "instant" });
+        }, true);
+        terminalEl.addEventListener("mousedown", (e) => {
+          const sy = window.scrollY;
+          requestAnimationFrame(() => {
+            if (window.scrollY !== sy) {
+              window.scrollTo({ top: sy, behavior: "instant" });
+            }
+          });
+        });
+      }
+
       terminal.onData((chunk) => {
         for (const handler of dataHandlersRef.current) {
           handler(chunk);
