@@ -72,9 +72,9 @@ export function Confirm({
   return (
     <box style={{ flexDirection: 'row', gap: 1 }}>
       <text content={message} fg={tokens.textPrimary} />
-      <text content={affirmativeLabel} fg={selected ? tokens.accent : tokens.textMuted} bold={selected} />
+      <text content={selected ? `[${affirmativeLabel}]` : ` ${affirmativeLabel} `} fg={selected ? tokens.accent : tokens.textMuted} />
       <text content="/" fg={tokens.textMuted} />
-      <text content={negativeLabel} fg={!selected ? tokens.accent : tokens.textMuted} bold={!selected} />
+      <text content={!selected ? `[${negativeLabel}]` : ` ${negativeLabel} `} fg={!selected ? tokens.accent : tokens.textMuted} />
     </box>
   )
 }

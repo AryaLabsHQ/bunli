@@ -70,7 +70,7 @@ export function Pager({
 
   const scrollToLine = useCallback((lineIndex: number) => {
     if (scrollRef.current) {
-      scrollRef.current.scrollY = lineIndex
+      scrollRef.current.scrollTop = lineIndex
     }
   }, [])
 
@@ -118,38 +118,38 @@ export function Pager({
 
       // Normal mode
       if (pagerKeymap.match('scrollDown', key)) {
-        scrollToLine((scrollRef.current?.scrollY ?? 0) + 1)
+        scrollToLine((scrollRef.current?.scrollTop ?? 0) + 1)
         return true
       }
 
       if (pagerKeymap.match('scrollUp', key)) {
-        scrollToLine(Math.max(0, (scrollRef.current?.scrollY ?? 0) - 1))
+        scrollToLine(Math.max(0, (scrollRef.current?.scrollTop ?? 0) - 1))
         return true
       }
 
       // ctrl+d for half page down
       if (key.ctrl && key.name === 'd') {
         const halfPage = Math.max(1, Math.floor(lines.length / 4))
-        scrollToLine((scrollRef.current?.scrollY ?? 0) + halfPage)
+        scrollToLine((scrollRef.current?.scrollTop ?? 0) + halfPage)
         return true
       }
 
       // ctrl+u for half page up
       if (key.ctrl && key.name === 'u') {
         const halfPage = Math.max(1, Math.floor(lines.length / 4))
-        scrollToLine(Math.max(0, (scrollRef.current?.scrollY ?? 0) - halfPage))
+        scrollToLine(Math.max(0, (scrollRef.current?.scrollTop ?? 0) - halfPage))
         return true
       }
 
       if (pagerKeymap.match('halfPageDown', key) && !key.ctrl) {
         const halfPage = Math.max(1, Math.floor(lines.length / 4))
-        scrollToLine((scrollRef.current?.scrollY ?? 0) + halfPage)
+        scrollToLine((scrollRef.current?.scrollTop ?? 0) + halfPage)
         return true
       }
 
       if (pagerKeymap.match('halfPageUp', key) && !key.ctrl) {
         const halfPage = Math.max(1, Math.floor(lines.length / 4))
-        scrollToLine(Math.max(0, (scrollRef.current?.scrollY ?? 0) - halfPage))
+        scrollToLine(Math.max(0, (scrollRef.current?.scrollTop ?? 0) - halfPage))
         return true
       }
 
