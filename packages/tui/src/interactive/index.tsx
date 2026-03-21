@@ -38,6 +38,7 @@ export { SidebarLayout, resolveSidebarLayoutMode } from '../components/sidebar-l
 export { Spinner } from '../components/spinner.js'
 export { Choose } from '../components/choose.js'
 export { Pager } from '../components/pager.js'
+export { FilePicker } from '../components/file-picker.js'
 export {
   ThemeProvider,
   createTheme,
@@ -121,7 +122,9 @@ export type {
   UseFormFieldOptions,
   UseFormFieldResult,
   ChooseProps,
-  ChooseOption
+  ChooseOption,
+  FilePickerProps,
+  FilePickerEntry
 } from '../components/index.js'
 
 export interface ListProps {

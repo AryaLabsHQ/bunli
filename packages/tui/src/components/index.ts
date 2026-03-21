@@ -37,6 +37,8 @@ export * from './variant.js'
 export * from './form-context.js'
 export * from './form-engine.js'
 export * from './choose.js'
+export * from './file-picker-utils.js'
+export * from './file-picker.js'
 
 export {
   ThemeProvider,
