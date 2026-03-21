@@ -25,7 +25,7 @@
     "better-auth": "^1.4.7",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "fumadocs-core": "16.6.17",
+    "fumadocs-core": "^16.7.2",
     "fumadocs-mdx": "^14.1.0",
     "fumadocs-ui": "npm:@fumadocs/base-ui@latest",
     "ghostty-web": "^0.4.0",
