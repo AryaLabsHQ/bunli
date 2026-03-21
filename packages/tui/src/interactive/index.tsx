@@ -28,6 +28,7 @@ export { EmptyState } from '../components/empty-state.js'
 export { Toast } from '../components/toast.js'
 export { Modal } from '../components/modal.js'
 export { Tabs } from '../components/tabs.js'
+export { Confirm } from '../components/confirm.js'
 export { Menu } from '../components/menu.js'
 export { NavList, moveSelectableNavIndex } from '../components/nav-list.js'
 export { CommandPalette } from '../components/command-palette.js'
@@ -77,6 +78,7 @@ export type {
   ModalProps,
   TabsProps,
   TabItem,
+  ConfirmProps,
   MenuProps,
   MenuItem,
   NavListProps,
