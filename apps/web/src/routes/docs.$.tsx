@@ -53,10 +53,8 @@ function DocsRouteComponent() {
   const Content = docsClientLoader.getComponent(data.path) as unknown as ComponentType;
 
   return (
-    <div className="bunli-docs">
-      <DocsLayout tree={pageTree} {...docsLayoutOptions()}>
-        <Content />
-      </DocsLayout>
-    </div>
+    <DocsLayout tree={pageTree} {...docsLayoutOptions()} containerProps={{ className: "bunli-docs" }}>
+      <Content />
+    </DocsLayout>
   );
 }
