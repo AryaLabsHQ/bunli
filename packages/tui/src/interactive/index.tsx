@@ -31,6 +31,7 @@ export { Tabs } from '../components/tabs.js'
 export { Menu } from '../components/menu.js'
 export { NavList, moveSelectableNavIndex } from '../components/nav-list.js'
 export { CommandPalette } from '../components/command-palette.js'
+export { Filter } from '../components/filter.js'
 export { DataTable } from '../components/data-table.js'
 export { SidebarLayout, resolveSidebarLayoutMode } from '../components/sidebar-layout.js'
 export {
@@ -83,6 +84,8 @@ export type {
   NavListItem,
   CommandPaletteProps,
   CommandPaletteItem,
+  FilterProps,
+  FilterOption,
   DataTableProps,
   DataTableColumn,
   SidebarLayoutProps,
