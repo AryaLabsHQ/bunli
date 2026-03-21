@@ -2,182 +2,110 @@ import type * as Monaco from "monaco-editor";
 import { themes } from "./themes.js";
 
 // ---------------------------------------------------------------------------
-// 1. Type stubs — gives IntelliSense for bunli, zod, and bun globals
+// 1. Type acquisition — fetch real types from static assets at runtime.
+//    Assets are copied to public/playground/ by scripts/copy-playground-assets.ts
 // ---------------------------------------------------------------------------
 
-const BUNLI_TYPES = `
-declare module "bunli" {
-  import type { ZodType } from "zod";
-
-  export interface CLIOption<S = unknown> {
-    schema: S;
-    short?: string;
-    description?: string;
+/**
+ * Fetch the default editor source from the playground assets.
+ * Falls back to a minimal inline example if the fetch fails.
+ */
+export async function fetchDefaultSource(): Promise<string> {
+  try {
+    const res = await fetch("/playground/templates/hello.ts");
+    if (res.ok) return await res.text();
+  } catch {
+    // offline or asset missing
   }
-
-  export interface CommandMeta {
-    name: string;
-    description?: string;
-    alias?: string | string[];
-  }
-
-  export interface HandlerArgs<TFlags = Record<string, unknown>> {
-    flags: TFlags;
-    positional: string[];
-    shell: any;
-    env: NodeJS.ProcessEnv;
-    cwd: string;
-    prompt: {
-      confirm(message: string): Promise<boolean>;
-    };
-    spinner: {
-      start(message?: string): void;
-      update(message: string): void;
-      succeed(message?: string): void;
-      fail(message?: string): void;
-      stop(): void;
-    };
-    colors: {
-      red(s: string): string;
-      green(s: string): string;
-      blue(s: string): string;
-      yellow(s: string): string;
-      cyan(s: string): string;
-      magenta(s: string): string;
-      bold(s: string): string;
-      dim(s: string): string;
-      underline(s: string): string;
-    };
-    signal: AbortSignal;
-  }
-
-  export interface CommandDefinition<TOptions extends Record<string, CLIOption> = Record<string, CLIOption>> {
-    name: string;
-    description?: string;
-    alias?: string | string[];
-    options?: TOptions;
-    handler?: (args: HandlerArgs<{ [K in keyof TOptions]: unknown }>) => void | Promise<void>;
-    render?: (args: HandlerArgs<{ [K in keyof TOptions]: unknown }>) => any;
-    commands?: CommandDefinition[];
-  }
-
-  export interface CLIConfig {
-    name: string;
-    version?: string;
-    description?: string;
-    commands?: CommandDefinition[];
-    plugins?: any[];
-  }
-
-  export interface CLI {
-    command(command: CommandDefinition): void;
-    run(argv?: string[]): Promise<void>;
-    execute(commandName: string, args?: string[]): Promise<void>;
-  }
-
-  export function defineCommand<T extends CommandDefinition>(command: T): T;
-  export function defineGroup(group: { name: string; description?: string; commands: CommandDefinition[] }): CommandDefinition;
-  export function option<S>(schema: S, metadata?: { short?: string; description?: string }): CLIOption<S>;
-  export function createCLI(config: CLIConfig): Promise<CLI>;
-  export function createPlugin<TOptions = unknown, TStore = {}>(factory: (options: TOptions) => any): (options: TOptions) => any;
-  export function createPlugin<TStore = {}>(plugin: any): any;
-  export function defineConfig(config: any): any;
+  return `import { defineCommand, option } from '@bunli/core'\nimport { z } from 'zod'\n\nconst hello = defineCommand({\n  name: 'hello',\n  description: 'Say hello',\n  options: {\n    name: option(z.string().default('World'), { short: 'n' }),\n  },\n  handler: async ({ flags, colors }) => {\n    console.log(colors.green(\`Hello, \${flags.name}!\`))\n  }\n})\n\nexport default hello\n`;
 }
-`;
 
-const ZOD_TYPES = `
+/**
+ * Wrap raw .d.ts content in a `declare module` block.
+ * Strips relative imports/exports since Monaco can't resolve them.
+ */
+function wrapAsModule(moduleName: string, ...sources: string[]): string {
+  const combined = sources
+    .join("\n")
+    .replace(/^.*(?:import|export).*from\s+['"]\.\.?\/.*['"].*$/gm, "")
+    .replace(/^.*import\s+type.*from\s+['"]@bunli\/(?:runtime|utils).*['"].*$/gm, "")
+    .replace(/^.*import\s+type.*from\s+['"]@standard-schema\/.*['"].*$/gm, "")
+    .replace(/^.*import\s+type.*from\s+['"]better-result['"].*$/gm, "")
+    .replace(/^\/\/# sourceMappingURL=.*$/gm, "")
+    .replace(/StandardSchemaV1/g, "any");
+
+  return `declare module "${moduleName}" {\n${combined}\n}`;
+}
+
+/**
+ * Minimal zod types — covers the builder API surface used in bunli commands.
+ */
+const ZOD_MODULE = `
 declare module "zod" {
-  export interface ZodType<Output = any, Def = any, Input = Output> {
-    parse(data: unknown): Output;
-    safeParse(data: unknown): { success: true; data: Output } | { success: false; error: any };
-    optional(): ZodOptional<this>;
-    default(value: Output): ZodDefault<this>;
+  interface ZodType<Output = any> {
+    optional(): ZodType<Output | undefined>;
+    default(value: Output): ZodType<Output>;
     describe(description: string): this;
-    transform<NewOut>(fn: (val: Output) => NewOut): ZodType<NewOut>;
+    transform<T>(fn: (val: Output) => T): ZodType<T>;
   }
-
-  export interface ZodString extends ZodType<string> {
-    min(length: number, message?: string): ZodString;
-    max(length: number, message?: string): ZodString;
-    email(message?: string): ZodString;
-    url(message?: string): ZodString;
-    regex(regex: RegExp, message?: string): ZodString;
-    optional(): ZodOptional<ZodString>;
-    default(value: string): ZodDefault<ZodString>;
+  interface ZodString extends ZodType<string> {
+    min(n: number, msg?: string): ZodString;
+    max(n: number, msg?: string): ZodString;
+    email(msg?: string): ZodString;
+    url(msg?: string): ZodString;
+    regex(re: RegExp, msg?: string): ZodString;
   }
-
-  export interface ZodNumber extends ZodType<number> {
-    min(value: number, message?: string): ZodNumber;
-    max(value: number, message?: string): ZodNumber;
-    int(message?: string): ZodNumber;
-    positive(message?: string): ZodNumber;
-    optional(): ZodOptional<ZodNumber>;
-    default(value: number): ZodDefault<ZodNumber>;
+  interface ZodNumber extends ZodType<number> {
+    min(n: number, msg?: string): ZodNumber;
+    max(n: number, msg?: string): ZodNumber;
+    int(msg?: string): ZodNumber;
+    positive(msg?: string): ZodNumber;
   }
-
-  export interface ZodBoolean extends ZodType<boolean> {
-    optional(): ZodOptional<ZodBoolean>;
-    default(value: boolean): ZodDefault<ZodBoolean>;
-  }
-
-  export interface ZodEnum<T extends [string, ...string[]] = [string, ...string[]]> extends ZodType<T[number]> {
-    optional(): ZodOptional<this>;
-    default(value: T[number]): ZodDefault<this>;
-  }
-
-  export interface ZodOptional<T extends ZodType> extends ZodType<T["_output"] | undefined> {}
-  export interface ZodDefault<T extends ZodType> extends ZodType<T["_output"]> {}
-
-  export interface ZodCoerce {
-    string(): ZodString;
-    number(): ZodNumber;
-    boolean(): ZodBoolean;
-  }
-
+  interface ZodBoolean extends ZodType<boolean> {}
+  interface ZodEnum<T extends [string, ...string[]] = [string, ...string[]]> extends ZodType<T[number]> {}
   export const z: {
     string(): ZodString;
     number(): ZodNumber;
     boolean(): ZodBoolean;
     enum<T extends [string, ...string[]]>(values: T): ZodEnum<T>;
-    coerce: ZodCoerce;
+    coerce: { string(): ZodString; number(): ZodNumber; boolean(): ZodBoolean };
     object(shape: Record<string, ZodType>): ZodType;
     array(schema: ZodType): ZodType;
     union(types: ZodType[]): ZodType;
     literal(value: string | number | boolean): ZodType;
   };
-
   export { z as default };
 }
 `;
 
-const BUN_TYPES = `
-declare global {
-  var Bun: {
-    argv: string[];
-    version: string;
-    file(path: string): {
-      exists(): Promise<boolean>;
-      text(): Promise<string>;
-      json(): Promise<any>;
-    };
-    write(path: string, content: string | Uint8Array): Promise<number>;
-    serve(options: {
-      port?: number;
-      hostname?: string;
-      fetch(req: Request): Response | Promise<Response>;
-    }): any;
-    $: any;
-  };
+/**
+ * Fetch type definitions from static assets and register with Monaco.
+ * Called asynchronously after the editor mounts.
+ */
+async function fetchAndRegisterTypes(ts: any): Promise<void> {
+  const typeFiles = ["types.d.ts", "cli.d.ts"];
+  const sources: string[] = [];
+
+  for (const file of typeFiles) {
+    try {
+      const res = await fetch(`/playground/types/${file}`);
+      if (res.ok) {
+        sources.push(await res.text());
+      }
+    } catch {
+      // degrade gracefully
+    }
+  }
+
+  if (sources.length > 0) {
+    const bunliModule = wrapAsModule("@bunli/core", ...sources);
+    ts.typescriptDefaults.addExtraLib(bunliModule, "file:///node_modules/@bunli/core/index.d.ts");
+  }
 }
-export {};
-`;
 
 export function registerExtraLibs(monaco: typeof Monaco): void {
-  // Access the typescript contribution via the new top-level namespace
   const ts = (monaco as any).typescript ?? (monaco.languages as any).typescript;
-  if (!ts?.typescriptDefaults) {
-    return;
-  }
+  if (!ts?.typescriptDefaults) return;
 
   ts.typescriptDefaults.setCompilerOptions({
     target: ts.ScriptTarget?.ESNext ?? 99,
@@ -194,14 +122,24 @@ export function registerExtraLibs(monaco: typeof Monaco): void {
     noSemanticValidation: false,
     noSyntaxValidation: false,
     diagnosticCodesToIgnore: [
-      1375, // 'await' expressions are only allowed at the top level
-      1378, // Top-level 'await' module option
+      1375, // top-level await
+      1378, // top-level await module option
+      2307, // cannot find module (fallback for unresolved imports)
     ],
   });
 
-  ts.typescriptDefaults.addExtraLib(BUNLI_TYPES, "file:///node_modules/bunli/index.d.ts");
-  ts.typescriptDefaults.addExtraLib(ZOD_TYPES, "file:///node_modules/zod/index.d.ts");
-  ts.typescriptDefaults.addExtraLib(BUN_TYPES, "file:///node_modules/@types/bun/globals.d.ts");
+  // Register zod types synchronously (small, inline)
+  ts.typescriptDefaults.addExtraLib(ZOD_MODULE, "file:///node_modules/zod/index.d.ts");
+
+  // Bun globals (minimal)
+  ts.typescriptDefaults.addExtraLib(
+    `declare var Bun: { argv: string[]; version: string; env: Record<string, string | undefined> };\n` +
+    `declare var process: { env: Record<string, string | undefined>; cwd(): string; exit(code?: number): never };\n`,
+    "file:///node_modules/@types/bun/globals.d.ts"
+  );
+
+  // Fetch real @bunli/core types from static assets (async, non-blocking)
+  void fetchAndRegisterTypes(ts);
 }
 
 // ---------------------------------------------------------------------------

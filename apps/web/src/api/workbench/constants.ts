@@ -12,33 +12,20 @@ export const PRESET_COMMANDS: Record<RunPreset, string> = {
   toolchain: "bun --version && bunli --version && bunli --help",
 };
 
-export const DEFAULT_SOURCE_FILE = `import { createCLI, defineCommand, option } from "bunli";
-import { z } from "zod";
+/** Fallback source written to sandbox if no file exists yet */
+export const DEFAULT_SOURCE_FILE = `import { defineCommand, option } from '@bunli/core'
+import { z } from 'zod'
 
 const hello = defineCommand({
-  name: "hello",
-  description: "Say hello",
+  name: 'hello',
+  description: 'Say hello',
   options: {
-    name: option(z.string().default("world"), {
-      short: "n",
-      description: "Who to greet",
-    }),
-    loud: option(z.boolean().default(false), {
-      short: "l",
-      description: "Shout it",
-    }),
+    name: option(z.string().default('World'), { short: 'n' }),
   },
-  handler({ flags }) {
-    const msg = \`Hello, \${flags.name}!\`;
-    console.log(flags.loud ? msg.toUpperCase() : msg);
-  },
-});
+  handler: async ({ flags, colors }) => {
+    console.log(colors.green(\`Hello, \${flags.name}!\`))
+  }
+})
 
-const cli = await createCLI({
-  name: "my-cli",
-  version: "1.0.0",
-  commands: [hello],
-});
-
-await cli.run();
+export default hello
 `;
