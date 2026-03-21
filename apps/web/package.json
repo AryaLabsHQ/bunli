@@ -4,8 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "playground": "bun scripts/copy-playground-assets.ts",
     "dev": "portless run --name bunli vite dev",
-    "build": "vite build",
+    "build": "bun run playground && vite build",
     "preview": "vite preview",
     "typecheck": "bun run cf-typegen && tsc --noEmit",
     "test": "bun test",
