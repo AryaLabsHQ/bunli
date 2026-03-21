@@ -11,6 +11,7 @@ import type {
 } from "../../api/workbench/types";
 import { useTheme } from "next-themes";
 import { signIn, signOut, useSession } from "../../lib/auth-client";
+import { getEditorThemeName, registerEditorThemes, registerExtraLibs } from "../../lib/monaco-setup.js";
 import { useGhosttyTerminal } from "./use-ghostty-terminal";
 
 interface SessionState {
@@ -409,12 +410,13 @@ export function WorkbenchPage({ embedded = false }: WorkbenchPageProps = {}) {
 
     const frames = [
       "1.2.2",
-      "$ bunli --version",
-      "0.5.3",
-      "$ bun run /workspace/demo/src/index.ts",
-      "Hello from bunli sandbox workbench",
+      "$ bun run /workspace/demo/src/index.ts hello -n bunli",
+      "Hello, bunli!",
       "",
-      "[scripted mode] Sign in to run this inside a real Cloudflare sandbox.",
+      "$ bun run /workspace/demo/src/index.ts hello -n bunli -l",
+      "HELLO, BUNLI!",
+      "",
+      "[scripted] Sign in to run in a real Cloudflare sandbox.",
     ];
 
     for (const frame of frames) {
@@ -612,16 +614,30 @@ export function WorkbenchPage({ embedded = false }: WorkbenchPageProps = {}) {
             <Editor
               height="100%"
               language="typescript"
-              theme="vs-dark"
+              theme={getEditorThemeName(theme ?? "vesper")}
               value={sourceCode}
               onChange={(value) => setSourceCode(value ?? "")}
+              beforeMount={(monaco) => {
+                registerExtraLibs(monaco);
+                registerEditorThemes(monaco);
+              }}
+              onMount={(editor, monaco) => {
+                editor.addAction({
+                  id: "bunli-run-preset",
+                  label: "Run Preset",
+                  keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter],
+                  run: () => { void runPreset(); },
+                });
+              }}
               options={{
                 minimap: { enabled: false },
-                fontSize: 14,
+                fontSize: 13,
+                fontFamily: "JetBrains Mono, ui-monospace, SFMono-Regular, Menlo, monospace",
                 tabSize: 2,
                 smoothScrolling: true,
                 wordWrap: "on",
                 scrollBeyondLastLine: false,
+                padding: { top: 12 },
               }}
             />
           </div>
