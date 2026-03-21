@@ -33,6 +33,7 @@ export { NavList, moveSelectableNavIndex } from '../components/nav-list.js'
 export { CommandPalette } from '../components/command-palette.js'
 export { DataTable } from '../components/data-table.js'
 export { SidebarLayout, resolveSidebarLayoutMode } from '../components/sidebar-layout.js'
+export { Pager } from '../components/pager.js'
 export {
   ThemeProvider,
   createTheme,
@@ -90,6 +91,7 @@ export type {
   SidebarLayoutResolvedMode,
   SidebarLayoutPane,
   SidebarLayoutPaneLabels,
+  PagerProps,
   TuiTheme,
   TuiThemeInput,
   TuiThemeTokens,
