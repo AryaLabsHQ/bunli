@@ -489,6 +489,19 @@
   --terminal-muted: #a0a0a0;
 }
 
+/* Fix fumadocs sidebar: override *:flex-col! from Tailwind utilities layer.
+   Scoped to .bunli-docs wrapper so it only affects the docs layout.
+   Using @layer base so !important here beats !important in higher layers. */
+@layer base {
+  .bunli-docs a[data-active] {
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    text-align: start !important;
+    gap: 0.5rem !important;
+  }
+}
+
 /* Subtle grid texture */
 .grid-texture {
   background-image:
