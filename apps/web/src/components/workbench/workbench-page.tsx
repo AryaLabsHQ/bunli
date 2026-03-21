@@ -1,7 +1,7 @@
 import Editor from "@monaco-editor/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { DEFAULT_SOURCE_FILE, type RunPreset } from "../../api/workbench/constants";
+import { type RunPreset } from "../../api/workbench/constants";
 import type {
   WorkbenchErrorResponse,
   WorkbenchFileSyncResponse,
@@ -11,7 +11,7 @@ import type {
 } from "../../api/workbench/types";
 import { useTheme } from "next-themes";
 import { signIn, signOut, useSession } from "../../lib/auth-client";
-import { getEditorThemeName, registerEditorThemes, registerExtraLibs } from "../../lib/monaco-setup.js";
+import { fetchDefaultSource, getEditorThemeName, registerEditorThemes, registerExtraLibs } from "../../lib/monaco-setup.js";
 import { useGhosttyTerminal } from "./use-ghostty-terminal";
 
 interface SessionState {
@@ -46,8 +46,12 @@ export function WorkbenchPage({ embedded = false }: WorkbenchPageProps = {}) {
   const isAuthenticated = Boolean(authState?.user?.id);
   const { theme } = useTheme();
 
-  const [sourceCode, setSourceCode] = useState(DEFAULT_SOURCE_FILE);
+  const [sourceCode, setSourceCode] = useState("");
   const [preset, setPreset] = useState<RunPreset>("framework");
+
+  useEffect(() => {
+    void fetchDefaultSource().then(setSourceCode);
+  }, []);
   const [sessionState, setSessionState] = useState<SessionState | null>(null);
   const [connectionState, setConnectionState] = useState<ConnectionState>("disconnected");
   const [activeRunId, setActiveRunId] = useState<string | null>(null);
@@ -411,10 +415,10 @@ export function WorkbenchPage({ embedded = false }: WorkbenchPageProps = {}) {
     const frames = [
       "1.2.2",
       "$ bun run /workspace/demo/src/index.ts hello -n bunli",
-      "Hello, bunli!",
+      "Hello, bunli.",
       "",
-      "$ bun run /workspace/demo/src/index.ts hello -n bunli -l",
-      "HELLO, BUNLI!",
+      "$ bun run /workspace/demo/src/index.ts hello -n bunli -e",
+      "Hello, bunli!",
       "",
       "[scripted] Sign in to run in a real Cloudflare sandbox.",
     ];
