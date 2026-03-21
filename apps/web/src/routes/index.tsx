@@ -56,21 +56,7 @@ function WorkbenchDemo() {
           </p>
         </div>
 
-        <div className="bg-terminal border border-terminal-border">
-          <div className="flex items-center gap-3 px-4 py-2 border-b border-terminal-border">
-            <span className="font-mono text-xs text-terminal-muted">
-              workbench
-            </span>
-            <span className="font-mono text-xs text-accent ml-auto">live</span>
-          </div>
-          <div className="min-h-[400px]">
-            {mounted ? <WorkbenchPage embedded /> : null}
-          </div>
-        </div>
-
-        <div className="mt-6 font-mono text-sm text-terminal-muted text-center">
-          <span className="text-foreground">cmd+enter</span> to run
-        </div>
+        {mounted ? <WorkbenchPage embedded /> : null}
       </div>
     </section>
   );

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import type { FitAddon, Terminal } from "ghostty-web";
+import { getThemeById, DEFAULT_THEME_ID } from "../../lib/themes.js";
 
 interface TerminalDimensions {
   cols: number;
@@ -17,7 +18,7 @@ interface UseGhosttyTerminalResult {
   fit: () => void;
 }
 
-export function useGhosttyTerminal(): UseGhosttyTerminalResult {
+export function useGhosttyTerminal(themeId: string = DEFAULT_THEME_ID): UseGhosttyTerminalResult {
   const containerRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
@@ -41,17 +42,13 @@ export function useGhosttyTerminal(): UseGhosttyTerminalResult {
         return;
       }
 
+      const themeData = getThemeById(themeId);
       const terminal = new ghostty.Terminal({
         cursorBlink: true,
         convertEol: true,
-        fontFamily: "Iosevka Term, ui-monospace, SFMono-Regular, Menlo, monospace",
+        fontFamily: "JetBrains Mono, ui-monospace, SFMono-Regular, Menlo, monospace",
         fontSize: 13,
-        theme: {
-          background: "#0a0f1f",
-          foreground: "#d8e2ff",
-          cursor: "#49d4a7",
-          selectionBackground: "#334c84",
-        },
+        theme: themeData?.terminal ?? getThemeById(DEFAULT_THEME_ID)!.terminal,
       });
       const fitAddon = new ghostty.FitAddon();
       terminal.loadAddon(fitAddon);
@@ -95,6 +92,18 @@ export function useGhosttyTerminal(): UseGhosttyTerminalResult {
       dataHandlersRef.current.clear();
     };
   }, []);
+
+  // Runtime theme switching
+  useEffect(() => {
+    const terminal = terminalRef.current;
+    if (!terminal) {
+      return;
+    }
+    const palette = getThemeById(themeId)?.terminal;
+    if (palette) {
+      terminal.renderer?.setTheme(palette);
+    }
+  }, [themeId]);
 
   const write = useCallback((chunk: string) => {
     terminalRef.current?.write(chunk);

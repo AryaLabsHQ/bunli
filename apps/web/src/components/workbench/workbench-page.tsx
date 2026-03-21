@@ -1,7 +1,6 @@
 import Editor from "@monaco-editor/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Button } from "../../../components/ui/button";
 import { DEFAULT_SOURCE_FILE, type RunPreset } from "../../api/workbench/constants";
 import type {
   WorkbenchErrorResponse,
@@ -10,6 +9,7 @@ import type {
   WorkbenchRunResponse,
   WorkbenchSessionResponse,
 } from "../../api/workbench/types";
+import { useTheme } from "next-themes";
 import { signIn, signOut, useSession } from "../../lib/auth-client";
 import { useGhosttyTerminal } from "./use-ghostty-terminal";
 
@@ -43,6 +43,7 @@ interface WorkbenchPageProps {
 export function WorkbenchPage({ embedded = false }: WorkbenchPageProps = {}) {
   const { data: authState } = useSession();
   const isAuthenticated = Boolean(authState?.user?.id);
+  const { theme } = useTheme();
 
   const [sourceCode, setSourceCode] = useState(DEFAULT_SOURCE_FILE);
   const [preset, setPreset] = useState<RunPreset>("framework");
@@ -59,7 +60,7 @@ export function WorkbenchPage({ embedded = false }: WorkbenchPageProps = {}) {
   const activeRunIdRef = useRef<string | null>(null);
   const sessionIdRef = useRef<string | null>(null);
 
-  const terminal = useGhosttyTerminal();
+  const terminal = useGhosttyTerminal(theme ?? "vesper");
 
   useEffect(() => {
     activeRunIdRef.current = activeRunId;
@@ -558,32 +559,53 @@ export function WorkbenchPage({ embedded = false }: WorkbenchPageProps = {}) {
   };
 
   return (
-    <div className={embedded ? "w-full" : "mx-auto w-full max-w-[1400px] px-4 py-6 md:px-8 md:py-10"}>
-      <section className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card/80 p-3">
-        <p className="text-sm text-muted-foreground">
-          Edit code in Monaco, run it in a real Bun sandbox — right here in the browser.
-        </p>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button render={<a href="/docs" />} variant="outline" size="sm">
-            Docs
-          </Button>
-          {isAuthenticated ? (
-            <Button variant="outline" size="sm" type="button" onClick={handleSignOut}>
-              Sign out
-            </Button>
-          ) : (
-            <Button variant="outline" size="sm" type="button" onClick={handleGithubSignIn}>
-              Sign in with GitHub
-            </Button>
-          )}
-        </div>
-      </section>
+    <div className={embedded ? "w-full" : "mx-auto w-full max-w-5xl px-4 py-12 md:px-8 md:py-16"}>
+      {/* Header bar — terminal style */}
+      <div className="flex items-center gap-3 border border-terminal-border bg-terminal px-4 py-2">
+        <span className="font-mono text-xs text-terminal-muted">~/workbench</span>
+        <span className="font-mono text-xs text-terminal-muted ml-auto">
+          {isAuthenticated ? "authenticated" : "anonymous"}
+          <span className="mx-2 text-terminal-border" aria-hidden="true">│</span>
+          {connectionLabel.toLowerCase()}
+        </span>
+      </div>
 
-      <section className="grid gap-4 lg:grid-cols-2">
-        <article className="flex min-h-[540px] flex-col overflow-hidden rounded-xl border bg-card shadow-sm">
-          <header className="flex items-center justify-between border-b bg-muted/30 px-4 py-3">
-            <strong className="text-sm">src/index.ts</strong>
-            <div className="text-xs text-muted-foreground">/workspace/demo/src/index.ts</div>
+      {/* Action bar */}
+      <div className="flex flex-wrap items-center gap-3 border-x border-terminal-border bg-terminal/50 px-4 py-2">
+        <span className="font-mono text-xs text-terminal-muted mr-auto">
+          Edit code in Monaco, run it in a real Bun sandbox.
+        </span>
+        <a
+          href="/docs"
+          className="font-mono text-xs text-terminal-muted hover:text-terminal-foreground border border-terminal-border px-3 py-1.5 transition-colors"
+        >
+          docs
+        </a>
+        {isAuthenticated ? (
+          <button
+            type="button"
+            onClick={handleSignOut}
+            className="font-mono text-xs text-terminal-muted hover:text-terminal-foreground border border-terminal-border px-3 py-1.5 transition-colors"
+          >
+            sign out
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={handleGithubSignIn}
+            className="font-mono text-xs text-accent border border-accent/40 hover:bg-accent hover:text-background px-3 py-1.5 transition-colors"
+          >
+            sign in with github
+          </button>
+        )}
+      </div>
+
+      <section className="grid gap-0 lg:grid-cols-2">
+        {/* Editor pane */}
+        <article className="flex min-h-[540px] flex-col overflow-hidden border border-terminal-border bg-terminal">
+          <header className="flex items-center justify-between border-b border-terminal-border px-4 py-2">
+            <span className="font-mono text-xs text-terminal-foreground">src/index.ts</span>
+            <span className="font-mono text-xs text-terminal-muted">/workspace/demo/src/index.ts</span>
           </header>
 
           <div className="min-h-[420px] flex-1">
@@ -605,55 +627,52 @@ export function WorkbenchPage({ embedded = false }: WorkbenchPageProps = {}) {
           </div>
         </article>
 
-        <article className="flex min-h-[540px] flex-col overflow-hidden rounded-xl border bg-card shadow-sm">
-          <header className="flex items-center justify-between border-b bg-muted/30 px-4 py-3">
-            <strong className="text-sm">Terminal</strong>
-            <div className="text-xs text-muted-foreground">
-              {isAuthenticated ? "Authenticated" : "Scripted demo"} • {connectionLabel}
-            </div>
+        {/* Terminal pane */}
+        <article className="flex min-h-[540px] flex-col overflow-hidden border border-terminal-border lg:border-l-0 bg-terminal">
+          <header className="flex items-center justify-between border-b border-terminal-border px-4 py-2">
+            <span className="font-mono text-xs text-terminal-foreground">terminal</span>
+            <span className="font-mono text-xs text-terminal-muted">
+              {isAuthenticated ? "live" : "scripted"}
+            </span>
           </header>
 
-          <div className="flex flex-wrap gap-2 border-b bg-muted/20 px-3 py-2">
+          <div className="flex flex-wrap gap-2 border-b border-terminal-border px-3 py-2">
             <select
               value={preset}
               onChange={(event) => setPreset(event.target.value as RunPreset)}
-              className="h-8 min-w-[160px] rounded-md border bg-background px-2 text-xs text-foreground"
+              className="h-7 min-w-[140px] border border-terminal-border bg-terminal px-2 font-mono text-xs text-terminal-foreground"
             >
-              <option value="framework">Framework preset</option>
-              <option value="toolchain">Toolchain preset</option>
+              <option value="framework">framework</option>
+              <option value="toolchain">toolchain</option>
             </select>
 
-            <Button variant="outline" size="sm" type="button" onClick={() => terminal.clear()}>
-              Clear
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
+            <button
               type="button"
-              onClick={() => {
-                void syncSourceFile();
-              }}
+              onClick={() => terminal.clear()}
+              className="font-mono text-xs text-terminal-muted hover:text-terminal-foreground border border-terminal-border px-2.5 py-1 transition-colors"
+            >
+              clear
+            </button>
+
+            <button
+              type="button"
+              onClick={() => { void syncSourceFile(); }}
               disabled={!isAuthenticated || saving}
+              className="font-mono text-xs text-terminal-muted hover:text-terminal-foreground border border-terminal-border px-2.5 py-1 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              {saving ? "Syncing..." : "Sync file"}
-            </Button>
+              {saving ? "syncing..." : "sync"}
+            </button>
 
-            <Button
-              variant="outline"
-              size="sm"
+            <button
               type="button"
-              onClick={() => {
-                void ensureSession();
-              }}
+              onClick={() => { void ensureSession(); }}
               disabled={!isAuthenticated || sessionBusy}
+              className="font-mono text-xs text-terminal-muted hover:text-terminal-foreground border border-terminal-border px-2.5 py-1 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              {sessionBusy ? "Session..." : "Init session"}
-            </Button>
+              {sessionBusy ? "init..." : "init session"}
+            </button>
 
-            <Button
-              variant="outline"
-              size="sm"
+            <button
               type="button"
               onClick={() => {
                 if (sessionState) {
@@ -661,36 +680,44 @@ export function WorkbenchPage({ embedded = false }: WorkbenchPageProps = {}) {
                 }
               }}
               disabled={!isAuthenticated || !sessionState || connectionState === "connecting"}
+              className="font-mono text-xs text-terminal-muted hover:text-terminal-foreground border border-terminal-border px-2.5 py-1 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              {connectionState === "connecting" ? "Connecting..." : "Connect PTY"}
-            </Button>
+              {connectionState === "connecting" ? "connecting..." : "pty"}
+            </button>
 
-            <Button
-              size="sm"
+            <button
               type="button"
-              onClick={() => {
-                void runPreset();
-              }}
+              onClick={() => { void runPreset(); }}
               disabled={runBusy || scriptedBusy || activeRunId !== null}
+              className="font-mono text-xs text-accent border border-accent/40 hover:bg-accent hover:text-background px-2.5 py-1 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {runBusy || scriptedBusy
-                ? "Running..."
+                ? "running..."
                 : activeRunId
-                  ? "Run in progress"
-                  : "Run preset"}
-            </Button>
+                  ? "in progress"
+                  : "run"}
+            </button>
           </div>
 
-          <div ref={terminal.containerRef} className="min-h-[360px] flex-1 bg-zinc-950 p-1" />
+          <div ref={terminal.containerRef} className="min-h-[360px] flex-1 bg-terminal p-1" />
 
-          <footer className="border-t bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
-            <span>
-              {terminal.ready ? "Terminal ready" : "Starting terminal..."}
-              {sessionState ? ` • session ${sessionState.sessionId}` : ""}
-            </span>
+          <footer className="border-t border-terminal-border px-3 py-1.5 font-mono text-xs text-terminal-muted">
+            <span className="text-accent/60 mr-1.5" aria-hidden="true">{'>'}</span>
+            {terminal.ready ? "ready" : "starting..."}
+            {sessionState ? (
+              <>
+                <span className="mx-2 text-terminal-border" aria-hidden="true">│</span>
+                session {sessionState.sessionId}
+              </>
+            ) : null}
           </footer>
         </article>
       </section>
+
+      {/* Bottom hint */}
+      <div className="border-x border-b border-terminal-border bg-terminal px-4 py-2 font-mono text-xs text-terminal-muted text-center">
+        <span className="text-accent/60">[cmd+enter]</span> to run
+      </div>
     </div>
   );
 }
