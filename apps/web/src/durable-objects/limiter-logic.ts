@@ -26,10 +26,10 @@ export interface LimiterLimits {
 }
 
 export const DEFAULT_LIMITS: LimiterLimits = {
-  runHourLimit: 20,
-  runDayLimit: 100,
+  runHourLimit: 10,
+  runDayLimit: 30,
   ptyMinuteLimit: 2,
-  sessionDayLimit: 5,
+  sessionDayLimit: 3,
   inflightTtlMs: 120_000,
 };
 
