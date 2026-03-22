@@ -5,10 +5,10 @@ import {
 } from "@cloudflare/sandbox";
 import {
   DEFAULT_SOURCE_FILE,
-  WORKBENCH_FILE_PATH,
+  getWorkbenchFilePath,
+  getWorkbenchSrcDir,
+  getWorkbenchWorkspace,
   WORKBENCH_SLEEP_AFTER,
-  WORKBENCH_SRC_DIR,
-  WORKBENCH_WORKSPACE,
 } from "./constants";
 import type { WorkbenchIdentity } from "./identity";
 import type { LimiterResponse } from "./limiter";
@@ -17,6 +17,11 @@ export interface WorkbenchSessionResult {
   sandbox: CloudflareSandbox;
   session: ExecutionSession;
   created: boolean;
+}
+
+interface WorkbenchSessionOptions {
+  onBeforeCreate?: () => Promise<LimiterResponse>;
+  onCreateFailed?: () => Promise<void>;
 }
 
 function getErrorMessage(error: unknown): string {
@@ -45,13 +50,20 @@ function getWorkbenchSandbox(env: Env, sandboxId: string): CloudflareSandbox {
   });
 }
 
-async function ensureWorkspace(session: ExecutionSession): Promise<void> {
-  await session.mkdir(WORKBENCH_WORKSPACE, { recursive: true });
-  await session.mkdir(WORKBENCH_SRC_DIR, { recursive: true });
+async function ensureSessionWorkspace(
+  env: Pick<Env, "WORKBENCH_WORKSPACE_DIR">,
+  session: ExecutionSession
+): Promise<void> {
+  const workspace = getWorkbenchWorkspace(env);
+  const srcDir = getWorkbenchSrcDir(env);
+  const filePath = getWorkbenchFilePath(env);
 
-  const fileState = await session.exists(WORKBENCH_FILE_PATH);
+  await session.mkdir(workspace, { recursive: true });
+  await session.mkdir(srcDir, { recursive: true });
+
+  const fileState = await session.exists(filePath);
   if (!fileState.exists) {
-    await session.writeFile(WORKBENCH_FILE_PATH, DEFAULT_SOURCE_FILE);
+    await session.writeFile(filePath, DEFAULT_SOURCE_FILE);
   }
 }
 
@@ -66,18 +78,30 @@ async function resolveSession(
   }
 }
 
+export async function deleteWorkbenchSession(
+  env: Env,
+  ids: WorkbenchIdentity
+): Promise<boolean> {
+  const sandbox = getWorkbenchSandbox(env, ids.sandboxId);
+  const existingSession = await resolveSession(sandbox, ids.sessionId);
+  if (!existingSession) {
+    return false;
+  }
+
+  await sandbox.deleteSession(ids.sessionId);
+  return true;
+}
+
 export async function getOrCreateWorkbenchSession(
   env: Env,
   ids: WorkbenchIdentity,
-  options: {
-    onBeforeCreate?: () => Promise<LimiterResponse>;
-  } = {}
+  options: WorkbenchSessionOptions = {}
 ): Promise<WorkbenchSessionResult> {
   const sandbox = getWorkbenchSandbox(env, ids.sandboxId);
 
   const existingSession = await resolveSession(sandbox, ids.sessionId);
   if (existingSession) {
-    await ensureWorkspace(existingSession);
+    await ensureSessionWorkspace(env, existingSession);
     return {
       sandbox,
       session: existingSession,
@@ -97,7 +121,7 @@ export async function getOrCreateWorkbenchSession(
 
   const preferredOptions = {
     id: ids.sessionId,
-    cwd: WORKBENCH_WORKSPACE,
+    cwd: getWorkbenchWorkspace(env),
     env: {
       WORKBENCH_BUN_VERSION: env.WORKBENCH_BUN_VERSION,
       WORKBENCH_BUNLI_VERSION: env.WORKBENCH_BUNLI_VERSION,
@@ -124,7 +148,7 @@ export async function getOrCreateWorkbenchSession(
       });
     }
 
-    await ensureWorkspace(createdSession);
+    await ensureSessionWorkspace(env, createdSession);
     return {
       sandbox,
       session: createdSession,
@@ -133,10 +157,13 @@ export async function getOrCreateWorkbenchSession(
   } catch (error) {
     const recoveredSession = await resolveSession(sandbox, ids.sessionId);
     if (!recoveredSession) {
+      if (options.onCreateFailed) {
+        await options.onCreateFailed();
+      }
       throw new Error(`Sandbox session unavailable: ${getErrorMessage(error)}`);
     }
 
-    await ensureWorkspace(recoveredSession);
+    await ensureSessionWorkspace(env, recoveredSession);
     return {
       sandbox,
       session: recoveredSession,

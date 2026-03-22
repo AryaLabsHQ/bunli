@@ -3,8 +3,10 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { AuthRequiredError, requireSession, type AuthSession } from "../auth/session";
 import {
-  PRESET_COMMANDS,
-  WORKBENCH_FILE_PATH,
+  buildWorkbenchExecCommand,
+  getPresetCommand,
+  getWorkbenchFilePath,
+  WORKBENCH_PROTOCOL_PREFIX,
   WORKBENCH_RUN_TIMEOUT_MS,
   WORKBENCH_SESSION_TTL_SECONDS,
 } from "./constants";
@@ -13,7 +15,10 @@ import { deriveWorkbenchIds } from "./identity";
 import {
   allowPtyConnect,
   allowSessionCreate,
+  abortRun,
   finishRun,
+  rollbackRun,
+  rollbackSessionCreate,
   startRun,
   type LimiterResponse,
 } from "./limiter";
@@ -24,6 +29,7 @@ import {
 import type {
   WorkbenchFileSyncResponse,
   WorkbenchPtyDisconnectResponse,
+  WorkbenchRunAbortResponse,
   WorkbenchRunFinishResponse,
   WorkbenchRunResponse,
   WorkbenchSessionResponse,
@@ -41,28 +47,53 @@ type WorkbenchEnv = {
 export interface WorkbenchDeps {
   requireSession: (request: Request, env: Env) => Promise<AuthSession>;
   allowSessionCreate: (env: Env, userId: string) => Promise<LimiterResponse>;
-  startRun: (env: Env, userId: string, runId: string) => Promise<LimiterResponse>;
-  finishRun: (env: Env, userId: string, runId: string) => Promise<LimiterResponse>;
+  rollbackSessionCreate: (env: Env, userId: string) => Promise<LimiterResponse>;
+  startRun: (
+    env: Env,
+    userId: string,
+    runId: string,
+    completionToken: string
+  ) => Promise<LimiterResponse>;
+  abortRun: (env: Env, userId: string, runId: string) => Promise<LimiterResponse>;
+  rollbackRun: (env: Env, userId: string, runId: string) => Promise<LimiterResponse>;
+  finishRun: (
+    env: Env,
+    userId: string,
+    runId: string,
+    completionToken?: string
+  ) => Promise<LimiterResponse>;
   allowPtyConnect: (env: Env, userId: string) => Promise<LimiterResponse>;
   getOrCreateWorkbenchSession: (
     env: Env,
     ids: ReturnType<typeof deriveWorkbenchIds>,
     options?: {
       onBeforeCreate?: () => Promise<LimiterResponse>;
+      onCreateFailed?: () => Promise<void>;
     }
   ) => Promise<WorkbenchSessionResult>;
+  deleteWorkbenchSession: (
+    env: Env,
+    ids: ReturnType<typeof deriveWorkbenchIds>
+  ) => Promise<boolean>;
   now: () => number;
 }
 
 const defaultDeps: WorkbenchDeps = {
   requireSession,
   allowSessionCreate,
+  rollbackSessionCreate,
   startRun,
+  abortRun,
+  rollbackRun,
   finishRun,
   allowPtyConnect,
   getOrCreateWorkbenchSession: async (env, ids, options) => {
     const sandbox = await import("./sandbox");
     return sandbox.getOrCreateWorkbenchSession(env, ids, options);
+  },
+  deleteWorkbenchSession: async (env, ids) => {
+    const sandbox = await import("./sandbox");
+    return sandbox.deleteWorkbenchSession(env, ids);
   },
   now: () => Date.now(),
 };
@@ -76,6 +107,11 @@ const runSchema = z.object({
 });
 
 const finishRunSchema = z.object({
+  runId: z.string().min(1).max(200),
+  completionToken: z.string().min(1).max(200).optional(),
+});
+
+const abortRunSchema = z.object({
   runId: z.string().min(1).max(200),
 });
 
@@ -149,6 +185,9 @@ export function createWorkbenchRouter(deps: WorkbenchDeps = defaultDeps) {
     const ids = deriveWorkbenchIds(authSession);
     const { created } = await deps.getOrCreateWorkbenchSession(c.env, ids, {
       onBeforeCreate: () => deps.allowSessionCreate(c.env, ids.userId),
+      onCreateFailed: async () => {
+        await deps.rollbackSessionCreate(c.env, ids.userId);
+      },
     });
 
     logWorkbenchEvent("session_start", {
@@ -176,21 +215,24 @@ export function createWorkbenchRouter(deps: WorkbenchDeps = defaultDeps) {
 
     const { session } = await deps.getOrCreateWorkbenchSession(c.env, ids, {
       onBeforeCreate: () => deps.allowSessionCreate(c.env, ids.userId),
+      onCreateFailed: async () => {
+        await deps.rollbackSessionCreate(c.env, ids.userId);
+      },
     });
 
-    await session.writeFile(WORKBENCH_FILE_PATH, content);
+    await session.writeFile(getWorkbenchFilePath(c.env), content);
 
     logWorkbenchEvent("file_sync", {
       userId: ids.userId,
       sandboxId: ids.sandboxId,
       sessionId: ids.sessionId,
-      path: WORKBENCH_FILE_PATH,
+      path: getWorkbenchFilePath(c.env),
       bytes: new TextEncoder().encode(content).byteLength,
     });
 
     const response: WorkbenchFileSyncResponse = {
       ok: true,
-      path: WORKBENCH_FILE_PATH,
+      path: getWorkbenchFilePath(c.env),
       bytes: new TextEncoder().encode(content).byteLength,
     };
 
@@ -202,8 +244,9 @@ export function createWorkbenchRouter(deps: WorkbenchDeps = defaultDeps) {
     const ids = deriveWorkbenchIds(authSession);
     const { preset } = c.req.valid("json");
     const runId = `run-${deps.now()}-${crypto.randomUUID()}`;
+    const completionToken = crypto.randomUUID();
 
-    const runAllowance = await deps.startRun(c.env, ids.userId, runId);
+    const runAllowance = await deps.startRun(c.env, ids.userId, runId, completionToken);
     if (!runAllowance.ok) {
       return c.json(
         workbenchError("RATE_LIMITED", "Run limit exceeded", {
@@ -216,9 +259,12 @@ export function createWorkbenchRouter(deps: WorkbenchDeps = defaultDeps) {
     try {
       await deps.getOrCreateWorkbenchSession(c.env, ids, {
         onBeforeCreate: () => deps.allowSessionCreate(c.env, ids.userId),
+        onCreateFailed: async () => {
+          await deps.rollbackSessionCreate(c.env, ids.userId);
+        },
       });
     } catch (error) {
-      await deps.finishRun(c.env, ids.userId, runId);
+      await deps.rollbackRun(c.env, ids.userId, runId);
       throw error;
     }
 
@@ -236,7 +282,9 @@ export function createWorkbenchRouter(deps: WorkbenchDeps = defaultDeps) {
       runId,
       sessionId: ids.sessionId,
       preset,
-      command: PRESET_COMMANDS[preset],
+      command: getPresetCommand(c.env, preset),
+      execCommand: buildWorkbenchExecCommand(c.env, preset, runId, completionToken),
+      protocolPrefix: WORKBENCH_PROTOCOL_PREFIX,
       timeoutMs: WORKBENCH_RUN_TIMEOUT_MS,
     };
 
@@ -246,20 +294,55 @@ export function createWorkbenchRouter(deps: WorkbenchDeps = defaultDeps) {
   app.post("/run/finish", zValidator("json", finishRunSchema), async (c) => {
     const authSession = c.get("authSession");
     const ids = deriveWorkbenchIds(authSession);
-    const { runId } = c.req.valid("json");
+    const { runId, completionToken } = c.req.valid("json");
 
-    await deps.finishRun(c.env, ids.userId, runId);
+    const finishResult = await deps.finishRun(c.env, ids.userId, runId, completionToken);
 
-    logWorkbenchEvent("run_end", {
-      userId: ids.userId,
-      sandboxId: ids.sandboxId,
-      sessionId: ids.sessionId,
-      runId,
-    });
+    if (finishResult.released) {
+      logWorkbenchEvent("run_end", {
+        userId: ids.userId,
+        sandboxId: ids.sandboxId,
+        sessionId: ids.sessionId,
+        runId,
+      });
+    } else {
+      logWorkbenchEvent("run_end_ignored", {
+        userId: ids.userId,
+        sandboxId: ids.sandboxId,
+        sessionId: ids.sessionId,
+        runId,
+      });
+    }
 
     const response: WorkbenchRunFinishResponse = {
       ok: true,
       runId,
+      released: finishResult.released ?? false,
+    };
+
+    return c.json(response);
+  });
+
+  app.post("/run/abort", zValidator("json", abortRunSchema), async (c) => {
+    const authSession = c.get("authSession");
+    const ids = deriveWorkbenchIds(authSession);
+    const { runId } = c.req.valid("json");
+
+    await deps.deleteWorkbenchSession(c.env, ids);
+    const abortResult = await deps.abortRun(c.env, ids.userId, runId);
+
+    logWorkbenchEvent("run_abort", {
+      userId: ids.userId,
+      sandboxId: ids.sandboxId,
+      sessionId: ids.sessionId,
+      runId,
+      released: abortResult.released ?? false,
+    });
+
+    const response: WorkbenchRunAbortResponse = {
+      ok: true,
+      runId,
+      released: abortResult.released ?? false,
     };
 
     return c.json(response);
@@ -300,6 +383,9 @@ export function createWorkbenchRouter(deps: WorkbenchDeps = defaultDeps) {
 
     const { session } = await deps.getOrCreateWorkbenchSession(c.env, ids, {
       onBeforeCreate: () => deps.allowSessionCreate(c.env, ids.userId),
+      onCreateFailed: async () => {
+        await deps.rollbackSessionCreate(c.env, ids.userId);
+      },
     });
 
     logWorkbenchEvent("pty_connect", {

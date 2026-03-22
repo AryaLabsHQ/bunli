@@ -1,10 +1,11 @@
 import Editor from "@monaco-editor/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { type RunPreset } from "../../api/workbench/constants";
+import { type RunPreset, WORKBENCH_PROTOCOL_PREFIX } from "../../api/workbench/constants";
 import type {
   WorkbenchErrorResponse,
   WorkbenchFileSyncResponse,
+  WorkbenchRunAbortResponse,
   WorkbenchRunFinishResponse,
   WorkbenchRunResponse,
   WorkbenchSessionResponse,
@@ -23,6 +24,20 @@ type ConnectionState = "disconnected" | "connecting" | "connected";
 
 const decoder = new TextDecoder();
 const PTY_CONNECT_TIMEOUT_MS = 12_000;
+const DEFAULT_PROTOCOL_PREFIX = WORKBENCH_PROTOCOL_PREFIX;
+
+interface WorkbenchProtocolStatus {
+  type?: "ready" | "error" | "exit";
+  runId?: string;
+  completionToken?: string;
+  code?: number;
+  message?: string;
+}
+
+interface WorkbenchRunPayload extends WorkbenchRunResponse {
+  execCommand?: string;
+  protocolPrefix?: string;
+}
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => {
@@ -64,6 +79,8 @@ export function WorkbenchPage({ embedded = false }: WorkbenchPageProps = {}) {
   const runTimerRef = useRef<number | null>(null);
   const activeRunIdRef = useRef<string | null>(null);
   const sessionIdRef = useRef<string | null>(null);
+  const connectPromiseRef = useRef<Promise<boolean> | null>(null);
+  const protocolPrefixRef = useRef(DEFAULT_PROTOCOL_PREFIX);
 
   const terminal = useGhosttyTerminal(theme ?? "vesper");
 
@@ -118,8 +135,35 @@ export function WorkbenchPage({ embedded = false }: WorkbenchPageProps = {}) {
     }
   }, [isAuthenticated]);
 
+  const sendSocketData = useCallback(
+    (data: string, label: string): boolean => {
+      const socket = wsRef.current;
+      if (!socket || socket.readyState !== WebSocket.OPEN) {
+        appendLine(`[pty] ${label} skipped: websocket is not open`);
+        return false;
+      }
+
+      try {
+        socket.send(data);
+        return true;
+      } catch {
+        appendLine(`[pty] ${label} failed`);
+        return false;
+      }
+    },
+    [appendLine]
+  );
+
   const finishRun = useCallback(
-    async (runId: string) => {
+    async (
+      runId: string,
+      options: {
+        completionToken?: string;
+        keepalive?: boolean;
+        silent?: boolean;
+      } = {}
+    ) => {
+      const { completionToken, keepalive = false, silent = false } = options;
       clearRunTimer();
       setActiveRunId((current) => (current === runId ? null : current));
 
@@ -130,6 +174,49 @@ export function WorkbenchPage({ embedded = false }: WorkbenchPageProps = {}) {
       try {
         const response = await fetch("/api/workbench/run/finish", {
           method: "POST",
+          keepalive,
+          credentials: "include",
+          headers: {
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({ runId, completionToken }),
+        });
+
+        if (response.ok) {
+          const payload = await parseResponse<WorkbenchRunFinishResponse>(response);
+          if (payload.ok && payload.released && !silent) {
+            appendLine(`[run ${payload.runId}] complete`);
+          }
+        }
+      } catch {
+        if (!silent) {
+          appendLine("[run] failed to finalize on server");
+        }
+      }
+    },
+    [appendLine, clearRunTimer, isAuthenticated]
+  );
+
+  const abortRun = useCallback(
+    async (
+      runId: string,
+      options: {
+        keepalive?: boolean;
+        silent?: boolean;
+      } = {}
+    ) => {
+      const { keepalive = false, silent = false } = options;
+      clearRunTimer();
+      setActiveRunId((current) => (current === runId ? null : current));
+
+      if (!isAuthenticated) {
+        return;
+      }
+
+      try {
+        const response = await fetch("/api/workbench/run/abort", {
+          method: "POST",
+          keepalive,
           credentials: "include",
           headers: {
             "content-type": "application/json",
@@ -138,13 +225,15 @@ export function WorkbenchPage({ embedded = false }: WorkbenchPageProps = {}) {
         });
 
         if (response.ok) {
-          const payload = await parseResponse<WorkbenchRunFinishResponse>(response);
-          if (payload.ok) {
-            appendLine(`[run ${payload.runId}] complete`);
+          const payload = await parseResponse<WorkbenchRunAbortResponse>(response);
+          if (payload.ok && payload.released && !silent) {
+            appendLine(`[run ${payload.runId}] aborted`);
           }
         }
       } catch {
-        appendLine("[run] failed to finalize on server");
+        if (!silent) {
+          appendLine("[run] failed to abort on server");
+        }
       }
     },
     [appendLine, clearRunTimer, isAuthenticated]
@@ -153,13 +242,12 @@ export function WorkbenchPage({ embedded = false }: WorkbenchPageProps = {}) {
   const handleSocketMessage = useCallback(
     (chunk: string) => {
       const trimmed = chunk.trim();
-      if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+      const protocolPrefix = protocolPrefixRef.current;
+      if (trimmed.startsWith(protocolPrefix)) {
         try {
-          const status = JSON.parse(trimmed) as {
-            type?: "ready" | "error" | "exit";
-            code?: number;
-            message?: string;
-          };
+          const status = JSON.parse(
+            trimmed.slice(protocolPrefix.length)
+          ) as WorkbenchProtocolStatus;
 
           if (status.type === "ready") {
             appendLine("[pty] ready");
@@ -170,16 +258,18 @@ export function WorkbenchPage({ embedded = false }: WorkbenchPageProps = {}) {
             appendLine(`[pty:error] ${status.message ?? "Unknown error"}`);
             const runId = activeRunIdRef.current;
             if (runId) {
-              void finishRun(runId);
+              void abortRun(runId);
             }
             return;
           }
 
           if (status.type === "exit") {
             appendLine(`[pty] exit ${status.code ?? 0}`);
-            const runId = activeRunIdRef.current;
+            const runId = status.runId ?? activeRunIdRef.current;
             if (runId) {
-              void finishRun(runId);
+              void finishRun(runId, {
+                completionToken: status.completionToken,
+              });
             }
             return;
           }
@@ -190,12 +280,13 @@ export function WorkbenchPage({ embedded = false }: WorkbenchPageProps = {}) {
 
       terminal.write(chunk);
     },
-    [appendLine, finishRun, terminal]
+    [abortRun, appendLine, finishRun, terminal]
   );
 
   const closeSocket = useCallback(() => {
     const ws = wsRef.current;
     wsRef.current = null;
+    connectPromiseRef.current = null;
     if (!ws) {
       return;
     }
@@ -209,13 +300,17 @@ export function WorkbenchPage({ embedded = false }: WorkbenchPageProps = {}) {
 
   const connectPty = useCallback(
     async (sessionId: string): Promise<boolean> => {
-      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      const currentSocket = wsRef.current;
+      if (currentSocket?.readyState === WebSocket.OPEN) {
         return true;
+      }
+      if (currentSocket?.readyState === WebSocket.CONNECTING && connectPromiseRef.current) {
+        return await connectPromiseRef.current;
       }
 
       setConnectionState("connecting");
 
-      return await new Promise<boolean>((resolve) => {
+      const connectPromise = new Promise<boolean>((resolve) => {
         let settled = false;
         let opened = false;
 
@@ -224,6 +319,9 @@ export function WorkbenchPage({ embedded = false }: WorkbenchPageProps = {}) {
             return;
           }
           settled = true;
+          if (connectPromiseRef.current === connectPromise) {
+            connectPromiseRef.current = null;
+          }
           resolve(ok);
         };
 
@@ -308,7 +406,7 @@ export function WorkbenchPage({ embedded = false }: WorkbenchPageProps = {}) {
 
             const runId = activeRunIdRef.current;
             if (runId) {
-              void finishRun(runId);
+              void abortRun(runId);
             }
           } else {
             appendLine("[pty] websocket closed before ready");
@@ -317,8 +415,10 @@ export function WorkbenchPage({ embedded = false }: WorkbenchPageProps = {}) {
           settle(false);
         };
       });
+      connectPromiseRef.current = connectPromise;
+      return await connectPromise;
     },
-    [appendLine, finishRun, handleSocketMessage, notifyPtyDisconnect, terminal]
+    [abortRun, appendLine, handleSocketMessage, notifyPtyDisconnect, terminal]
   );
 
   const ensureSession = useCallback(async (): Promise<SessionState | null> => {
@@ -477,26 +577,33 @@ export function WorkbenchPage({ embedded = false }: WorkbenchPageProps = {}) {
         return;
       }
 
-      const payload = await parseResponse<WorkbenchRunResponse>(response);
+      const payload = await parseResponse<WorkbenchRunPayload>(response);
+      protocolPrefixRef.current = payload.protocolPrefix ?? DEFAULT_PROTOCOL_PREFIX;
       setActiveRunId(payload.runId);
 
       appendLine(`$ ${payload.command}`);
-      wsRef.current?.send(`${payload.command}\n`);
+      const execCommand = payload.execCommand ?? payload.command;
+      if (!sendSocketData(`${execCommand}\n`, "run dispatch")) {
+        const runId = payload.runId;
+        await abortRun(runId);
+        return;
+      }
 
       clearRunTimer();
       runTimerRef.current = window.setTimeout(() => {
         appendLine(`[run] timeout reached (${payload.timeoutMs}ms), sending Ctrl+C`);
-        wsRef.current?.send("\u0003");
+        const interrupted = sendSocketData("\u0003", "interrupt");
 
         const runId = activeRunIdRef.current;
-        if (runId) {
-          void finishRun(runId);
+        if (runId && !interrupted) {
+          void abortRun(runId);
         }
       }, payload.timeoutMs + 250);
     } finally {
       setRunBusy(false);
     }
   }, [
+    abortRun,
     appendLine,
     clearRunTimer,
     connectPty,
@@ -506,21 +613,24 @@ export function WorkbenchPage({ embedded = false }: WorkbenchPageProps = {}) {
     preset,
     runBusy,
     runScriptedReplay,
+    sendSocketData,
     syncSourceFile,
     terminal,
   ]);
 
   useEffect(() => {
     const unsubscribe = terminal.onData((chunk) => {
-      if (wsRef.current?.readyState === WebSocket.OPEN) {
-        wsRef.current.send(chunk);
+      if (!activeRunIdRef.current) {
+        return;
       }
+
+      sendSocketData(chunk, "terminal input");
     });
 
     return () => {
       unsubscribe();
     };
-  }, [terminal]);
+  }, [sendSocketData, terminal]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -535,10 +645,17 @@ export function WorkbenchPage({ embedded = false }: WorkbenchPageProps = {}) {
 
   useEffect(() => {
     return () => {
+      const runId = activeRunIdRef.current;
+      if (runId) {
+        void abortRun(runId, {
+          keepalive: true,
+          silent: true,
+        });
+      }
       clearRunTimer();
       closeSocket();
     };
-  }, [clearRunTimer, closeSocket]);
+  }, [abortRun, clearRunTimer, closeSocket]);
 
   const handleGithubSignIn = async () => {
     try {
