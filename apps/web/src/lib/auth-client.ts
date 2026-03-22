@@ -1,10 +1,15 @@
 import { createAuthClient } from "better-auth/react";
 
-const defaultSiteUrl = "http://localhost:3000";
-const configuredSiteUrl = (import.meta.env.SITE_URL as string | undefined) ?? defaultSiteUrl;
+function resolveAuthBaseUrl(): string | undefined {
+  if (typeof window !== "undefined") {
+    return window.location.origin;
+  }
+
+  return import.meta.env.SITE_URL as string | undefined;
+}
 
 export const authClient = createAuthClient({
-  baseURL: configuredSiteUrl,
+  baseURL: resolveAuthBaseUrl(),
   basePath: "/api/auth",
   fetchOptions: {
     credentials: "include",
