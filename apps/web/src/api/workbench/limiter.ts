@@ -3,6 +3,7 @@ export interface LimiterResponse {
   code?: string;
   retryAfterMs?: number;
   runId?: string;
+  released?: boolean;
 }
 
 async function postLimiter(
@@ -28,12 +29,29 @@ export function allowSessionCreate(env: Env, userId: string) {
   return postLimiter(env, userId, "/session/create");
 }
 
-export function startRun(env: Env, userId: string, runId: string) {
-  return postLimiter(env, userId, "/run/start", { runId });
+export function rollbackSessionCreate(env: Env, userId: string) {
+  return postLimiter(env, userId, "/session/rollback");
 }
 
-export function finishRun(env: Env, userId: string, runId: string) {
-  return postLimiter(env, userId, "/run/finish", { runId });
+export function startRun(env: Env, userId: string, runId: string, completionToken: string) {
+  return postLimiter(env, userId, "/run/start", { runId, completionToken });
+}
+
+export function rollbackRun(env: Env, userId: string, runId: string) {
+  return postLimiter(env, userId, "/run/rollback", { runId });
+}
+
+export function abortRun(env: Env, userId: string, runId: string) {
+  return postLimiter(env, userId, "/run/abort", { runId });
+}
+
+export function finishRun(
+  env: Env,
+  userId: string,
+  runId: string,
+  completionToken?: string
+) {
+  return postLimiter(env, userId, "/run/finish", { runId, completionToken });
 }
 
 export function allowPtyConnect(env: Env, userId: string) {
