@@ -13,6 +13,7 @@ export interface WorkbenchErrorResponse {
     | "METHOD_NOT_ALLOWED"
     | "BAD_REQUEST"
     | "NOT_FOUND"
+    | "RUN_NOT_STARTED"
     | "INTERNAL_ERROR";
   message: string;
   retryAfterMs?: number;

@@ -36,7 +36,7 @@ export const DEFAULT_LIMITS: LimiterLimits = {
 
 export interface LimiterDecision {
   ok: boolean;
-  code?: "RATE_LIMITED" | "RUN_IN_FLIGHT";
+  code?: "RATE_LIMITED" | "RUN_IN_FLIGHT" | "RUN_NOT_STARTED";
   retryAfterMs?: number;
   runId?: string;
   released?: boolean;
@@ -282,6 +282,15 @@ export function applyPtyConnect(
   limits: LimiterLimits
 ): LimiterDecision {
   const cleaned = cleanupExpiredInflight(state, nowMs);
+
+  if (!cleaned.inflight) {
+    return {
+      ok: false,
+      code: "RUN_NOT_STARTED",
+      state: cleaned,
+    };
+  }
+
   const pty = tryConsume(cleaned.ptyMinute, nowMs, MINUTE_MS, limits.ptyMinuteLimit);
 
   if (!pty.ok) {
