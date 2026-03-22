@@ -7,8 +7,7 @@ import {
   DEFAULT_SOURCE_FILE,
   getWorkbenchFilePath,
   getWorkbenchSrcDir,
-  getWorkbenchWorkspace,
-  WORKBENCH_SLEEP_AFTER,
+  workbenchConfig,
 } from "./constants";
 import type { WorkbenchIdentity } from "./identity";
 import type { LimiterResponse } from "./limiter";
@@ -46,19 +45,17 @@ export class WorkbenchRateLimitError extends Error {
 function getWorkbenchSandbox(env: Env, sandboxId: string): CloudflareSandbox {
   return getSandbox(env.Sandbox, sandboxId, {
     normalizeId: true,
-    sleepAfter: WORKBENCH_SLEEP_AFTER,
+    sleepAfter: workbenchConfig.sleepAfter,
   });
 }
 
 async function ensureSessionWorkspace(
-  env: Pick<Env, "WORKBENCH_WORKSPACE_DIR">,
   session: ExecutionSession
 ): Promise<void> {
-  const workspace = getWorkbenchWorkspace(env);
-  const srcDir = getWorkbenchSrcDir(env);
-  const filePath = getWorkbenchFilePath(env);
+  const srcDir = getWorkbenchSrcDir();
+  const filePath = getWorkbenchFilePath();
 
-  await session.mkdir(workspace, { recursive: true });
+  await session.mkdir(workbenchConfig.workspace, { recursive: true });
   await session.mkdir(srcDir, { recursive: true });
 
   const fileState = await session.exists(filePath);
@@ -101,7 +98,7 @@ export async function getOrCreateWorkbenchSession(
 
   const existingSession = await resolveSession(sandbox, ids.sessionId);
   if (existingSession) {
-    await ensureSessionWorkspace(env, existingSession);
+    await ensureSessionWorkspace(existingSession);
     return {
       sandbox,
       session: existingSession,
@@ -121,11 +118,11 @@ export async function getOrCreateWorkbenchSession(
 
   const preferredOptions = {
     id: ids.sessionId,
-    cwd: getWorkbenchWorkspace(env),
+    cwd: workbenchConfig.workspace,
     env: {
-      WORKBENCH_BUN_VERSION: env.WORKBENCH_BUN_VERSION,
-      WORKBENCH_BUNLI_VERSION: env.WORKBENCH_BUNLI_VERSION,
-      WORKBENCH_SANDBOX_NETWORK: env.WORKBENCH_SANDBOX_NETWORK,
+      WORKBENCH_BUN_VERSION: workbenchConfig.bunVersion,
+      WORKBENCH_BUNLI_VERSION: workbenchConfig.bunliVersion,
+      WORKBENCH_SANDBOX_NETWORK: workbenchConfig.sandboxNetwork,
     },
   };
 
@@ -148,7 +145,7 @@ export async function getOrCreateWorkbenchSession(
       });
     }
 
-    await ensureSessionWorkspace(env, createdSession);
+    await ensureSessionWorkspace(createdSession);
     return {
       sandbox,
       session: createdSession,
@@ -163,7 +160,7 @@ export async function getOrCreateWorkbenchSession(
       throw new Error(`Sandbox session unavailable: ${getErrorMessage(error)}`);
     }
 
-    await ensureSessionWorkspace(env, recoveredSession);
+    await ensureSessionWorkspace(recoveredSession);
     return {
       sandbox,
       session: recoveredSession,

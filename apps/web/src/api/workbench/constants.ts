@@ -1,48 +1,44 @@
-export const DEFAULT_WORKBENCH_WORKSPACE = "/workspace/demo";
-export const WORKBENCH_RUN_TIMEOUT_MS = 10_000;
-export const WORKBENCH_SLEEP_AFTER = "10m";
-export const WORKBENCH_SESSION_TTL_SECONDS = 60 * 30;
+/** Workbench runtime configuration — single source of truth. */
+export const workbenchConfig = {
+  workspace: "/workspace/demo",
+  bunVersion: "1.2.2",
+  bunliVersion: "0.5.3",
+  sandboxNetwork: "off" as "on" | "off",
+  runTimeoutMs: 10_000,
+  sleepAfter: "10m",
+  sessionTtlSeconds: 60 * 30,
+} as const;
+
 export const WORKBENCH_PROTOCOL_PREFIX = "__bunli_workbench__:";
 
 export type RunPreset = "framework" | "toolchain";
-
-export const PRESET_COMMANDS: Record<RunPreset, string> = {
-  framework: `bun run ${DEFAULT_WORKBENCH_WORKSPACE}/src/index.ts`,
-  toolchain: "bun --version && bunli --version && bunli --help",
-};
 
 function quoteForShell(value: string): string {
   return `'${value.replaceAll("'", `'\"'\"'`)}'`;
 }
 
-export function getWorkbenchWorkspace(env: Pick<Env, "WORKBENCH_WORKSPACE_DIR">): string {
-  const configured = env.WORKBENCH_WORKSPACE_DIR.trim();
-  return configured.length > 0 ? configured : DEFAULT_WORKBENCH_WORKSPACE;
+export function getWorkbenchSrcDir(): string {
+  return `${workbenchConfig.workspace}/src`;
 }
 
-export function getWorkbenchSrcDir(env: Pick<Env, "WORKBENCH_WORKSPACE_DIR">): string {
-  return `${getWorkbenchWorkspace(env)}/src`;
+export function getWorkbenchFilePath(): string {
+  return `${getWorkbenchSrcDir()}/index.ts`;
 }
 
-export function getWorkbenchFilePath(env: Pick<Env, "WORKBENCH_WORKSPACE_DIR">): string {
-  return `${getWorkbenchSrcDir(env)}/index.ts`;
-}
-
-export function getPresetCommand(env: Pick<Env, "WORKBENCH_WORKSPACE_DIR">, preset: RunPreset): string {
+export function getPresetCommand(preset: RunPreset): string {
   if (preset === "framework") {
-    return `bun run ${getWorkbenchFilePath(env)}`;
+    return `bun run ${getWorkbenchFilePath()}`;
   }
 
-  return PRESET_COMMANDS[preset];
+  return "bun --version && bunli --version && bunli --help";
 }
 
 export function buildWorkbenchExecCommand(
-  env: Pick<Env, "WORKBENCH_WORKSPACE_DIR">,
   preset: RunPreset,
   runId: string,
   completionToken: string
 ): string {
-  const command = getPresetCommand(env, preset);
+  const command = getPresetCommand(preset);
   const framePrefix =
     `${WORKBENCH_PROTOCOL_PREFIX}` +
     `${JSON.stringify({ type: "exit", runId, completionToken }).slice(0, -1)},"code":`;

@@ -12,11 +12,6 @@ declare global {
     BETTER_AUTH_SECRET: string;
     GITHUB_CLIENT_ID: string;
     GITHUB_CLIENT_SECRET: string;
-
-    WORKBENCH_WORKSPACE_DIR: string;
-    WORKBENCH_BUN_VERSION: string;
-    WORKBENCH_BUNLI_VERSION: string;
-    WORKBENCH_SANDBOX_NETWORK: string;
   }
 }
 

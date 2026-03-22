@@ -6,9 +6,8 @@ import {
   buildWorkbenchExecCommand,
   getPresetCommand,
   getWorkbenchFilePath,
+  workbenchConfig,
   WORKBENCH_PROTOCOL_PREFIX,
-  WORKBENCH_RUN_TIMEOUT_MS,
-  WORKBENCH_SESSION_TTL_SECONDS,
 } from "./constants";
 import { workbenchError } from "./errors";
 import { deriveWorkbenchIds } from "./identity";
@@ -195,7 +194,7 @@ export function createWorkbenchRouter(deps: WorkbenchDeps = defaultDeps) {
       sandboxId: ids.sandboxId,
       sessionId: ids.sessionId,
       created,
-      ttlSeconds: WORKBENCH_SESSION_TTL_SECONDS,
+      ttlSeconds: workbenchConfig.sessionTtlSeconds,
     });
 
     const response: WorkbenchSessionResponse = {
@@ -220,19 +219,19 @@ export function createWorkbenchRouter(deps: WorkbenchDeps = defaultDeps) {
       },
     });
 
-    await session.writeFile(getWorkbenchFilePath(c.env), content);
+    await session.writeFile(getWorkbenchFilePath(), content);
 
     logWorkbenchEvent("file_sync", {
       userId: ids.userId,
       sandboxId: ids.sandboxId,
       sessionId: ids.sessionId,
-      path: getWorkbenchFilePath(c.env),
+      path: getWorkbenchFilePath(),
       bytes: new TextEncoder().encode(content).byteLength,
     });
 
     const response: WorkbenchFileSyncResponse = {
       ok: true,
-      path: getWorkbenchFilePath(c.env),
+      path: getWorkbenchFilePath(),
       bytes: new TextEncoder().encode(content).byteLength,
     };
 
@@ -274,7 +273,7 @@ export function createWorkbenchRouter(deps: WorkbenchDeps = defaultDeps) {
       sessionId: ids.sessionId,
       runId,
       preset,
-      timeoutMs: WORKBENCH_RUN_TIMEOUT_MS,
+      timeoutMs: workbenchConfig.runTimeoutMs,
     });
 
     const response: WorkbenchRunResponse = {
@@ -282,10 +281,10 @@ export function createWorkbenchRouter(deps: WorkbenchDeps = defaultDeps) {
       runId,
       sessionId: ids.sessionId,
       preset,
-      command: getPresetCommand(c.env, preset),
-      execCommand: buildWorkbenchExecCommand(c.env, preset, runId, completionToken),
+      command: getPresetCommand(preset),
+      execCommand: buildWorkbenchExecCommand(preset, runId, completionToken),
       protocolPrefix: WORKBENCH_PROTOCOL_PREFIX,
-      timeoutMs: WORKBENCH_RUN_TIMEOUT_MS,
+      timeoutMs: workbenchConfig.runTimeoutMs,
     };
 
     return c.json(response);
