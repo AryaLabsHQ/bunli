@@ -14,6 +14,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const appRoot = resolve(here, "..");
 const monorepoRoot = resolve(appRoot, "../..");
 const dest = resolve(appRoot, "public/playground");
+const workbenchTemplateDir = resolve(appRoot, "workbench-template");
 
 // Clean and recreate
 if (existsSync(dest)) {
@@ -23,10 +24,10 @@ mkdirSync(resolve(dest, "templates"), { recursive: true });
 mkdirSync(resolve(dest, "types"), { recursive: true });
 
 // --- Templates ---
-// Copy the basic template command (default editor content)
+// Copy the tracked workbench template entrypoint that matches the execution model.
 cpSync(
-  resolve(monorepoRoot, "packages/create-bunli/templates/basic/src/commands/hello.ts"),
-  resolve(dest, "templates/hello.ts")
+  resolve(workbenchTemplateDir, "src/index.ts"),
+  resolve(dest, "templates/index.ts")
 );
 
 // --- Type definitions ---

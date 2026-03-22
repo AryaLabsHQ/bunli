@@ -1,6 +1,37 @@
 import type * as Monaco from "monaco-editor";
 import { themes } from "./themes.js";
 
+const DEFAULT_EDITOR_SOURCE = `import { createCLI, defineCommand, option } from '@bunli/core'
+import { z } from 'zod'
+
+const hello = defineCommand({
+  name: 'hello',
+  description: 'Say hello',
+  options: {
+    name: option(z.string().default('bunli'), { short: 'n' }),
+    excited: option(z.boolean().default(false), { short: 'e' }),
+  },
+  handler: async ({ flags, colors }) => {
+    const suffix = flags.excited ? '!' : '.'
+    console.log(colors.green(\`Hello, \${flags.name}\${suffix}\`))
+  },
+})
+
+if (Bun.argv.length <= 2) {
+  Bun.argv.push('hello', '-n', 'bunli')
+}
+
+const cli = await createCLI({
+  name: 'workbench',
+  version: '0.1.0',
+  description: 'Runnable bunli workbench demo',
+})
+
+cli.command(hello)
+
+await cli.run()
+`;
+
 // ---------------------------------------------------------------------------
 // 1. Type acquisition — fetch real types from static assets at runtime.
 //    Assets are copied to public/playground/ by scripts/copy-playground-assets.ts
@@ -12,12 +43,12 @@ import { themes } from "./themes.js";
  */
 export async function fetchDefaultSource(): Promise<string> {
   try {
-    const res = await fetch("/playground/templates/hello.ts");
+    const res = await fetch("/playground/templates/index.ts");
     if (res.ok) return await res.text();
   } catch {
     // offline or asset missing
   }
-  return `import { defineCommand, option } from '@bunli/core'\nimport { z } from 'zod'\n\nconst hello = defineCommand({\n  name: 'hello',\n  description: 'Say hello',\n  options: {\n    name: option(z.string().default('World'), { short: 'n' }),\n  },\n  handler: async ({ flags, colors }) => {\n    console.log(colors.green(\`Hello, \${flags.name}!\`))\n  }\n})\n\nexport default hello\n`;
+  return DEFAULT_EDITOR_SOURCE;
 }
 
 /**
@@ -78,11 +109,13 @@ declare module "zod" {
 }
 `;
 
+type MonacoTypescriptApi = typeof Monaco.typescript;
+
 /**
  * Fetch type definitions from static assets and register with Monaco.
  * Called asynchronously after the editor mounts.
  */
-async function fetchAndRegisterTypes(ts: any): Promise<void> {
+async function fetchAndRegisterTypes(ts: MonacoTypescriptApi): Promise<void> {
   const typeFiles = ["types.d.ts", "cli.d.ts"];
   const sources: string[] = [];
 
@@ -104,8 +137,7 @@ async function fetchAndRegisterTypes(ts: any): Promise<void> {
 }
 
 export function registerExtraLibs(monaco: typeof Monaco): void {
-  const ts = (monaco as any).typescript ?? (monaco.languages as any).typescript;
-  if (!ts?.typescriptDefaults) return;
+  const ts: MonacoTypescriptApi = monaco.typescript;
 
   ts.typescriptDefaults.setCompilerOptions({
     target: ts.ScriptTarget?.ESNext ?? 99,

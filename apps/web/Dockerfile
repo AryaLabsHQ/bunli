@@ -11,9 +11,11 @@ ENV WORKBENCH_SANDBOX_NETWORK=off
 RUN curl -fsSL https://bun.sh/install | bash -s -- bun-v${BUN_VERSION}
 RUN bun add --global "bunli@${BUNLI_VERSION}"
 
-WORKDIR /workspace/demo
-RUN mkdir -p /workspace/demo/src /workspace/demo/.bunli
-RUN printf 'const timestamp = new Date().toISOString();\nconsole.log("Hello from bunli sandbox workbench");\nconsole.log("Timestamp:", timestamp);\n' > /workspace/demo/src/index.ts
+WORKDIR /workspace
+RUN mkdir -p ${BUNLI_WORKSPACE}/src ${BUNLI_WORKSPACE}/.bunli
+COPY workbench-template/package.json /workspace/package.json
+COPY workbench-template/src/index.ts ${BUNLI_WORKSPACE}/src/index.ts
+RUN bun add "@bunli/core@${BUNLI_VERSION}" "zod@^4.3.6"
 
 # PTY bridge server runs on this port.
 EXPOSE 8082
