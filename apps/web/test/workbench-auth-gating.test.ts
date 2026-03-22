@@ -94,4 +94,28 @@ describe("workbench API auth + gating", () => {
     expect(payload.runId).toBe("run-1");
     expect(payload.released).toBe(false);
   });
+
+  test("returns RUN_NOT_STARTED when opening PTY before a run starts", async () => {
+    const deps = createDeps({
+      allowPtyConnect: async () => ({ ok: false, code: "RUN_NOT_STARTED" }),
+    });
+
+    const app = createWorkbenchRouter(deps);
+    const response = await app.request("/pty?sessionId=sess-user-1", {
+      method: "GET",
+      headers: {
+        upgrade: "websocket",
+      },
+    });
+
+    const payload = (await response.json()) as {
+      ok: boolean;
+      code: string;
+      message: string;
+    };
+
+    expect(response.status).toBe(409);
+    expect(payload.ok).toBe(false);
+    expect(payload.code).toBe("RUN_NOT_STARTED");
+  });
 });

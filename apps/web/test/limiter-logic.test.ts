@@ -3,6 +3,7 @@ import {
   DEFAULT_LIMITS,
   applyAbortRun,
   applyFinishRun,
+  applyPtyConnect,
   applyRollbackRun,
   applyRollbackSessionCreate,
   applyStartRun,
@@ -122,6 +123,21 @@ describe("workbench limiter logic", () => {
     expect(rolledBackRun.state.inflight).toBeUndefined();
     expect(rolledBackRun.state.runHour?.count).toBe(0);
     expect(rolledBackRun.state.runDay?.count).toBe(0);
+  });
+
+  test("requires an active run before opening a PTY", () => {
+    const nowMs = 1_700_000_000_000;
+
+    const denied = applyPtyConnect({}, nowMs, DEFAULT_LIMITS);
+    expect(denied.ok).toBe(false);
+    expect(denied.code).toBe("RUN_NOT_STARTED");
+
+    const started = applyStartRun({}, nowMs + 1, DEFAULT_LIMITS, "run-1", "token-1");
+    expect(started.ok).toBe(true);
+
+    const allowed = applyPtyConnect(started.state, nowMs + 2, DEFAULT_LIMITS);
+    expect(allowed.ok).toBe(true);
+    expect(allowed.state.ptyMinute?.count).toBe(1);
   });
 
   test("cleans up expired inflight runs", () => {
