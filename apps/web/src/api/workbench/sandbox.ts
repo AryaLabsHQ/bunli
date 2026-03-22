@@ -5,8 +5,12 @@ import {
 } from "@cloudflare/sandbox";
 import {
   DEFAULT_SOURCE_FILE,
+  getWorkbenchBunVersion,
+  getWorkbenchBunliVersion,
   getWorkbenchFilePath,
   getWorkbenchSrcDir,
+  getWorkbenchSandboxNetwork,
+  getWorkbenchWorkspace,
   workbenchConfig,
 } from "./constants";
 import type { WorkbenchIdentity } from "./identity";
@@ -50,12 +54,14 @@ function getWorkbenchSandbox(env: Env, sandboxId: string): CloudflareSandbox {
 }
 
 async function ensureSessionWorkspace(
-  session: ExecutionSession
+  session: ExecutionSession,
+  env?: Env
 ): Promise<void> {
-  const srcDir = getWorkbenchSrcDir();
-  const filePath = getWorkbenchFilePath();
+  const workspace = getWorkbenchWorkspace(env);
+  const srcDir = getWorkbenchSrcDir(env);
+  const filePath = getWorkbenchFilePath(env);
 
-  await session.mkdir(workbenchConfig.workspace, { recursive: true });
+  await session.mkdir(workspace, { recursive: true });
   await session.mkdir(srcDir, { recursive: true });
 
   const fileState = await session.exists(filePath);
@@ -98,7 +104,7 @@ export async function getOrCreateWorkbenchSession(
 
   const existingSession = await resolveSession(sandbox, ids.sessionId);
   if (existingSession) {
-    await ensureSessionWorkspace(existingSession);
+    await ensureSessionWorkspace(existingSession, env);
     return {
       sandbox,
       session: existingSession,
@@ -116,18 +122,20 @@ export async function getOrCreateWorkbenchSession(
     }
   }
 
+  let createdSession: ExecutionSession | null = null;
+
   const preferredOptions = {
     id: ids.sessionId,
-    cwd: workbenchConfig.workspace,
+    cwd: getWorkbenchWorkspace(env),
     env: {
-      WORKBENCH_BUN_VERSION: workbenchConfig.bunVersion,
-      WORKBENCH_BUNLI_VERSION: workbenchConfig.bunliVersion,
-      WORKBENCH_SANDBOX_NETWORK: workbenchConfig.sandboxNetwork,
+      WORKBENCH_WORKSPACE_DIR: getWorkbenchWorkspace(env),
+      WORKBENCH_BUN_VERSION: getWorkbenchBunVersion(env),
+      WORKBENCH_BUNLI_VERSION: getWorkbenchBunliVersion(env),
+      WORKBENCH_SANDBOX_NETWORK: getWorkbenchSandboxNetwork(env),
     },
   };
 
   try {
-    let createdSession: ExecutionSession;
     try {
       createdSession = await sandbox.createSession(preferredOptions);
     } catch (preferredError) {
@@ -145,7 +153,7 @@ export async function getOrCreateWorkbenchSession(
       });
     }
 
-    await ensureSessionWorkspace(createdSession);
+    await ensureSessionWorkspace(createdSession, env);
     return {
       sandbox,
       session: createdSession,
@@ -160,7 +168,11 @@ export async function getOrCreateWorkbenchSession(
       throw new Error(`Sandbox session unavailable: ${getErrorMessage(error)}`);
     }
 
-    await ensureSessionWorkspace(recoveredSession);
+    if (!createdSession && options.onCreateFailed) {
+      await options.onCreateFailed();
+    }
+
+    await ensureSessionWorkspace(recoveredSession, env);
     return {
       sandbox,
       session: recoveredSession,

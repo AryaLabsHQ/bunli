@@ -13,21 +13,76 @@ export const WORKBENCH_PROTOCOL_PREFIX = "__bunli_workbench__:";
 
 export type RunPreset = "framework" | "toolchain";
 
+export interface WorkbenchRuntimeEnv {
+  WORKBENCH_WORKSPACE_DIR?: string;
+  WORKBENCH_BUN_VERSION?: string;
+  WORKBENCH_BUNLI_VERSION?: string;
+  WORKBENCH_SANDBOX_NETWORK?: string;
+}
+
 function quoteForShell(value: string): string {
   return `'${value.replaceAll("'", `'\"'\"'`)}'`;
 }
 
-export function getWorkbenchSrcDir(): string {
-  return `${workbenchConfig.workspace}/src`;
+function readWorkbenchSetting(
+  envValue: string | undefined,
+  processValue: string | undefined,
+  fallback: string
+): string {
+  const value = envValue ?? processValue;
+  return value?.trim() ? value.trim() : fallback;
 }
 
-export function getWorkbenchFilePath(): string {
-  return `${getWorkbenchSrcDir()}/index.ts`;
+export function getWorkbenchWorkspace(env?: WorkbenchRuntimeEnv): string {
+  return readWorkbenchSetting(
+    env?.WORKBENCH_WORKSPACE_DIR,
+    process.env.WORKBENCH_WORKSPACE_DIR,
+    workbenchConfig.workspace
+  );
 }
 
-export function getPresetCommand(preset: RunPreset): string {
+export function getWorkbenchBunVersion(env?: WorkbenchRuntimeEnv): string {
+  return readWorkbenchSetting(
+    env?.WORKBENCH_BUN_VERSION,
+    process.env.WORKBENCH_BUN_VERSION,
+    workbenchConfig.bunVersion
+  );
+}
+
+export function getWorkbenchBunliVersion(env?: WorkbenchRuntimeEnv): string {
+  return readWorkbenchSetting(
+    env?.WORKBENCH_BUNLI_VERSION,
+    process.env.WORKBENCH_BUNLI_VERSION,
+    workbenchConfig.bunliVersion
+  );
+}
+
+export function getWorkbenchSandboxNetwork(
+  env?: WorkbenchRuntimeEnv
+): "on" | "off" {
+  return readWorkbenchSetting(
+    env?.WORKBENCH_SANDBOX_NETWORK,
+    process.env.WORKBENCH_SANDBOX_NETWORK,
+    workbenchConfig.sandboxNetwork
+  ) === "on"
+    ? "on"
+    : "off";
+}
+
+export function getWorkbenchSrcDir(env?: WorkbenchRuntimeEnv): string {
+  return `${getWorkbenchWorkspace(env)}/src`;
+}
+
+export function getWorkbenchFilePath(env?: WorkbenchRuntimeEnv): string {
+  return `${getWorkbenchSrcDir(env)}/index.ts`;
+}
+
+export function getPresetCommand(
+  preset: RunPreset,
+  env?: WorkbenchRuntimeEnv
+): string {
   if (preset === "framework") {
-    return `bun run ${getWorkbenchFilePath()}`;
+    return `bun run ${getWorkbenchFilePath(env)}`;
   }
 
   return "bun --version && bunli --version && bunli --help";
@@ -36,15 +91,16 @@ export function getPresetCommand(preset: RunPreset): string {
 export function buildWorkbenchExecCommand(
   preset: RunPreset,
   runId: string,
-  completionToken: string
+  completionToken: string,
+  env?: WorkbenchRuntimeEnv
 ): string {
-  const command = getPresetCommand(preset);
+  const command = getPresetCommand(preset, env);
   const framePrefix =
     `${WORKBENCH_PROTOCOL_PREFIX}` +
     `${JSON.stringify({ type: "exit", runId, completionToken }).slice(0, -1)},"code":`;
 
   const script = [
-    `emit_frame() { printf '%s%s%s\\n' ${quoteForShell(framePrefix)} "$1" ${quoteForShell("}")};`,
+    `emit_frame() { printf '%s%s}\\n' ${quoteForShell(framePrefix)} "$1"; }`,
     'trap \'status=$?; emit_frame "$status"\' EXIT',
     command,
   ].join("\n");

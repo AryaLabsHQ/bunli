@@ -219,19 +219,19 @@ export function createWorkbenchRouter(deps: WorkbenchDeps = defaultDeps) {
       },
     });
 
-    await session.writeFile(getWorkbenchFilePath(), content);
+    await session.writeFile(getWorkbenchFilePath(c.env), content);
 
     logWorkbenchEvent("file_sync", {
       userId: ids.userId,
       sandboxId: ids.sandboxId,
       sessionId: ids.sessionId,
-      path: getWorkbenchFilePath(),
+      path: getWorkbenchFilePath(c.env),
       bytes: new TextEncoder().encode(content).byteLength,
     });
 
     const response: WorkbenchFileSyncResponse = {
       ok: true,
-      path: getWorkbenchFilePath(),
+      path: getWorkbenchFilePath(c.env),
       bytes: new TextEncoder().encode(content).byteLength,
     };
 
@@ -281,8 +281,8 @@ export function createWorkbenchRouter(deps: WorkbenchDeps = defaultDeps) {
       runId,
       sessionId: ids.sessionId,
       preset,
-      command: getPresetCommand(preset),
-      execCommand: buildWorkbenchExecCommand(preset, runId, completionToken),
+      command: getPresetCommand(preset, c.env),
+      execCommand: buildWorkbenchExecCommand(preset, runId, completionToken, c.env),
       protocolPrefix: WORKBENCH_PROTOCOL_PREFIX,
       timeoutMs: workbenchConfig.runTimeoutMs,
     };
@@ -369,6 +369,16 @@ export function createWorkbenchRouter(deps: WorkbenchDeps = defaultDeps) {
 
     const ptyAllowance = await deps.allowPtyConnect(c.env, ids.userId);
     if (!ptyAllowance.ok) {
+      if (ptyAllowance.code === "RUN_NOT_STARTED") {
+        return c.json(
+          workbenchError(
+            "RUN_NOT_STARTED",
+            "Start a run before opening a terminal connection."
+          ),
+          409
+        );
+      }
+
       return c.json(
         workbenchError("RATE_LIMITED", "PTY connection limit exceeded", {
           retryAfterMs: ptyAllowance.retryAfterMs,

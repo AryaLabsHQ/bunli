@@ -6,7 +6,7 @@
  *   bun scripts/copy-playground-assets.ts
  */
 
-import { cpSync, mkdirSync, existsSync } from "node:fs";
+import { cpSync, mkdirSync, existsSync, rmSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -18,7 +18,7 @@ const workbenchTemplateDir = resolve(appRoot, "workbench-template");
 
 // Clean and recreate
 if (existsSync(dest)) {
-  cpSync(dest, dest, { recursive: true }); // no-op, but ensure it exists
+  rmSync(dest, { recursive: true, force: true });
 }
 mkdirSync(resolve(dest, "templates"), { recursive: true });
 mkdirSync(resolve(dest, "types"), { recursive: true });
