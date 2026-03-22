@@ -137,6 +137,18 @@ test('greet validates name', async () => {
   },
 ]
 
+function shouldIgnoreHotkey(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) {
+    return false
+  }
+
+  if (target.closest('input, textarea, select, [contenteditable=""], [contenteditable="true"]')) {
+    return true
+  }
+
+  return Boolean(target.closest('[role="textbox"], .monaco-editor'))
+}
+
 export function ExamplesShowcase() {
   const [isVisible, setIsVisible] = useState(false)
   const [activeExample, setActiveExample] = useState(examples[0])
@@ -163,6 +175,10 @@ export function ExamplesShowcase() {
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (shouldIgnoreHotkey(e.target)) {
+        return
+      }
+
       const key = e.key
       const example = examples.find((ex) => ex.key === key)
       if (example) {
