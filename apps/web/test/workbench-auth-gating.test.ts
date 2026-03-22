@@ -11,12 +11,16 @@ function createDeps(overrides: Partial<WorkbenchDeps> = {}): WorkbenchDeps {
       } satisfies AuthSession;
     },
     allowSessionCreate: async () => ({ ok: true }),
+    rollbackSessionCreate: async () => ({ ok: true, released: true }),
     startRun: async () => ({ ok: true }),
-    finishRun: async () => ({ ok: true }),
+    abortRun: async () => ({ ok: true, released: true }),
+    rollbackRun: async () => ({ ok: true, released: true }),
+    finishRun: async () => ({ ok: true, released: true }),
     allowPtyConnect: async () => ({ ok: true }),
     getOrCreateWorkbenchSession: async () => {
       throw new Error("not expected in this test");
     },
+    deleteWorkbenchSession: async () => true,
     now: () => 1_700_000_000_000,
     ...overrides,
   };
@@ -63,5 +67,31 @@ describe("workbench API auth + gating", () => {
     expect(payload.ok).toBe(false);
     expect(payload.code).toBe("RATE_LIMITED");
     expect(payload.retryAfterMs).toBe(3000);
+  });
+
+  test("does not release a run without a completion token", async () => {
+    const deps = createDeps({
+      finishRun: async () => ({ ok: true, released: false }),
+    });
+
+    const app = createWorkbenchRouter(deps);
+    const response = await app.request("/run/finish", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ runId: "run-1" }),
+    });
+
+    const payload = (await response.json()) as {
+      ok: boolean;
+      runId: string;
+      released: boolean;
+    };
+
+    expect(response.status).toBe(200);
+    expect(payload.ok).toBe(true);
+    expect(payload.runId).toBe("run-1");
+    expect(payload.released).toBe(false);
   });
 });
