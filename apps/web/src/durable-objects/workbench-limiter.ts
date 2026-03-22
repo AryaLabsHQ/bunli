@@ -1,7 +1,10 @@
 import {
+  applyAbortRun,
   DEFAULT_LIMITS,
   applyFinishRun,
   applyPtyConnect,
+  applyRollbackRun,
+  applyRollbackSessionCreate,
   applySessionCreate,
   applyStartRun,
   cleanupExpiredInflight,
@@ -13,6 +16,7 @@ const STATE_KEY = "limiter:state";
 
 interface LimiterActionPayload {
   runId?: string;
+  completionToken?: string;
   nowMs?: number;
 }
 
@@ -72,13 +76,38 @@ export class WorkbenchLimiter extends DurableObject<Env> {
 
       if (path.endsWith("/run/start")) {
         const runId = payload.runId ?? `run-${actionNowMs}-${crypto.randomUUID()}`;
-        const decision = applyStartRun(state, actionNowMs, DEFAULT_LIMITS, runId);
+        const completionToken =
+          payload.completionToken ?? `token-${actionNowMs}-${crypto.randomUUID()}`;
+        const decision = applyStartRun(
+          state,
+          actionNowMs,
+          DEFAULT_LIMITS,
+          runId,
+          completionToken
+        );
         await this.saveState(decision.state);
         return decision;
       }
 
       if (path.endsWith("/run/finish")) {
-        const decision = applyFinishRun(state, actionNowMs, payload.runId);
+        const decision = applyFinishRun(
+          state,
+          actionNowMs,
+          payload.runId,
+          payload.completionToken
+        );
+        await this.saveState(decision.state);
+        return decision;
+      }
+
+      if (path.endsWith("/run/abort")) {
+        const decision = applyAbortRun(state, actionNowMs, payload.runId);
+        await this.saveState(decision.state);
+        return decision;
+      }
+
+      if (path.endsWith("/run/rollback")) {
+        const decision = applyRollbackRun(state, actionNowMs, payload.runId);
         await this.saveState(decision.state);
         return decision;
       }
@@ -91,6 +120,12 @@ export class WorkbenchLimiter extends DurableObject<Env> {
 
       if (path.endsWith("/session/create")) {
         const decision = applySessionCreate(state, actionNowMs, DEFAULT_LIMITS);
+        await this.saveState(decision.state);
+        return decision;
+      }
+
+      if (path.endsWith("/session/rollback")) {
+        const decision = applyRollbackSessionCreate(state, actionNowMs);
         await this.saveState(decision.state);
         return decision;
       }

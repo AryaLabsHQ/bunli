@@ -3,5 +3,10 @@ import { WORKBENCH_SLEEP_AFTER } from "../api/workbench/constants";
 
 export class Sandbox extends CloudflareSandbox {
   sleepAfter = WORKBENCH_SLEEP_AFTER;
-  enableInternet = false;
+  enableInternet: boolean;
+
+  constructor(ctx: DurableObjectState<{}>, env: Env) {
+    super(ctx, env);
+    this.enableInternet = env.WORKBENCH_SANDBOX_NETWORK === "on";
+  }
 }

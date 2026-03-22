@@ -5,6 +5,7 @@ export interface WindowCounter {
 
 export interface InflightRun {
   runId: string;
+  completionToken: string;
   startedAtMs: number;
   expiresAtMs: number;
 }
@@ -38,6 +39,7 @@ export interface LimiterDecision {
   code?: "RATE_LIMITED" | "RUN_IN_FLIGHT";
   retryAfterMs?: number;
   runId?: string;
+  released?: boolean;
   state: LimiterState;
 }
 
@@ -78,6 +80,26 @@ function tryConsume(
   };
 }
 
+function releaseCounter(
+  counter: WindowCounter | undefined,
+  nowMs: number,
+  windowMs: number
+): { counter: WindowCounter | undefined; released: boolean } {
+  if (!counter) {
+    return { counter: undefined, released: false };
+  }
+
+  const refreshed = refreshCounter(counter, nowMs, windowMs);
+  if (refreshed.count === 0) {
+    return { counter: refreshed, released: false };
+  }
+
+  return {
+    counter: { ...refreshed, count: refreshed.count - 1 },
+    released: true,
+  };
+}
+
 export function cleanupExpiredInflight(state: LimiterState, nowMs: number): LimiterState {
   if (!state.inflight || state.inflight.expiresAtMs > nowMs) {
     return state;
@@ -93,7 +115,8 @@ export function applyStartRun(
   state: LimiterState,
   nowMs: number,
   limits: LimiterLimits,
-  runId: string
+  runId: string,
+  completionToken: string
 ): LimiterDecision {
   const cleaned = cleanupExpiredInflight(state, nowMs);
 
@@ -106,15 +129,15 @@ export function applyStartRun(
     };
   }
 
-  const runHour = tryConsume(cleaned.runHour, nowMs, HOUR_MS, limits.runHourLimit);
-  if (!runHour.ok) {
+  const runHour = refreshCounter(cleaned.runHour, nowMs, HOUR_MS);
+  if (runHour.count >= limits.runHourLimit) {
     return {
       ok: false,
       code: "RATE_LIMITED",
-      retryAfterMs: runHour.retryAfterMs,
+      retryAfterMs: runHour.windowStartMs + HOUR_MS - nowMs,
       state: {
         ...cleaned,
-        runHour: runHour.counter,
+        runHour,
       },
     };
   }
@@ -127,7 +150,7 @@ export function applyStartRun(
       retryAfterMs: runDay.retryAfterMs,
       state: {
         ...cleaned,
-        runHour: runHour.counter,
+        runHour,
         runDay: runDay.counter,
       },
     };
@@ -138,10 +161,14 @@ export function applyStartRun(
     runId,
     state: {
       ...cleaned,
-      runHour: runHour.counter,
+      runHour: {
+        ...runHour,
+        count: runHour.count + 1,
+      },
       runDay: runDay.counter,
       inflight: {
         runId,
+        completionToken,
         startedAtMs: nowMs,
         expiresAtMs: nowMs + limits.inflightTtlMs,
       },
@@ -152,7 +179,8 @@ export function applyStartRun(
 export function applyFinishRun(
   state: LimiterState,
   nowMs: number,
-  runId?: string
+  runId?: string,
+  completionToken?: string
 ): LimiterDecision {
   const cleaned = cleanupExpiredInflight(state, nowMs);
   const active = cleaned.inflight;
@@ -160,6 +188,7 @@ export function applyFinishRun(
   if (!active) {
     return {
       ok: true,
+      released: false,
       state: cleaned,
     };
   }
@@ -167,14 +196,81 @@ export function applyFinishRun(
   if (runId && active.runId !== runId) {
     return {
       ok: true,
+      released: false,
+      state: cleaned,
+    };
+  }
+
+  if (active.completionToken && completionToken !== active.completionToken) {
+    return {
+      ok: true,
+      released: false,
       state: cleaned,
     };
   }
 
   return {
     ok: true,
+    released: true,
     state: {
       ...cleaned,
+      inflight: undefined,
+    },
+  };
+}
+
+export function applyAbortRun(
+  state: LimiterState,
+  nowMs: number,
+  runId?: string
+): LimiterDecision {
+  const cleaned = cleanupExpiredInflight(state, nowMs);
+  const active = cleaned.inflight;
+
+  if (!active || (runId && active.runId !== runId)) {
+    return {
+      ok: true,
+      released: false,
+      state: cleaned,
+    };
+  }
+
+  return {
+    ok: true,
+    released: true,
+    state: {
+      ...cleaned,
+      inflight: undefined,
+    },
+  };
+}
+
+export function applyRollbackRun(
+  state: LimiterState,
+  nowMs: number,
+  runId?: string
+): LimiterDecision {
+  const cleaned = cleanupExpiredInflight(state, nowMs);
+  const active = cleaned.inflight;
+
+  if (!active || (runId && active.runId !== runId)) {
+    return {
+      ok: true,
+      released: false,
+      state: cleaned,
+    };
+  }
+
+  const runHour = releaseCounter(cleaned.runHour, nowMs, HOUR_MS);
+  const runDay = releaseCounter(cleaned.runDay, nowMs, DAY_MS);
+
+  return {
+    ok: true,
+    released: runHour.released || runDay.released,
+    state: {
+      ...cleaned,
+      runHour: runHour.counter,
+      runDay: runDay.counter,
       inflight: undefined,
     },
   };
@@ -234,6 +330,23 @@ export function applySessionCreate(
     state: {
       ...cleaned,
       sessionDay: session.counter,
+    },
+  };
+}
+
+export function applyRollbackSessionCreate(
+  state: LimiterState,
+  nowMs: number
+): LimiterDecision {
+  const cleaned = cleanupExpiredInflight(state, nowMs);
+  const sessionDay = releaseCounter(cleaned.sessionDay, nowMs, DAY_MS);
+
+  return {
+    ok: true,
+    released: sessionDay.released,
+    state: {
+      ...cleaned,
+      sessionDay: sessionDay.counter,
     },
   };
 }
