@@ -15,8 +15,6 @@ export type RunPreset = "framework" | "toolchain";
 
 export interface WorkbenchRuntimeEnv {
   WORKBENCH_WORKSPACE_DIR?: string;
-  WORKBENCH_BUN_VERSION?: string;
-  WORKBENCH_BUNLI_VERSION?: string;
   WORKBENCH_SANDBOX_NETWORK?: string;
 }
 
@@ -38,22 +36,6 @@ export function getWorkbenchWorkspace(env?: WorkbenchRuntimeEnv): string {
     env?.WORKBENCH_WORKSPACE_DIR,
     process.env.WORKBENCH_WORKSPACE_DIR,
     workbenchConfig.workspace
-  );
-}
-
-export function getWorkbenchBunVersion(env?: WorkbenchRuntimeEnv): string {
-  return readWorkbenchSetting(
-    env?.WORKBENCH_BUN_VERSION,
-    process.env.WORKBENCH_BUN_VERSION,
-    workbenchConfig.bunVersion
-  );
-}
-
-export function getWorkbenchBunliVersion(env?: WorkbenchRuntimeEnv): string {
-  return readWorkbenchSetting(
-    env?.WORKBENCH_BUNLI_VERSION,
-    process.env.WORKBENCH_BUNLI_VERSION,
-    workbenchConfig.bunliVersion
   );
 }
 

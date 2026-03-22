@@ -166,6 +166,22 @@ export function WorkbenchPage({ embedded = false }: WorkbenchPageProps = {}) {
     [appendLine]
   );
 
+  const resetSocketState = useCallback((reason: string = "client-close") => {
+    const ws = wsRef.current;
+    wsRef.current = null;
+    connectPromiseRef.current = null;
+    setConnectionState("disconnected");
+    if (!ws) {
+      return;
+    }
+
+    ws.onopen = null;
+    ws.onmessage = null;
+    ws.onerror = null;
+    ws.onclose = null;
+    ws.close(1000, reason);
+  }, []);
+
   const finishRun = useCallback(
     async (
       runId: string,
@@ -220,6 +236,7 @@ export function WorkbenchPage({ embedded = false }: WorkbenchPageProps = {}) {
       const { keepalive = false, silent = false } = options;
       clearRunTimer();
       setActiveRunId((current) => (current === runId ? null : current));
+      resetSocketState("run-abort");
 
       if (!isAuthenticated) {
         return;
@@ -248,7 +265,7 @@ export function WorkbenchPage({ embedded = false }: WorkbenchPageProps = {}) {
         }
       }
     },
-    [appendLine, clearRunTimer, isAuthenticated]
+    [appendLine, clearRunTimer, isAuthenticated, resetSocketState]
   );
 
   const handleProtocolFrame = useCallback(
@@ -351,20 +368,9 @@ export function WorkbenchPage({ embedded = false }: WorkbenchPageProps = {}) {
   );
 
   const closeSocket = useCallback(() => {
-    const ws = wsRef.current;
-    wsRef.current = null;
-    connectPromiseRef.current = null;
-    if (!ws) {
-      return;
-    }
-
-    ws.onopen = null;
-    ws.onmessage = null;
-    ws.onerror = null;
-    ws.onclose = null;
-    ws.close(1000, "client-close");
+    resetSocketState();
     flushSocketBuffer(true);
-  }, [flushSocketBuffer]);
+  }, [flushSocketBuffer, resetSocketState]);
 
   const connectPty = useCallback(
     async (sessionId: string): Promise<boolean> => {

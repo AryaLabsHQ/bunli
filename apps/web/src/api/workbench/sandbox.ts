@@ -5,8 +5,6 @@ import {
 } from "@cloudflare/sandbox";
 import {
   DEFAULT_SOURCE_FILE,
-  getWorkbenchBunVersion,
-  getWorkbenchBunliVersion,
   getWorkbenchFilePath,
   getWorkbenchSrcDir,
   getWorkbenchSandboxNetwork,
@@ -129,8 +127,6 @@ export async function getOrCreateWorkbenchSession(
     cwd: getWorkbenchWorkspace(env),
     env: {
       WORKBENCH_WORKSPACE_DIR: getWorkbenchWorkspace(env),
-      WORKBENCH_BUN_VERSION: getWorkbenchBunVersion(env),
-      WORKBENCH_BUNLI_VERSION: getWorkbenchBunliVersion(env),
       WORKBENCH_SANDBOX_NETWORK: getWorkbenchSandboxNetwork(env),
     },
   };

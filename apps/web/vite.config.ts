@@ -13,10 +13,6 @@ export default defineConfig(async ({ mode }) => {
   const isTest = mode === "test";
 
   return {
-    server: {
-      port: 3080,
-      allowedHosts: ["localhost", "127.0.0.1"],
-    },
     resolve: {
       alias: {
         "@": appRoot,

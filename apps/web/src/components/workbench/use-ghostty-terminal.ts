@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import type { FitAddon, Terminal } from "ghostty-web";
 import { getThemeById, DEFAULT_THEME_ID } from "../../lib/themes.js";
 
@@ -159,7 +159,7 @@ export function useGhosttyTerminal(themeId: string = DEFAULT_THEME_ID): UseGhost
     fitAddonRef.current?.fit();
   }, []);
 
-  return {
+  return useMemo(() => ({
     containerRef,
     ready,
     write,
@@ -168,5 +168,5 @@ export function useGhosttyTerminal(themeId: string = DEFAULT_THEME_ID): UseGhost
     onData,
     getDimensions,
     fit,
-  };
+  }), [containerRef, ready, write, clear, focus, onData, getDimensions, fit]);
 }
