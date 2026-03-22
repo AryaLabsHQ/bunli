@@ -48,6 +48,17 @@ function sleep(ms: number): Promise<void> {
   });
 }
 
+function getProtocolOverlapLength(buffer: string, prefix: string): number {
+  const maxOverlap = Math.min(buffer.length, prefix.length - 1);
+  for (let length = maxOverlap; length > 0; length -= 1) {
+    if (buffer.endsWith(prefix.slice(0, length))) {
+      return length;
+    }
+  }
+
+  return 0;
+}
+
 async function parseResponse<T>(response: Response): Promise<T> {
   return (await response.json()) as T;
 }
@@ -81,6 +92,7 @@ export function WorkbenchPage({ embedded = false }: WorkbenchPageProps = {}) {
   const sessionIdRef = useRef<string | null>(null);
   const connectPromiseRef = useRef<Promise<boolean> | null>(null);
   const protocolPrefixRef = useRef(DEFAULT_PROTOCOL_PREFIX);
+  const protocolBufferRef = useRef("");
 
   const terminal = useGhosttyTerminal(theme ?? "vesper");
 
@@ -239,48 +251,103 @@ export function WorkbenchPage({ embedded = false }: WorkbenchPageProps = {}) {
     [appendLine, clearRunTimer, isAuthenticated]
   );
 
-  const handleSocketMessage = useCallback(
-    (chunk: string) => {
-      const trimmed = chunk.trim();
+  const handleProtocolFrame = useCallback(
+    (frame: string): boolean => {
       const protocolPrefix = protocolPrefixRef.current;
-      if (trimmed.startsWith(protocolPrefix)) {
-        try {
-          const status = JSON.parse(
-            trimmed.slice(protocolPrefix.length)
-          ) as WorkbenchProtocolStatus;
+      if (!frame.startsWith(protocolPrefix)) {
+        return false;
+      }
 
-          if (status.type === "ready") {
-            appendLine("[pty] ready");
-            return;
-          }
+      try {
+        const status = JSON.parse(
+          frame.slice(protocolPrefix.length)
+        ) as WorkbenchProtocolStatus;
 
-          if (status.type === "error") {
-            appendLine(`[pty:error] ${status.message ?? "Unknown error"}`);
-            const runId = activeRunIdRef.current;
-            if (runId) {
-              void abortRun(runId);
-            }
-            return;
-          }
+        if (status.type === "ready") {
+          appendLine("[pty] ready");
+          return true;
+        }
 
-          if (status.type === "exit") {
-            appendLine(`[pty] exit ${status.code ?? 0}`);
-            const runId = status.runId ?? activeRunIdRef.current;
-            if (runId) {
-              void finishRun(runId, {
-                completionToken: status.completionToken,
-              });
-            }
-            return;
+        if (status.type === "error") {
+          appendLine(`[pty:error] ${status.message ?? "Unknown error"}`);
+          const runId = activeRunIdRef.current;
+          if (runId) {
+            void abortRun(runId);
           }
-        } catch {
-          // Not a JSON status frame, treat as terminal data.
+          return true;
+        }
+
+        if (status.type === "exit") {
+          appendLine(`[pty] exit ${status.code ?? 0}`);
+          const runId = status.runId ?? activeRunIdRef.current;
+          if (runId) {
+            void finishRun(runId, {
+              completionToken: status.completionToken,
+            });
+          }
+          return true;
+        }
+      } catch {
+        // Treat malformed protocol lines as normal terminal output.
+      }
+
+      return false;
+    },
+    [abortRun, appendLine, finishRun]
+  );
+
+  const flushSocketBuffer = useCallback(
+    (force = false) => {
+      let buffer = protocolBufferRef.current;
+      const protocolPrefix = protocolPrefixRef.current;
+
+      while (buffer.length > 0) {
+        const prefixIndex = buffer.indexOf(protocolPrefix);
+
+        if (prefixIndex === -1) {
+          const overlap = force ? 0 : getProtocolOverlapLength(buffer, protocolPrefix);
+          const flushable = buffer.slice(0, buffer.length - overlap);
+          if (flushable) {
+            terminal.write(flushable);
+          }
+          buffer = buffer.slice(buffer.length - overlap);
+          break;
+        }
+
+        if (prefixIndex > 0) {
+          terminal.write(buffer.slice(0, prefixIndex));
+          buffer = buffer.slice(prefixIndex);
+          continue;
+        }
+
+        const newlineIndex = buffer.indexOf("\n");
+        if (newlineIndex === -1) {
+          if (force) {
+            terminal.write(buffer);
+            buffer = "";
+          }
+          break;
+        }
+
+        const frame = buffer.slice(0, newlineIndex).replace(/\r$/, "");
+        buffer = buffer.slice(newlineIndex + 1);
+
+        if (!handleProtocolFrame(frame)) {
+          terminal.write(`${frame}\n`);
         }
       }
 
-      terminal.write(chunk);
+      protocolBufferRef.current = buffer;
     },
-    [abortRun, appendLine, finishRun, terminal]
+    [handleProtocolFrame, terminal]
+  );
+
+  const handleSocketMessage = useCallback(
+    (chunk: string) => {
+      protocolBufferRef.current += chunk;
+      flushSocketBuffer();
+    },
+    [flushSocketBuffer]
   );
 
   const closeSocket = useCallback(() => {
@@ -296,7 +363,8 @@ export function WorkbenchPage({ embedded = false }: WorkbenchPageProps = {}) {
     ws.onerror = null;
     ws.onclose = null;
     ws.close(1000, "client-close");
-  }, []);
+    flushSocketBuffer(true);
+  }, [flushSocketBuffer]);
 
   const connectPty = useCallback(
     async (sessionId: string): Promise<boolean> => {
@@ -381,6 +449,7 @@ export function WorkbenchPage({ embedded = false }: WorkbenchPageProps = {}) {
         socket.onerror = () => {
           window.clearTimeout(timeoutId);
           appendLine("[pty] websocket error");
+          flushSocketBuffer(true);
           if (wsRef.current === socket) {
             wsRef.current = null;
           }
@@ -396,6 +465,7 @@ export function WorkbenchPage({ embedded = false }: WorkbenchPageProps = {}) {
         socket.onclose = () => {
           window.clearTimeout(timeoutId);
           const disconnectedSessionId = sessionIdRef.current;
+          flushSocketBuffer(true);
           if (wsRef.current === socket) {
             wsRef.current = null;
           }
@@ -555,12 +625,6 @@ export function WorkbenchPage({ embedded = false }: WorkbenchPageProps = {}) {
         return;
       }
 
-      const connected = await connectPty(readySession.sessionId);
-      if (!connected) {
-        appendLine("[run] PTY connection failed");
-        return;
-      }
-
       const response = await fetch("/api/workbench/run", {
         method: "POST",
         credentials: "include",
@@ -579,7 +643,15 @@ export function WorkbenchPage({ embedded = false }: WorkbenchPageProps = {}) {
 
       const payload = await parseResponse<WorkbenchRunPayload>(response);
       protocolPrefixRef.current = payload.protocolPrefix ?? DEFAULT_PROTOCOL_PREFIX;
+      protocolBufferRef.current = "";
       setActiveRunId(payload.runId);
+
+      const connected = await connectPty(readySession.sessionId);
+      if (!connected) {
+        appendLine("[run] PTY connection failed");
+        await abortRun(payload.runId);
+        return;
+      }
 
       appendLine(`$ ${payload.command}`);
       const execCommand = payload.execCommand ?? payload.command;
@@ -591,11 +663,11 @@ export function WorkbenchPage({ embedded = false }: WorkbenchPageProps = {}) {
 
       clearRunTimer();
       runTimerRef.current = window.setTimeout(() => {
-        appendLine(`[run] timeout reached (${payload.timeoutMs}ms), sending Ctrl+C`);
-        const interrupted = sendSocketData("\u0003", "interrupt");
+        appendLine(`[run] timeout reached (${payload.timeoutMs}ms), aborting run`);
+        sendSocketData("\u0003", "interrupt");
 
         const runId = activeRunIdRef.current;
-        if (runId && !interrupted) {
+        if (runId) {
           void abortRun(runId);
         }
       }, payload.timeoutMs + 250);
@@ -670,11 +742,19 @@ export function WorkbenchPage({ embedded = false }: WorkbenchPageProps = {}) {
 
   const handleSignOut = async () => {
     try {
+      const runId = activeRunIdRef.current;
+      if (runId) {
+        await abortRun(runId, {
+          keepalive: true,
+          silent: true,
+        });
+      }
+
+      closeSocket();
       await signOut();
       setSessionState(null);
       setActiveRunId(null);
       setConnectionState("disconnected");
-      closeSocket();
       window.location.href = "/";
     } catch {
       toast.error("Failed to sign out");
@@ -807,19 +887,6 @@ export function WorkbenchPage({ embedded = false }: WorkbenchPageProps = {}) {
               className="font-mono text-xs text-terminal-muted hover:text-terminal-foreground border border-terminal-border px-2.5 py-1 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {sessionBusy ? "init..." : "init session"}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                if (sessionState) {
-                  void connectPty(sessionState.sessionId);
-                }
-              }}
-              disabled={!isAuthenticated || !sessionState || connectionState === "connecting"}
-              className="font-mono text-xs text-terminal-muted hover:text-terminal-foreground border border-terminal-border px-2.5 py-1 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              {connectionState === "connecting" ? "connecting..." : "pty"}
             </button>
 
             <button
