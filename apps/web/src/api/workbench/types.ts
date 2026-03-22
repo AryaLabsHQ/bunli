@@ -37,12 +37,21 @@ export interface WorkbenchRunResponse {
   sessionId: string;
   preset: RunPreset;
   command: string;
+  execCommand?: string;
+  protocolPrefix?: string;
   timeoutMs: number;
 }
 
 export interface WorkbenchRunFinishResponse {
   ok: true;
   runId: string;
+  released: boolean;
+}
+
+export interface WorkbenchRunAbortResponse {
+  ok: true;
+  runId: string;
+  released: boolean;
 }
 
 export interface WorkbenchPtyDisconnectResponse {
