@@ -12,6 +12,6 @@
     "@bunli-examples/git-tool",
     "@bunli-examples/hello-world",
     "@bunli-examples/task-runner",
-    "web"
+    "@bunli/web"
   ]
 }
