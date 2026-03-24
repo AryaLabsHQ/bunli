@@ -1,129 +1,176 @@
-'use client';
+'use client'
 
-import { useState } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
+import { useEffect, useRef, useState } from 'react'
+import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock'
 
-const traditionalCode = `// 50+ lines of boilerplate
+const traditionalCode = `// traditional-cli.js
 const yargs = require('yargs')
 const { hideBin } = require('yargs/helpers')
 
-yargs(hideBin(process.argv))
-  .command('serve [port]', 'start server', (yargs) => {
-    return yargs
-      .positional('port', {
-        describe: 'port to bind',
-        default: 5000,
-        type: 'number'
-      })
-  }, (argv) => {
-    // No type safety
-    console.log(\`Server on \${argv.port}\`)
+const argv = yargs(hideBin(process.argv))
+  .command('greet', 'Greet someone', {
+    name: {
+      alias: 'n',
+      type: 'string',
+      description: 'Name to greet',
+      demandOption: true,
+    },
+    excited: {
+      alias: 'e',
+      type: 'boolean',
+      default: false,
+      description: 'Add excitement',
+    },
   })
-  .option('verbose', {
-    alias: 'v',
-    type: 'boolean',
-    description: 'Run with verbose logging'
-  })
-  .parse()`;
+  .help()
+  .argv
 
-const bunliCode = `// Clean and type-safe
+if (argv._[0] === 'greet') {
+  const greeting = \`Hello, \${argv.name}\${argv.excited ? '!' : '.'}\`
+  console.log(greeting)
+}`
+
+const bunliCode = `// bunli-cli.ts
 import { defineCommand, option } from '@bunli/core'
 import { z } from 'zod'
 
 export default defineCommand({
-  name: 'serve',
-  description: 'Start the server',
+  name: 'greet',
+  description: 'Greet someone',
   options: {
-    port: option(
-      z.coerce.number().default(5000),
-      { description: 'Port to bind', short: 'p' }
-    ),
-    verbose: option(
-      z.coerce.boolean().default(false),
-      { description: 'Run with verbose logging', short: 'v' }
-    )
+    name: option(z.string().min(1), {
+      description: 'Name to greet',
+      short: 'n',
+    }),
+    excited: option(z.coerce.boolean().default(false), {
+      description: 'Add excitement',
+      short: 'e',
+    }),
   },
-  handler: ({ flags }) => {
-    // flags.port is number
-    // flags.verbose is boolean
-    console.log(\`Server on \${flags.port}\`)
-  }
-})`;
+  handler: async ({ flags }) => {
+    const greeting = \`Hello, \${flags.name}\${flags.excited ? '!' : '.'}\`
+    console.log(greeting)
+  },
+})`
+
+function CodePane({
+  title,
+  code,
+  lang,
+  isActive,
+  delay = 0,
+}: {
+  title: string
+  code: string
+  lang: string
+  isActive: boolean
+  delay?: number
+}) {
+  return (
+    <div
+      className={`bg-terminal border border-terminal-border flex-1 min-w-0 transition-all duration-500 ${
+        isActive ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+      }`}
+      style={{ transitionDelay: `${delay}ms` }}
+    >
+      {/* Terminal header */}
+      <div className="flex items-center gap-3 px-4 py-2 border-b border-terminal-border">
+        <span className="font-mono text-xs text-terminal-muted">{title}</span>
+      </div>
+
+      {/* Code content */}
+      <div className="p-4 overflow-x-auto [&_pre]:!bg-transparent [&_pre]:!m-0 [&_pre]:!p-0 [&_figure]:!m-0 [&_figure]:!border-0">
+        <DynamicCodeBlock code={code} lang={lang} />
+      </div>
+    </div>
+  )
+}
 
 export function CodeComparison() {
-  const [activeTab, setActiveTab] = useState('bunli');
+  const [isVisible, setIsVisible] = useState(false)
+  const sectionRef = useRef<HTMLElement>(null)
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true)
+          observer.disconnect()
+        }
+      },
+      { threshold: 0.1 }
+    )
+
+    if (sectionRef.current) {
+      observer.observe(sectionRef.current)
+    }
+
+    return () => observer.disconnect()
+  }, [])
 
   return (
-    <section className="px-6 py-24 sm:py-32 lg:px-8">
-      <div className="mx-auto max-w-7xl">
-        <div className="mx-auto max-w-2xl text-center mb-16">
-          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-            See the Difference
+    <section ref={sectionRef} className="relative py-24 md:py-32">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Section header */}
+        <div
+          className={`mb-12 transition-all duration-500 ${
+            isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+          }`}
+        >
+          <div className="font-mono text-terminal-muted text-sm mb-2">
+            <span className="text-accent">{'>'}</span> comparing approaches
+          </div>
+          <h2 className="font-mono text-2xl md:text-3xl text-foreground">
+            less boilerplate, more building
           </h2>
-          <p className="mt-4 text-lg text-muted-foreground">
-            Less boilerplate, more productivity
-          </p>
         </div>
 
-        <div className="mx-auto max-w-5xl">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="traditional">Traditional CLI</TabsTrigger>
-              <TabsTrigger value="bunli">With Bunli</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="traditional" className="mt-6">
-              <div className="rounded-lg border bg-card overflow-hidden">
-                <div className="flex items-center gap-2 border-b px-4 py-3">
-                  <div className="flex gap-1.5">
-                    <div className="h-3 w-3 rounded-full bg-red-500" />
-                    <div className="h-3 w-3 rounded-full bg-yellow-500" />
-                    <div className="h-3 w-3 rounded-full bg-green-500" />
-                  </div>
-                  <span className="ml-2 text-sm text-muted-foreground">traditional-cli.js</span>
-                </div>
-                <DynamicCodeBlock
-                  code={traditionalCode}
-                  lang="javascript"
-                />
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="bunli" className="mt-6">
-              <div className="rounded-lg border bg-card overflow-hidden">
-                <div className="flex items-center gap-2 border-b px-4 py-3">
-                  <div className="flex gap-1.5">
-                    <div className="h-3 w-3 rounded-full bg-red-500" />
-                    <div className="h-3 w-3 rounded-full bg-yellow-500" />
-                    <div className="h-3 w-3 rounded-full bg-green-500" />
-                  </div>
-                  <span className="ml-2 text-sm text-muted-foreground">bunli-cli.ts</span>
-                </div>
-                <DynamicCodeBlock
-                  code={bunliCode}
-                  lang="typescript"
-                />
-              </div>
-            </TabsContent>
-          </Tabs>
+        {/* Code panes - side by side on desktop, stacked on mobile */}
+        <div className="flex flex-col lg:flex-row gap-4">
+          <CodePane
+            title="traditional-cli.js"
+            code={traditionalCode}
+            lang="javascript"
+            isActive={isVisible}
+            delay={100}
+          />
+          <CodePane
+            title="bunli-cli.ts"
+            code={bunliCode}
+            lang="typescript"
+            isActive={isVisible}
+            delay={250}
+          />
+        </div>
 
-          <div className="mt-12 grid gap-8 sm:grid-cols-3">
-            <div className="text-center p-6 rounded-lg bg-muted/30">
-              <div className="text-4xl font-bold text-primary">80%</div>
-              <div className="mt-2 text-sm text-muted-foreground">Less boilerplate</div>
-            </div>
-            <div className="text-center p-6 rounded-lg bg-muted/30">
-              <div className="text-4xl font-bold text-primary">100%</div>
-              <div className="mt-2 text-sm text-muted-foreground">Type safe</div>
-            </div>
-            <div className="text-center p-6 rounded-lg bg-muted/30">
-              <div className="text-4xl font-bold text-primary">10x</div>
-              <div className="mt-2 text-sm text-muted-foreground">Faster development</div>
+        {/* Stats as terminal output */}
+        <div
+          className={`mt-8 font-mono text-sm transition-all duration-500 ${
+            isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+          }`}
+          style={{ transitionDelay: '400ms' }}
+        >
+          <div className="bg-terminal border border-terminal-border px-4 py-3">
+            <div className="flex flex-wrap gap-x-6 gap-y-2">
+              <span>
+                <span className="text-accent">{'>'}</span>{' '}
+                <span className="text-terminal-muted">plugins:</span>{' '}
+                <span className="text-foreground">5 built-in</span>
+              </span>
+              <span className="hidden sm:inline text-terminal-border">│</span>
+              <span>
+                <span className="text-terminal-muted">tui:</span>{' '}
+                <span className="text-foreground">React-powered</span>
+              </span>
+              <span className="hidden sm:inline text-terminal-border">│</span>
+              <span>
+                <span className="text-terminal-muted">toolchain:</span>{' '}
+                <span className="text-foreground">full</span>
+              </span>
             </div>
           </div>
         </div>
       </div>
     </section>
-  );
+  )
 }

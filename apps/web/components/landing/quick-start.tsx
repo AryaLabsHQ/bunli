@@ -1,83 +1,175 @@
-'use client';
+'use client'
 
-import { useState } from 'react';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { ArrowRight, Check, Copy } from 'lucide-react';
+import { useEffect, useRef, useState, useCallback } from 'react'
+import { Check, Copy } from 'lucide-react'
 
-const steps = [
-  {
-    title: 'Scaffold a CLI',
-    command: 'bunx create-bunli my-cli',
-    description: 'Create a new Bunli CLI project'
-  },
-  {
-    title: 'Enter the project',
-    command: 'cd my-cli',
-    description: 'Move into your new project directory'
-  },
-  {
-    title: 'Run dev',
-    command: 'bunli dev',
-    description: 'Run your CLI in watch mode'
-  }
-];
+interface TerminalLine {
+  type: 'command' | 'output'
+  text: string
+  copyable?: boolean
+}
 
-export function QuickStart() {
-  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+const terminalLines: TerminalLine[] = [
+  { type: 'command', text: 'bun create bunli my-cli', copyable: true },
+  { type: 'output', text: 'Creating project in ./my-cli...' },
+  { type: 'output', text: 'Installing dependencies...' },
+  { type: 'output', text: 'Project created successfully' },
+  { type: 'command', text: 'cd my-cli', copyable: true },
+  { type: 'command', text: 'bunli dev', copyable: true },
+  { type: 'output', text: 'Watching for changes...' },
+  { type: 'output', text: 'Ready! Try running: ./my-cli --help' },
+]
 
-  const copyToClipboard = async (text: string, index: number) => {
-    await navigator.clipboard.writeText(text);
-    setCopiedIndex(index);
-    setTimeout(() => setCopiedIndex(null), 2000);
-  };
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = useCallback(async () => {
+    await navigator.clipboard.writeText(text)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }, [text])
 
   return (
-    <section className="px-6 py-24 sm:py-32 lg:px-8 bg-muted/30">
-      <div className="mx-auto max-w-7xl">
-        <div className="mx-auto max-w-3xl">
-          <h2 className="text-3xl font-bold tracking-tight text-center mb-12">
-            Start Building in 30 Seconds
+    <button
+      onClick={handleCopy}
+      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-terminal-border rounded"
+      aria-label={copied ? 'Copied' : 'Copy to clipboard'}
+    >
+      {copied ? (
+        <Check className="w-3.5 h-3.5 text-green-400" />
+      ) : (
+        <Copy className="w-3.5 h-3.5 text-terminal-muted" />
+      )}
+    </button>
+  )
+}
+
+export function QuickStart() {
+  const [isVisible, setIsVisible] = useState(false)
+  const [visibleLines, setVisibleLines] = useState(0)
+  const sectionRef = useRef<HTMLElement>(null)
+  const hasAnimated = useRef(false)
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !hasAnimated.current) {
+          setIsVisible(true)
+          hasAnimated.current = true
+          observer.disconnect()
+        }
+      },
+      { threshold: 0.2 }
+    )
+
+    if (sectionRef.current) {
+      observer.observe(sectionRef.current)
+    }
+
+    return () => observer.disconnect()
+  }, [])
+
+  useEffect(() => {
+    if (!isVisible) return
+
+    // Check for reduced motion preference
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+    if (prefersReducedMotion) {
+      setVisibleLines(terminalLines.length)
+      return
+    }
+
+    let currentLine = 0
+    const interval = setInterval(() => {
+      currentLine++
+      setVisibleLines(currentLine)
+      if (currentLine >= terminalLines.length) {
+        clearInterval(interval)
+      }
+    }, 400)
+
+    return () => clearInterval(interval)
+  }, [isVisible])
+
+  return (
+    <section ref={sectionRef} className="relative py-24 md:py-32">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Section header */}
+        <div
+          className={`mb-12 transition-all duration-500 ${
+            isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+          }`}
+        >
+          <div className="font-mono text-terminal-muted text-sm mb-2">
+            <span className="text-accent">{'>'}</span> quick start
+          </div>
+          <h2 className="font-mono text-2xl md:text-3xl text-foreground">
+            from zero to cli in seconds
           </h2>
-          
-          <div className="space-y-8">
-            {steps.map((step, index) => (
-              <div key={index} className="flex gap-4">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground font-semibold">
-                  {index + 1}
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold mb-2">{step.title}</h3>
-                  <div className="group relative rounded-lg border bg-card p-4 transition-all hover:border-primary/50">
-                    <code className="text-sm">{step.command}</code>
-                    <button
-                      onClick={() => copyToClipboard(step.command, index)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 p-2 opacity-0 transition-opacity group-hover:opacity-100"
-                      aria-label="Copy command"
-                    >
-                      {copiedIndex === index ? (
-                        <Check className="h-4 w-4 text-green-500" />
-                      ) : (
-                        <Copy className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-                      )}
-                    </button>
-                  </div>
-                  <p className="mt-2 text-sm text-muted-foreground">{step.description}</p>
-                </div>
-              </div>
-            ))}
+        </div>
+
+        {/* Terminal window */}
+        <div
+          className={`bg-terminal border border-terminal-border transition-all duration-500 ${
+            isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+          }`}
+          style={{ transitionDelay: '150ms' }}
+        >
+          {/* Terminal header */}
+          <div className="flex items-center gap-3 px-4 py-2 border-b border-terminal-border">
+            <span className="font-mono text-xs text-terminal-muted">~</span>
+            <span className="font-mono text-xs text-terminal-muted ml-auto">bash</span>
           </div>
 
-          <div className="mt-12 text-center">
-            <Link href="/docs/getting-started">
-              <Button size="lg" variant="outline" className="gap-2">
-                Read the Full Guide
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
+          {/* Terminal content */}
+          <div className="p-4 md:p-6 min-h-[280px]">
+            <div className="font-mono text-sm space-y-1">
+              {terminalLines.map((line, index) => (
+                <div
+                  key={index}
+                  className={`group flex items-center gap-2 transition-all duration-300 ${
+                    index < visibleLines
+                      ? 'opacity-100 translate-x-0'
+                      : 'opacity-0 -translate-x-2'
+                  }`}
+                >
+                  {line.type === 'command' ? (
+                    <>
+                      <span className="text-accent shrink-0">$</span>
+                      <span className="text-terminal-foreground flex-1">{line.text}</span>
+                      {line.copyable && <CopyButton text={line.text} />}
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-green-400 shrink-0">{'✓'}</span>
+                      <span className="text-terminal-muted">{line.text}</span>
+                    </>
+                  )}
+                </div>
+              ))}
+
+              {/* Blinking cursor at the end */}
+              {visibleLines >= terminalLines.length && (
+                <div className="flex items-center gap-2 mt-2">
+                  <span className="text-accent">$</span>
+                  <span className="w-2 h-4 bg-accent cursor-blink" aria-hidden="true" />
+                </div>
+              )}
+            </div>
           </div>
+        </div>
+
+        {/* Hint text */}
+        <div
+          className={`mt-6 font-mono text-sm text-terminal-muted text-center transition-all duration-500 ${
+            isVisible ? 'opacity-100' : 'opacity-0'
+          }`}
+          style={{ transitionDelay: '600ms' }}
+        >
+          <span className="text-foreground">hover</span> to copy commands
         </div>
       </div>
     </section>
-  );
+  )
 }

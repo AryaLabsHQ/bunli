@@ -1,150 +1,260 @@
-'use client';
+'use client'
 
-import { useState } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
+import { useEffect, useRef, useState } from 'react'
+import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock'
 
-const examples = {
-  validation: {
-    title: 'Schema Validation',
+interface Example {
+  id: string
+  key: string
+  label: string
+  filename: string
+  code: string
+}
+
+const examples: Example[] = [
+  {
+    id: 'command',
+    key: '1',
+    label: 'command',
+    filename: 'greet.ts',
     code: `import { defineCommand, option } from '@bunli/core'
 import { z } from 'zod'
 
 export default defineCommand({
-  name: 'deploy',
-  description: 'Deploy to environment',
-  options: {
-    env: option(
-      z.enum(['dev', 'staging', 'prod']),
-      { description: 'Target environment' }
-    ),
-    port: option(
-      z.coerce.number().min(1000).max(9999),
-      { description: 'Port number (1000-9999)' }
-    ),
-    force: option(
-      z.coerce.boolean().default(false),
-      { description: 'Force deployment', short: 'f' }
-    )
+  name: 'greet',
+  description: 'Greet someone',
+  version: '1.0.0',
+  arguments: [
+    {
+      name: 'name',
+      description: 'Name to greet',
+      required: true,
+      schema: z.string().min(1),
+    },
+  ],
+  options: [
+    option(z.boolean(), {
+      name: 'excited',
+      short: 'e',
+      description: 'Add excitement',
+    }),
+  ],
+  handler({ args, flags }) {
+    const suffix = flags.excited ? '!' : '.'
+    console.log(\`Hello, \${args.name}\${suffix}\`)
   },
-  handler: ({ flags }) => {
-    // TypeScript knows:
-    // flags.env is 'dev' | 'staging' | 'prod'
-    // flags.port is number (1000-9999)
-    // flags.force is boolean
-    console.log(\`Deploying to \${flags.env}:\${flags.port}\`)
-  }
-})`
+})`,
   },
-  prompts: {
-    title: 'Interactive Prompts',
-    code: `import { defineCommand } from '@bunli/core'
-// prompt is provided via handler args by Bunli
+  {
+    id: 'plugins',
+    key: '2',
+    label: 'plugins',
+    filename: 'config-plugin.ts',
+    code: `import { createPlugin } from '@bunli/core/plugin'
+import { configMergerPlugin } from '@bunli/plugin-config'
+
+const configPlugin = createPlugin({
+  name: 'config',
+  setup(ctx) {
+    ctx.registerCommand(configCommand)
+  },
+  beforeCommand({ store }) {
+    if (store.requiresAuth && !store.authenticated) {
+      throw new Error('Authentication required. Run: my-cli login')
+    }
+  },
+})
+
+export default configPlugin`,
+  },
+  {
+    id: 'tui',
+    key: '3',
+    label: 'tui',
+    filename: 'tui-prompt.tsx',
+    code: `import { defineCommand, option } from '@bunli/core'
+import { z } from 'zod'
 
 export default defineCommand({
   name: 'init',
-  handler: async ({ prompt }) => {
-    const name = await prompt('Project name:', {
-      validate: (value) => value.length > 0
-    })
-    
-    const typescript = await prompt.confirm('Use TypeScript?', { default: true })
-    
-    console.log(\`Creating \${name} with \${
-      typescript ? 'TypeScript' : 'JavaScript'
-    }\`)
-  }
-})`
+  description: 'Initialize a new project',
+  options: [
+    option(z.string(), {
+      name: 'name',
+      short: 'n',
+      description: 'Project name',
+    }),
+    option(z.enum(['minimal', 'full']), {
+      name: 'template',
+      short: 't',
+      description: 'Project template',
+    }),
+  ],
+  render: {
+    // React TUI component — rendered in terminal
+    component: InitForm,
+    props: {},
   },
-  multiCommand: {
-    title: 'Multi-Command CLI',
-    code: `import { createCLI } from '@bunli/core'
-import dev from './commands/dev.js'
-import build from './commands/build.js'
-import test from './commands/test.js'
-
-const cli = await createCLI({
-  name: 'my-tool',
-  version: '1.0.0',
-  description: 'My awesome CLI tool',
-})
-
-cli.command(dev)
-cli.command(build)
-cli.command(test)
-
-await cli.run()`
+})`,
   },
-  testing: {
-    title: 'Testing Your CLI',
-    code: `import { expect, test } from 'bun:test'
-import { runCommand } from '@bunli/test'
+  {
+    id: 'testing',
+    key: '4',
+    label: 'testing',
+    filename: 'greet.test.ts',
+    code: `import { test, expect } from 'bun:test'
+import { testCommand } from '@bunli/test'
 import greet from './greet'
 
-test('greet command', async () => {
-  const { stdout, exitCode } = await runCommand(greet, {
-    flags: { name: 'World' }
+test('greet outputs correct message', async () => {
+  const result = await testCommand(greet, {
+    args: ['World'],
+    flags: { excited: false },
   })
-  
-  expect(stdout).toContain('Hello World')
-  expect(exitCode).toBe(0)
+
+  expect(result.stdout).toBe('Hello, World.')
+  expect(result.exitCode).toBe(0)
 })
 
 test('greet with excitement', async () => {
-  const { stdout } = await runCommand(greet, {
-    flags: { name: 'Bun', excited: true }
+  const result = await testCommand(greet, {
+    args: ['Bunli'],
+    flags: { excited: true },
   })
-  
-  expect(stdout).toContain('Hello! Bun')
-})`
+
+  expect(result.stdout).toBe('Hello, Bunli!')
+  expect(result.exitCode).toBe(0)
+})
+
+test('greet validates name', async () => {
+  const result = await testCommand(greet, {
+    args: [''],
+    flags: { excited: false },
+  })
+
+  expect(result.exitCode).not.toBe(0)
+})`,
+  },
+]
+
+function shouldIgnoreHotkey(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) {
+    return false
   }
-};
+
+  if (target.closest('input, textarea, select, [contenteditable=""], [contenteditable="true"]')) {
+    return true
+  }
+
+  return Boolean(target.closest('[role="textbox"], .monaco-editor'))
+}
 
 export function ExamplesShowcase() {
-  const [activeTab, setActiveTab] = useState('validation');
+  const [isVisible, setIsVisible] = useState(false)
+  const [activeExample, setActiveExample] = useState(examples[0])
+  const sectionRef = useRef<HTMLElement>(null)
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true)
+          observer.disconnect()
+        }
+      },
+      { threshold: 0.1 }
+    )
+
+    if (sectionRef.current) {
+      observer.observe(sectionRef.current)
+    }
+
+    return () => observer.disconnect()
+  }, [])
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (shouldIgnoreHotkey(e.target)) {
+        return
+      }
+
+      const key = e.key
+      const example = examples.find((ex) => ex.key === key)
+      if (example) {
+        setActiveExample(example)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
 
   return (
-    <section className="px-6 py-24 sm:py-32 lg:px-8">
-      <div className="mx-auto max-w-7xl">
-        <div className="mx-auto max-w-2xl text-center mb-16">
-          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-            Powerful Features, Simple API
+    <section ref={sectionRef} className="relative py-24 md:py-32">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Section header */}
+        <div
+          className={`mb-12 transition-all duration-500 ${
+            isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+          }`}
+        >
+          <div className="font-mono text-terminal-muted text-sm mb-2">
+            <span className="text-accent">{'>'}</span> examples
+          </div>
+          <h2 className="font-mono text-2xl md:text-3xl text-foreground">
+            see it in action
           </h2>
-          <p className="mt-4 text-lg text-muted-foreground">
-            Everything you need to build production-ready CLIs
-          </p>
         </div>
 
-        <div className="mx-auto max-w-5xl">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4">
-              <TabsTrigger value="validation">Validation</TabsTrigger>
-              <TabsTrigger value="prompts">Prompts</TabsTrigger>
-              <TabsTrigger value="multiCommand">Multi-Command</TabsTrigger>
-              <TabsTrigger value="testing">Testing</TabsTrigger>
-            </TabsList>
-            
-            {Object.entries(examples).map(([key, example]) => (
-              <TabsContent key={key} value={key} className="mt-6">
-                <div className="rounded-lg border bg-card overflow-hidden">
-                  <div className="flex items-center gap-2 border-b px-4 py-3">
-                    <div className="flex gap-1.5">
-                      <div className="h-3 w-3 rounded-full bg-red-500" />
-                      <div className="h-3 w-3 rounded-full bg-yellow-500" />
-                      <div className="h-3 w-3 rounded-full bg-green-500" />
-                    </div>
-                    <span className="ml-2 text-sm text-muted-foreground">{example.title}</span>
-                  </div>
-                  <DynamicCodeBlock
-                    code={example.code}
-                    lang="typescript"
-                  />
-                </div>
-              </TabsContent>
+        {/* Terminal with tabs */}
+        <div
+          className={`bg-terminal border border-terminal-border transition-all duration-500 ${
+            isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+          }`}
+          style={{ transitionDelay: '150ms' }}
+        >
+          {/* Tab navigation */}
+          <div className="flex items-center border-b border-terminal-border overflow-x-auto">
+            {examples.map((example) => (
+              <button
+                key={example.id}
+                onClick={() => setActiveExample(example)}
+                className={`font-mono text-xs px-4 py-3 transition-colors shrink-0 border-b-2 -mb-px ${
+                  activeExample.id === example.id
+                    ? 'text-accent border-accent'
+                    : 'text-terminal-muted border-transparent hover:text-terminal-foreground'
+                }`}
+              >
+                <span className="text-terminal-muted mr-1">[{example.key}]</span>
+                {example.label}
+              </button>
             ))}
-          </Tabs>
+          </div>
+
+          {/* Filename bar */}
+          <div className="flex items-center gap-3 px-4 py-2 border-b border-terminal-border bg-black/20">
+            <span className="font-mono text-xs text-terminal-muted">
+              ~/examples/{activeExample.filename}
+            </span>
+          </div>
+
+          {/* Code content */}
+          <div className="overflow-x-auto">
+            <DynamicCodeBlock code={activeExample.code} lang="typescript" />
+          </div>
+        </div>
+
+        {/* Keyboard hint */}
+        <div
+          className={`mt-6 font-mono text-sm text-terminal-muted text-center transition-all duration-500 ${
+            isVisible ? 'opacity-100' : 'opacity-0'
+          }`}
+          style={{ transitionDelay: '300ms' }}
+        >
+          press <span className="text-foreground">[1-4]</span> to switch examples
         </div>
       </div>
     </section>
-  );
+  )
 }
