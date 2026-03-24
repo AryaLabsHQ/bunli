@@ -56,6 +56,7 @@ export const skillsPlugin = createPlugin<SkillsPluginOptions>(
 
               const result = await syncSkills(cliName, commands, {
                 global: flags.global,
+                force: flags.force,
                 description: options.description,
                 agents: detected
               })

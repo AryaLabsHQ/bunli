@@ -272,6 +272,7 @@
       "version": "0.1.0",
       "dependencies": {
         "@bunli/core": "workspace:^",
+        "zod": "^4.1.11",
       },
       "devDependencies": {
         "@types/bun": "catalog:",

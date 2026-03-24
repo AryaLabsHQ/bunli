@@ -13,6 +13,8 @@ export interface SyncOptions {
   cwd?: string
   /** Install globally (~/.agents/skills/) instead of project-local. Defaults to true. */
   global?: boolean
+  /** Regenerate and reinstall even when content hash matches. */
+  force?: boolean
   /** CLI description for the skill. */
   description?: string
   /** Override detected agents. */
@@ -43,17 +45,18 @@ export async function syncSkills(
   commands: Map<string, Command<any, any>>,
   options: SyncOptions = {}
 ): Promise<SyncResult> {
-  const { global: isGlobal = true, description, cwd = process.cwd() } = options
+  const { global: isGlobal = true, force = false, description, cwd = process.cwd() } = options
   const base = isGlobal ? os.homedir() : cwd
   const canonicalBase = path.join(base, '.agents', 'skills')
+  const cacheKey = stalenessCacheKey(cliName, isGlobal, cwd)
 
   // Generate content and hash
   const content = generateSkillFile(cliName, commands, { description })
   const hash = createHash('sha256').update(content).digest('hex').slice(0, 16)
 
   // Check staleness
-  const prevHash = readHash(cliName)
-  if (prevHash === hash) {
+  const prevHash = readHash(cacheKey)
+  if (!force && prevHash === hash) {
     return { paths: [], agents: [], updated: false }
   }
 
@@ -70,7 +73,6 @@ export async function syncSkills(
   const agentInstalls: AgentInstall[] = []
 
   for (const agent of detected) {
-    if (agent.universal) continue
     const agentSkillsDir = isGlobal
       ? agent.globalSkillsDir
       : path.join(cwd, agent.projectSkillsDir)
@@ -96,27 +98,33 @@ export async function syncSkills(
   }
 
   // Write hash for staleness detection
-  writeHash(cliName, hash)
+  writeHash(cacheKey, hash)
 
   return { paths, agents: agentInstalls, updated: true }
 }
 
-/** Returns the hash file path for a CLI. */
-function hashPath(name: string): string {
-  const dir = process.env.XDG_DATA_HOME || path.join(os.homedir(), '.local', 'share')
-  return path.join(dir, 'bunli', `${name}-skills.json`)
+function stalenessCacheKey(name: string, isGlobal: boolean, cwd: string): string {
+  const scope = isGlobal ? 'global' : `local:${path.resolve(cwd)}`
+  const scopeHash = createHash('sha256').update(scope).digest('hex').slice(0, 8)
+  return `${name}-${scopeHash}`
 }
 
-function writeHash(name: string, hash: string) {
-  const file = hashPath(name)
+/** Returns the hash file path for a sync target. */
+function hashPath(cacheKey: string): string {
+  const dir = process.env.XDG_DATA_HOME || path.join(os.homedir(), '.local', 'share')
+  return path.join(dir, 'bunli', `${cacheKey}-skills.json`)
+}
+
+function writeHash(cacheKey: string, hash: string) {
+  const file = hashPath(cacheKey)
   const dir = path.dirname(file)
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
   fs.writeFileSync(file, JSON.stringify({ hash, at: new Date().toISOString() }) + '\n')
 }
 
-function readHash(name: string): string | undefined {
+function readHash(cacheKey: string): string | undefined {
   try {
-    const data = JSON.parse(fs.readFileSync(hashPath(name), 'utf-8'))
+    const data = JSON.parse(fs.readFileSync(hashPath(cacheKey), 'utf-8'))
     return data.hash
   } catch {
     return undefined
