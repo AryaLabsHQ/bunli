@@ -113,8 +113,8 @@ export async function createTestCLI(config: TestCLIConfig = {}): Promise<TestCLI
   }
 
   async function capturedRun(fn: (cli: CLI) => Promise<void>): Promise<TestCLIRunResult> {
-    const stdoutLines: string[] = []
-    const stderrLines: string[] = []
+    const stdoutSegments: string[] = []
+    const stderrSegments: string[] = []
     let exitCode = 0
     let error: Error | undefined
 
@@ -122,16 +122,46 @@ export async function createTestCLI(config: TestCLIConfig = {}): Promise<TestCLI
     const originalError = console.error
     const originalWarn = console.warn
     const originalExit = process.exit
+    const originalStdoutWrite = process.stdout.write.bind(process.stdout)
+    const originalStderrWrite = process.stderr.write.bind(process.stderr)
+
+    const captureWrite = (segments: string[]) =>
+      ((chunk: unknown, encoding?: unknown, callback?: unknown) => {
+        let cb = callback
+        let resolvedEncoding: BufferEncoding | undefined
+
+        if (typeof encoding === 'function') {
+          cb = encoding
+        } else if (typeof encoding === 'string') {
+          resolvedEncoding = encoding as BufferEncoding
+        }
+
+        if (typeof chunk === 'string') {
+          segments.push(chunk)
+        } else if (chunk instanceof Uint8Array) {
+          segments.push(Buffer.from(chunk).toString(resolvedEncoding))
+        } else {
+          segments.push(String(chunk))
+        }
+
+        if (typeof cb === 'function') {
+          cb()
+        }
+
+        return true
+      }) as typeof process.stdout.write
 
     console.log = (...args: any[]) => {
-      stdoutLines.push(args.join(' '))
+      stdoutSegments.push(args.join(' ') + '\n')
     }
     console.error = (...args: any[]) => {
-      stderrLines.push(args.join(' '))
+      stderrSegments.push(args.join(' ') + '\n')
     }
     console.warn = (...args: any[]) => {
-      stderrLines.push(args.join(' '))
+      stderrSegments.push(args.join(' ') + '\n')
     }
+    process.stdout.write = captureWrite(stdoutSegments)
+    process.stderr.write = captureWrite(stderrSegments)
     ;(process.exit as any) = (code?: number) => {
       exitCode = code ?? 0
       throw new ExitInterrupt(exitCode)
@@ -159,12 +189,14 @@ export async function createTestCLI(config: TestCLIConfig = {}): Promise<TestCLI
       } else {
         error = err as Error
         exitCode = 1
-        stderrLines.push((err as Error).message || String(err))
+        stderrSegments.push(((err as Error).message || String(err)) + '\n')
       }
     } finally {
       console.log = originalLog
       console.error = originalError
       console.warn = originalWarn
+      process.stdout.write = originalStdoutWrite
+      process.stderr.write = originalStderrWrite
       process.exit = originalExit
 
       if (envOverrides) {
@@ -179,8 +211,8 @@ export async function createTestCLI(config: TestCLIConfig = {}): Promise<TestCLI
     }
 
     return {
-      stdout: stdoutLines.join('\n'),
-      stderr: stderrLines.join('\n'),
+      stdout: stdoutSegments.join('').replace(/\n$/, ''),
+      stderr: stderrSegments.join('').replace(/\n$/, ''),
       exitCode,
       error,
     }
