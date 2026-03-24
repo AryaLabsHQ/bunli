@@ -1,7 +1,7 @@
 FROM --platform=linux/amd64 docker.io/cloudflare/sandbox:0.7.1
 
-ARG BUN_VERSION=1.3.9
-ARG BUNLI_VERSION=0.5.3
+ARG BUN_VERSION=1.3.11
+ARG BUNLI_VERSION=0.8.2
 
 ENV BUN_INSTALL=/root/.bun
 ENV PATH="${BUN_INSTALL}/bin:${PATH}"

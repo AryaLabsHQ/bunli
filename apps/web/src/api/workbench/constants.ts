@@ -1,8 +1,8 @@
 /** Workbench runtime configuration — single source of truth. */
 export const workbenchConfig = {
   workspace: "/workspace/demo",
-  bunVersion: "1.2.2",
-  bunliVersion: "0.5.3",
+  bunVersion: "1.3.11",
+  bunliVersion: "0.8.2",
   sandboxNetwork: "off" as "on" | "off",
   runTimeoutMs: 10_000,
   sleepAfter: "10m",
