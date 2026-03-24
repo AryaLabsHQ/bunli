@@ -40,6 +40,8 @@ export * from './choose.js'
 export * from './file-picker-utils.js'
 export * from './file-picker.js'
 
+export * from '../utils/style.js'
+
 export {
   ThemeProvider,
   createTheme,
