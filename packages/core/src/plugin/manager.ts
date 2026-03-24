@@ -35,6 +35,7 @@ export interface PluginSetupResult {
 export class PluginManager<TStore = {}> {
   private plugins: BunliPlugin[] = []
   private combinedStore: TStore = {} as TStore
+  private setupStore = new Map<string, unknown>()
   private loader = new PluginLoader()
   private logger = createLogger('core:plugin-manager')
   
@@ -99,9 +100,14 @@ export class PluginManager<TStore = {}> {
       }
       return acc
     }, {}) as TStore
+    this.setupStore = new Map(Object.entries(this.combinedStore as Record<string, unknown>))
     
     this.logger.debug(`Loaded ${this.plugins.length} plugins`)
     return Result.ok(undefined)
+  }
+
+  setSetupStoreValue(key: string, value: unknown): void {
+    this.setupStore.set(key, value)
   }
   
   /**
@@ -121,7 +127,7 @@ export class PluginManager<TStore = {}> {
     const appName = config.name || 'bunli'
     const context = new PluginContext(
       config,
-      new Map(Object.entries(this.combinedStore as Record<string, unknown>)),
+      this.setupStore,
       createLogger('core:plugins'),
       {
         cwd: process.cwd(),

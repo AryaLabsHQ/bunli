@@ -237,11 +237,14 @@ export async function createCLI<
   // Load plugins if configured
   if (fullConfig.plugins && fullConfig.plugins.length > 0) {
     await pluginManager.loadPlugins(fullConfig.plugins)
+    pluginManager.setSetupStoreValue('_skillsCommands', commands)
+    pluginManager.setSetupStoreValue('_skillsCliName', fullConfig.name)
     
     // Run setup hooks - this may modify config
     const { config: updatedConfig, commands: pluginCommands, middlewares } = await pluginManager.runSetup(fullConfig)
     // Re-validate after plugins potentially modified config
     fullConfig = bunliConfigStrictSchema.parse(updatedConfig)
+    pluginManager.setSetupStoreValue('_skillsCliName', fullConfig.name)
     
     // Register plugin commands
     for (const cmd of pluginCommands) {
