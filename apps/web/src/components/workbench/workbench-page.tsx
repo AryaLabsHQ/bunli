@@ -193,9 +193,9 @@ export function WorkbenchPage({ embedded = false }: WorkbenchPageProps = {}) {
     ) => {
       const { completionToken, keepalive = false, silent = false } = options;
       clearRunTimer();
-      setActiveRunId((current) => (current === runId ? null : current));
 
       if (!isAuthenticated) {
+        setActiveRunId((current) => (current === runId ? null : current));
         return;
       }
 
@@ -220,6 +220,8 @@ export function WorkbenchPage({ embedded = false }: WorkbenchPageProps = {}) {
         if (!silent) {
           appendLine("[run] failed to finalize on server");
         }
+      } finally {
+        setActiveRunId((current) => (current === runId ? null : current));
       }
     },
     [appendLine, clearRunTimer, isAuthenticated]
@@ -235,10 +237,10 @@ export function WorkbenchPage({ embedded = false }: WorkbenchPageProps = {}) {
     ) => {
       const { keepalive = false, silent = false } = options;
       clearRunTimer();
-      setActiveRunId((current) => (current === runId ? null : current));
       resetSocketState("run-abort");
 
       if (!isAuthenticated) {
+        setActiveRunId((current) => (current === runId ? null : current));
         return;
       }
 
@@ -263,6 +265,8 @@ export function WorkbenchPage({ embedded = false }: WorkbenchPageProps = {}) {
         if (!silent) {
           appendLine("[run] failed to abort on server");
         }
+      } finally {
+        setActiveRunId((current) => (current === runId ? null : current));
       }
     },
     [appendLine, clearRunTimer, isAuthenticated, resetSocketState]
@@ -302,6 +306,7 @@ export function WorkbenchPage({ embedded = false }: WorkbenchPageProps = {}) {
               completionToken: status.completionToken,
             });
           }
+          resetSocketState("run-exit");
           return true;
         }
       } catch {
@@ -310,7 +315,7 @@ export function WorkbenchPage({ embedded = false }: WorkbenchPageProps = {}) {
 
       return false;
     },
-    [abortRun, appendLine, finishRun]
+    [abortRun, appendLine, finishRun, resetSocketState]
   );
 
   const flushSocketBuffer = useCallback(
@@ -494,7 +499,7 @@ export function WorkbenchPage({ embedded = false }: WorkbenchPageProps = {}) {
       connectPromiseRef.current = connectPromise;
       return await connectPromise;
     },
-    [abortRun, appendLine, handleSocketMessage, notifyPtyDisconnect, terminal]
+    [abortRun, appendLine, flushSocketBuffer, handleSocketMessage, notifyPtyDisconnect, terminal]
   );
 
   const ensureSession = useCallback(async (): Promise<SessionState | null> => {

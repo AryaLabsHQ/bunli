@@ -327,8 +327,11 @@ export function createWorkbenchRouter(deps: WorkbenchDeps = defaultDeps) {
     const ids = deriveWorkbenchIds(authSession);
     const { runId } = c.req.valid("json");
 
-    await deps.deleteWorkbenchSession(c.env, ids);
+    // Validate and release the run in the limiter before deleting the session
     const abortResult = await deps.abortRun(c.env, ids.userId, runId);
+    if (abortResult.released) {
+      await deps.deleteWorkbenchSession(c.env, ids);
+    }
 
     logWorkbenchEvent("run_abort", {
       userId: ids.userId,
