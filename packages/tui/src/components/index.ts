@@ -33,6 +33,8 @@ export * from './variant.js'
 export * from './form-context.js'
 export * from './form-engine.js'
 
+export * from '../utils/style.js'
+
 export {
   ThemeProvider,
   createTheme,
