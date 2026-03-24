@@ -90,12 +90,13 @@ async function runInstall(cwd: string): Promise<void> {
   const pm = detectPackageManager(cwd)
   const proc = Bun.spawn([pm, 'install'], {
     cwd,
-    stdout: 'inherit',
-    stderr: 'inherit',
+    stdout: 'pipe',
+    stderr: 'pipe',
   })
   const exitCode = await proc.exited
   if (exitCode !== 0) {
-    throw new Error(`"${pm} install" exited with code ${exitCode}`)
+    const stderr = await new Response(proc.stderr).text()
+    throw new Error(`"${pm} install" exited with code ${exitCode}${stderr ? `: ${stderr.trim()}` : ''}`)
   }
 }
 
