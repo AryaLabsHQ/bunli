@@ -1,77 +1,160 @@
-import { 
-  Zap, 
-  Shield,
-  Package,
-  Sparkles,
-  TestTube2,
-  Rocket
-} from 'lucide-react';
+'use client'
 
-const features = [
+import { useEffect, useRef, useState } from 'react'
+
+const commands = [
   {
-    icon: Zap,
-    title: 'Blazing Fast',
-    description: 'Powered by Bun\'s native speed'
+    name: 'dev',
+    description: 'Hot-reload development server',
   },
   {
-    icon: Shield,
-    title: 'Type-Safe',
-    description: 'Full TypeScript autocompletion'
+    name: 'build',
+    description: 'Compile your CLI to a standalone binary',
   },
   {
-    icon: Package,
-    title: 'Zero Config',
-    description: 'Works out of the box, sensible defaults'
+    name: 'test',
+    description: 'Run tests with coverage and watch mode',
   },
   {
-    icon: Sparkles,
-    title: 'Minimal API',
-    description: 'Learn once, use everywhere'
+    name: 'generate',
+    description: 'Generate TypeScript types from command definitions',
   },
   {
-    icon: TestTube2,
-    title: 'Testing Built-in',
-    description: 'First-class testing utilities included'
+    name: 'release',
+    description: 'Publish to npm with versioning and changelog',
   },
   {
-    icon: Rocket,
-    title: 'Easy Deploy',
-    description: 'Compile to single executable'
-  }
-];
+    name: 'init',
+    description: 'Scaffold a new bunli project',
+  },
+]
 
 export function FeaturesGrid() {
+  const [isVisible, setIsVisible] = useState(false)
+  const sectionRef = useRef<HTMLElement>(null)
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true)
+          observer.disconnect()
+        }
+      },
+      { threshold: 0.1 }
+    )
+
+    if (sectionRef.current) {
+      observer.observe(sectionRef.current)
+    }
+
+    return () => observer.disconnect()
+  }, [])
+
   return (
-    <section className="px-6 py-24 sm:py-32 lg:px-8 bg-muted/30">
-      <div className="mx-auto max-w-7xl">
-        <div className="mx-auto max-w-2xl text-center mb-16">
-          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-            Everything You Need
-          </h2>
-          <p className="mt-4 text-lg text-muted-foreground">
-            Simple, powerful, and ready for production
-          </p>
+    <section
+      ref={sectionRef}
+      id="features"
+      className="relative py-24 md:py-32"
+    >
+      {/* ASCII top border */}
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="font-mono text-terminal-muted text-sm mb-8 select-none" aria-hidden="true">
+          {'┌' + '─'.repeat(60) + '┐'}
         </div>
 
-        <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {features.map((feature, index) => (
-            <div 
-              key={index}
-              className="group relative rounded-lg border bg-card p-6 transition-all duration-200 hover:scale-[1.02] hover:shadow-lg"
+        {/* Terminal header */}
+        <div className="bg-terminal border border-terminal-border">
+          {/* Terminal title bar */}
+          <div className="flex items-center gap-3 px-4 py-2 border-b border-terminal-border">
+            <span className="font-mono text-xs text-terminal-muted">~/bunli</span>
+            <span className="font-mono text-xs text-terminal-muted ml-auto">bunli --help</span>
+          </div>
+
+          {/* Terminal content */}
+          <div className="p-6 md:p-8">
+            {/* Command header */}
+            <div
+              className={`transition-opacity duration-500 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
+              style={{ transitionDelay: '0ms' }}
             >
-              <div className="flex items-center gap-3 mb-3">
-                <div className="rounded-lg bg-primary/10 p-2">
-                  <feature.icon className="h-5 w-5 text-primary" />
-                </div>
-                <h3 className="font-semibold">{feature.title}</h3>
+              <div className="font-mono text-terminal-foreground mb-1">
+                <span className="text-accent">$</span> bunli --help
               </div>
-              <p className="text-sm text-muted-foreground">
-                {feature.description}
-              </p>
             </div>
-          ))}
+
+            {/* Help output header */}
+            <div
+              className={`mt-6 transition-opacity duration-500 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
+              style={{ transitionDelay: '100ms' }}
+            >
+              <div className="font-mono">
+                <span className="text-accent font-semibold">bunli</span>
+                <span className="text-terminal-muted"> v0.8.2</span>
+              </div>
+              <div className="font-mono text-terminal-muted mt-1">
+                The CLI framework for Bun
+              </div>
+            </div>
+
+            {/* Usage */}
+            <div
+              className={`mt-6 transition-opacity duration-500 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
+              style={{ transitionDelay: '200ms' }}
+            >
+              <div className="font-mono text-terminal-foreground uppercase text-sm tracking-wider mb-2">
+                Commands
+              </div>
+              <div className="font-mono text-terminal-muted pl-2">
+                bunli {'<command>'} [options]
+              </div>
+            </div>
+
+            {/* Commands list */}
+            <div
+              className={`mt-8 transition-opacity duration-500 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
+              style={{ transitionDelay: '300ms' }}
+            >
+              <div className="space-y-3">
+                {commands.map((cmd, index) => (
+                  <div
+                    key={cmd.name}
+                    className={`font-mono grid grid-cols-1 md:grid-cols-[120px_1fr] gap-1 md:gap-4 transition-all duration-500 ${
+                      isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2'
+                    }`}
+                    style={{ transitionDelay: `${400 + index * 80}ms` }}
+                  >
+                    <div className="text-sm">
+                      <span className="text-accent">{cmd.name}</span>
+                    </div>
+                    <div className="text-terminal-muted text-sm pl-4 md:pl-0">
+                      {cmd.description}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Footer hint */}
+            <div
+              className={`mt-8 pt-6 border-t border-terminal-border transition-opacity duration-500 ${
+                isVisible ? 'opacity-100' : 'opacity-0'
+              }`}
+              style={{ transitionDelay: '900ms' }}
+            >
+              <div className="font-mono text-terminal-muted text-sm">
+                <span className="text-terminal-foreground">{'>'}</span> Run{' '}
+                <span className="text-accent">bunli {'<command>'} --help</span> for more information
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ASCII bottom border */}
+        <div className="font-mono text-terminal-muted text-sm mt-8 select-none" aria-hidden="true">
+          {'└' + '─'.repeat(60) + '┘'}
         </div>
       </div>
     </section>
-  );
+  )
 }
