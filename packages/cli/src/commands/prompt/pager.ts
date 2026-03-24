@@ -1,0 +1,38 @@
+import { defineCommand, option } from '@bunli/core'
+import { z } from 'zod'
+
+export default defineCommand({
+  name: 'pager',
+  description: 'View content in a scrollable pager',
+  options: {
+    file: option(z.string().optional(), { short: 'f', description: 'File to display' }),
+  },
+  async handler({ flags }) {
+    let content: string | undefined
+
+    if (flags.file) {
+      const file = Bun.file(flags.file)
+      if (!(await file.exists())) {
+        process.stderr.write(`Error: file not found: ${flags.file}\n`)
+        process.exit(1)
+      }
+      content = await file.text()
+    } else {
+      const { readStdinLines } = await import('@bunli/tui')
+      const lines = await readStdinLines()
+      if (lines.length > 0) {
+        content = lines.join('\n')
+      }
+    }
+
+    if (!content) {
+      process.stderr.write('Error: no content provided (use --file or pipe via stdin)\n')
+      process.exit(1)
+    }
+
+    process.stdout.write(content)
+    if (!content.endsWith('\n')) {
+      process.stdout.write('\n')
+    }
+  }
+})
