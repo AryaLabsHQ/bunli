@@ -39,26 +39,44 @@ export function renderFull(
   if (description) sections.push('', description)
 
   for (const [name, cmd] of getTopLevelCommands(commands)) {
-    sections.push(renderCommandFull(cliName, name, cmd))
-    // Also render subcommands
-    if (cmd.commands) {
-      for (const sub of cmd.commands) {
-        sections.push(renderCommandFull(cliName, `${name} ${sub.name}`, sub))
-      }
-    }
+    sections.push(...collectCommandSections(cliName, name, cmd))
   }
 
   return sections.join('\n\n')
 }
 
-function getTopLevelCommands(commands: Map<string, Command<any, any>>): Map<string, Command<any, any>> {
-  const topLevel = new Map<string, Command<any, any>>()
+function getTopLevelCommands(commands: Map<string, Command<any, any>>): Array<[string, Command<any, any>]> {
+  const seen = new Set<Command<any, any>>()
+  const topLevel: Array<[string, Command<any, any>]> = []
   for (const [name, cmd] of commands) {
-    if (!name.includes(' ')) {
-      topLevel.set(name, cmd)
-    }
+    if (name.includes(' ')) continue
+    if (isAliasName(name, cmd)) continue
+    if (seen.has(cmd)) continue
+    seen.add(cmd)
+    topLevel.push([name, cmd])
   }
   return topLevel
+}
+
+function isAliasName(name: string, cmd: Command<any, any>): boolean {
+  if (!cmd.alias) return false
+  const aliases = Array.isArray(cmd.alias) ? cmd.alias : [cmd.alias]
+  return aliases.includes(name)
+}
+
+function collectCommandSections(
+  cliName: string,
+  cmdName: string,
+  cmd: Command<any, any>
+): string[] {
+  const sections = [renderCommandFull(cliName, cmdName, cmd)]
+  if (!cmd.commands) return sections
+
+  for (const sub of cmd.commands) {
+    sections.push(...collectCommandSections(cliName, `${cmdName} ${sub.name}`, sub))
+  }
+
+  return sections
 }
 
 function buildSignature(cliName: string, cmdName: string, cmd: Command<any, any>): string {
