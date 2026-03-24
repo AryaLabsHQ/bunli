@@ -35,7 +35,7 @@ export default defineCommand({
     if (flags.underline) result = colors.underline(result)
     if (flags.strikethrough) result = colors.strikethrough(result)
     if (flags.foreground) {
-      const colorFn = (colors as Record<string, ((s: string) => string) | undefined>)[flags.foreground]
+      const colorFn = (colors as unknown as Record<string, ((s: string) => string) | undefined>)[flags.foreground]
       if (typeof colorFn === 'function') {
         result = colorFn(result)
       }
