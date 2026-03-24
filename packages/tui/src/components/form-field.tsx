@@ -11,17 +11,25 @@ export interface FormFieldProps {
   defaultValue?: string
   onChange?: (value: string) => void
   onSubmit?: (value: string) => void
+  prompt?: string
+  charLimit?: number
+  showCharCount?: boolean
+  width?: number
 }
 
-export function FormField({ 
-  label, 
-  name, 
-  placeholder, 
+export function FormField({
+  label,
+  name,
+  placeholder,
   required,
   description,
   defaultValue = '',
   onChange,
-  onSubmit
+  onSubmit,
+  prompt,
+  charLimit,
+  showCharCount = false,
+  width
 }: FormFieldProps) {
   const { tokens } = useTuiTheme()
   const field = useFormField<string>(name, {
@@ -30,9 +38,12 @@ export function FormField({
   })
 
   const handleInput = useCallback((newValue: string) => {
+    if (charLimit && newValue.length > charLimit) {
+      newValue = newValue.slice(0, charLimit)
+    }
     field.setValue(newValue)
     onChange?.(newValue)
-  }, [field, onChange])
+  }, [field, onChange, charLimit])
 
   const handleSubmit = useCallback(() => {
     const submittedValue = field.value ?? ''
@@ -40,6 +51,8 @@ export function FormField({
     field.blur()
     onSubmit?.(submittedValue)
   }, [field, onSubmit])
+
+  const currentLength = (field.value ?? '').length
 
   return (
     <box style={{ flexDirection: 'column', marginBottom: 1, gap: 1 }}>
@@ -52,22 +65,43 @@ export function FormField({
         title={label}
         border
         height={3}
+        width={width}
         style={{
           marginTop: 0.5,
           borderColor: field.error ? tokens.textDanger : field.focused ? tokens.accent : tokens.borderMuted
         }}
       >
-        <input
-          value={field.value ?? ''}
-          placeholder={placeholder}
-          onInput={handleInput}
-          onSubmit={handleSubmit}
-          focused={field.focused}
-          style={{
-            focusedBackgroundColor: tokens.backgroundMuted
-          }}
-        />
+        {prompt ? (
+          <box style={{ flexDirection: 'row' }}>
+            <text content={prompt} fg={tokens.accent} />
+            <input
+              value={field.value ?? ''}
+              placeholder={placeholder}
+              onInput={handleInput}
+              onSubmit={handleSubmit}
+              focused={field.focused}
+              style={{ focusedBackgroundColor: tokens.backgroundMuted, flexGrow: 1 }}
+            />
+          </box>
+        ) : (
+          <input
+            value={field.value ?? ''}
+            placeholder={placeholder}
+            onInput={handleInput}
+            onSubmit={handleSubmit}
+            focused={field.focused}
+            style={{
+              focusedBackgroundColor: tokens.backgroundMuted
+            }}
+          />
+        )}
       </box>
+      {showCharCount && (
+        <text
+          content={charLimit ? `${currentLength}/${charLimit}` : `${currentLength} chars`}
+          fg={charLimit && currentLength >= charLimit ? tokens.textWarning : tokens.textMuted}
+        />
+      )}
       {field.error ? <text content={field.error} fg={tokens.textDanger} /> : null}
     </box>
   )
