@@ -1,45 +1,42 @@
-# web
+# @bunli/web
 
-This is a Next.js application generated with
-[Create Fumadocs](https://github.com/fuma-nama/fumadocs).
+TanStack Start + Cloudflare Workers web app for bunli.dev.
 
-Run development server:
+## Stack
+
+- TanStack Start (SSR/UI routes)
+- Hono mounted API under `/api/*`
+- Better Auth (`/api/auth/*`)
+- Cloudflare Sandbox + Durable Objects for workbench execution
+- Fumadocs + MDX content under `/docs/*`
+
+## Local development
 
 ```bash
-npm run dev
-# or
-pnpm dev
-# or
-yarn dev
+bun install
+bun run dev
 ```
 
-Open http://localhost:3000 with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-## Explore
+## Build
 
-In the project, you can see:
+```bash
+bun run build
+```
 
-- `lib/source.ts`: Code for content source adapter, [`loader()`](https://fumadocs.dev/docs/headless/source-api) provides the interface to access your content.
-- `app/layout.config.tsx`: Shared options for layouts, optional but preferred to keep.
+## Deploy
 
-| Route                     | Description                                            |
-| ------------------------- | ------------------------------------------------------ |
-| `app/(home)`              | The route group for your landing page and other pages. |
-| `app/docs`                | The documentation layout and pages.                    |
-| `app/api/search/route.ts` | The Route Handler for search.                          |
+```bash
+bun run deploy
+```
 
-### Fumadocs MDX
+The deploy script uses `dist/server/wrangler.json` when TanStack Start generates it, so Worker deploys are deterministic.
 
-A `source.config.ts` config file has been included, you can customise different options like frontmatter schema.
+## Key routes
 
-Read the [Introduction](https://fumadocs.dev/docs/mdx) for further details.
-
-## Learn More
-
-To learn more about Next.js and Fumadocs, take a look at the following
-resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js
-  features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-- [Fumadocs](https://fumadocs.vercel.app) - learn about Fumadocs
+- `/` workbench UI (scripted anonymous mode + authenticated sandbox mode)
+- `/docs/*` docs pages
+- `/api/search` docs search index
+- `/api/workbench/*` sandbox control-plane endpoints
+- `/api/workbench/pty?sessionId=...` PTY WebSocket endpoint
