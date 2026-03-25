@@ -30,10 +30,10 @@
   },
   "dependencies": {
     "@bunli/core": "workspace:^",
-    "better-result": "^2.7.0"
+    "better-result": "catalog:"
   },
   "devDependencies": {
     "@types/bun": "catalog:",
-    "typescript": "^5.8.3"
+    "typescript": "catalog:"
   }
 }

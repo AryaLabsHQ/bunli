@@ -15,13 +15,13 @@
     "@bunli/core": "workspace:^",
     "@bunli/runtime": "workspace:^",
     "@bunli/tui": "workspace:^",
-    "react": "^19.2.4",
-    "zod": "^4.3.6"
+    "react": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
-    "@types/node": "24.10.1",
-    "@types/react": "19.2.14",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
     "bunli": "workspace:^",
-    "typescript": "^5.8.3"
+    "typescript": "catalog:"
   }
 }

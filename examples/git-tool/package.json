@@ -12,11 +12,11 @@
   },
   "dependencies": {
     "@bunli/core": "workspace:^",
-    "zod": "^4.3.6"
+    "zod": "catalog:"
   },
   "devDependencies": {
-    "@types/node": "24.10.1",
+    "@types/node": "catalog:",
     "bunli": "workspace:^",
-    "typescript": "^5.8.3"
+    "typescript": "catalog:"
   }
 }

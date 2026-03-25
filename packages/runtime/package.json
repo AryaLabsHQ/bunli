@@ -44,23 +44,23 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@opentui/core": "^0.1.84",
-    "@opentui/react": "^0.1.84",
-    "@standard-schema/spec": "^1.1.0",
-    "@standard-schema/utils": "^0.3.0",
+    "@opentui/core": "catalog:",
+    "@opentui/react": "catalog:",
+    "@standard-schema/spec": "catalog:",
+    "@standard-schema/utils": "catalog:",
     "better-result": "catalog:",
-    "debug": "^4.4.3",
-    "zod": "^4.3.6"
+    "debug": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@types/bun": "catalog:",
-    "@types/react": "19.2.14",
-    "react": "^19.2.4",
-    "typescript": "^5.8.3"
+    "@types/react": "catalog:",
+    "react": "catalog:",
+    "typescript": "catalog:"
   },
   "peerDependencies": {
-    "@opentui/core": "^0.1.75",
-    "react": "^19.2.4"
+    "@opentui/core": "catalog:",
+    "react": "catalog:"
   },
   "files": [
     "dist",

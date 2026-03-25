@@ -13,7 +13,7 @@
         "better-result": "catalog:",
         "oxlint": "1.56.0",
         "turbo": "^2.8.0",
-        "typescript": "^5.8.3",
+        "typescript": "catalog:",
       },
     },
     "apps/tui-gallery": {
@@ -23,14 +23,14 @@
         "@bunli/core": "workspace:^",
         "@bunli/runtime": "workspace:^",
         "@bunli/tui": "workspace:^",
-        "react": "^19.2.4",
-        "zod": "^4.3.6",
+        "react": "catalog:",
+        "zod": "catalog:",
       },
       "devDependencies": {
-        "@types/node": "24.10.1",
-        "@types/react": "19.2.14",
+        "@types/node": "catalog:",
+        "@types/react": "catalog:",
         "bunli": "workspace:^",
-        "typescript": "^5.8.3",
+        "typescript": "catalog:",
       },
     },
     "apps/web": {
@@ -56,23 +56,23 @@
         "lucide-react": "^0.577.0",
         "monaco-editor": "^0.55.1",
         "next-themes": "^0.4.6",
-        "react": "19.2.4",
+        "react": "catalog:",
         "react-dom": "19.2.4",
         "sonner": "^2.0.5",
         "tailwind-merge": "^3.5.0",
         "tailwindcss": "^4.2.1",
         "tw-animate-css": "^1.3.4",
-        "zod": "^4.3.6",
+        "zod": "catalog:",
       },
       "devDependencies": {
         "@cloudflare/vite-plugin": "^1.21.0",
         "@types/mdx": "^2.0.13",
-        "@types/node": "24.10.1",
-        "@types/react": "19.2.14",
+        "@types/node": "catalog:",
+        "@types/react": "catalog:",
         "@types/react-dom": "19.2.3",
         "@vitejs/plugin-react": "^5.1.1",
         "react-grab": "^0.1.11",
-        "typescript": "^5.8.3",
+        "typescript": "catalog:",
         "vite": "^7.3.0",
         "vite-tsconfig-paths": "^5.1.4",
         "wrangler": "^4.64.0",
@@ -85,12 +85,12 @@
         "@bunli/core": "workspace:^",
         "@bunli/plugin-ai-detect": "workspace:^",
         "@bunli/plugin-config": "workspace:^",
-        "zod": "^4.3.6",
+        "zod": "catalog:",
       },
       "devDependencies": {
-        "@types/node": "24.10.1",
+        "@types/node": "catalog:",
         "bunli": "workspace:^",
-        "typescript": "^5.8.3",
+        "typescript": "catalog:",
       },
     },
     "examples/git-tool": {
@@ -98,12 +98,12 @@
       "version": "1.0.0",
       "dependencies": {
         "@bunli/core": "workspace:^",
-        "zod": "^4.3.6",
+        "zod": "catalog:",
       },
       "devDependencies": {
-        "@types/node": "24.10.1",
+        "@types/node": "catalog:",
         "bunli": "workspace:^",
-        "typescript": "^5.8.3",
+        "typescript": "catalog:",
       },
     },
     "examples/hello-world": {
@@ -113,15 +113,15 @@
         "@bunli/core": "workspace:^",
         "@bunli/runtime": "workspace:^",
         "@bunli/tui": "workspace:^",
-        "@opentui/react": "^0.1.84",
-        "react": "^19.2.4",
-        "zod": "^4.3.6",
+        "@opentui/react": "catalog:",
+        "react": "catalog:",
+        "zod": "catalog:",
       },
       "devDependencies": {
-        "@types/node": "24.10.1",
-        "@types/react": "19.2.14",
+        "@types/node": "catalog:",
+        "@types/react": "catalog:",
         "bunli": "workspace:^",
-        "typescript": "^5.8.3",
+        "typescript": "catalog:",
       },
     },
     "examples/task-runner": {
@@ -130,12 +130,12 @@
       "dependencies": {
         "@bunli/core": "workspace:^",
         "@bunli/plugin-completions": "workspace:^",
-        "zod": "^4.3.6",
+        "zod": "catalog:",
       },
       "devDependencies": {
-        "@types/node": "24.10.1",
+        "@types/node": "catalog:",
         "bunli": "workspace:^",
-        "typescript": "^5.8.3",
+        "typescript": "catalog:",
       },
     },
     "packages/cli": {
@@ -150,12 +150,12 @@
         "@bunli/plugin-completions": "workspace:^",
         "@bunli/utils": "workspace:^",
         "better-result": "catalog:",
-        "zod": "^4.3.6",
+        "zod": "catalog:",
       },
       "devDependencies": {
         "@bunli/test": "workspace:^",
         "@types/bun": "catalog:",
-        "typescript": "^5.8.3",
+        "typescript": "catalog:",
       },
     },
     "packages/core": {
@@ -164,16 +164,16 @@
       "dependencies": {
         "@bunli/runtime": "workspace:^",
         "@bunli/utils": "workspace:^",
-        "@standard-schema/spec": "^1.1.0",
-        "@standard-schema/utils": "^0.3.0",
+        "@standard-schema/spec": "catalog:",
+        "@standard-schema/utils": "catalog:",
         "better-result": "catalog:",
-        "debug": "^4.4.3",
-        "zod": "^4.3.6",
+        "debug": "catalog:",
+        "zod": "catalog:",
       },
       "devDependencies": {
         "@types/bun": "catalog:",
         "@types/debug": "^4.1.12",
-        "typescript": "^5.8.3",
+        "typescript": "catalog:",
       },
     },
     "packages/create-bunli": {
@@ -188,11 +188,11 @@
         "@bunli/utils": "workspace:^",
         "better-result": "catalog:",
         "giget": "^2.0.0",
-        "zod": "^4.3.6",
+        "zod": "catalog:",
       },
       "devDependencies": {
         "@types/bun": "catalog:",
-        "typescript": "^5.8.3",
+        "typescript": "catalog:",
       },
     },
     "packages/generator": {
@@ -203,8 +203,8 @@
         "@babel/traverse": "^7.28.6",
         "@bunli/core": "workspace:^",
         "better-result": "catalog:",
-        "debug": "^4.4.3",
-        "zod": "^4.3.6",
+        "debug": "catalog:",
+        "zod": "catalog:",
       },
       "devDependencies": {
         "@types/babel__parser": "^7.1.0",
@@ -221,7 +221,7 @@
       },
       "devDependencies": {
         "@types/bun": "catalog:",
-        "typescript": "^5.8.3",
+        "typescript": "catalog:",
       },
     },
     "packages/plugin-completions": {
@@ -229,11 +229,11 @@
       "version": "0.3.4",
       "dependencies": {
         "@bunli/core": "workspace:^",
-        "better-result": "^2.7.0",
+        "better-result": "catalog:",
       },
       "devDependencies": {
         "@bomb.sh/tab": "0.0.13",
-        "typescript": "^5.8.3",
+        "typescript": "catalog:",
       },
     },
     "packages/plugin-config": {
@@ -241,11 +241,11 @@
       "version": "0.4.3",
       "dependencies": {
         "@bunli/core": "workspace:^",
-        "better-result": "^2.7.0",
+        "better-result": "catalog:",
       },
       "devDependencies": {
         "@types/bun": "catalog:",
-        "typescript": "^5.8.3",
+        "typescript": "catalog:",
       },
     },
     "packages/plugin-mcp": {
@@ -253,39 +253,39 @@
       "version": "0.2.3",
       "dependencies": {
         "@bunli/core": "workspace:^",
-        "better-result": "^2.7.0",
+        "better-result": "catalog:",
       },
       "devDependencies": {
         "@modelcontextprotocol/sdk": "^1.25.3",
         "@types/bun": "catalog:",
-        "typescript": "^5.8.3",
-        "zod": "^4.3.6",
+        "typescript": "catalog:",
+        "zod": "catalog:",
       },
       "peerDependencies": {
-        "zod": "^4.0.0",
+        "zod": "catalog:",
       },
     },
     "packages/runtime": {
       "name": "@bunli/runtime",
       "version": "0.2.0",
       "dependencies": {
-        "@opentui/core": "^0.1.84",
-        "@opentui/react": "^0.1.84",
-        "@standard-schema/spec": "^1.1.0",
-        "@standard-schema/utils": "^0.3.0",
+        "@opentui/core": "catalog:",
+        "@opentui/react": "catalog:",
+        "@standard-schema/spec": "catalog:",
+        "@standard-schema/utils": "catalog:",
         "better-result": "catalog:",
-        "debug": "^4.4.3",
-        "zod": "^4.3.6",
+        "debug": "catalog:",
+        "zod": "catalog:",
       },
       "devDependencies": {
         "@types/bun": "catalog:",
-        "@types/react": "19.2.14",
-        "react": "^19.2.4",
-        "typescript": "^5.8.3",
+        "@types/react": "catalog:",
+        "react": "catalog:",
+        "typescript": "catalog:",
       },
       "peerDependencies": {
-        "@opentui/core": "^0.1.75",
-        "react": "^19.2.4",
+        "@opentui/core": "catalog:",
+        "react": "catalog:",
       },
     },
     "packages/test": {
@@ -296,7 +296,7 @@
       },
       "devDependencies": {
         "@types/bun": "catalog:",
-        "typescript": "^5.8.3",
+        "typescript": "catalog:",
       },
       "peerDependencies": {
         "bun": ">=1.3.7",
@@ -307,34 +307,34 @@
       "version": "0.5.3",
       "dependencies": {
         "@bunli/runtime": "workspace:^",
-        "@opentui/core": "^0.1.84",
-        "@opentui/react": "^0.1.84",
-        "@standard-schema/spec": "^1.1.0",
-        "@standard-schema/utils": "^0.3.0",
-        "debug": "^4.4.3",
+        "@opentui/core": "catalog:",
+        "@opentui/react": "catalog:",
+        "@standard-schema/spec": "catalog:",
+        "@standard-schema/utils": "catalog:",
+        "debug": "catalog:",
       },
       "devDependencies": {
         "@types/bun": "catalog:",
-        "@types/react": "19.2.14",
-        "react": "^19.2.4",
-        "typescript": "^5.8.3",
+        "@types/react": "catalog:",
+        "react": "catalog:",
+        "typescript": "catalog:",
       },
       "peerDependencies": {
-        "@opentui/core": "^0.1.75",
-        "react": "^19.2.4",
+        "@opentui/core": "catalog:",
+        "react": "catalog:",
       },
     },
     "packages/utils": {
       "name": "@bunli/utils",
       "version": "0.5.1",
       "dependencies": {
-        "@standard-schema/spec": "^1.1.0",
-        "@standard-schema/utils": "^0.3.0",
-        "better-result": "^2.7.0",
+        "@standard-schema/spec": "catalog:",
+        "@standard-schema/utils": "catalog:",
+        "better-result": "catalog:",
       },
       "devDependencies": {
         "@types/bun": "catalog:",
-        "typescript": "^5.8.3",
+        "typescript": "catalog:",
       },
       "peerDependencies": {
         "bun": ">=1.3.7",
@@ -345,8 +345,18 @@
     "@bomb.sh/tab@0.0.13": "patches/@bomb.sh%2Ftab@0.0.13.patch",
   },
   "catalog": {
+    "@opentui/core": "^0.1.84",
+    "@opentui/react": "^0.1.84",
+    "@standard-schema/spec": "^1.1.0",
+    "@standard-schema/utils": "^0.3.0",
     "@types/bun": "1.3.10",
+    "@types/node": "24.10.1",
+    "@types/react": "19.2.14",
     "better-result": "^2.7.0",
+    "debug": "^4.4.3",
+    "react": "^19.2.4",
+    "typescript": "^5.8.3",
+    "zod": "^4.3.6",
   },
   "packages": {
     "@ai-sdk/gateway": ["@ai-sdk/gateway@3.0.66", "", { "dependencies": { "@ai-sdk/provider": "3.0.8", "@ai-sdk/provider-utils": "4.0.19", "@vercel/oidc": "3.1.0" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-SIQ0YY0iMuv+07HLsZ+bB990zUJ6S4ujORAh+Jv1V2KGNn73qQKnGO0JBk+w+Res8YqOFSycwDoWcFlQrVxS4A=="],
@@ -1333,7 +1343,7 @@
 
     "fumadocs-mdx": ["fumadocs-mdx@14.2.10", "", { "dependencies": { "@mdx-js/mdx": "^3.1.1", "@standard-schema/spec": "^1.1.0", "chokidar": "^5.0.0", "esbuild": "^0.27.3", "estree-util-value-to-estree": "^3.5.0", "js-yaml": "^4.1.1", "mdast-util-mdx": "^3.0.0", "mdast-util-to-markdown": "^2.1.2", "picocolors": "^1.1.1", "picomatch": "^4.0.3", "tinyexec": "^1.0.2", "tinyglobby": "^0.2.15", "unified": "^11.0.5", "unist-util-remove-position": "^5.0.0", "unist-util-visit": "^5.1.0", "vfile": "^6.0.3", "zod": "^4.3.6" }, "peerDependencies": { "@fumadocs/mdx-remote": "^1.4.0", "@types/mdast": "*", "@types/mdx": "*", "@types/react": "*", "fumadocs-core": "^15.0.0 || ^16.0.0", "mdast-util-directive": "*", "next": "^15.3.0 || ^16.0.0", "react": "*", "vite": "6.x.x || 7.x.x || 8.x.x" }, "optionalPeers": ["@fumadocs/mdx-remote", "@types/mdast", "@types/mdx", "@types/react", "mdast-util-directive", "next", "react", "vite"], "bin": { "fumadocs-mdx": "dist/bin.js" } }, "sha512-0gITZiJb92c7xJwSMdcGBEY2+pFcRvklSNwxIAMTy4gjnuLZANjaXKw+qJ6E5+s9dO0IGlimHv5zyMYLjReg0w=="],
 
-    "fumadocs-ui": ["@fumadocs/base-ui@16.7.5", "", { "dependencies": { "@base-ui/react": "^1.3.0", "@fumadocs/tailwind": "0.0.3", "class-variance-authority": "^0.7.1", "lucide-react": "^0.577.0", "motion": "^12.38.0", "next-themes": "^0.4.6", "react-medium-image-zoom": "^5.4.1", "react-remove-scroll": "^2.7.2", "rehype-raw": "^7.0.0", "scroll-into-view-if-needed": "^3.1.0", "tailwind-merge": "^3.5.0", "unist-util-visit": "^5.1.0" }, "peerDependencies": { "@takumi-rs/image-response": "*", "@types/mdx": "*", "@types/react": "*", "fumadocs-core": "16.7.5", "next": "16.x.x", "react": "^19.2.0", "react-dom": "^19.2.0", "shiki": "*" }, "optionalPeers": ["@takumi-rs/image-response", "@types/mdx", "@types/react", "next", "shiki"] }, "sha512-Wyo5KRzZINUwAKYG5AccAXLSDnxipGoi9SRRUhWQ3K5sd5wNi+SXqseMIQSLLYAdPapElBhqSotzraXO+mNItQ=="],
+    "fumadocs-ui": ["@fumadocs/base-ui@16.7.6", "", { "dependencies": { "@base-ui/react": "^1.3.0", "@fumadocs/tailwind": "0.0.3", "class-variance-authority": "^0.7.1", "lucide-react": "^1.6.0", "motion": "^12.38.0", "next-themes": "^0.4.6", "react-medium-image-zoom": "^5.4.1", "react-remove-scroll": "^2.7.2", "rehype-raw": "^7.0.0", "scroll-into-view-if-needed": "^3.1.0", "tailwind-merge": "^3.5.0", "unist-util-visit": "^5.1.0" }, "peerDependencies": { "@takumi-rs/image-response": "*", "@types/mdx": "*", "@types/react": "*", "fumadocs-core": "16.7.6", "next": "16.x.x", "react": "^19.2.0", "react-dom": "^19.2.0", "shiki": "*" }, "optionalPeers": ["@takumi-rs/image-response", "@types/mdx", "@types/react", "next", "shiki"] }, "sha512-Ex1fwlPFkQ1PN/64koZCoY5I9h/XlqUNuPuq/7uJY/q5JY9BdiGxD+rKUJGDga+EypB8Jnr6bk+Ls77D232c4g=="],
 
     "function-bind": ["function-bind@1.1.2", "", {}, "sha512-7XHNxH7qX9xG5mIwxkhumTox/MIRNcOgDrxWsMt2pAr23WHp6MrRlN7FBSFpCpr+oVO0F744iUgR82nJMfG2SA=="],
 
@@ -2210,6 +2220,8 @@
     "fumadocs-core/path-to-regexp": ["path-to-regexp@8.3.0", "", {}, "sha512-7jdwVIRtsP8MYpdXSwOS0YdD0Du+qOoF/AEPIt88PcCFrZCzx41oxku1jD88hZBwbNUIEfpqvuhjFaMAqMTWnA=="],
 
     "fumadocs-mdx/chokidar": ["chokidar@5.0.0", "", { "dependencies": { "readdirp": "^5.0.0" } }, "sha512-TQMmc3w+5AxjpL8iIiwebF73dRDF4fBIieAqGn9RGCWaEVwQ6Fb2cGe31Yns0RRIzii5goJ1Y7xbMwo1TxMplw=="],
+
+    "fumadocs-ui/lucide-react": ["lucide-react@1.7.0", "", { "peerDependencies": { "react": "^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0" } }, "sha512-yI7BeItCLZJTXikmK4KNUGCKoGzSvbKlfCvw44bU4fXAL6v3gYS4uHD1jzsLkfwODYwI6Drw5Tu9Z5ulDe0TSg=="],
 
     "globby/ignore": ["ignore@5.3.2", "", {}, "sha512-hsBTNUqQTDwkWtcdYI2i06Y/nUBEsNEDJKjWdigLvegy8kDuJAS8uRlpkkcQpyEXL0Z/pjDy5HBmMjRCJ2gq+g=="],
 

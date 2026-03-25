@@ -15,8 +15,8 @@
     "@babel/traverse": "^7.28.6",
     "@bunli/core": "workspace:^",
     "better-result": "catalog:",
-    "debug": "^4.4.3",
-    "zod": "^4.3.6"
+    "debug": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@types/babel__parser": "^7.1.0",

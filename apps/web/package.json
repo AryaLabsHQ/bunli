@@ -34,23 +34,23 @@
     "lucide-react": "^0.577.0",
     "monaco-editor": "^0.55.1",
     "next-themes": "^0.4.6",
-    "react": "19.2.4",
+    "react": "catalog:",
     "react-dom": "19.2.4",
     "sonner": "^2.0.5",
     "tailwind-merge": "^3.5.0",
     "tailwindcss": "^4.2.1",
     "tw-animate-css": "^1.3.4",
-    "zod": "^4.3.6"
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "^1.21.0",
     "@types/mdx": "^2.0.13",
-    "@types/node": "24.10.1",
-    "@types/react": "19.2.14",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
     "react-grab": "^0.1.11",
-    "typescript": "^5.8.3",
+    "typescript": "catalog:",
     "vite": "^7.3.0",
     "vite-tsconfig-paths": "^5.1.4",
     "wrangler": "^4.64.0"

@@ -43,13 +43,13 @@
   },
   "homepage": "https://github.com/AryaLabsHQ/bunli#readme",
   "dependencies": {
-    "@standard-schema/spec": "^1.1.0",
-    "@standard-schema/utils": "^0.3.0",
-    "better-result": "^2.7.0"
+    "@standard-schema/spec": "catalog:",
+    "@standard-schema/utils": "catalog:",
+    "better-result": "catalog:"
   },
   "devDependencies": {
     "@types/bun": "catalog:",
-    "typescript": "^5.8.3"
+    "typescript": "catalog:"
   },
   "peerDependencies": {
     "bun": ">=1.3.7"
