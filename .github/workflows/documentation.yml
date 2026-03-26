@@ -33,11 +33,11 @@ jobs:
 
       - uses: anthropics/claude-code-action@v1
         with:
+          anthropic_api_key: ${{ secrets.MINIMAX_API_KEY }}
           prompt: "Audit docs affected by this PR's code changes. Implementation is the source of truth — update documentation to match code, never modify implementation. Commit doc fixes directly to this PR branch."
           claude_args: "--agent documentation --max-turns 50 --dangerously-skip-permissions"
         env:
           ANTHROPIC_BASE_URL: https://api.minimax.io/anthropic
-          ANTHROPIC_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
           ANTHROPIC_MODEL: MiniMax-M2.7
           ANTHROPIC_SMALL_FAST_MODEL: MiniMax-M2.7
           ANTHROPIC_DEFAULT_SONNET_MODEL: MiniMax-M2.7
@@ -57,6 +57,7 @@ jobs:
 
       - uses: anthropics/claude-code-action@v1
         with:
+          anthropic_api_key: ${{ secrets.MINIMAX_API_KEY }}
           prompt: |
             Run a full documentation audit against the main branch.
             Implementation is the source of truth — only update docs, never code.
@@ -65,7 +66,6 @@ jobs:
           claude_args: "--agent documentation --max-turns 50 --dangerously-skip-permissions"
         env:
           ANTHROPIC_BASE_URL: https://api.minimax.io/anthropic
-          ANTHROPIC_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
           ANTHROPIC_MODEL: MiniMax-M2.7
           ANTHROPIC_SMALL_FAST_MODEL: MiniMax-M2.7
           ANTHROPIC_DEFAULT_SONNET_MODEL: MiniMax-M2.7
