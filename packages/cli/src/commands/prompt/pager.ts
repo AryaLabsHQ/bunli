@@ -1,4 +1,5 @@
 import { defineCommand, option } from '@bunli/core'
+import { readStdinLines } from '@bunli/utils'
 import { z } from 'zod'
 
 export default defineCommand({
@@ -18,7 +19,6 @@ export default defineCommand({
       }
       content = await file.text()
     } else {
-      const { readStdinLines } = await import('@bunli/tui')
       const lines = await readStdinLines()
       if (lines.length > 0) {
         content = lines.join('\n')

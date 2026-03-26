@@ -1,4 +1,5 @@
 import { defineCommand, option } from '@bunli/core'
+import { readStdinLines, writeStdout } from '@bunli/utils'
 import { z } from 'zod'
 
 export default defineCommand({
@@ -15,7 +16,6 @@ export default defineCommand({
     if (positional.length > 0) {
       blocks = positional
     } else {
-      const { readStdinLines } = await import('@bunli/tui')
       const lines = await readStdinLines()
       // Split blocks on "---" delimiter
       const raw = lines.join('\n')
@@ -47,7 +47,6 @@ export default defineCommand({
       output = blocks.join(sep ? `\n${sep}\n` : '\n')
     }
 
-    const { writeStdout } = await import('@bunli/tui')
     writeStdout(output)
   }
 })

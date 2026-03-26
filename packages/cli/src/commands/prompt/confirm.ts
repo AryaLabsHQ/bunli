@@ -12,7 +12,12 @@ export default defineCommand({
   },
   async handler({ flags, positional, prompt }) {
     const message = positional[0] ?? 'Are you sure?'
-    const result = await prompt.confirm(message, { default: flags.default })
+    const result = await prompt.confirm(message, {
+      default: flags.default,
+      affirmativeLabel: flags.affirmative,
+      negativeLabel: flags.negative,
+      timeout: flags.timeout,
+    })
     process.exit(result ? 0 : 1)
   }
 })

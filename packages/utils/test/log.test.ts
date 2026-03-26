@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
-import { formatLog, type LogLevel } from '../src/utils/log.js'
+import { formatLog, type LogLevel } from '../src/log.js'
 
-describe('@bunli/tui log', () => {
+describe('@bunli/utils log', () => {
   test('formats info level message', () => {
     const result = formatLog('hello')
     expect(result).toContain('INFO')
@@ -16,7 +16,6 @@ describe('@bunli/tui log', () => {
 
   test('includes timestamp when enabled', () => {
     const result = formatLog('msg', { timestamp: true, timestampFormat: 'time' })
-    // Should contain a time-like pattern
     expect(result).toContain(':')
   })
 
@@ -70,7 +69,6 @@ describe('@bunli/tui log', () => {
 
   test('iso timestamp format', () => {
     const result = formatLog('msg', { timestamp: true, timestampFormat: 'iso' })
-    // ISO format contains 'Z' at the end
     expect(result).toContain('Z')
   })
 

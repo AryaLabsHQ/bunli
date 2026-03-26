@@ -8,6 +8,14 @@ export const utils: BunliUtils = {
 }
 
 export { colors } from './colors.js'
+export {
+  EXIT_CODES,
+  readStdinLines,
+  stripAnsi,
+  writeStdout,
+  writeStdoutLines
+} from './shell-integration.js'
+export { formatLog, log, type LogLevel, type LogOptions } from './log.js'
 
 export { validate, validateFields } from './validation.js'
 export { SchemaError, getDotPath } from '@standard-schema/utils'

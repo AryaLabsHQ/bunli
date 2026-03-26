@@ -1,4 +1,5 @@
 import { defineCommand, option } from '@bunli/core'
+import { writeStdout } from '@bunli/utils'
 import { z } from 'zod'
 
 export default defineCommand({
@@ -16,7 +17,6 @@ export default defineCommand({
       default: flags.value,
       placeholder: flags.placeholder,
     })
-    const { writeStdout } = await import('@bunli/tui')
     writeStdout(result)
   }
 })

@@ -31,6 +31,9 @@ export interface PromptOptions extends BasePromptOptions<string> {
 
 export interface ConfirmOptions extends BasePromptOptions<boolean> {
   default?: boolean
+  affirmativeLabel?: string
+  negativeLabel?: string
+  timeout?: number
 }
 
 export interface SelectOption<T = string> {
@@ -1158,7 +1161,13 @@ interface PromptDriver {
     message: string
     validate?: (value: string) => string | undefined
   }): Promise<string | Cancel>
-  confirm(args: { message: string; initialValue?: boolean }): Promise<boolean | Cancel>
+  confirm(args: {
+    message: string
+    initialValue?: boolean
+    affirmativeLabel?: string
+    negativeLabel?: string
+    timeout?: number
+  }): Promise<boolean | Cancel>
   select<T>(args: { message: string; options: SelectOption<T>[]; initialValue?: T }): Promise<T | Cancel>
   multiselect<T>(args: {
     message: string
@@ -1328,7 +1337,14 @@ const defaultDriver: PromptDriver = {
     const value = await runOpenTuiConfirmPrompt({
       message: args.message,
       initialValue: defaultYes,
-      formatHistoryLine: (submitted) => `? ${args.message} ${submitted ? 'Yes' : 'No'}`
+      affirmativeLabel: args.affirmativeLabel,
+      negativeLabel: args.negativeLabel,
+      timeout: args.timeout,
+      formatHistoryLine: (submitted) => {
+        const yesLabel = args.affirmativeLabel ?? 'Yes'
+        const noLabel = args.negativeLabel ?? 'No'
+        return `? ${args.message} ${submitted ? yesLabel : noLabel}`
+      }
     }, getGlobalOpenTuiSession())
     return isOpenTuiCancel(value) ? CANCEL : value
   },
@@ -1540,7 +1556,10 @@ export async function confirm(message: string, options: ConfirmOptions = {}): Pr
 
   const value = await runtime.confirm({
     message,
-    initialValue: options.default
+    initialValue: options.default,
+    affirmativeLabel: options.affirmativeLabel,
+    negativeLabel: options.negativeLabel,
+    timeout: options.timeout
   })
 
   if (isCancel(value)) cancelAndThrow()
@@ -1793,7 +1812,14 @@ export function createPromptSession(): PromptSession {
       const value = await runOpenTuiConfirmPrompt({
         message,
         initialValue: defaultYes,
-        formatHistoryLine: (submitted) => `? ${message} ${submitted ? 'Yes' : 'No'}`
+        affirmativeLabel: options.affirmativeLabel,
+        negativeLabel: options.negativeLabel,
+        timeout: options.timeout,
+        formatHistoryLine: (submitted) => {
+          const yesLabel = options.affirmativeLabel ?? 'Yes'
+          const noLabel = options.negativeLabel ?? 'No'
+          return `? ${message} ${submitted ? yesLabel : noLabel}`
+        }
       }, rendererSession)
 
       if (isOpenTuiCancel(value) || isCancel(value)) cancelAndThrow()

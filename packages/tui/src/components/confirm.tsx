@@ -55,7 +55,10 @@ export function Confirm({
       }
 
       if (confirmKeymap.match('submit', key)) {
-        onConfirm?.(selected)
+        setSelected((current) => {
+          onConfirm?.(current)
+          return current
+        })
         return true
       }
 

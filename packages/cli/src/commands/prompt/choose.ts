@@ -1,4 +1,5 @@
 import { defineCommand, option } from '@bunli/core'
+import { readStdinLines, writeStdout, writeStdoutLines } from '@bunli/utils'
 import { z } from 'zod'
 
 export default defineCommand({
@@ -13,7 +14,6 @@ export default defineCommand({
   async handler({ flags, positional, prompt }) {
     let items = positional.length > 0 ? positional : []
     if (items.length === 0) {
-      const { readStdinLines } = await import('@bunli/tui')
       items = await readStdinLines()
     }
     if (items.length === 0) {
@@ -28,11 +28,9 @@ export default defineCommand({
         options,
         max: flags.limit,
       })
-      const { writeStdoutLines } = await import('@bunli/tui')
       writeStdoutLines(selected)
     } else {
       const selected = await prompt.select('Choose', { options })
-      const { writeStdout } = await import('@bunli/tui')
       writeStdout(selected)
     }
   }

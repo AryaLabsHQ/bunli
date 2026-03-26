@@ -16,9 +16,20 @@ export async function readStdinLines(delimiter?: string): Promise<string[]> {
   for await (const chunk of process.stdin) {
     chunks.push(chunk)
   }
-  const data = Buffer.concat(chunks).toString('utf-8').trim()
-  if (!data) return []
-  return data.split(delimiter ?? '\n').filter(Boolean)
+
+  const data = Buffer.concat(chunks).toString('utf-8')
+  if (data.length === 0) return []
+
+  if (delimiter !== undefined) {
+    return data.split(delimiter)
+  }
+
+  const normalized = data.replace(/\r\n/g, '\n')
+  const lines = normalized.split('\n')
+  if (normalized.endsWith('\n')) {
+    lines.pop()
+  }
+  return lines
 }
 
 /**

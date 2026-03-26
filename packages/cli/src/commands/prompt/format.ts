@@ -1,4 +1,6 @@
 import { defineCommand, option } from '@bunli/core'
+import { formatCode, formatEmoji, formatMarkdown } from '@bunli/tui'
+import { readStdinLines, writeStdout } from '@bunli/utils'
 import { z } from 'zod'
 
 export default defineCommand({
@@ -13,7 +15,6 @@ export default defineCommand({
   async handler({ flags, positional }) {
     let text = positional.length > 0 ? positional.join(' ') : undefined
     if (!text) {
-      const { readStdinLines } = await import('@bunli/tui')
       const lines = await readStdinLines()
       text = lines.join('\n')
     }
@@ -27,8 +28,7 @@ export default defineCommand({
 
     switch (flags.type) {
       case 'code': {
-        const lang = flags.language ?? ''
-        output = `\`\`\`${lang}\n${text}\n\`\`\``
+        output = formatCode(text, flags.language)
         break
       }
       case 'template': {
@@ -39,13 +39,15 @@ export default defineCommand({
         break
       }
       case 'emoji':
+        output = formatEmoji(text)
+        break
       case 'markdown':
+        output = formatMarkdown(text)
+        break
       default:
-        // Pass through as-is for markdown and emoji
         break
     }
 
-    const { writeStdout } = await import('@bunli/tui')
     writeStdout(output)
   }
 })

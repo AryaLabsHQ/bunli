@@ -1,4 +1,5 @@
 import { defineCommand, option } from '@bunli/core'
+import { writeStdout } from '@bunli/utils'
 import { z } from 'zod'
 import { readdirSync, statSync } from 'node:fs'
 import { resolve, join } from 'node:path'
@@ -59,7 +60,6 @@ export default defineCommand({
 
     const options = items.map(item => ({ label: item, value: item }))
     const selected = await prompt.select('Select file', { options })
-    const { writeStdout } = await import('@bunli/tui')
     const result = selected.endsWith('/')
       ? join(dir, selected.slice(0, -1))
       : join(dir, selected)

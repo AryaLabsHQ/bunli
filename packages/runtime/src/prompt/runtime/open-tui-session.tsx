@@ -379,6 +379,9 @@ export const __openTuiSessionInternalsForTests = {
 export async function runOpenTuiConfirmPrompt(args: {
   message: string
   initialValue?: boolean
+  affirmativeLabel?: string
+  negativeLabel?: string
+  timeout?: number
   formatHistoryLine?: (value: boolean) => string | undefined
 }, session?: OpenTuiRendererSession): Promise<boolean | OpenTuiCancel> {
   return runOpenTuiPrompt({
@@ -387,6 +390,9 @@ export async function runOpenTuiConfirmPrompt(args: {
       <ConfirmPromptView
         message={args.message}
         initialValue={args.initialValue}
+        affirmativeLabel={args.affirmativeLabel}
+        negativeLabel={args.negativeLabel}
+        timeout={args.timeout}
         resolve={resolve}
       />
     )

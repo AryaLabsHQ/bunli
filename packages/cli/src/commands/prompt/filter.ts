@@ -1,4 +1,5 @@
 import { defineCommand, option } from '@bunli/core'
+import { readStdinLines, writeStdout } from '@bunli/utils'
 import { z } from 'zod'
 
 export default defineCommand({
@@ -12,7 +13,6 @@ export default defineCommand({
   async handler({ positional, prompt }) {
     let items = positional.length > 0 ? positional : []
     if (items.length === 0) {
-      const { readStdinLines } = await import('@bunli/tui')
       items = await readStdinLines()
     }
     if (items.length === 0) {
@@ -22,7 +22,6 @@ export default defineCommand({
 
     const options = items.map(item => ({ label: item, value: item }))
     const selected = await prompt.select('Filter', { options })
-    const { writeStdout } = await import('@bunli/tui')
     writeStdout(selected)
   }
 })

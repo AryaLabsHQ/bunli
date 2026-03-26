@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
-import { stripAnsi, EXIT_CODES } from '../src/shell/integration.js'
+import { stripAnsi, EXIT_CODES } from '../src/shell-integration.js'
 
-describe('@bunli/tui shell integration', () => {
+describe('@bunli/utils shell integration', () => {
   test('stripAnsi removes ANSI codes', () => {
     expect(stripAnsi('\x1b[1mhello\x1b[0m')).toBe('hello')
     expect(stripAnsi('\x1b[38;2;255;0;0mred\x1b[0m')).toBe('red')

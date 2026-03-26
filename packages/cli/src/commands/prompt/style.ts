@@ -1,4 +1,6 @@
 import { defineCommand, option } from '@bunli/core'
+import { styled } from '@bunli/tui'
+import { readStdinLines, writeStdout } from '@bunli/utils'
 import { z } from 'zod'
 
 export default defineCommand({
@@ -14,10 +16,9 @@ export default defineCommand({
     width: option(z.number().optional(), { description: 'Width' }),
     align: option(z.string().optional(), { description: 'Alignment (left, center, right)' }),
   },
-  async handler({ flags, positional, colors }) {
+  async handler({ flags, positional }) {
     let text = positional.length > 0 ? positional.join(' ') : undefined
     if (!text) {
-      const { readStdinLines } = await import('@bunli/tui')
       const lines = await readStdinLines()
       text = lines.join('\n')
     }
@@ -27,21 +28,19 @@ export default defineCommand({
       return
     }
 
-    let result = text
+    let builder = styled()
 
-    // Apply ANSI styling using the colors utility
-    if (flags.bold) result = colors.bold(result)
-    if (flags.italic) result = colors.italic(result)
-    if (flags.underline) result = colors.underline(result)
-    if (flags.strikethrough) result = colors.strikethrough(result)
-    if (flags.foreground) {
-      const colorFn = (colors as unknown as Record<string, ((s: string) => string) | undefined>)[flags.foreground]
-      if (typeof colorFn === 'function') {
-        result = colorFn(result)
-      }
+    if (flags.bold) builder = builder.bold()
+    if (flags.italic) builder = builder.italic()
+    if (flags.underline) builder = builder.underline()
+    if (flags.strikethrough) builder = builder.strikethrough()
+    if (flags.foreground) builder = builder.foreground(flags.foreground)
+    if (flags.background) builder = builder.background(flags.background)
+    if (flags.width) builder = builder.width(flags.width)
+    if (flags.align === 'left' || flags.align === 'center' || flags.align === 'right') {
+      builder = builder.align(flags.align)
     }
 
-    const { writeStdout } = await import('@bunli/tui')
-    writeStdout(result)
+    writeStdout(builder.render(text))
   }
 })

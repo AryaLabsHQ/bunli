@@ -97,11 +97,29 @@ export function TextPromptView({
 interface ConfirmPromptViewProps {
   message: string
   initialValue?: boolean
+  affirmativeLabel?: string
+  negativeLabel?: string
+  timeout?: number
   resolve: PromptResolver<boolean>
 }
 
-export function ConfirmPromptView({ message, initialValue = false, resolve }: ConfirmPromptViewProps) {
+export function ConfirmPromptView({
+  message,
+  initialValue = false,
+  affirmativeLabel = 'Yes',
+  negativeLabel = 'No',
+  timeout,
+  resolve
+}: ConfirmPromptViewProps) {
   useCancelKey(() => resolve(OPEN_TUI_CANCEL))
+
+  useEffect(() => {
+    if (typeof timeout !== 'number' || timeout <= 0) return
+    const timer = setTimeout(() => {
+      resolve(initialValue)
+    }, timeout * 1000)
+    return () => clearTimeout(timer)
+  }, [initialValue, resolve, timeout])
 
   return (
     <box style={{ flexDirection: 'column', gap: 1 }}>
@@ -111,8 +129,8 @@ export function ConfirmPromptView({ message, initialValue = false, resolve }: Co
         boxed={false}
         initialIndex={initialValue ? 0 : 1}
         items={[
-          { key: 'yes', label: 'Yes' },
-          { key: 'no', label: 'No' }
+          { key: 'yes', label: affirmativeLabel },
+          { key: 'no', label: negativeLabel }
         ]}
         onSelect={(key) => resolve(key === 'yes')}
         onKeyPress={(event) => {
@@ -144,7 +162,14 @@ export function ConfirmPromptView({ message, initialValue = false, resolve }: Co
           return false
         }}
       />
-      <text content='Up/Down or y/n • Enter submit • Esc cancel' fg='#8fa1b5' />
+      <text
+        content={
+          typeof timeout === 'number' && timeout > 0
+            ? `Up/Down or y/n • Enter submit • Esc cancel • ${timeout}s timeout`
+            : 'Up/Down or y/n • Enter submit • Esc cancel'
+        }
+        fg='#8fa1b5'
+      />
     </box>
   )
 }

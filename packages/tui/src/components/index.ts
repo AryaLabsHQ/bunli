@@ -1,6 +1,5 @@
 export * from '../utils/join.js'
 export * from '../utils/format.js'
-export * from '../utils/log.js'
 export * from './form.js'
 export * from './form-field.js'
 export * from './select-field.js'
@@ -44,7 +43,6 @@ export * from './file-picker-utils.js'
 export * from './file-picker.js'
 
 export * from '../utils/style.js'
-export * from '../shell/integration.js'
 
 export {
   ThemeProvider,
