@@ -161,6 +161,7 @@ export class RootCommand extends Command {
 
       if (arg.startsWith('-')) {
         i++
+        const hasInlineValue = arg.includes('=')
 
         let isBoolean = false
 
@@ -179,7 +180,7 @@ export class RootCommand extends Command {
         }
 
         // skip the next argument if this is not a boolean option and the next arg doesn't start with -
-        if (!isBoolean && i < args.length && !args[i]!.startsWith('-')) {
+        if (!hasInlineValue && !isBoolean && i < args.length && !args[i]!.startsWith('-')) {
           i++
         }
       } else {
@@ -311,20 +312,26 @@ export class RootCommand extends Command {
 
   // find option by name or alias
   private findOption(command: Command, optionName: string): Option | undefined {
+    const normalized = this.normalizeOptionToken(optionName)
+
     let option = command.options.get(optionName)
     if (option) return option
 
-    option = command.options.get(optionName.replace(/^-+/, ''))
+    option = command.options.get(normalized)
     if (option) return option
 
     // short alias
     for (const [_name, opt] of command.options) {
-      if (opt.alias && `-${opt.alias}` === optionName) {
+      if (opt.alias === normalized) {
         return opt
       }
     }
 
     return undefined
+  }
+
+  private normalizeOptionToken(optionName: string): string {
+    return optionName.replace(/^-+/, '').split('=')[0] ?? ''
   }
 
   // command completion

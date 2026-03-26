@@ -127,6 +127,23 @@ describe('completions/complete command (Tab protocol)', () => {
     expect(last).toMatch(/^:\d+$/)
   })
 
+  test('inline global option values do not break subcommand flag completion', async () => {
+    const cli = await createTestCLI()
+
+    const cap = captureConsole()
+    try {
+      await cli.run(['complete', '--', '--format=json', 'deploy', '--'])
+    } finally {
+      cap.restore()
+    }
+
+    const output = cap.stdout()
+    expect(output).toContain('--environment')
+    expect(output).not.toContain('deploy\t')
+    const last = output.trim().split('\n').at(-1) ?? ''
+    expect(last).toMatch(/^:\d+$/)
+  })
+
   test('enum-valued options return value candidates via option handlers', async () => {
     const cli = await createTestCLI()
 

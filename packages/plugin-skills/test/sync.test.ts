@@ -157,3 +157,37 @@ test('syncSkills reruns when the detected agent set changes', async () => {
   expect(second.updated).toBe(true)
   expect(fs.existsSync(path.join(agentRoot, '.second-agent', 'skills', 'demo-cli', 'SKILL.md'))).toBe(true)
 })
+
+test('syncSkills does not persist staleness state when an agent install fails', async () => {
+  const dataHome = makeTempDir('bunli-skills-failure-data-')
+  const homeDir = makeTempDir('bunli-skills-failure-home-')
+  const blockedRoot = path.join(makeTempDir('bunli-skills-failure-agent-'), 'blocked')
+  const runtime = createRuntime(homeDir, dataHome)
+  const commands = createCommands()
+
+  fs.writeFileSync(blockedRoot, 'not a directory')
+
+  const failingAgent: Agent = {
+    name: 'Failing Agent',
+    globalSkillsDir: path.join(blockedRoot, '.failing-agent', 'skills'),
+    projectSkillsDir: '.agents/skills',
+    universal: false,
+    detect: () => true
+  }
+
+  const first = await syncSkills('demo cli', commands, {
+    global: true,
+    agents: [failingAgent]
+  }, runtime)
+
+  const second = await syncSkills('demo cli', commands, {
+    global: true,
+    agents: [failingAgent]
+  }, runtime)
+
+  expect(first.updated).toBe(true)
+  expect(first.agents).toEqual([])
+  expect(second.updated).toBe(true)
+  expect(second.agents).toEqual([])
+  expect(fs.existsSync(path.join(homeDir, '.agents', 'skills', 'demo-cli', 'SKILL.md'))).toBe(true)
+})

@@ -91,6 +91,7 @@ export async function syncSkills(
 
   // Create symlinks for non-universal agents
   const agentInstalls: AgentInstall[] = []
+  let hadInstallFailure = false
 
   for (const agent of detected) {
     const agentSkillsDir = isGlobal
@@ -113,12 +114,16 @@ export async function syncSkills(
       try {
         fs.cpSync(canonicalDir, agentDir, { recursive: true })
         agentInstalls.push({ agent: agent.name, path: agentDir, mode: 'copy' })
-      } catch { /* skip agent */ }
+      } catch {
+        hadInstallFailure = true
+      }
     }
   }
 
-  // Write hash for staleness detection
-  writeState(cacheKey, { hash, agentKey }, runtime)
+  // Do not persist staleness state for partial installs, so failed agent targets retry.
+  if (!hadInstallFailure) {
+    writeState(cacheKey, { hash, agentKey }, runtime)
+  }
 
   return { paths, agents: agentInstalls, updated: true }
 }
