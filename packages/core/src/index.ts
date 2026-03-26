@@ -98,11 +98,12 @@ export {
   ConfigLoadError
 } from './config-loader.js'
 export {
+  BunliValidationError,
   InvalidConfigError,
   CommandNotFoundError,
   CommandExecutionError,
   OptionValidationError
-} from './cli.js'
+} from './errors.js'
 export {
   PluginLoadError,
   PluginValidationError,
@@ -112,6 +113,7 @@ export {
 
 // Export output system
 export { format as formatOutput } from './output/formatter.js'
+export { serializeCliError } from './output/serialize.js'
 export { resolveFormat, shouldRenderOutput } from './output/policy.js'
 export type {
   OutputFormat,
@@ -119,6 +121,7 @@ export type {
   OutputMeta,
   OutputEnvelope
 } from './output/types.js'
+export type { SerializedCliError, SerializedCliIssue } from './output/serialize.js'
 
 // Export help rendering
 export {

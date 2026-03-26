@@ -1,5 +1,5 @@
 import type { Options, StandardSchemaV1, CLIOption } from './types.js'
-import { BunliValidationError } from './types.js'
+import { BunliValidationError } from './errors.js'
 import { SchemaError } from '@standard-schema/utils'
 
 export interface ParsedArgs {

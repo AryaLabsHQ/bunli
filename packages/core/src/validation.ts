@@ -3,7 +3,7 @@
  */
 
 import type { StandardSchemaV1 } from '@standard-schema/spec'
-import { BunliValidationError } from './types.js'
+import { BunliValidationError } from './errors.js'
 
 /**
  * Validate a value against a schema at runtime

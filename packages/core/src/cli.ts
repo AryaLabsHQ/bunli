@@ -24,44 +24,32 @@ import { createLogger } from './utils/logger.js'
 import { createInterruptController, ProcessTerminatedError } from './runtime/interrupt-controller.js'
 import { runTuiRender } from './runtime/tui-render.js'
 import { resolveImageRenderMode } from '@bunli/runtime/image'
-import { Result, TaggedError } from 'better-result'
+import { Result } from 'better-result'
 import { validateValue } from './validation.js'
 import { findSuggestion } from './utils/levenshtein.js'
 import { resolveFormat, shouldRenderOutput } from './output/policy.js'
 import { format as formatOutput } from './output/formatter.js'
+import { serializeCliError } from './output/serialize.js'
 import type { OutputFormat } from './output/types.js'
+import {
+  BunliValidationError,
+  CommandExecutionError,
+  CommandNotFoundError,
+  InvalidConfigError,
+  OptionValidationError
+} from './errors.js'
 import { renderIndex as renderManifestIndex, renderFull as renderManifestFull } from './manifest/index.js'
-import { showHelp as showHelpImpl } from './help/renderer.js'
+import {
+  collectTopLevelCommands,
+  renderCommandHelp,
+  renderRootHelp,
+  showHelp as showHelpImpl
+} from './help/index.js'
 import type { HelpContext } from './help/renderer.js'
 
 const logger = createLogger('core:cli')
 const interruptLogger = createLogger('core:interrupt')
-
-export class InvalidConfigError extends TaggedError('InvalidConfigError')<{
-  message: string
-  cause: unknown
-}>() {}
-
-export class CommandNotFoundError extends TaggedError('CommandNotFoundError')<{
-  message: string
-  command: string
-  available: string[]
-  suggestion?: string
-}>() {}
-
-export class CommandExecutionError extends TaggedError('CommandExecutionError')<{
-  message: string
-  command: string
-  cause: unknown
-}>() {}
-
-export class OptionValidationError extends TaggedError('OptionValidationError')<{
-  message: string
-  command: string
-  option: string
-  cause: unknown
-  issues: Array<{ message: string; path?: string }>
-}>() {}
+type GlobalFlagName = keyof typeof GLOBAL_FLAGS
 
 function resolveRendererOptions(
   configured: Record<string, unknown> | undefined,
@@ -132,6 +120,12 @@ interface CreateCLIRuntimeDeps {
   getTerminalInfo?: () => TerminalInfo
 }
 
+interface OutputContext {
+  format: OutputFormat
+  formatExplicit: boolean
+  agent: boolean
+}
+
 const disableTerminalFocusReporting = () => {
   if (!process.stdout.isTTY) return
   try {
@@ -151,6 +145,11 @@ export async function createCLI<
   runtimeDeps: CreateCLIRuntimeDeps = {}
 ): Promise<CLI<MergeStores<TPlugins>>> {
   type TStore = MergeStores<TPlugins>
+
+  const hasUsableInlineOverride = Boolean(
+    configOverride?.name &&
+    configOverride?.version
+  )
   
   // Auto-load config from bunli.config.ts
   let loadedConfigData: BunliConfig | null = null
@@ -158,14 +157,16 @@ export async function createCLI<
   if (loadedConfigResult.isOk()) {
     loadedConfigData = loadedConfigResult.value
   } else {
-    const missingRequiredOverride = !configOverride || (!configOverride.name && !configOverride.version)
+    const missingRequiredOverride = !hasUsableInlineOverride
     if (missingRequiredOverride && loadedConfigResult.error instanceof ConfigNotFoundError) {
-      throw new Error(
-        '[bunli] No configuration file found. Please create bunli.config.ts, bunli.config.js, or bunli.config.mjs, ' +
-        'or provide configuration directly to createCLI().'
-      )
+      throw new ConfigNotFoundError({
+        message:
+          '[bunli] No configuration file found. Please create bunli.config.ts, bunli.config.js, or bunli.config.mjs, ' +
+          'or provide configuration directly to createCLI().',
+        searched: loadedConfigResult.error.searched
+      })
     }
-    if (loadedConfigResult.error instanceof ConfigLoadError) {
+    if (loadedConfigResult.error instanceof ConfigLoadError && missingRequiredOverride) {
       throw loadedConfigResult.error
     }
   }
@@ -348,6 +349,55 @@ export async function createCLI<
     }
     return { command: undefined, remainingArgs: args }
   }
+
+  function stripRecognizedGlobalFlags(args: string[]): { args: string[]; originalIndexes: number[] } {
+    const positional: string[] = []
+    const originalIndexes: number[] = []
+    const shortToName = new Map<string, GlobalFlagName>()
+
+    const getGlobalFlag = (name: string): CLIOption<any> | undefined => {
+      if (Object.prototype.hasOwnProperty.call(GLOBAL_FLAGS, name)) {
+        return GLOBAL_FLAGS[name as GlobalFlagName]
+      }
+      return undefined
+    }
+
+    for (const [name, option] of Object.entries(GLOBAL_FLAGS) as Array<[GlobalFlagName, CLIOption<any>]>) {
+      if (option.short) {
+        shortToName.set(option.short, name)
+      }
+    }
+
+    for (let i = 0; i < args.length; i++) {
+      const arg = args[i]
+      if (!arg) continue
+
+      if (arg.startsWith('--')) {
+        const eqIndex = arg.indexOf('=')
+        const name = eqIndex > 0 ? arg.slice(2, eqIndex) : arg.slice(2)
+        if (name && getGlobalFlag(name)) {
+          if (eqIndex < 0 && i + 1 < args.length && !args[i + 1]?.startsWith('-')) {
+            i += 1
+          }
+          continue
+        }
+      } else if (arg.startsWith('-') && arg.length > 1) {
+        const short = arg.slice(1)
+        const name = shortToName.get(short)
+        if (name && getGlobalFlag(name)) {
+          if (i + 1 < args.length && !args[i + 1]?.startsWith('-')) {
+            i += 1
+          }
+          continue
+        }
+      }
+
+      positional.push(arg)
+      originalIndexes.push(i)
+    }
+
+    return { args: positional, originalIndexes }
+  }
   
   // Help rendering — delegates to the extracted help module
   function showHelp(cmd?: Command<any, TStore>, path: string[] = []) {
@@ -360,6 +410,128 @@ export async function createCLI<
     }
     const customRenderer = fullConfig.help?.renderer as import('./types.js').HelpRenderer<TStore> | undefined
     showHelpImpl(helpCtx, commands, customRenderer, cmd, path)
+  }
+
+  function resolveOutputContext(
+    terminalInfo: TerminalInfo,
+    flagFormat?: OutputFormat,
+    commandDefault?: OutputFormat
+  ): OutputContext {
+    const { format, formatExplicit, agent } = resolveFormat({
+      flagFormat,
+      commandDefault,
+      isTTY: terminalInfo.isInteractive
+    })
+
+    return {
+      format,
+      formatExplicit,
+      agent
+    }
+  }
+
+  function writeFormatted(
+    stream: 'stdout' | 'stderr',
+    value: unknown,
+    fmt: OutputFormat
+  ) {
+    const rendered = formatOutput(value, fmt)
+    if (!rendered) return
+
+    const target = stream === 'stdout' ? process.stdout : process.stderr
+    target.write(rendered + '\n')
+  }
+
+  function printVersion(outputContext: OutputContext) {
+    const text = `${fullConfig.name} v${fullConfig.version}`
+    if (outputContext.format === 'toon') {
+      process.stdout.write(text + '\n')
+      return
+    }
+
+    writeFormatted('stdout', {
+      ok: true,
+      data: {
+        type: 'version',
+        name: fullConfig.name,
+        version: fullConfig.version
+      }
+    }, outputContext.format)
+  }
+
+  function renderBuiltInHelpText(
+    terminalInfo: TerminalInfo,
+    cmd?: Command<any, TStore>,
+    path: string[] = []
+  ): string {
+    const helpCtx: HelpContext = {
+      cliName: fullConfig.name,
+      version: fullConfig.version,
+      description: fullConfig.description,
+      terminal: terminalInfo
+    }
+
+    if (!cmd) {
+      return renderRootHelp(helpCtx, collectTopLevelCommands(commands))
+    }
+
+    return renderCommandHelp(helpCtx, cmd, path)
+  }
+
+  function printHelpOutput(
+    outputContext: OutputContext,
+    terminalInfo: TerminalInfo,
+    cmd?: Command<any, TStore>,
+    path: string[] = []
+  ) {
+    const customRenderer = fullConfig.help?.renderer as import('./types.js').HelpRenderer<TStore> | undefined
+    if (outputContext.format === 'toon' || customRenderer) {
+      showHelpImpl(
+        {
+          cliName: fullConfig.name,
+          version: fullConfig.version,
+          description: fullConfig.description,
+          terminal: terminalInfo
+        },
+        commands,
+        customRenderer,
+        cmd,
+        path
+      )
+      return
+    }
+
+    const helpText = renderBuiltInHelpText(terminalInfo, cmd, path)
+    writeFormatted('stdout', {
+      ok: true,
+      data: {
+        type: 'help',
+        cliName: fullConfig.name,
+        version: fullConfig.version,
+        path: cmd ? [...path, cmd.name] : path,
+        text: helpText
+      }
+    }, outputContext.format)
+  }
+
+  function printManifestOutput(
+    outputContext: OutputContext,
+    variant: 'compact' | 'full',
+    markdown: string
+  ) {
+    if (outputContext.format === 'toon' || outputContext.format === 'md') {
+      process.stdout.write(markdown + '\n')
+      return
+    }
+
+    writeFormatted('stdout', {
+      ok: true,
+      data: {
+        type: 'manifest',
+        variant,
+        markdown
+      }
+    }, outputContext.format)
   }
   
   function shouldUseRender(
@@ -378,6 +550,7 @@ export async function createCLI<
 
   type RunCommandError =
     | SchemaError
+    | BunliValidationError
     | PromptCancelledError
     | OptionValidationError
     | CommandExecutionError
@@ -497,19 +670,18 @@ export async function createCLI<
         (command.tui?.image ?? {}) as Record<string, unknown>,
         parsed.flags['image-mode']
       )
+      const flagFormat = parsed.flags['format'] as OutputFormat | undefined
+      const { format: resolvedFmt, formatExplicit, agent } = resolveOutputContext(
+        terminalInfo,
+        flagFormat,
+        command.defaultFormat
+      )
       const runtimeInfo: RuntimeInfo = {
         startTime: Date.now(),
         args: argv,
-        command: invokedCommandName ?? command.name
+        command: invokedCommandName ?? command.name,
+        outputFormat: resolvedFmt
       }
-
-      // Resolve output format
-      const flagFormat = parsed.flags['format'] as OutputFormat | undefined
-      const { format: resolvedFmt, formatExplicit, agent } = resolveFormat({
-        flagFormat,
-        commandDefault: command.defaultFormat,
-        isTTY: terminalInfo.isInteractive
-      })
       const renderOutputAllowed = shouldRenderOutput({
         isTTY: terminalInfo.isInteractive,
         formatExplicit,
@@ -647,7 +819,11 @@ export async function createCLI<
 
       await runAfterCommandOnce(1)
 
-      if (error instanceof SchemaError || error instanceof OptionValidationError) {
+      if (
+        error instanceof SchemaError ||
+        error instanceof BunliValidationError ||
+        error instanceof OptionValidationError
+      ) {
         return Result.err(error)
       }
 
@@ -675,9 +851,28 @@ export async function createCLI<
     }
   }
 
-  async function printRunCommandError(error: RunCommandError): Promise<void> {
+  async function printRunCommandError(
+    error: RunCommandError,
+    outputContext: OutputContext
+  ): Promise<void> {
+    if (outputContext.format !== 'toon') {
+      writeFormatted('stderr', {
+        ok: false,
+        error: serializeCliError(error)
+      }, outputContext.format)
+      return
+    }
+
     if (error instanceof SchemaError) {
       await renderValidationError(error)
+      return
+    }
+
+    if (error instanceof BunliValidationError) {
+      console.error(colors.red(`Error: ${error.message}`))
+      if (error.context.hint) {
+        console.error(colors.dim(`Hint: ${error.context.hint}`))
+      }
       return
     }
 
@@ -699,8 +894,10 @@ export async function createCLI<
     },
     
     async run(argv = process.argv.slice(2)) {
+      const terminalInfo = cliDeps.getTerminalInfo()
+
       if (argv.length === 0) {
-        showHelp()
+        printHelpOutput(resolveOutputContext(terminalInfo), terminalInfo)
         return
       }
       
@@ -708,36 +905,61 @@ export async function createCLI<
       const separatorIndex = argv.indexOf('--')
       const commandArgs = separatorIndex >= 0 ? argv.slice(0, separatorIndex) : argv
       const passthroughArgs = separatorIndex >= 0 ? argv.slice(separatorIndex + 1) : []
+
+      let globalParsed: Awaited<ReturnType<typeof parseArgs>>
+      try {
+        globalParsed = await parseArgs(commandArgs, GLOBAL_FLAGS, '__global__')
+      } catch (error) {
+        await printRunCommandError(error as RunCommandError, resolveOutputContext(terminalInfo))
+        process.exit(1)
+      }
+
+      const outputContext = resolveOutputContext(
+        terminalInfo,
+        globalParsed.flags['format'] as OutputFormat | undefined
+      )
       
       // Handle version flag (only check before -- separator)
-      if (commandArgs.includes('--version') || commandArgs.includes('-v')) {
-        console.log(`${fullConfig.name} v${fullConfig.version}`)
+      if (globalParsed.flags.version) {
+        printVersion(outputContext)
         return
       }
       
       // Handle --llms and --llms-full manifest flags
-      if (commandArgs.includes('--llms-full')) {
-        console.log(renderManifestFull(fullConfig.name, commands, fullConfig.description))
+      if (globalParsed.flags['llms-full']) {
+        printManifestOutput(
+          outputContext,
+          'full',
+          renderManifestFull(fullConfig.name, commands, fullConfig.description)
+        )
         return
       }
-      if (commandArgs.includes('--llms')) {
-        console.log(renderManifestIndex(fullConfig.name, commands, fullConfig.description))
+      if (globalParsed.flags.llms) {
+        printManifestOutput(
+          outputContext,
+          'compact',
+          renderManifestIndex(fullConfig.name, commands, fullConfig.description)
+        )
         return
       }
 
       // Handle help flags (only check before -- separator)
-      if (commandArgs.includes('--help') || commandArgs.includes('-h')) {
-        const helpIndex = Math.max(commandArgs.indexOf('--help'), commandArgs.indexOf('-h'))
-        const cmdArgs = commandArgs.slice(0, helpIndex)
+      if (globalParsed.flags.help) {
+        const cmdArgs = stripRecognizedGlobalFlags(commandArgs).args
         
         if (cmdArgs.length === 0) {
-          showHelp()
+          printHelpOutput(outputContext, terminalInfo)
         } else {
           const { command } = findCommand(cmdArgs)
           if (command) {
-            showHelp(command, cmdArgs.slice(0, -1))
+            printHelpOutput(outputContext, terminalInfo, command, cmdArgs.slice(0, -1))
           } else {
-            console.error(`Unknown command: ${cmdArgs.join(' ')}`)
+            const unknownCommandError = new CommandNotFoundError({
+              message: `Command '${cmdArgs.join(' ')}' not found`,
+              command: cmdArgs.join(' '),
+              available: getAvailableCommandNames(),
+            })
+            await printRunCommandError(unknownCommandError, outputContext)
             process.exit(1)
           }
         }
@@ -745,36 +967,55 @@ export async function createCLI<
       }
       
       // Find and execute command
-      const { command, remainingArgs } = findCommand(commandArgs)
+      const commandLookup = stripRecognizedGlobalFlags(commandArgs)
+      const { command, remainingArgs } = findCommand(commandLookup.args)
       
       if (!command) {
         const available = getAvailableCommandNames()
-        const input = commandArgs[0] ?? ''
+        const input = commandLookup.args[0] ?? ''
         const suggestion = findSuggestion(input, available)
-        console.error(`Unknown command: ${input}`)
-        if (suggestion) {
-          console.error(`\n  Did you mean ${colors.bold(suggestion)}?`)
-        }
-        if (available.length > 0) {
-          console.error(`\nAvailable commands: ${available.join(', ')}`)
-        }
+        const error = new CommandNotFoundError({
+          message: suggestion
+            ? `Command '${input}' not found. Did you mean '${suggestion}'?`
+            : `Command '${input}' not found`,
+          command: input,
+          available,
+          suggestion
+        })
+        await printRunCommandError(error, outputContext)
         process.exit(1)
       }
+
+      const commandOutputContext = resolveOutputContext(
+        terminalInfo,
+        globalParsed.flags['format'] as OutputFormat | undefined,
+        command.defaultFormat
+      )
       
       // If command has subcommands but no handler, show help
       if (!command.handler && !command.render && command.commands) {
-        showHelp(command, commandArgs.slice(0, commandArgs.length - remainingArgs.length - 1))
+        printHelpOutput(
+          commandOutputContext,
+          terminalInfo,
+          command,
+          commandLookup.args.slice(0, commandLookup.args.length - remainingArgs.length - 1)
+        )
         return
       }
       
       // Combine remaining args from command parsing with passthrough args
-      const allArgs = [...remainingArgs, ...passthroughArgs]
-      const invokedCommandName = commandArgs
-        .slice(0, commandArgs.length - remainingArgs.length)
+      const matchedCommandLength = commandLookup.args.length - remainingArgs.length
+      const matchedCommandIndexes = new Set(commandLookup.originalIndexes.slice(0, matchedCommandLength))
+      const allArgs = [
+        ...commandArgs.filter((_, index) => !matchedCommandIndexes.has(index)),
+        ...passthroughArgs
+      ]
+      const invokedCommandName = commandLookup.args
+        .slice(0, matchedCommandLength)
         .join(' ')
       const runResult = await runCommandInternal(command as Command<any, TStore>, allArgs, undefined, invokedCommandName || command.name)
       if (runResult.isErr()) {
-        await printRunCommandError(runResult.error)
+        await printRunCommandError(runResult.error, commandOutputContext)
         process.exit(1)
       }
     },
