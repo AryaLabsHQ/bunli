@@ -3,11 +3,10 @@ import * as fs from 'node:fs'
 import * as os from 'node:os'
 import * as path from 'node:path'
 import { defineCommand } from '@bunli/core'
+import type { Agent } from '../src/agents.js'
 import { syncSkills } from '../src/sync.js'
 
 const tempDirs: string[] = []
-const originalHome = process.env.HOME
-const originalXdgDataHome = process.env.XDG_DATA_HOME
 
 function makeTempDir(prefix: string): string {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), prefix))
@@ -16,9 +15,6 @@ function makeTempDir(prefix: string): string {
 }
 
 afterEach(() => {
-  process.env.HOME = originalHome
-  process.env.XDG_DATA_HOME = originalXdgDataHome
-
   while (tempDirs.length > 0) {
     const dir = tempDirs.pop()
     if (dir) fs.rmSync(dir, { recursive: true, force: true })
@@ -37,12 +33,19 @@ function createCommands() {
   ])
 }
 
+function createRuntime(homeDir: string, dataHome: string) {
+  return {
+    homeDir: () => homeDir,
+    dataHome: () => dataHome
+  }
+}
+
 test('syncSkills scopes staleness cache by local install target', async () => {
   const dataHome = makeTempDir('bunli-skills-data-')
+  const homeDir = makeTempDir('bunli-skills-home-')
   const cwdOne = makeTempDir('bunli-skills-one-')
   const cwdTwo = makeTempDir('bunli-skills-two-')
-
-  process.env.XDG_DATA_HOME = dataHome
+  const runtime = createRuntime(homeDir, dataHome)
 
   const commands = createCommands()
 
@@ -50,17 +53,17 @@ test('syncSkills scopes staleness cache by local install target', async () => {
     global: false,
     cwd: cwdOne,
     agents: []
-  })
+  }, runtime)
   const second = await syncSkills('demo cli', commands, {
     global: false,
     cwd: cwdOne,
     agents: []
-  })
+  }, runtime)
   const third = await syncSkills('demo cli', commands, {
     global: false,
     cwd: cwdTwo,
     agents: []
-  })
+  }, runtime)
 
   expect(first.updated).toBe(true)
   expect(second.updated).toBe(false)
@@ -70,9 +73,9 @@ test('syncSkills scopes staleness cache by local install target', async () => {
 
 test('syncSkills honors force mode', async () => {
   const dataHome = makeTempDir('bunli-skills-force-data-')
+  const homeDir = makeTempDir('bunli-skills-force-home-')
   const cwd = makeTempDir('bunli-skills-force-')
-
-  process.env.XDG_DATA_HOME = dataHome
+  const runtime = createRuntime(homeDir, dataHome)
 
   const commands = createCommands()
 
@@ -80,14 +83,39 @@ test('syncSkills honors force mode', async () => {
     global: false,
     cwd,
     agents: []
-  })
+  }, runtime)
   const forced = await syncSkills('demo cli', commands, {
     global: false,
     cwd,
     force: true,
     agents: []
-  })
+  }, runtime)
 
   expect(first.updated).toBe(true)
   expect(forced.updated).toBe(true)
+})
+
+test('syncSkills can sandbox global installs with an injected runtime home', async () => {
+  const dataHome = makeTempDir('bunli-skills-global-data-')
+  const homeDir = makeTempDir('bunli-skills-global-home-')
+  const agentRoot = makeTempDir('bunli-skills-agent-root-')
+  const runtime = createRuntime(homeDir, dataHome)
+
+  const commands = createCommands()
+  const universalAgent: Agent = {
+    name: 'Custom Universal',
+    globalSkillsDir: path.join(agentRoot, '.custom-agent', 'skills'),
+    projectSkillsDir: '.agents/skills',
+    universal: true,
+    detect: () => true
+  }
+
+  const result = await syncSkills('demo cli', commands, {
+    global: true,
+    agents: [universalAgent]
+  }, runtime)
+
+  expect(result.updated).toBe(true)
+  expect(fs.existsSync(path.join(homeDir, '.agents', 'skills', 'demo-cli', 'SKILL.md'))).toBe(true)
+  expect(fs.existsSync(path.join(agentRoot, '.custom-agent', 'skills', 'demo-cli', 'SKILL.md'))).toBe(true)
 })

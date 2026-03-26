@@ -36,6 +36,16 @@ export interface AgentInstall {
   mode: 'symlink' | 'copy'
 }
 
+interface SyncRuntime {
+  homeDir(): string
+  dataHome(): string
+}
+
+const defaultSyncRuntime: SyncRuntime = {
+  homeDir: () => os.homedir(),
+  dataHome: () => process.env.XDG_DATA_HOME || path.join(os.homedir(), '.local', 'share')
+}
+
 /**
  * Generates SKILL.md and installs to canonical + agent directories.
  * Skips if the hash matches a previous install.
@@ -43,19 +53,24 @@ export interface AgentInstall {
 export async function syncSkills(
   cliName: string,
   commands: Map<string, Command<any, any>>,
-  options: SyncOptions = {}
+  options: SyncOptions = {},
+  runtime: SyncRuntime = defaultSyncRuntime
 ): Promise<SyncResult> {
-  const { global: isGlobal = true, force = false, description, cwd = process.cwd() } = options
-  const base = isGlobal ? os.homedir() : cwd
-  const canonicalBase = path.join(base, '.agents', 'skills')
-  const cacheKey = stalenessCacheKey(cliName, isGlobal, cwd)
+  const {
+    global: isGlobal = true,
+    force = false,
+    description,
+    cwd = process.cwd()
+  } = options
+  const canonicalBase = path.join(isGlobal ? runtime.homeDir() : cwd, '.agents', 'skills')
+  const cacheKey = stalenessCacheKey(cliName, isGlobal, cwd, canonicalBase)
 
   // Generate content and hash
   const content = generateSkillFile(cliName, commands, { description })
   const hash = createHash('sha256').update(content).digest('hex').slice(0, 16)
 
   // Check staleness
-  const prevHash = readHash(cacheKey)
+  const prevHash = readHash(cacheKey, runtime)
   if (!force && prevHash === hash) {
     return { paths: [], agents: [], updated: false }
   }
@@ -98,33 +113,40 @@ export async function syncSkills(
   }
 
   // Write hash for staleness detection
-  writeHash(cacheKey, hash)
+  writeHash(cacheKey, hash, runtime)
 
   return { paths, agents: agentInstalls, updated: true }
 }
 
-function stalenessCacheKey(name: string, isGlobal: boolean, cwd: string): string {
-  const scope = isGlobal ? 'global' : `local:${path.resolve(cwd)}`
+function stalenessCacheKey(
+  name: string,
+  isGlobal: boolean,
+  cwd: string,
+  canonicalBase: string
+): string {
+  const scope = isGlobal
+    ? `global:${path.resolve(canonicalBase)}`
+    : `local:${path.resolve(cwd)}`
   const scopeHash = createHash('sha256').update(scope).digest('hex').slice(0, 8)
   return `${name}-${scopeHash}`
 }
 
 /** Returns the hash file path for a sync target. */
-function hashPath(cacheKey: string): string {
-  const dir = process.env.XDG_DATA_HOME || path.join(os.homedir(), '.local', 'share')
+function hashPath(cacheKey: string, runtime: SyncRuntime): string {
+  const dir = runtime.dataHome()
   return path.join(dir, 'bunli', `${cacheKey}-skills.json`)
 }
 
-function writeHash(cacheKey: string, hash: string) {
-  const file = hashPath(cacheKey)
+function writeHash(cacheKey: string, hash: string, runtime: SyncRuntime = defaultSyncRuntime) {
+  const file = hashPath(cacheKey, runtime)
   const dir = path.dirname(file)
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
   fs.writeFileSync(file, JSON.stringify({ hash, at: new Date().toISOString() }) + '\n')
 }
 
-function readHash(cacheKey: string): string | undefined {
+function readHash(cacheKey: string, runtime: SyncRuntime = defaultSyncRuntime): string | undefined {
   try {
-    const data = JSON.parse(fs.readFileSync(hashPath(cacheKey), 'utf-8'))
+    const data = JSON.parse(fs.readFileSync(hashPath(cacheKey, runtime), 'utf-8'))
     return data.hash
   } catch {
     return undefined
