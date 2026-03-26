@@ -45,6 +45,7 @@
     "ci:version": "bun scripts/ci-version.ts",
     "ci:publish": "bun scripts/ci-publish.ts",
     "release:publish": "bun run build && bun run ci:publish",
+    "typecheck:types": "vitest --run",
     "lint": "oxlint .",
     "lint:fix": "oxlint --fix .",
     "format": "oxfmt",
@@ -62,7 +63,8 @@
     "oxfmt": "^0.42.0",
     "oxlint": "^1.57.0",
     "turbo": "^2.8.0",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "^4.1.0"
   },
   "packageManager": "bun@1.3.10",
   "patchedDependencies": {

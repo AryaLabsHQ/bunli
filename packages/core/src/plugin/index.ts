@@ -18,7 +18,8 @@ export {
 } from './testing.js'
 
 // Re-export for convenience
-export type { 
+export { ExecutionState } from './types.js'
+export type {
   BunliPlugin,
   PluginFactory,
   PluginConfig,

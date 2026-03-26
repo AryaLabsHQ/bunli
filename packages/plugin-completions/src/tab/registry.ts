@@ -1,6 +1,6 @@
 import { GLOBAL_FLAGS } from '@bunli/core'
 import type { GeneratedCommandMeta, GeneratedOptionMeta } from '@bunli/core'
-import { RootCommand, type Command as TabCommand, type OptionHandler } from '@bomb.sh/tab'
+import { RootCommand, type Command as TabCommand, type OptionHandler } from '../engine/index.js'
 
 export interface RegistryOptions {
   includeAliases: boolean
@@ -70,8 +70,28 @@ function addGlobalFlags(cmd: TabCommand) {
   for (const [name, flag] of Object.entries(GLOBAL_FLAGS)) {
     const desc = flag.description ?? ''
     const short = 'short' in flag ? flag.short : undefined
+    const handler = createGlobalFlagHandler(name)
+    if (handler) {
+      if (short) cmd.option(name, desc, handler, short)
+      else cmd.option(name, desc, handler)
+      continue
+    }
     if (short) cmd.option(name, desc, short)
     else cmd.option(name, desc)
+  }
+}
+
+function createGlobalFlagHandler(name: string): OptionHandler | undefined {
+  const enumValues = name === 'format'
+    ? ['json', 'yaml', 'md', 'toon']
+    : name === 'image-mode'
+      ? ['off', 'auto', 'on']
+      : undefined
+
+  if (!enumValues) return undefined
+
+  return (complete) => {
+    for (const value of enumValues) complete(value, '')
   }
 }
 

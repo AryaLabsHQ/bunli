@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "skipLibCheck": true,
+    "paths": {
+      "@bunli/core": ["./packages/core/src/index.ts"],
+      "@bunli/utils": ["./packages/utils/src/index.ts"]
+    }
+  },
+  "include": [
+    "packages/core/test/**/*.test-d.ts",
+    "packages/core/src/**/*.ts"
+  ],
+  "exclude": ["node_modules"]
+}

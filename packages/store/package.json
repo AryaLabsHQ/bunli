@@ -1,0 +1,60 @@
+{
+  "name": "@bunli/store",
+  "version": "0.0.1",
+  "description": "Typed file-backed persistence for Bunli CLI apps",
+  "type": "module",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "bun scripts/build.ts && bun run tsc",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "bun run build"
+  },
+  "keywords": [
+    "bunli",
+    "cli",
+    "store",
+    "config",
+    "persistence",
+    "xdg",
+    "typed"
+  ],
+  "author": "Arya Labs, Inc.",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AryaLabsHQ/bunli.git",
+    "directory": "packages/store"
+  },
+  "bugs": {
+    "url": "https://github.com/AryaLabsHQ/bunli/issues"
+  },
+  "homepage": "https://github.com/AryaLabsHQ/bunli#readme",
+  "dependencies": {
+    "@bunli/utils": "workspace:^",
+    "better-result": "catalog:"
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "typescript": "^5.8.3"
+  },
+  "peerDependencies": {
+    "bun": ">=1.3.7"
+  },
+  "engines": {
+    "bun": ">=1.0.0"
+  }
+}

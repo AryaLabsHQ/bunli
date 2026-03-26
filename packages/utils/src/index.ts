@@ -19,3 +19,6 @@ export { formatLog, log, type LogLevel, type LogOptions } from './log.js'
 
 export { validate, validateFields } from './validation.js'
 export { SchemaError, getDotPath } from '@standard-schema/utils'
+
+export { configDir, dataDir, stateDir, cacheDir } from './xdg.js'
+export type { PlatformEnv } from './xdg.js'

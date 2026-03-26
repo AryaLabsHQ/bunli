@@ -1,0 +1,8 @@
+export { skillsPlugin } from './plugin.js'
+export type { SkillsPluginOptions } from './plugin.js'
+export type { Agent } from './agents.js'
+export { builtinAgents, detectAgents } from './agents.js'
+export { generateSkillFile, generateCommandSkill } from './generate.js'
+export type { GenerateOptions } from './generate.js'
+export { syncSkills } from './sync.js'
+export type { SyncOptions, SyncResult, AgentInstall } from './sync.js'

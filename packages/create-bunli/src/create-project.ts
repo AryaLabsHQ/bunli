@@ -1,11 +1,42 @@
 import type { PromptApi, PromptSpinnerFactory } from '@bunli/core'
 import type { Colors } from '@bunli/utils'
 import { processTemplate, resolveTemplateSource, isLocalTemplate, getBundledTemplatePath } from './template-engine.js'
+import { runSteps, detectPackageManager } from './steps.js'
+import type { Step } from './steps.js'
 import type { CreateOptions } from './types.js'
 import { Result, TaggedError } from 'better-result'
 
 const toErrorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : String(error)
+
+function stepLabel(step: Step): { running: string; done: string; failed: string } {
+  switch (step.type) {
+    case 'install':
+      return {
+        running: 'Installing dependencies...',
+        done: 'Dependencies installed',
+        failed: 'Failed to install dependencies'
+      }
+    case 'git-init':
+      return {
+        running: 'Initializing git repository...',
+        done: 'Git repository initialized',
+        failed: 'Failed to initialize git repository'
+      }
+    case 'open-editor':
+      return {
+        running: 'Opening editor...',
+        done: 'Editor opened',
+        failed: 'Failed to open editor'
+      }
+    case 'command':
+      return {
+        running: `Running ${step.cmd}...`,
+        done: `Completed ${step.cmd}`,
+        failed: `Failed to run ${step.cmd}`
+      }
+  }
+}
 
 const tryAsync = <TValue, TError>(
   fn: () => Promise<TValue>,
@@ -121,46 +152,34 @@ export async function createProject(
 
   spin.succeed('Project structure created')
 
-  if (git) {
-    const gitSpin = spinner('Initializing git repository...')
-    gitSpin.start()
-
-    const gitInit = await shell`cd ${dir} && git init`.nothrow()
-    const gitAdd = await shell`cd ${dir} && git add .`.nothrow()
-    const gitCommit = await shell`cd ${dir} && git commit -m "feat: initialize ${name} CLI project with Bunli
-
-- Generated using create-bunli template
-- Includes basic CLI structure with commands directory
-- Configured with Bunli build system and TypeScript
-- Ready for development with bun run dev"`.nothrow()
-
-    if (gitInit.exitCode === 0 && gitAdd.exitCode === 0 && gitCommit.exitCode === 0) {
-      gitSpin.succeed('Git repository initialized')
-    } else {
-      gitSpin.fail('Failed to initialize git repository')
-      const output = [gitInit.stderr, gitAdd.stderr, gitCommit.stderr]
-        .map((value) => value.toString().trim())
-        .filter(Boolean)
-        .join('\n')
-      if (output) {
-        console.error(colors.dim(`  ${output}`))
-      }
-    }
-  }
+  // Build post-create steps from options
+  const postSteps: Step[] = []
 
   if (install) {
-    const installSpin = spinner('Installing dependencies...')
-    installSpin.start()
+    postSteps.push({ type: 'install' })
+  }
 
-    const installResult = await shell`cd ${dir} && bun install`.nothrow()
-    if (installResult.exitCode === 0) {
-      installSpin.succeed('Dependencies installed')
-    } else {
-      installSpin.fail('Failed to install dependencies')
-      console.error(colors.dim('  You can install them manually by running: bun install'))
-      const errorOutput = installResult.stderr.toString().trim()
-      if (errorOutput) {
-        console.error(colors.dim(`  ${errorOutput}`))
+  if (git) {
+    postSteps.push({
+      type: 'git-init',
+      commit: `feat: initialize ${name} CLI project with Bunli`
+    })
+  }
+
+  // Execute post-create steps with spinner feedback
+  for (const step of postSteps) {
+    const label = stepLabel(step)
+    const stepSpin = spinner(label.running)
+    stepSpin.start()
+
+    try {
+      await runSteps(dir, [step])
+      stepSpin.succeed(label.done)
+    } catch (error) {
+      stepSpin.fail(label.failed)
+      const message = error instanceof Error ? error.message : String(error)
+      if (message) {
+        console.error(colors.dim(`  ${message}`))
       }
     }
   }

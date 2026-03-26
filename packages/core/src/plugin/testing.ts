@@ -3,6 +3,7 @@
  */
 
 import type { BunliPlugin, CommandContext, PluginContext } from './types.js'
+import { ExecutionState } from './types.js'
 import type { BunliConfigInput, ResolvedConfig } from '../types.js'
 import { createLogger } from '../utils/logger.js'
 
@@ -23,7 +24,10 @@ export function createMockPluginContext(
     paths: {
       cwd: process.cwd(),
       home: process.env.HOME || '/tmp',
-      config: '/tmp/.config/bunli'
+      config: '/tmp/.config/bunli',
+      data: '/tmp/.local/share/bunli',
+      state: '/tmp/.local/state/bunli',
+      cache: '/tmp/.cache/bunli',
     }
   }
 }
@@ -58,6 +62,17 @@ export function createMockCommandContext<TStore = {}>(
   }
 }
 
+function createMockResultContext<TStore = {}>(
+  context: CommandContext<TStore>,
+  exitCode: number
+): CommandContext<TStore> & { exitCode: number } {
+  return Object.assign(
+    Object.create(Object.getPrototypeOf(context)),
+    context,
+    { exitCode }
+  ) as CommandContext<TStore> & { exitCode: number }
+}
+
 /**
  * Test plugin lifecycle hooks
  */
@@ -75,8 +90,19 @@ export async function testPluginHooks<TStore = {}>(
     setup?: any
     configResolved?: any
     beforeCommand?: any
+    preRun?: any
+    postRun?: any
     afterCommand?: any
   } = {}
+  const executionState = new ExecutionState()
+  const sharedHookContext = (plugin.preRun || plugin.postRun)
+    ? createMockCommandContext(
+        options.command || 'test',
+        options.args || [],
+        options.flags || {},
+        options.store || ({} as TStore)
+      )
+    : undefined
 
   // Test setup hook
   if (plugin.setup) {
@@ -154,6 +180,28 @@ export async function testPluginHooks<TStore = {}>(
     }
   }
 
+  // Test preRun hook
+  if (plugin.preRun) {
+    const context = sharedHookContext!
+    try {
+      await plugin.preRun(context, executionState)
+      results.preRun = { success: true, context, state: executionState }
+    } catch (error) {
+      results.preRun = { success: false, error }
+    }
+  }
+
+  // Test postRun hook
+  if (plugin.postRun) {
+    const context = sharedHookContext!
+    try {
+      await plugin.postRun(createMockResultContext(context, 0), executionState)
+      results.postRun = { success: true, context, state: executionState }
+    } catch (error) {
+      results.postRun = { success: false, error }
+    }
+  }
+
   // Test afterCommand hook
   if (plugin.afterCommand) {
     const context = createMockCommandContext(
@@ -163,7 +211,7 @@ export async function testPluginHooks<TStore = {}>(
       options.store || ({} as TStore)
     )
     try {
-      await plugin.afterCommand({ ...context, exitCode: 0 })
+      await plugin.afterCommand(createMockResultContext(context, 0))
       results.afterCommand = { success: true, context }
     } catch (error) {
       results.afterCommand = { success: false, error }
@@ -182,6 +230,8 @@ export function assertPluginBehavior(
     setupShouldSucceed?: boolean
     configResolvedShouldSucceed?: boolean
     beforeCommandShouldSucceed?: boolean
+    preRunShouldSucceed?: boolean
+    postRunShouldSucceed?: boolean
     afterCommandShouldSucceed?: boolean
   }
 ) {
@@ -205,6 +255,20 @@ export function assertPluginBehavior(
     const actual = results.beforeCommand?.success ?? false
     if (actual !== expectations.beforeCommandShouldSucceed) {
       assertions.push(`BeforeCommand hook ${actual ? 'succeeded' : 'failed'} but expected ${expectations.beforeCommandShouldSucceed ? 'success' : 'failure'}`)
+    }
+  }
+
+  if (expectations.preRunShouldSucceed !== undefined) {
+    const actual = results.preRun?.success ?? false
+    if (actual !== expectations.preRunShouldSucceed) {
+      assertions.push(`PreRun hook ${actual ? 'succeeded' : 'failed'} but expected ${expectations.preRunShouldSucceed ? 'success' : 'failure'}`)
+    }
+  }
+
+  if (expectations.postRunShouldSucceed !== undefined) {
+    const actual = results.postRun?.success ?? false
+    if (actual !== expectations.postRunShouldSucceed) {
+      assertions.push(`PostRun hook ${actual ? 'succeeded' : 'failed'} but expected ${expectations.postRunShouldSucceed ? 'success' : 'failure'}`)
     }
   }
 
