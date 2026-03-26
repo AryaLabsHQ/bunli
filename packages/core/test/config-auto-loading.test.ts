@@ -1,26 +1,25 @@
 import { describe, test, expect, beforeEach, afterEach } from 'bun:test'
 import { createCLI } from '../src/cli.js'
-import { loadConfig } from '../src/config-loader.js'
-import { writeFile, unlink } from 'fs/promises'
+import { ConfigNotFoundError, loadConfig } from '../src/config-loader.js'
+import { mkdtemp, writeFile, rm } from 'fs/promises'
 import { join } from 'path'
+import { tmpdir } from 'os'
 
 describe('Config Auto-Loading', () => {
   const originalCwd = process.cwd()
+  let testDir = ''
   
-  beforeEach(() => {
-    // Change to a temporary directory for testing
-    process.chdir('/tmp')
+  beforeEach(async () => {
+    testDir = await mkdtemp(join(tmpdir(), 'bunli-config-test-'))
+    process.chdir(testDir)
   })
   
   afterEach(async () => {
-    // Clean up test files
-    try {
-      await unlink('bunli.config.ts')
-    } catch {}
-    try {
-      await unlink('bunli.config.js')
-    } catch {}
     process.chdir(originalCwd)
+    if (testDir) {
+      await rm(testDir, { recursive: true, force: true })
+      testDir = ''
+    }
   })
 
   test('loadConfig loads from bunli.config.ts', async () => {
@@ -107,6 +106,10 @@ export default {
     }).toThrow(/No configuration file found/)
   })
 
+  test('createCLI throws ConfigNotFoundError when no config and no override', async () => {
+    await expect(createCLI()).rejects.toBeInstanceOf(ConfigNotFoundError)
+  })
+
   test('createCLI works with override when no config file', async () => {
     const cli = await createCLI({
       name: 'override-cli',
@@ -116,5 +119,36 @@ export default {
     })
     
     expect(cli).toBeDefined()
+  })
+
+  test('createCLI uses a complete override when on-disk config is broken', async () => {
+    const configContent = `
+throw new Error('boom from config')
+export default {}
+`
+    await writeFile('bunli.config.ts', configContent)
+
+    const cli = await createCLI({
+      name: 'override-cli',
+      version: '6.0.0',
+      description: 'Override wins',
+      plugins: []
+    })
+
+    expect(cli).toBeDefined()
+  })
+
+  test('createCLI still throws ConfigLoadError when override is incomplete and config is broken', async () => {
+    const configContent = `
+throw new Error('boom from config')
+export default {}
+`
+    await writeFile('bunli.config.ts', configContent)
+
+    await expect(async () => {
+      await createCLI({
+        name: 'partial-override'
+      })
+    }).toThrow(/Failed to load config/)
   })
 })
