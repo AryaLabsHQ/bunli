@@ -13,6 +13,7 @@ export async function parseArgs(
   commandName: string = 'unknown'
 ): Promise<ParsedArgs> {
   const flags: Record<string, unknown> = {}
+  const repeatableValues: Record<string, unknown[]> = {}
   const positional: string[] = []
   
   // Build lookup maps for short aliases
@@ -55,8 +56,15 @@ export async function parseArgs(
         value = args[++i]
       }
       
-      // Pass the value to the schema for validation
-      flags[name] = await validateOption(name, value ?? 'true', options[name]!.schema, commandName)
+      const option = options[name]
+      if (!option) continue
+
+      if (option.repeatable) {
+        if (!repeatableValues[name]) repeatableValues[name] = []
+        repeatableValues[name].push(value ?? 'true')
+      } else {
+        flags[name] = await validateOption(name, value ?? 'true', option.schema, commandName)
+      }
       
     } else if (arg.startsWith('-') && arg.length > 1) {
       // Short flag: -n or -n value
@@ -64,13 +72,21 @@ export async function parseArgs(
       const name = shortToName.get(short)
       
       if (name && options[name]) {
+        const option = options[name]
+        if (!option) continue
+
         // Get the next argument as value if available
         let value: string | undefined
         if (i + 1 < args.length && !args[i + 1]?.startsWith('-')) {
           value = args[++i]
         }
-        
-        flags[name] = await validateOption(name, value ?? 'true', options[name]!.schema, commandName)
+
+        if (option.repeatable) {
+          if (!repeatableValues[name]) repeatableValues[name] = []
+          repeatableValues[name].push(value ?? 'true')
+        } else {
+          flags[name] = await validateOption(name, value ?? 'true', option.schema, commandName)
+        }
       }
     } else {
       // Positional argument
@@ -81,6 +97,11 @@ export async function parseArgs(
   // Validate all options were provided (schemas handle their own defaults/required logic)
   // We run validation with undefined for options not provided on command line
   for (const [name, opt] of Object.entries(options)) {
+    if (opt.repeatable && name in repeatableValues) {
+      flags[name] = await validateOption(name, repeatableValues[name], opt.schema, commandName)
+      continue
+    }
+
     if (!(name in flags)) {
       flags[name] = await validateOption(name, undefined, opt.schema, commandName)
     }
