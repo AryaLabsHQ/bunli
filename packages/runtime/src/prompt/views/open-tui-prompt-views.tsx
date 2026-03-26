@@ -1,6 +1,8 @@
 /** @jsxImportSource @opentui/react */
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useKeyboard } from '@opentui/react'
+import type { KeyEvent, ScrollBoxRenderable, TextareaRenderable } from '@opentui/core'
+import Fuse from 'fuse.js'
 import { Menu } from '../../components/menu.js'
 import { createKeyMatcher } from '../../components/keymap.js'
 import {
@@ -24,6 +26,9 @@ interface TextPromptViewProps {
   placeholder?: string
   defaultValue?: string
   validate?: (value: string) => string | undefined
+  multiline?: boolean
+  charLimit?: number
+  height?: number
   inline?: boolean
   hint?: string
   resolve: PromptResolver<string>
@@ -34,12 +39,16 @@ export function TextPromptView({
   placeholder,
   defaultValue = '',
   validate,
+  multiline = false,
+  charLimit,
+  height,
   inline = false,
-  hint = 'Enter submit • Esc cancel',
+  hint,
   resolve
 }: TextPromptViewProps) {
   const [value, setValue] = useState(defaultValue)
   const valueRef = useRef(defaultValue)
+  const textareaRef = useRef<TextareaRenderable | null>(null)
   const [error, setError] = useState<string | undefined>()
 
   useCancelKey(() => resolve(OPEN_TUI_CANCEL))
@@ -52,6 +61,61 @@ export function TextPromptView({
       return
     }
     resolve(submittedValue)
+  }
+
+  useKeyboard((event) => {
+    if (!multiline) return
+    if (isCtrlCKeyboardEvent(event)) {
+      event.preventDefault?.()
+      event.stopPropagation?.()
+      emitInterruptSignal('textPrompt')
+      return
+    }
+    if (event.ctrl && (event.name === 'd' || event.name === 's')) {
+      event.preventDefault?.()
+      event.stopPropagation?.()
+      onSubmit(valueRef.current)
+    }
+  })
+
+  const helperText = hint ?? (multiline ? 'Ctrl+D submit • Esc cancel' : 'Enter submit • Esc cancel')
+
+  if (multiline) {
+    return (
+      <box style={{ flexDirection: 'column', gap: 1 }}>
+        <text content={`? ${message}`} />
+        <box border height={height ?? 7} style={{ borderColor: error ? '#ff6b6b' : '#8fa1b5' }}>
+          <textarea
+            ref={textareaRef}
+            initialValue={defaultValue}
+            placeholder={placeholder}
+            focused
+            onContentChange={() => {
+              let next = textareaRef.current?.plainText ?? ''
+              if (charLimit && next.length > charLimit) {
+                next = next.slice(0, charLimit)
+                textareaRef.current?.setText(next)
+              }
+              setValue(next)
+              valueRef.current = next
+              if (error) setError(undefined)
+            }}
+          />
+        </box>
+        <box style={{ flexDirection: 'row', gap: 2 }}>
+          {charLimit
+            ? (
+              <text
+                content={`${value.length}/${charLimit}`}
+                fg={value.length >= charLimit ? '#ffd166' : '#8fa1b5'}
+              />
+              )
+            : null}
+          <text content={helperText} fg='#8fa1b5' />
+        </box>
+        {error ? <text content={`ERR ${error}`} fg='#ff6b6b' /> : null}
+      </box>
+    )
   }
 
   return (
@@ -89,7 +153,7 @@ export function TextPromptView({
             />
           </>
           )}
-      {error ? <text content={`ERR ${error}`} fg='#ff6b6b' /> : <text content={hint} fg='#8fa1b5' />}
+      {error ? <text content={`ERR ${error}`} fg='#ff6b6b' /> : <text content={helperText} fg='#8fa1b5' />}
     </box>
   )
 }
@@ -97,11 +161,29 @@ export function TextPromptView({
 interface ConfirmPromptViewProps {
   message: string
   initialValue?: boolean
+  affirmativeLabel?: string
+  negativeLabel?: string
+  timeout?: number
   resolve: PromptResolver<boolean>
 }
 
-export function ConfirmPromptView({ message, initialValue = false, resolve }: ConfirmPromptViewProps) {
+export function ConfirmPromptView({
+  message,
+  initialValue = false,
+  affirmativeLabel = 'Yes',
+  negativeLabel = 'No',
+  timeout,
+  resolve
+}: ConfirmPromptViewProps) {
   useCancelKey(() => resolve(OPEN_TUI_CANCEL))
+
+  useEffect(() => {
+    if (typeof timeout !== 'number' || timeout <= 0) return
+    const timer = setTimeout(() => {
+      resolve(initialValue)
+    }, timeout * 1000)
+    return () => clearTimeout(timer)
+  }, [initialValue, resolve, timeout])
 
   return (
     <box style={{ flexDirection: 'column', gap: 1 }}>
@@ -111,8 +193,8 @@ export function ConfirmPromptView({ message, initialValue = false, resolve }: Co
         boxed={false}
         initialIndex={initialValue ? 0 : 1}
         items={[
-          { key: 'yes', label: 'Yes' },
-          { key: 'no', label: 'No' }
+          { key: 'yes', label: affirmativeLabel },
+          { key: 'no', label: negativeLabel }
         ]}
         onSelect={(key) => resolve(key === 'yes')}
         onKeyPress={(event) => {
@@ -144,7 +226,14 @@ export function ConfirmPromptView({ message, initialValue = false, resolve }: Co
           return false
         }}
       />
-      <text content='Up/Down or y/n • Enter submit • Esc cancel' fg='#8fa1b5' />
+      <text
+        content={
+          typeof timeout === 'number' && timeout > 0
+            ? `Up/Down or y/n • Enter submit • Esc cancel • ${timeout}s timeout`
+            : 'Up/Down or y/n • Enter submit • Esc cancel'
+        }
+        fg='#8fa1b5'
+      />
     </box>
   )
 }
@@ -234,6 +323,8 @@ interface MultiSelectPromptViewProps<T = string> {
   options: OpenTuiSelectOption<T>[]
   initialValues?: T[]
   required?: boolean
+  ordered?: boolean
+  height?: number
   resolve: PromptResolver<T[]>
 }
 
@@ -251,6 +342,8 @@ export function MultiSelectPromptView<T = string>({
   options,
   initialValues = [],
   required = false,
+  ordered = false,
+  height = 10,
   resolve
 }: MultiSelectPromptViewProps<T>) {
   const selectableValues = useMemo(
@@ -258,13 +351,15 @@ export function MultiSelectPromptView<T = string>({
     [options]
   )
 
-  const [selected, setSelected] = useState<Set<T>>(() => {
-    const next = new Set<T>()
+  const [selectedIndices, setSelectedIndices] = useState<number[]>(() => {
+    const next: number[] = []
     for (const value of initialValues) {
-      if (selectableValues.has(value)) next.add(value)
+      const index = options.findIndex((entry) => entry.value === value && selectableValues.has(value))
+      if (index >= 0) next.push(index)
     }
     return next
   })
+  const selectedSet = useMemo(() => new Set(selectedIndices), [selectedIndices])
 
   const [activeIndex, setActiveIndex] = useState(() => Math.max(0, options.findIndex((entry) => !entry.disabled)))
   const [error, setError] = useState<string | undefined>()
@@ -294,19 +389,36 @@ export function MultiSelectPromptView<T = string>({
     if (promptKeymap.match('toggle', event)) {
       const option = options[activeIndex]
       if (!option || option.disabled) return
-      setSelected((prev) => {
-        const next = new Set(prev)
-        if (next.has(option.value)) next.delete(option.value)
-        else next.add(option.value)
-        return next
+      setSelectedIndices((prev) => {
+        if (prev.includes(activeIndex)) {
+          return prev.filter((index) => index !== activeIndex)
+        }
+        return [...prev, activeIndex]
+      })
+      setError(undefined)
+      return
+    }
+
+    if (event.ctrl && event.name === 'a') {
+      setSelectedIndices((prev) => {
+        const enabledIndices = options
+          .map((entry, index) => (entry.disabled ? -1 : index))
+          .filter((index) => index >= 0)
+        const allSelected = enabledIndices.every((index) => prev.includes(index))
+        if (allSelected) return []
+        return enabledIndices
       })
       setError(undefined)
       return
     }
 
     if (promptKeymap.match('submit', event)) {
-      const values = options
-        .filter((entry) => !entry.disabled && selected.has(entry.value))
+      const indices = ordered
+        ? selectedIndices
+        : [...selectedIndices].sort((a, b) => a - b)
+      const values = indices
+        .map((index) => options[index])
+        .filter((entry): entry is OpenTuiSelectOption<T> => Boolean(entry) && !entry.disabled)
         .map((entry) => entry.value)
 
       if (required && values.length === 0) {
@@ -318,13 +430,17 @@ export function MultiSelectPromptView<T = string>({
     }
   })
 
+  const pageOffset = Math.max(0, Math.min(activeIndex - Math.floor(height / 2), Math.max(0, options.length - height)))
+  const visibleOptions = options.slice(pageOffset, pageOffset + height)
+
   return (
     <box style={{ flexDirection: 'column', gap: 1 }}>
       <text content={`? ${message}`} />
       <box style={{ flexDirection: 'column', gap: 0 }}>
-        {options.map((entry, index) => {
+        {visibleOptions.map((entry, visIndex) => {
+          const index = pageOffset + visIndex
           const focused = index === activeIndex
-          const picked = selected.has(entry.value)
+          const picked = selectedSet.has(index)
           const hint = entry.hint ? ` (${entry.hint})` : ''
           const disabled = entry.disabled ? ' [disabled]' : ''
           return (
@@ -336,7 +452,389 @@ export function MultiSelectPromptView<T = string>({
           )
         })}
       </box>
-      {error ? <text content={`ERR ${error}`} fg='#ff6b6b' /> : <text content='Space toggle • Enter submit • Esc cancel' fg='#8fa1b5' />}
+      {error
+        ? <text content={`ERR ${error}`} fg='#ff6b6b' />
+        : <text content='Space toggle • Ctrl+A all • Enter submit • Esc cancel' fg='#8fa1b5' />}
+    </box>
+  )
+}
+
+interface FilterPromptViewProps<T = string> {
+  message: string
+  options: OpenTuiSelectOption<T>[]
+  placeholder?: string
+  prompt?: string
+  multiple?: boolean
+  limit?: number
+  fuzzy?: boolean
+  reverse?: boolean
+  selectIfOne?: boolean
+  height?: number
+  resolve: PromptResolver<T | T[]>
+}
+
+interface FilterResult<T> {
+  item: OpenTuiSelectOption<T>
+  refIndex: number
+}
+
+const filterKeymap = createKeyMatcher({
+  up: ['up'],
+  down: ['down'],
+  toggle: ['tab'],
+  submit: ['enter']
+})
+
+export function FilterPromptView<T = string>({
+  message,
+  options,
+  placeholder = 'Type to filter...',
+  prompt = '> ',
+  multiple = false,
+  limit = 0,
+  fuzzy = true,
+  reverse = false,
+  selectIfOne = false,
+  height = 10,
+  resolve
+}: FilterPromptViewProps<T>) {
+  const [query, setQuery] = useState('')
+  const [cursorIndex, setCursorIndex] = useState(0)
+  const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set())
+  const fuse = useMemo(
+    () =>
+      new Fuse(options, {
+        keys: ['label'],
+        threshold: 0.3,
+        ignoreLocation: true
+      }),
+    [options]
+  )
+
+  const filtered: FilterResult<T>[] = useMemo(() => {
+    if (!query) {
+      return options.map((item, index) => ({ item, refIndex: index }))
+    }
+    if (fuzzy) {
+      return fuse.search(query).map((result) => ({ item: result.item, refIndex: result.refIndex }))
+    }
+    return options
+      .map((item, index) => ({ item, refIndex: index }))
+      .filter(({ item }) => item.label.toLowerCase().includes(query.toLowerCase()))
+  }, [fuse, fuzzy, options, query])
+
+  const orderedFiltered = useMemo(() => (reverse ? [...filtered].reverse() : filtered), [filtered, reverse])
+
+  useCancelKey(() => resolve(OPEN_TUI_CANCEL))
+
+  useEffect(() => {
+    setCursorIndex((prev) => {
+      if (orderedFiltered.length === 0) return 0
+      return Math.min(prev, orderedFiltered.length - 1)
+    })
+  }, [orderedFiltered.length])
+
+  useEffect(() => {
+    if (selectIfOne && orderedFiltered.length === 1 && query.length > 0) {
+      const onlyResult = orderedFiltered[0]
+      if (!onlyResult || onlyResult.item.disabled) return
+      if (multiple) resolve([onlyResult.item.value])
+      else resolve(onlyResult.item.value)
+    }
+  }, [multiple, orderedFiltered, query, resolve, selectIfOne])
+
+  useKeyboard((event) => {
+    if (filterKeymap.match('up', event)) {
+      setCursorIndex((prev) => {
+        if (orderedFiltered.length === 0) return 0
+        return (prev - 1 + orderedFiltered.length) % orderedFiltered.length
+      })
+      return
+    }
+
+    if (filterKeymap.match('down', event)) {
+      setCursorIndex((prev) => {
+        if (orderedFiltered.length === 0) return 0
+        return (prev + 1) % orderedFiltered.length
+      })
+      return
+    }
+
+    if (multiple && filterKeymap.match('toggle', event)) {
+      const result = orderedFiltered[cursorIndex]
+      if (!result || result.item.disabled) return
+      setSelectedIndices((prev) => {
+        const next = new Set(prev)
+        if (next.has(result.refIndex)) {
+          next.delete(result.refIndex)
+          return next
+        }
+        if (limit > 0 && next.size >= limit) return prev
+        next.add(result.refIndex)
+        return next
+      })
+      return
+    }
+
+    if (promptKeymap.match('submit', event)) {
+      if (multiple) {
+        const values = options
+          .filter((entry, index) => !entry.disabled && selectedIndices.has(index))
+          .map((entry) => entry.value)
+        resolve(values)
+        return
+      }
+
+      const result = orderedFiltered[cursorIndex]
+      if (result && !result.item.disabled) {
+        resolve(result.item.value)
+      }
+    }
+  })
+
+  const pageOffset = Math.max(0, Math.min(cursorIndex - Math.floor(height / 2), Math.max(0, orderedFiltered.length - height)))
+  const visibleResults = orderedFiltered.slice(pageOffset, pageOffset + height)
+
+  return (
+    <box style={{ flexDirection: 'column', gap: 1 }}>
+      <text content={`? ${message}`} />
+      <box style={{ flexDirection: 'row' }}>
+        <text content={prompt} />
+        <input value={query} placeholder={placeholder} focused onInput={setQuery} />
+      </box>
+      <box style={{ flexDirection: 'column', gap: 0 }}>
+        {visibleResults.map((result, visIndex) => {
+          const absoluteIndex = pageOffset + visIndex
+          const isCursor = absoluteIndex === cursorIndex
+          const isSelected = selectedIndices.has(result.refIndex)
+          const marker = multiple ? (isSelected ? '[x] ' : '[ ] ') : ''
+          const disabled = result.item.disabled ? ' [disabled]' : ''
+          return (
+            <text
+              key={`${result.item.label}:${result.refIndex}`}
+              content={`${isCursor ? '>' : ' '} ${marker}${result.item.label}${disabled}`}
+              fg={result.item.disabled ? '#8fa1b5' : isCursor ? '#6ac4ff' : '#f4f7fb'}
+            />
+          )
+        })}
+      </box>
+      <text
+        content={
+          multiple
+            ? `${orderedFiltered.length}/${options.length} • Tab toggle • Enter submit • Esc cancel`
+            : `${orderedFiltered.length}/${options.length} • Enter select • Esc cancel`
+        }
+        fg='#8fa1b5'
+      />
+    </box>
+  )
+}
+
+interface PagerPromptViewProps {
+  content: string
+  title?: string
+  showLineNumbers?: boolean
+  height?: number | `${number}%` | 'auto'
+  width?: number | `${number}%` | 'auto'
+  resolve: PromptResolver<void>
+}
+
+type PagerMode = 'normal' | 'search'
+
+const pagerKeymap = createKeyMatcher({
+  scrollDown: ['down', 'j'],
+  scrollUp: ['up', 'k'],
+  halfPageDown: ['d'],
+  halfPageUp: ['u'],
+  top: ['g', 'home'],
+  bottom: ['end'],
+  search: ['/'],
+  nextMatch: ['n'],
+  prevMatch: ['shift+n'],
+  quit: ['q', 'escape']
+})
+
+function padLineNumber(lineNum: number, totalLines: number): string {
+  return String(lineNum).padStart(String(totalLines).length, ' ')
+}
+
+function findMatchIndices(lines: string[], query: string): number[] {
+  if (!query) return []
+  const lowerQuery = query.toLowerCase()
+  const indices: number[] = []
+  for (let index = 0; index < lines.length; index += 1) {
+    if (lines[index]?.toLowerCase().includes(lowerQuery)) {
+      indices.push(index)
+    }
+  }
+  return indices
+}
+
+export function PagerPromptView({
+  content,
+  title,
+  showLineNumbers = false,
+  height,
+  width,
+  resolve
+}: PagerPromptViewProps) {
+  const scrollRef = useRef<ScrollBoxRenderable>(null)
+  const [mode, setMode] = useState<PagerMode>('normal')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [matchIndices, setMatchIndices] = useState<number[]>([])
+  const [currentMatchIndex, setCurrentMatchIndex] = useState(0)
+
+  const lines = useMemo(() => content.split('\n'), [content])
+
+  const scrollToLine = useCallback((lineIndex: number) => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = lineIndex
+    }
+  }, [])
+
+  const executeSearch = useCallback(() => {
+    const indices = findMatchIndices(lines, searchQuery)
+    setMatchIndices(indices)
+    setCurrentMatchIndex(0)
+    setMode('normal')
+    if (indices[0] !== undefined) {
+      scrollToLine(indices[0])
+    }
+  }, [lines, scrollToLine, searchQuery])
+
+  useKeyboard((event: KeyEvent) => {
+    if (isCtrlCKeyboardEvent(event)) {
+      event.preventDefault?.()
+      event.stopPropagation?.()
+      emitInterruptSignal('pager')
+      return
+    }
+
+    if (mode === 'search') {
+      if (isEscapeKeyboardEvent(event)) {
+        event.preventDefault?.()
+        event.stopPropagation?.()
+        setSearchQuery('')
+        setMode('normal')
+        return
+      }
+
+      if (event.name === 'return' || event.sequence === '\r' || event.sequence === '\n') {
+        event.preventDefault?.()
+        event.stopPropagation?.()
+        executeSearch()
+      }
+      return
+    }
+
+    if (pagerKeymap.match('scrollDown', event)) {
+      scrollToLine((scrollRef.current?.scrollTop ?? 0) + 1)
+      return
+    }
+
+    if (pagerKeymap.match('scrollUp', event)) {
+      scrollToLine(Math.max(0, (scrollRef.current?.scrollTop ?? 0) - 1))
+      return
+    }
+
+    if (event.ctrl && event.name === 'd') {
+      scrollToLine((scrollRef.current?.scrollTop ?? 0) + Math.max(1, Math.floor(lines.length / 4)))
+      return
+    }
+
+    if (event.ctrl && event.name === 'u') {
+      scrollToLine(Math.max(0, (scrollRef.current?.scrollTop ?? 0) - Math.max(1, Math.floor(lines.length / 4))))
+      return
+    }
+
+    if (pagerKeymap.match('halfPageDown', event) && !event.ctrl) {
+      scrollToLine((scrollRef.current?.scrollTop ?? 0) + Math.max(1, Math.floor(lines.length / 4)))
+      return
+    }
+
+    if (pagerKeymap.match('halfPageUp', event) && !event.ctrl) {
+      scrollToLine(Math.max(0, (scrollRef.current?.scrollTop ?? 0) - Math.max(1, Math.floor(lines.length / 4))))
+      return
+    }
+
+    if (pagerKeymap.match('top', event)) {
+      scrollToLine(0)
+      return
+    }
+
+    if ((event.name === 'g' && event.shift) || event.name === 'G' || pagerKeymap.match('bottom', event)) {
+      scrollToLine(Math.max(0, lines.length - 1))
+      return
+    }
+
+    if (pagerKeymap.match('search', event)) {
+      setMode('search')
+      setSearchQuery('')
+      return
+    }
+
+    if (pagerKeymap.match('nextMatch', event) && matchIndices.length > 0) {
+      const nextIndex = (currentMatchIndex + 1) % matchIndices.length
+      setCurrentMatchIndex(nextIndex)
+      scrollToLine(matchIndices[nextIndex] ?? 0)
+      return
+    }
+
+    if (pagerKeymap.match('prevMatch', event) && matchIndices.length > 0) {
+      const nextIndex = (currentMatchIndex - 1 + matchIndices.length) % matchIndices.length
+      setCurrentMatchIndex(nextIndex)
+      scrollToLine(matchIndices[nextIndex] ?? 0)
+      return
+    }
+
+    if (pagerKeymap.match('quit', event)) {
+      event.preventDefault?.()
+      event.stopPropagation?.()
+      resolve(undefined)
+    }
+  })
+
+  return (
+    <box border height={height} width={width} style={{ flexDirection: 'column' }}>
+      {title ? <text content={title} /> : null}
+      <scrollbox
+        ref={scrollRef}
+        flexGrow={1}
+        focused={mode === 'normal'}
+        scrollY
+        viewportOptions={{ width: '100%' }}
+        contentOptions={{ width: '100%' }}
+      >
+        {lines.map((line, index) => (
+          <text
+            key={index}
+            content={showLineNumbers ? `${padLineNumber(index + 1, lines.length)} ${line}` : line}
+            fg={matchIndices.includes(index) ? '#6ac4ff' : '#f4f7fb'}
+          />
+        ))}
+      </scrollbox>
+      {mode === 'search'
+        ? (
+          <box style={{ flexDirection: 'row' }}>
+            <text content='/' />
+            <input
+              value={searchQuery}
+              placeholder='Search...'
+              focused
+              onInput={setSearchQuery}
+              onSubmit={executeSearch}
+            />
+          </box>
+          )
+        : null}
+      <text
+        content={
+          matchIndices.length > 0
+            ? `Match ${currentMatchIndex + 1}/${matchIndices.length} • / search • n/N next/prev • q quit`
+            : '/ search • q quit'
+        }
+        fg='#8fa1b5'
+      />
     </box>
   )
 }

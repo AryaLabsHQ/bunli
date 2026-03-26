@@ -28,11 +28,17 @@ export { EmptyState } from '../components/empty-state.js'
 export { Toast } from '../components/toast.js'
 export { Modal } from '../components/modal.js'
 export { Tabs } from '../components/tabs.js'
+export { Confirm } from '../components/confirm.js'
 export { Menu } from '../components/menu.js'
 export { NavList, moveSelectableNavIndex } from '../components/nav-list.js'
 export { CommandPalette } from '../components/command-palette.js'
+export { Filter } from '../components/filter.js'
 export { DataTable } from '../components/data-table.js'
 export { SidebarLayout, resolveSidebarLayoutMode } from '../components/sidebar-layout.js'
+export { Spinner } from '../components/spinner.js'
+export { Choose } from '../components/choose.js'
+export { Pager } from '../components/pager.js'
+export { FilePicker } from '../components/file-picker.js'
 export {
   ThemeProvider,
   createTheme,
@@ -77,12 +83,15 @@ export type {
   ModalProps,
   TabsProps,
   TabItem,
+  ConfirmProps,
   MenuProps,
   MenuItem,
   NavListProps,
   NavListItem,
   CommandPaletteProps,
   CommandPaletteItem,
+  FilterProps,
+  FilterOption,
   DataTableProps,
   DataTableColumn,
   SidebarLayoutProps,
@@ -90,6 +99,9 @@ export type {
   SidebarLayoutResolvedMode,
   SidebarLayoutPane,
   SidebarLayoutPaneLabels,
+  SpinnerProps,
+  SpinnerVariant,
+  PagerProps,
   TuiTheme,
   TuiThemeInput,
   TuiThemeTokens,
@@ -108,7 +120,11 @@ export type {
   CheckboxSchemaField,
   KeyBinding,
   UseFormFieldOptions,
-  UseFormFieldResult
+  UseFormFieldResult,
+  ChooseProps,
+  ChooseOption,
+  FilePickerProps,
+  FilePickerEntry
 } from '../components/index.js'
 
 export interface ListProps {

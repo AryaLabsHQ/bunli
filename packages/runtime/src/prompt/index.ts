@@ -6,10 +6,12 @@ import { SchemaError } from '@standard-schema/utils'
 import { displayWidth, formatFixedWidth, padEndTo } from '../components/text-layout.js'
 import {
   createOpenTuiRendererSession,
+  runOpenTuiFilterPrompt,
   isOpenTuiCancel,
   type OpenTuiRendererSession,
   runOpenTuiConfirmPrompt,
   runOpenTuiMultiSelectPrompt,
+  runOpenTuiPagerPrompt,
   runOpenTuiSelectPrompt,
   runOpenTuiTextPrompt
 } from './runtime/open-tui-session.js'
@@ -27,10 +29,15 @@ export interface PromptOptions extends BasePromptOptions<string> {
   schema?: StandardSchemaV1
   placeholder?: string
   multiline?: boolean
+  charLimit?: number
+  height?: number
 }
 
 export interface ConfirmOptions extends BasePromptOptions<boolean> {
   default?: boolean
+  affirmativeLabel?: string
+  negativeLabel?: string
+  timeout?: number
 }
 
 export interface SelectOption<T = string> {
@@ -51,6 +58,27 @@ export interface MultiSelectOptions<T = string> extends BasePromptOptions<T[]> {
   min?: number
   max?: number
   initialValues?: T[]
+  ordered?: boolean
+  height?: number
+}
+
+export interface FilterOptions<T = string> extends BasePromptOptions<T | T[]> {
+  options: SelectOption<T>[]
+  placeholder?: string
+  prompt?: string
+  multiple?: boolean
+  limit?: number
+  fuzzy?: boolean
+  reverse?: boolean
+  selectIfOne?: boolean
+  height?: number
+}
+
+export interface PagerOptions {
+  title?: string
+  showLineNumbers?: boolean
+  height?: number | `${number}%` | 'auto'
+  width?: number | `${number}%` | 'auto'
 }
 
 export const CANCEL = Symbol.for('bunli:prompt_cancel')
@@ -1153,19 +1181,43 @@ interface PromptDriver {
     placeholder?: string
     defaultValue?: string
     validate?: (value: string) => string | undefined
+    multiline?: boolean
+    charLimit?: number
+    height?: number
   }): Promise<string | Cancel>
   password(args: {
     message: string
     validate?: (value: string) => string | undefined
   }): Promise<string | Cancel>
-  confirm(args: { message: string; initialValue?: boolean }): Promise<boolean | Cancel>
+  confirm(args: {
+    message: string
+    initialValue?: boolean
+    affirmativeLabel?: string
+    negativeLabel?: string
+    timeout?: number
+  }): Promise<boolean | Cancel>
   select<T>(args: { message: string; options: SelectOption<T>[]; initialValue?: T }): Promise<T | Cancel>
   multiselect<T>(args: {
     message: string
     options: SelectOption<T>[]
     initialValues?: T[]
     required?: boolean
+    ordered?: boolean
+    height?: number
   }): Promise<T[] | Cancel>
+  filter<T>(args: {
+    message: string
+    options: SelectOption<T>[]
+    placeholder?: string
+    prompt?: string
+    multiple?: boolean
+    limit?: number
+    fuzzy?: boolean
+    reverse?: boolean
+    selectIfOne?: boolean
+    height?: number
+  }): Promise<T | T[] | Cancel>
+  pager(args: PagerOptions & { content: string }): Promise<void>
   intro(message: string): void
   outro(message: string): void
   note(message: string, title?: string): void
@@ -1209,6 +1261,12 @@ function getGlobalOpenTuiSession(): OpenTuiRendererSession {
   registerGlobalOpenTuiSessionCleanup()
   globalOpenTuiSession ??= createOpenTuiRendererSession()
   return globalOpenTuiSession
+}
+
+function formatTextHistory(message: string, submitted: string, multiline = false): string {
+  if (!multiline) return `? ${message} ${submitted}`
+  const lineCount = submitted.length === 0 ? 0 : submitted.split('\n').length
+  return `? ${message} [${lineCount} line${lineCount === 1 ? '' : 's'}]`
 }
 
 function createOpenTuiRawSpinner(session: OpenTuiRendererSession, options?: RawSpinnerOptions): RawSpinner {
@@ -1301,7 +1359,10 @@ const defaultDriver: PromptDriver = {
       placeholder: args.placeholder,
       defaultValue: args.defaultValue,
       validate: args.validate,
-      formatHistoryLine: (submitted) => `? ${args.message} ${submitted}`
+      multiline: args.multiline,
+      charLimit: args.charLimit,
+      height: args.height,
+      formatHistoryLine: (submitted) => formatTextHistory(args.message, submitted, args.multiline)
     }, getGlobalOpenTuiSession())
     return isOpenTuiCancel(value) ? CANCEL : value
   },
@@ -1328,7 +1389,14 @@ const defaultDriver: PromptDriver = {
     const value = await runOpenTuiConfirmPrompt({
       message: args.message,
       initialValue: defaultYes,
-      formatHistoryLine: (submitted) => `? ${args.message} ${submitted ? 'Yes' : 'No'}`
+      affirmativeLabel: args.affirmativeLabel,
+      negativeLabel: args.negativeLabel,
+      timeout: args.timeout,
+      formatHistoryLine: (submitted) => {
+        const yesLabel = args.affirmativeLabel ?? 'Yes'
+        const noLabel = args.negativeLabel ?? 'No'
+        return `? ${args.message} ${submitted ? yesLabel : noLabel}`
+      }
     }, getGlobalOpenTuiSession())
     return isOpenTuiCancel(value) ? CANCEL : value
   },
@@ -1351,12 +1419,16 @@ const defaultDriver: PromptDriver = {
     options: SelectOption<T>[]
     initialValues?: T[]
     required?: boolean
+    ordered?: boolean
+    height?: number
   }): Promise<T[] | Cancel> {
     const value = await runOpenTuiMultiSelectPrompt<T>({
       message: args.message,
       options: args.options,
       initialValues: args.initialValues,
       required: args.required,
+      ordered: args.ordered,
+      height: args.height,
       formatHistoryLine: (submitted) => {
         const labels = args.options
           .filter((entry) => submitted.includes(entry.value))
@@ -1365,6 +1437,47 @@ const defaultDriver: PromptDriver = {
       }
     }, getGlobalOpenTuiSession())
     return isOpenTuiCancel(value) ? CANCEL : value
+  },
+
+  async filter<T>(args: {
+    message: string
+    options: SelectOption<T>[]
+    placeholder?: string
+    prompt?: string
+    multiple?: boolean
+    limit?: number
+    fuzzy?: boolean
+    reverse?: boolean
+    selectIfOne?: boolean
+    height?: number
+  }): Promise<T | T[] | Cancel> {
+    const value = await runOpenTuiFilterPrompt<T>({
+      message: args.message,
+      options: args.options,
+      placeholder: args.placeholder,
+      prompt: args.prompt,
+      multiple: args.multiple,
+      limit: args.limit,
+      fuzzy: args.fuzzy,
+      reverse: args.reverse,
+      selectIfOne: args.selectIfOne,
+      height: args.height,
+      formatHistoryLine: (submitted) => {
+        if (Array.isArray(submitted)) {
+          const labels = args.options
+            .filter((entry) => submitted.includes(entry.value))
+            .map((entry) => entry.label)
+          return `? ${args.message} ${labels.length > 0 ? labels.join(', ') : '(none)'}`
+        }
+        const selected = args.options.find((entry) => entry.value === submitted)
+        return `? ${args.message} ${selected?.label ?? String(submitted)}`
+      }
+    }, getGlobalOpenTuiSession())
+    return isOpenTuiCancel(value) ? CANCEL : value
+  },
+
+  async pager(args) {
+    await runOpenTuiPagerPrompt(args, getGlobalOpenTuiSession())
   },
 
   intro(message) {
@@ -1471,9 +1584,12 @@ export async function text<T = string>(message: string, options: PromptOptions =
       message,
       placeholder: options.placeholder,
       defaultValue: options.default,
+      multiline: options.multiline,
+      charLimit: options.charLimit,
+      height: options.height,
       validate: options.validate
         ? (v) => {
-            const input = (v ?? '').trim()
+            const input = options.multiline ? (v ?? '') : (v ?? '').trim()
             const res = options.validate?.(input)
             if (res === true) return undefined
             if (typeof res === 'string') return res
@@ -1484,7 +1600,7 @@ export async function text<T = string>(message: string, options: PromptOptions =
 
     if (isCancel(value)) cancelAndThrow()
 
-    const input = (value ?? '').trim()
+    const input = options.multiline ? (value ?? '') : (value ?? '').trim()
 
     if (options.schema) {
       try {
@@ -1540,7 +1656,10 @@ export async function confirm(message: string, options: ConfirmOptions = {}): Pr
 
   const value = await runtime.confirm({
     message,
-    initialValue: options.default
+    initialValue: options.default,
+    affirmativeLabel: options.affirmativeLabel,
+    negativeLabel: options.negativeLabel,
+    timeout: options.timeout
   })
 
   if (isCancel(value)) cancelAndThrow()
@@ -1570,7 +1689,9 @@ export async function multiselect<T = string>(message: string, options: MultiSel
       message,
       options: options.options,
       initialValues: options.initialValues,
-      required: (options.min ?? 0) > 0
+      required: (options.min ?? 0) > 0,
+      ordered: options.ordered,
+      height: options.height
     })
 
     if (isCancel(value)) cancelAndThrow()
@@ -1591,6 +1712,37 @@ export async function multiselect<T = string>(message: string, options: MultiSel
 
     return picked
   }
+}
+
+export async function filter<T = string>(message: string, options: FilterOptions<T>): Promise<T | T[]> {
+  const fallback = assertInteractiveOrFallback(options.mode, options.fallbackValue)
+  if (fallback !== undefined) return fallback
+
+  const value = await runtime.filter<T>({
+    message,
+    options: options.options,
+    placeholder: options.placeholder,
+    prompt: options.prompt,
+    multiple: options.multiple,
+    limit: options.limit,
+    fuzzy: options.fuzzy,
+    reverse: options.reverse,
+    selectIfOne: options.selectIfOne,
+    height: options.height
+  })
+
+  if (isCancel(value)) cancelAndThrow()
+  return value
+}
+
+export async function pager(content: string, options: PagerOptions = {}): Promise<void> {
+  await runtime.pager({
+    content,
+    title: options.title,
+    showLineNumbers: options.showLineNumbers,
+    height: options.height,
+    width: options.width
+  })
 }
 
 export async function group<T extends Record<string, () => Promise<unknown>>>(
@@ -1747,21 +1899,24 @@ export function createPromptSession(): PromptSession {
           message,
           placeholder: options.placeholder,
           defaultValue: options.default,
+          multiline: options.multiline,
+          charLimit: options.charLimit,
+          height: options.height,
           validate: options.validate
             ? (v) => {
-                const input = (v ?? '').trim()
+                const input = options.multiline ? (v ?? '') : (v ?? '').trim()
                 const res = options.validate?.(input)
                 if (res === true) return undefined
                 if (typeof res === 'string') return res
                 return 'Invalid input'
               }
             : undefined,
-          formatHistoryLine: (submitted) => `? ${message} ${submitted}`
+          formatHistoryLine: (submitted) => formatTextHistory(message, submitted, options.multiline)
         }, rendererSession)
 
         if (isOpenTuiCancel(value) || isCancel(value)) cancelAndThrow()
 
-        const input = (value ?? '').trim()
+        const input = options.multiline ? (value ?? '') : (value ?? '').trim()
 
         if (options.schema) {
           try {
@@ -1793,7 +1948,14 @@ export function createPromptSession(): PromptSession {
       const value = await runOpenTuiConfirmPrompt({
         message,
         initialValue: defaultYes,
-        formatHistoryLine: (submitted) => `? ${message} ${submitted ? 'Yes' : 'No'}`
+        affirmativeLabel: options.affirmativeLabel,
+        negativeLabel: options.negativeLabel,
+        timeout: options.timeout,
+        formatHistoryLine: (submitted) => {
+          const yesLabel = options.affirmativeLabel ?? 'Yes'
+          const noLabel = options.negativeLabel ?? 'No'
+          return `? ${message} ${submitted ? yesLabel : noLabel}`
+        }
       }, rendererSession)
 
       if (isOpenTuiCancel(value) || isCancel(value)) cancelAndThrow()
@@ -1832,6 +1994,8 @@ export function createPromptSession(): PromptSession {
           options: options.options,
           initialValues: options.initialValues,
           required: (options.min ?? 0) > 0,
+          ordered: options.ordered,
+          height: options.height,
           formatHistoryLine: (submitted) => {
             const labels = options.options
               .filter((entry) => submitted.includes(entry.value))
@@ -1858,6 +2022,51 @@ export function createPromptSession(): PromptSession {
 
         return picked
       }
+    })
+  }
+
+  const sessionFilter = async <T = string>(message: string, options: FilterOptions<T>): Promise<T | T[]> => {
+    return runQueued(async () => {
+      const fallback = assertInteractiveOrFallback(options.mode, options.fallbackValue)
+      if (fallback !== undefined) return fallback
+
+      const value = await runOpenTuiFilterPrompt<T>({
+        message,
+        options: options.options,
+        placeholder: options.placeholder,
+        prompt: options.prompt,
+        multiple: options.multiple,
+        limit: options.limit,
+        fuzzy: options.fuzzy,
+        reverse: options.reverse,
+        selectIfOne: options.selectIfOne,
+        height: options.height,
+        formatHistoryLine: (submitted) => {
+          if (Array.isArray(submitted)) {
+            const labels = options.options
+              .filter((entry) => submitted.includes(entry.value))
+              .map((entry) => entry.label)
+            return `? ${message} ${labels.length > 0 ? labels.join(', ') : '(none)'}`
+          }
+          const selected = options.options.find((entry) => entry.value === submitted)
+          return `? ${message} ${selected?.label ?? String(submitted)}`
+        }
+      }, rendererSession)
+
+      if (isOpenTuiCancel(value) || isCancel(value)) cancelAndThrow()
+      return value
+    })
+  }
+
+  const sessionPager = async (content: string, options: PagerOptions = {}): Promise<void> => {
+    return runQueued(async () => {
+      await runOpenTuiPagerPrompt({
+        content,
+        title: options.title,
+        showLineNumbers: options.showLineNumbers,
+        height: options.height,
+        width: options.width
+      }, rendererSession)
     })
   }
 
@@ -2048,6 +2257,8 @@ export function createPromptSession(): PromptSession {
     confirm: sessionConfirm,
     select: sessionSelect,
     multiselect: sessionMultiSelect,
+    filter: sessionFilter,
+    pager: sessionPager,
     password: sessionPassword,
     text: sessionText,
     group,
@@ -2085,6 +2296,8 @@ export interface PromptApi {
   password<T = string>(message: string, options?: PromptOptions): Promise<T>
   text(message: string, options?: PromptOptions): Promise<string>
   multiselect<T = string>(message: string, options: MultiSelectOptions<T>): Promise<T[]>
+  filter<T = string>(message: string, options: FilterOptions<T>): Promise<T | T[]>
+  pager(content: string, options?: PagerOptions): Promise<void>
   group<T extends Record<string, () => Promise<unknown>>>(steps: T): Promise<{ [K in keyof T]: Awaited<ReturnType<T[K]>> }>
   intro: typeof intro
   outro: typeof outro

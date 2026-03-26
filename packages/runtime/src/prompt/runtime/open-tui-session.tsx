@@ -9,7 +9,9 @@ import { debugInput, DEBUG_VERBOSE, formatDebugSequence, isCtrlCRawSequence, isE
 import { formatHistoryLineForStdout, historyLineColor, OpenTuiPromptShell } from './open-tui-history.js'
 import {
   ConfirmPromptView,
+  FilterPromptView,
   MultiSelectPromptView,
+  PagerPromptView,
   SelectPromptView,
   TextPromptView
 } from '../views/open-tui-prompt-views.js'
@@ -344,6 +346,9 @@ export async function runOpenTuiTextPrompt(args: {
   placeholder?: string
   defaultValue?: string
   validate?: (value: string) => string | undefined
+  multiline?: boolean
+  charLimit?: number
+  height?: number
   inline?: boolean
   hint?: string
   formatHistoryLine?: (value: string) => string | undefined
@@ -356,6 +361,9 @@ export async function runOpenTuiTextPrompt(args: {
         placeholder={args.placeholder}
         defaultValue={args.defaultValue}
         validate={args.validate}
+        multiline={args.multiline}
+        charLimit={args.charLimit}
+        height={args.height}
         inline={args.inline}
         hint={args.hint}
         resolve={resolve}
@@ -379,6 +387,9 @@ export const __openTuiSessionInternalsForTests = {
 export async function runOpenTuiConfirmPrompt(args: {
   message: string
   initialValue?: boolean
+  affirmativeLabel?: string
+  negativeLabel?: string
+  timeout?: number
   formatHistoryLine?: (value: boolean) => string | undefined
 }, session?: OpenTuiRendererSession): Promise<boolean | OpenTuiCancel> {
   return runOpenTuiPrompt({
@@ -387,6 +398,9 @@ export async function runOpenTuiConfirmPrompt(args: {
       <ConfirmPromptView
         message={args.message}
         initialValue={args.initialValue}
+        affirmativeLabel={args.affirmativeLabel}
+        negativeLabel={args.negativeLabel}
+        timeout={args.timeout}
         resolve={resolve}
       />
     )
@@ -417,6 +431,8 @@ export async function runOpenTuiMultiSelectPrompt<T>(args: {
   options: OpenTuiSelectOption<T>[]
   initialValues?: T[]
   required?: boolean
+  ordered?: boolean
+  height?: number
   formatHistoryLine?: (value: T[]) => string | undefined
 }, session?: OpenTuiRendererSession): Promise<T[] | OpenTuiCancel> {
   return runOpenTuiPrompt({
@@ -427,6 +443,62 @@ export async function runOpenTuiMultiSelectPrompt<T>(args: {
         options={args.options}
         initialValues={args.initialValues}
         required={args.required}
+        ordered={args.ordered}
+        height={args.height}
+        resolve={resolve}
+      />
+    )
+  }, session)
+}
+
+export async function runOpenTuiFilterPrompt<T>(args: {
+  message: string
+  options: OpenTuiSelectOption<T>[]
+  placeholder?: string
+  prompt?: string
+  multiple?: boolean
+  limit?: number
+  fuzzy?: boolean
+  reverse?: boolean
+  selectIfOne?: boolean
+  height?: number
+  formatHistoryLine?: (value: T | T[]) => string | undefined
+}, session?: OpenTuiRendererSession): Promise<T | T[] | OpenTuiCancel> {
+  return runOpenTuiPrompt({
+    formatHistoryLine: args.formatHistoryLine,
+    render: (resolve) => (
+      <FilterPromptView
+        message={args.message}
+        options={args.options}
+        placeholder={args.placeholder}
+        prompt={args.prompt}
+        multiple={args.multiple}
+        limit={args.limit}
+        fuzzy={args.fuzzy}
+        reverse={args.reverse}
+        selectIfOne={args.selectIfOne}
+        height={args.height}
+        resolve={resolve}
+      />
+    )
+  }, session)
+}
+
+export async function runOpenTuiPagerPrompt(args: {
+  content: string
+  title?: string
+  showLineNumbers?: boolean
+  height?: number | `${number}%` | 'auto'
+  width?: number | `${number}%` | 'auto'
+}, session?: OpenTuiRendererSession): Promise<void> {
+  await runOpenTuiPrompt<void>({
+    render: (resolve) => (
+      <PagerPromptView
+        content={args.content}
+        title={args.title}
+        showLineNumbers={args.showLineNumbers}
+        height={args.height}
+        width={args.width}
         resolve={resolve}
       />
     )
