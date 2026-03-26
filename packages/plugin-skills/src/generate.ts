@@ -12,16 +12,15 @@ export function generateSkillFile(
   const { description } = options
   const slug = cliName.replace(/\s+/g, '-')
 
-  // Build frontmatter
-  const fm: string[] = ['---', `name: ${slug}`]
-  if (description) fm.push(`description: ${description}`)
-  fm.push(`requires_bin: ${cliName}`)
-  fm.push(`command: ${cliName}`, '---')
+  const frontmatter = renderFrontmatter({
+    name: slug,
+    ...(description ? { description } : {})
+  })
 
   // Build body using manifest renderer
   const body = renderManifestFull(cliName, commands, description)
 
-  return `${fm.join('\n')}\n\n${body}\n`
+  return `${frontmatter}\n\n${body}\n`
 }
 
 /**
@@ -35,10 +34,10 @@ export function generateCommandSkill(
   const fullName = `${cliName} ${cmdName}`
   const slug = fullName.replace(/\s+/g, '-')
 
-  const fm: string[] = ['---', `name: ${slug}`]
-  if (cmd.description) fm.push(`description: ${cmd.description}`)
-  fm.push(`requires_bin: ${cliName}`)
-  fm.push(`command: ${fullName}`, '---')
+  const frontmatter = renderFrontmatter({
+    name: slug,
+    ...(cmd.description ? { description: cmd.description } : {})
+  })
 
   const sections: string[] = [`# ${fullName}`]
   if (cmd.description) sections.push('', cmd.description)
@@ -65,10 +64,29 @@ export function generateCommandSkill(
     )
   }
 
-  return `${fm.join('\n')}\n\n${sections.join('\n')}\n`
+  return `${frontmatter}\n\n${sections.join('\n')}\n`
 }
 
 export interface GenerateOptions {
   /** CLI description for the skill frontmatter. */
   description?: string
+}
+
+function renderFrontmatter(fields: Record<string, string>): string {
+  const lines = ['---']
+
+  for (const [key, value] of Object.entries(fields)) {
+    lines.push(`${key}: ${formatFrontmatterValue(key, value)}`)
+  }
+
+  lines.push('---')
+  return lines.join('\n')
+}
+
+function formatFrontmatterValue(key: string, value: string): string {
+  if (key === 'name' && /^[a-z0-9][a-z0-9-]*$/.test(value)) {
+    return value
+  }
+
+  return JSON.stringify(value)
 }
