@@ -1,26 +1,21 @@
 {
-  "extends": "../../tsconfig.base.json",
+  "$schema": "https://json.schemastore.org/tsconfig",
   "compilerOptions": {
-    "rootDir": "./",
-    "outDir": "./dist",
+    "target": "ESNext",
+    "lib": ["ESNext"],
+    "module": "Preserve",
+    "moduleDetection": "force",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
     "jsxImportSource": "@opentui/react",
-    "declaration": true,
-    "declarationMap": true,
-    "emitDeclarationOnly": true,
-    "declarationDir": "./dist",
+    "types": ["bun"],
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
     "paths": {
       "~commands/*": ["./.bunli/commands.gen.ts"]
     }
   },
-  "include": [
-    ".bunli/**/*.ts",
-    "**/*.ts",
-    "**/*.tsx"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "**/*.test.ts",
-    "**/*.spec.ts"
-  ]
+  "include": [".bunli/**/*.ts", "**/*.ts", "**/*.tsx"],
+  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.spec.ts"]
 }

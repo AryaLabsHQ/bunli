@@ -27,27 +27,28 @@
     }
   },
   "scripts": {
-    "build": "bun run scripts/build.ts",
+    "build": "bun run scripts/build.ts && tsgo",
     "test": "bun test",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsgo --noEmit"
   },
   "dependencies": {
     "@bunli/runtime": "workspace:^",
-    "@opentui/core": "^0.1.84",
-    "@opentui/react": "^0.1.84",
-    "@standard-schema/spec": "^1.1.0",
-    "@standard-schema/utils": "^0.3.0",
-    "debug": "^4.4.3"
+    "@opentui/core": "catalog:",
+    "@opentui/react": "catalog:",
+    "@standard-schema/spec": "catalog:",
+    "@standard-schema/utils": "catalog:",
+    "debug": "catalog:"
   },
   "devDependencies": {
+    "@tsconfig/bun": "catalog:",
     "@types/bun": "catalog:",
-    "@types/react": "19.2.14",
-    "react": "^19.2.4",
-    "typescript": "^5.8.3"
+    "@types/react": "catalog:",
+    "react": "catalog:",
+    "typescript": "catalog:"
   },
   "peerDependencies": {
-    "@opentui/core": "^0.1.75",
-    "react": "^19.2.4"
+    "@opentui/core": "catalog:",
+    "react": "catalog:"
   },
   "files": [
     "dist",

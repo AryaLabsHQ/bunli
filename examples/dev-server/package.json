@@ -9,17 +9,18 @@
     "build": "bunli build",
     "generate": "bunli generate",
     "start": "./dist/cli",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsgo --noEmit"
   },
   "dependencies": {
     "@bunli/core": "workspace:^",
     "@bunli/plugin-ai-detect": "workspace:^",
     "@bunli/plugin-config": "workspace:^",
-    "zod": "^4.3.6"
+    "zod": "catalog:"
   },
   "devDependencies": {
-    "@types/node": "24.10.1",
+    "@tsconfig/bun": "catalog:",
+    "@types/node": "catalog:",
     "bunli": "workspace:^",
-    "typescript": "^5.8.3"
+    "typescript": "catalog:"
   }
 }

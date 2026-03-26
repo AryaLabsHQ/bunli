@@ -28,14 +28,15 @@
   ],
   "scripts": {
     "build": "bun run scripts/build.ts",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsgo --noEmit",
     "test": "bun test"
   },
   "dependencies": {
     "@bunli/core": "workspace:^"
   },
   "devDependencies": {
+    "@tsconfig/bun": "catalog:",
     "@types/bun": "catalog:",
-    "typescript": "^5.8.3"
+    "typescript": "catalog:"
   }
 }

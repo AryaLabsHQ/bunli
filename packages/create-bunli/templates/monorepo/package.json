@@ -21,6 +21,7 @@
     "release": "turbo run build && changeset publish"
   },
   "devDependencies": {
+    "@tsconfig/bun": "catalog:",
     "@changesets/cli": "^2.27.0",
     "@types/bun": "latest",
     "turbo": "latest",

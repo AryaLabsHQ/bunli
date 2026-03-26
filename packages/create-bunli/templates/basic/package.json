@@ -12,12 +12,13 @@
     "dev": "bun run src/index.ts",
     "build": "bunli build",
     "test": "bun test",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsgo --noEmit"
   },
   "dependencies": {
     "@bunli/core": "latest"
   },
   "devDependencies": {
+    "@tsconfig/bun": "catalog:",
     "@bunli/test": "latest",
     "@types/bun": "latest",
     "bunli": "latest",

@@ -13,16 +13,17 @@
     "dist"
   ],
   "scripts": {
-    "build": "bun run scripts/build.ts && bun run tsc",
+    "build": "bun run scripts/build.ts && bun run tsgo",
     "test": "bun test",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsgo --noEmit"
   },
   "dependencies": {
     "@bunli/core": "workspace:^",
-    "better-result": "^2.7.0"
+    "better-result": "catalog:"
   },
   "devDependencies": {
-    "typescript": "^5.8.3"
+    "@tsconfig/bun": "catalog:",
+    "typescript": "catalog:"
   },
   "keywords": [
     "bunli",

@@ -14,9 +14,9 @@
     }
   },
   "scripts": {
-    "build": "bun scripts/build.ts && bun run tsc",
+    "build": "bun scripts/build.ts && bun run tsgo",
     "test": "bun test",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsgo --noEmit",
     "clean": "rm -rf dist"
   },
   "dependencies": {
@@ -25,6 +25,7 @@
     "zod": "^3.22.0"
   },
   "devDependencies": {
+    "@tsconfig/bun": "catalog:",
     "@bunli/test": "latest",
     "@types/bun": "latest",
     "typescript": "^5.0.0"

@@ -61,8 +61,12 @@ function matchesPrimitiveType(value: unknown, type: FieldDef['type']): boolean {
   return typeof value === type
 }
 
+function isArrayField(def: FieldDef): def is Extract<FieldDef, { array: true }> {
+  return 'array' in def && def.array === true
+}
+
 function matchesFieldType(value: unknown, def: FieldDef): boolean {
-  if (def.array === true) {
+  if (isArrayField(def)) {
     return Array.isArray(value) && value.every((item) => matchesPrimitiveType(item, def.type))
   }
 
@@ -70,7 +74,7 @@ function matchesFieldType(value: unknown, def: FieldDef): boolean {
 }
 
 function describeFieldType(def: FieldDef): string {
-  return def.array === true ? `${def.type}[]` : def.type
+  return isArrayField(def) ? `${def.type}[]` : def.type
 }
 
 export function createStore<const F extends FieldsDef>(
@@ -90,7 +94,7 @@ export function createStore<const F extends FieldsDef>(
       if (!(key in normalized)) continue
       const value = normalized[key]
 
-      if (def.array === true && Array.isArray(value)) {
+      if (isArrayField(def) && Array.isArray(value)) {
         normalized[key] = value.map((item) => coerceByType(item, def.type))
         continue
       }

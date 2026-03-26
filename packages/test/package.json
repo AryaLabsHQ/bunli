@@ -39,20 +39,21 @@
     "assertions"
   ],
   "scripts": {
-    "build": "bun scripts/build.ts && bun run tsc",
+    "build": "bun scripts/build.ts && bun run tsgo",
     "test": "bun test",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsgo --noEmit",
     "prepublishOnly": "bun run build"
   },
   "peerDependencies": {
-    "bun": ">=1.3.7"
+    "bun": ">=1.3.11"
   },
   "dependencies": {
     "@bunli/core": "workspace:^"
   },
   "devDependencies": {
+    "@tsconfig/bun": "catalog:",
     "@types/bun": "catalog:",
-    "typescript": "^5.8.3",
-    "zod": "^4.3.6"
+    "typescript": "catalog:",
+    "zod": "catalog:"
   }
 }
