@@ -12,8 +12,7 @@
     "typecheck": "bun run cf-typegen && tsgo --noEmit",
     "test": "bun test",
     "cf-typegen": "wrangler types --env-interface Env",
-    "deploy": "bun run build:production && wrangler deploy",
-    "postinstall": "bun run cf-typegen"
+    "deploy": "bun run build:production && wrangler deploy"
   },
   "dependencies": {
     "@base-ui/react": "^1.0.0",
