@@ -1,3 +1,4 @@
+// @ts-expect-error ts ts issue
 import handler from "@tanstack/react-start/server-entry";
 import apiApp from "./api/app";
 

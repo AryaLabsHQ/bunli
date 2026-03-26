@@ -29,9 +29,9 @@
     "README.md"
   ],
   "scripts": {
-    "build": "bun scripts/build.ts && bun run tsc",
+    "build": "bun scripts/build.ts && bun run tsgo",
     "test": "bun test",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsgo --noEmit",
     "prepublishOnly": "bun run build"
   },
   "keywords": [
@@ -58,9 +58,10 @@
   },
   "homepage": "https://github.com/AryaLabsHQ/bunli#readme",
   "devDependencies": {
+    "@tsconfig/bun": "catalog:",
     "@types/bun": "catalog:",
-    "@types/debug": "^4.1.12",
-    "typescript": "^5.8.3"
+    "@types/debug": "^4.1.13",
+    "typescript": "catalog:"
   },
   "engines": {
     "bun": ">=1.0.0"
@@ -68,10 +69,10 @@
   "dependencies": {
     "@bunli/runtime": "workspace:^",
     "@bunli/utils": "workspace:^",
-    "@standard-schema/spec": "^1.1.0",
-    "@standard-schema/utils": "^0.3.0",
+    "@standard-schema/spec": "catalog:",
+    "@standard-schema/utils": "catalog:",
     "better-result": "catalog:",
-    "debug": "^4.4.3",
-    "zod": "^4.3.6"
+    "debug": "catalog:",
+    "zod": "catalog:"
   }
 }

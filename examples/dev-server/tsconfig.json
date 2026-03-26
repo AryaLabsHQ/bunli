@@ -1,9 +1,9 @@
 {
-  "extends": "../../tsconfig.base.json",
+  "extends": "@tsconfig/bun/tsconfig.json",
   "compilerOptions": {
+    "types": ["bun"],
     "outDir": "./dist",
     "rootDir": "./",
-    "baseUrl": "./",
     "allowImportingTsExtensions": false,
     "paths": {
       "@/*": ["./*"],

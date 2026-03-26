@@ -13,7 +13,7 @@
     "dev": "bun run src/index.ts",
     "build": "bunli build",
     "test": "bun test",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsgo --noEmit",
     "clean": "rm -rf dist"
   },
   "dependencies": {
@@ -22,6 +22,7 @@
     "@{{name}}/utils": "workspace:^"
   },
   "devDependencies": {
+    "@tsconfig/bun": "catalog:",
     "@bunli/test": "latest",
     "@types/bun": "latest",
     "bunli": "latest",

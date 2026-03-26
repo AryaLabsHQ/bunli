@@ -39,11 +39,11 @@
   ],
   "scripts": {
     "dev": "bun run src/cli.ts",
-    "build": "bun run scripts/build.ts && bun run tsc",
+    "build": "bun run scripts/build.ts && bun run tsgo",
     "build:standalone": "bun run scripts/build.ts --compile",
     "build:binaries": "bun run scripts/release-binaries.ts",
     "test": "bun test",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsgo --noEmit",
     "prepublishOnly": "bun run build"
   },
   "dependencies": {
@@ -53,11 +53,12 @@
     "@bunli/tui": "workspace:^",
     "@bunli/utils": "workspace:^",
     "better-result": "catalog:",
-    "zod": "^4.3.6"
+    "zod": "catalog:"
   },
   "devDependencies": {
+    "@tsconfig/bun": "catalog:",
     "@bunli/test": "workspace:^",
     "@types/bun": "catalog:",
-    "typescript": "^5.8.3"
+    "typescript": "catalog:"
   }
 }
