@@ -7,11 +7,12 @@
     "playground": "bun scripts/copy-playground-assets.ts",
     "dev": "bun run playground && portless run --name bunli vite dev",
     "build": "bun run playground && vite build",
+    "build:production": "bun run playground && vite build --mode production",
     "preview": "vite preview",
     "typecheck": "bun run cf-typegen && tsgo --noEmit",
     "test": "bun test",
     "cf-typegen": "wrangler types --env-interface Env",
-    "deploy": "bun run build && bun scripts/deploy.ts",
+    "deploy": "bun run build:production && wrangler deploy",
     "postinstall": "bun run cf-typegen"
   },
   "dependencies": {
