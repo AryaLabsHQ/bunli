@@ -1,6 +1,6 @@
 {
   "name": "@bunli/store",
-  "version": "0.0.1",
+  "version": "0.0.0",
   "description": "Typed file-backed persistence for Bunli CLI apps",
   "type": "module",
   "module": "./dist/index.js",

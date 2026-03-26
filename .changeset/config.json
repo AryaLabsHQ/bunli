@@ -12,6 +12,7 @@
     "@bunli-examples/git-tool",
     "@bunli-examples/hello-world",
     "@bunli-examples/task-runner",
-    "@bunli/web"
+    "@bunli/web",
+    "tui-gallery"
   ]
 }
