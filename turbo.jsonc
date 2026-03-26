@@ -4,17 +4,19 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**"]
+      "outputs": ["dist/**"],
     },
     "typecheck": {
-      "dependsOn": ["^build", "^typecheck"]
+      "dependsOn": ["^build", "^typecheck"],
     },
     "dev": {
       "persistent": true,
-      "cache": false
+      "cache": false,
     },
     "generate": {
-      "outputs": [".bunli/**"]
-    }
-  }
+      "outputs": [".bunli/**"],
+    },
+    "lint": {},
+    "format": {},
+  },
 }
