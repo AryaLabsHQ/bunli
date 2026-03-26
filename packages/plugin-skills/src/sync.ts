@@ -41,6 +41,11 @@ interface SyncRuntime {
   dataHome(): string
 }
 
+interface SyncState {
+  hash: string
+  agentKey?: string
+}
+
 const defaultSyncRuntime: SyncRuntime = {
   homeDir: () => os.homedir(),
   dataHome: () => process.env.XDG_DATA_HOME || path.join(os.homedir(), '.local', 'share')
@@ -64,19 +69,20 @@ export async function syncSkills(
   } = options
   const canonicalBase = path.join(isGlobal ? runtime.homeDir() : cwd, '.agents', 'skills')
   const cacheKey = stalenessCacheKey(cliName, isGlobal, cwd, canonicalBase)
+  const skillName = cliName.replace(/\s+/g, '-')
+  const canonicalDir = path.join(canonicalBase, skillName)
+  const detected = options.agents ?? detectAgents(builtinAgents)
+  const agentKey = computeAgentKey(detected, canonicalDir, skillName, isGlobal, cwd)
 
   // Generate content and hash
   const content = generateSkillFile(cliName, commands, { description })
   const hash = createHash('sha256').update(content).digest('hex').slice(0, 16)
 
   // Check staleness
-  const prevHash = readHash(cacheKey, runtime)
-  if (!force && prevHash === hash) {
+  const prevState = readState(cacheKey, runtime)
+  if (!force && prevState?.hash === hash && prevState.agentKey === agentKey) {
     return { paths: [], agents: [], updated: false }
   }
-
-  const skillName = cliName.replace(/\s+/g, '-')
-  const canonicalDir = path.join(canonicalBase, skillName)
 
   // Write to canonical location
   await fsp.mkdir(canonicalDir, { recursive: true })
@@ -84,7 +90,6 @@ export async function syncSkills(
   const paths = [canonicalDir]
 
   // Create symlinks for non-universal agents
-  const detected = options.agents ?? detectAgents(builtinAgents)
   const agentInstalls: AgentInstall[] = []
 
   for (const agent of detected) {
@@ -113,7 +118,7 @@ export async function syncSkills(
   }
 
   // Write hash for staleness detection
-  writeHash(cacheKey, hash, runtime)
+  writeState(cacheKey, { hash, agentKey }, runtime)
 
   return { paths, agents: agentInstalls, updated: true }
 }
@@ -137,17 +142,39 @@ function hashPath(cacheKey: string, runtime: SyncRuntime): string {
   return path.join(dir, 'bunli', `${cacheKey}-skills.json`)
 }
 
-function writeHash(cacheKey: string, hash: string, runtime: SyncRuntime = defaultSyncRuntime) {
+function computeAgentKey(
+  agents: Agent[],
+  canonicalDir: string,
+  skillName: string,
+  isGlobal: boolean,
+  cwd: string
+): string {
+  const targets = agents
+    .map((agent) => isGlobal ? path.join(agent.globalSkillsDir, skillName) : path.join(cwd, agent.projectSkillsDir, skillName))
+    .filter((target) => target !== canonicalDir)
+    .sort()
+  return createHash('sha256').update(JSON.stringify(targets)).digest('hex').slice(0, 16)
+}
+
+function writeState(
+  cacheKey: string,
+  state: SyncState,
+  runtime: SyncRuntime = defaultSyncRuntime
+) {
   const file = hashPath(cacheKey, runtime)
   const dir = path.dirname(file)
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
-  fs.writeFileSync(file, JSON.stringify({ hash, at: new Date().toISOString() }) + '\n')
+  fs.writeFileSync(file, JSON.stringify({ ...state, at: new Date().toISOString() }) + '\n')
 }
 
-function readHash(cacheKey: string, runtime: SyncRuntime = defaultSyncRuntime): string | undefined {
+function readState(cacheKey: string, runtime: SyncRuntime = defaultSyncRuntime): SyncState | undefined {
   try {
     const data = JSON.parse(fs.readFileSync(hashPath(cacheKey, runtime), 'utf-8'))
-    return data.hash
+    if (typeof data?.hash !== 'string') return undefined
+    return {
+      hash: data.hash,
+      agentKey: typeof data.agentKey === 'string' ? data.agentKey : undefined
+    }
   } catch {
     return undefined
   }

@@ -36,7 +36,7 @@ export function renderFull(
   description?: string
 ): string {
   const sections: string[] = [`# ${cliName}`]
-  if (description) sections.push('', description)
+  if (description) sections.push(description)
 
   for (const [name, cmd] of getTopLevelCommands(commands)) {
     sections.push(...collectCommandSections(cliName, name, cmd))

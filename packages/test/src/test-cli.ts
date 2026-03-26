@@ -16,7 +16,7 @@ export interface TestCLIConfig {
   /** Environment variable overrides */
   env?: Record<string, string | undefined>
   /** Additional config overrides */
-  config?: Partial<BunliConfigInput>
+  config?: Omit<Partial<BunliConfigInput>, 'name' | 'version' | 'description' | 'plugins'>
 }
 
 export interface TestCLIRunResult {
@@ -84,13 +84,13 @@ export async function createTestCLI(config: TestCLIConfig = {}): Promise<TestCLI
     }
 
     try {
-      const cli = await createCLI({
+      const cli = await createCLI<typeof plugins>({
         name,
         version,
         description,
-        plugins: plugins as any,
+        plugins,
         ...configOverrides,
-      } as any)
+      })
 
       for (const cmd of commands) {
         cli.command(cmd)
@@ -229,10 +229,17 @@ export async function createTestCLI(config: TestCLIConfig = {}): Promise<TestCLI
       options?: Record<string, unknown>
     ): Promise<TestCLIRunResult> {
       return capturedRun((cli) => {
-        // Use the base overload: execute(commandName: string, args?: string[])
-        const exec = cli.execute.bind(cli) as (name: string, args?: string[], opts?: Record<string, unknown>) => Promise<void>
+        const exec = cli.execute.bind(cli) as {
+          (name: string): Promise<void>
+          (name: string, args: string[]): Promise<void>
+          (name: string, options: Record<string, unknown>): Promise<void>
+          (name: string, args: string[], options: Record<string, unknown>): Promise<void>
+        }
         if (args && options) {
           return exec(commandName, args, options)
+        }
+        if (options) {
+          return exec(commandName, options)
         }
         if (args) {
           return exec(commandName, args)

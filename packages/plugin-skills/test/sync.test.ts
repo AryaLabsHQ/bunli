@@ -119,3 +119,41 @@ test('syncSkills can sandbox global installs with an injected runtime home', asy
   expect(fs.existsSync(path.join(homeDir, '.agents', 'skills', 'demo-cli', 'SKILL.md'))).toBe(true)
   expect(fs.existsSync(path.join(agentRoot, '.custom-agent', 'skills', 'demo-cli', 'SKILL.md'))).toBe(true)
 })
+
+test('syncSkills reruns when the detected agent set changes', async () => {
+  const dataHome = makeTempDir('bunli-skills-agent-data-')
+  const homeDir = makeTempDir('bunli-skills-agent-home-')
+  const agentRoot = makeTempDir('bunli-skills-agent-root-')
+  const runtime = createRuntime(homeDir, dataHome)
+  const commands = createCommands()
+
+  const firstAgent: Agent = {
+    name: 'First Agent',
+    globalSkillsDir: path.join(agentRoot, '.first-agent', 'skills'),
+    projectSkillsDir: '.agents/skills',
+    universal: true,
+    detect: () => true
+  }
+
+  const secondAgent: Agent = {
+    name: 'Second Agent',
+    globalSkillsDir: path.join(agentRoot, '.second-agent', 'skills'),
+    projectSkillsDir: '.agents/skills',
+    universal: true,
+    detect: () => true
+  }
+
+  const first = await syncSkills('demo cli', commands, {
+    global: true,
+    agents: [firstAgent]
+  }, runtime)
+
+  const second = await syncSkills('demo cli', commands, {
+    global: true,
+    agents: [firstAgent, secondAgent]
+  }, runtime)
+
+  expect(first.updated).toBe(true)
+  expect(second.updated).toBe(true)
+  expect(fs.existsSync(path.join(agentRoot, '.second-agent', 'skills', 'demo-cli', 'SKILL.md'))).toBe(true)
+})

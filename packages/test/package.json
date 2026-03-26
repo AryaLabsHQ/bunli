@@ -52,6 +52,7 @@
   },
   "devDependencies": {
     "@types/bun": "catalog:",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "zod": "^4.3.6"
   }
 }

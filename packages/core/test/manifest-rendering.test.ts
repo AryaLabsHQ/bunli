@@ -50,4 +50,21 @@ describe('manifest rendering', () => {
     expect(manifest).toContain('## demo config profile')
     expect(manifest).toContain('## demo config profile set')
   })
+
+  test('uses a single blank line between the root heading and description in full manifests', () => {
+    const hello = defineCommand({
+      name: 'hello',
+      description: 'Say hello',
+      handler: async () => {}
+    })
+
+    const commands = new Map([
+      ['hello', hello]
+    ])
+
+    const manifest = renderManifestFull('demo', commands, 'CLI description')
+
+    expect(manifest).toContain('# demo\n\nCLI description\n\n## demo hello')
+    expect(manifest).not.toContain('# demo\n\n\n')
+  })
 })

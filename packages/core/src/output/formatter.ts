@@ -8,7 +8,7 @@ import type { OutputFormat } from './types.js'
 export function format(value: unknown, fmt: OutputFormat = 'toon'): string {
   if (value == null) return ''
   if (fmt === 'json') return JSON.stringify(value, null, 2)
-  if (fmt === 'yaml') return yamlStringify(value)
+  if (fmt === 'yaml') return yamlStringify(value).replace(/\n$/, '')
   if (fmt === 'md') return formatMarkdown(value)
   // toon
   if (isScalar(value)) return String(value)

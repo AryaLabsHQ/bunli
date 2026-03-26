@@ -50,9 +50,27 @@ function coerceByType(value: unknown, type: FieldDef['type']): unknown {
     return Number.isNaN(num) ? value : num
   }
   if (type === 'boolean' && typeof value === 'string') {
-    return value === 'true' || value === '1'
+    if (value === 'true' || value === '1') return true
+    if (value === 'false' || value === '0') return false
+    return value
   }
   return value
+}
+
+function matchesPrimitiveType(value: unknown, type: FieldDef['type']): boolean {
+  return typeof value === type
+}
+
+function matchesFieldType(value: unknown, def: FieldDef): boolean {
+  if (def.array === true) {
+    return Array.isArray(value) && value.every((item) => matchesPrimitiveType(item, def.type))
+  }
+
+  return matchesPrimitiveType(value, def.type)
+}
+
+function describeFieldType(def: FieldDef): string {
+  return def.array === true ? `${def.type}[]` : def.type
 }
 
 export function createStore<const F extends FieldsDef>(
@@ -89,9 +107,17 @@ export function createStore<const F extends FieldsDef>(
     const record = state as Record<string, unknown>
 
     for (const [key, def] of Object.entries(fields)) {
-      if (!def.validate) continue
       const value = record[key]
       if (value === undefined) continue
+
+      if (!matchesFieldType(value, def)) {
+        throw new StoreValidationError({
+          message: `Expected ${describeFieldType(def)} for "${key}"`,
+          field: key
+        })
+      }
+
+      if (!def.validate) continue
 
       try {
         await def.validate(value as never)

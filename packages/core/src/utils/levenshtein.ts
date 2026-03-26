@@ -26,6 +26,8 @@ export function levenshtein(a: string, b: string): number {
 }
 
 export function findSuggestion(input: string, candidates: string[]): string | undefined {
+  if (input.length === 0) return undefined
+
   let best: { name: string; distance: number } | undefined
 
   for (const candidate of candidates) {
