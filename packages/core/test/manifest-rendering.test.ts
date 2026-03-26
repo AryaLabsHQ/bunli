@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+import type { StandardSchemaV1 } from '../src/index.js'
 import { defineCommand, defineGroup, renderManifestFull, renderManifestIndex } from '../src/index.js'
 
 describe('manifest rendering', () => {
@@ -66,5 +67,31 @@ describe('manifest rendering', () => {
 
     expect(manifest).toContain('# demo\n\nCLI description\n\n## demo hello')
     expect(manifest).not.toContain('# demo\n\n\n')
+  })
+
+  test('falls back to unknown types for non-Zod standard schemas', () => {
+    const customSchema = {
+      '~standard': {
+        version: 1 as const,
+        vendor: 'custom',
+        validate: (value: unknown) => ({ value })
+      }
+    } as StandardSchemaV1
+
+    const custom = defineCommand({
+      name: 'custom',
+      description: 'Custom schema command',
+      options: {
+        input: {
+          schema: customSchema,
+          description: 'Input value'
+        }
+      },
+      handler: async () => {}
+    })
+
+    const manifest = renderManifestFull('demo', new Map([['custom', custom]]))
+
+    expect(manifest).toContain('| `--input` | `unknown` |  | Input value |')
   })
 })

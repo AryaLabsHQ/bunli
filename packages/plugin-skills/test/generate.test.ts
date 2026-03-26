@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test'
+import type { StandardSchemaV1 } from '@bunli/core'
 import { defineCommand } from '@bunli/core'
 import { generateCommandSkill, generateSkillFile } from '../src/generate.js'
 
@@ -37,4 +38,30 @@ test('generateCommandSkill emits YAML-safe description frontmatter', () => {
   expect(content).toContain('description: "Check \\"doctor\\": output"')
   expect(content).not.toContain('requires_bin:')
   expect(content).not.toContain('command:')
+})
+
+test('generateCommandSkill tolerates non-Zod standard schemas', () => {
+  const customSchema = {
+    '~standard': {
+      version: 1 as const,
+      vendor: 'custom',
+      validate: (value: unknown) => ({ value })
+    }
+  } as StandardSchemaV1
+
+  const command = defineCommand({
+    name: 'custom',
+    description: 'Custom schema command',
+    options: {
+      input: {
+        schema: customSchema,
+        description: 'Input value'
+      }
+    },
+    handler: async () => {}
+  })
+
+  const content = generateCommandSkill('demo cli', 'custom', command)
+
+  expect(content).toContain('| `--input` | `unknown` |  | Input value |')
 })

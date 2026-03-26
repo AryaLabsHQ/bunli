@@ -46,3 +46,17 @@ test('createStore still coerces recognized boolean string literals', async () =>
 
   await expect(store.read()).resolves.toEqual({ enabled: false })
 })
+
+test('createStore treats non-object persisted JSON as missing state', async () => {
+  const dir = makeTempDir('bunli-store-')
+  fs.writeFileSync(path.join(dir, 'config.json'), '42')
+
+  const store = createStore({
+    dirPath: dir,
+    fields: {
+      enabled: { type: 'boolean', default: true }
+    }
+  })
+
+  await expect(store.read()).resolves.toEqual({ enabled: true })
+})

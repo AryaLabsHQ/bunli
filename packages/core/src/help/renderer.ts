@@ -23,11 +23,17 @@ export function collectTopLevelCommands<TStore = {}>(
 ): Command<any, TStore>[] {
   const topLevel = new Set<Command<any, TStore>>()
   for (const [name, command] of commands) {
-    if (!name.includes(' ') && !command.alias?.includes(name)) {
+    if (!name.includes(' ') && !isAliasName(name, command)) {
       topLevel.add(command)
     }
   }
   return Array.from(topLevel)
+}
+
+function isAliasName<TStore>(name: string, command: Command<any, TStore>): boolean {
+  if (!command.alias) return false
+  const aliases = Array.isArray(command.alias) ? command.alias : [command.alias]
+  return aliases.includes(name)
 }
 
 /**

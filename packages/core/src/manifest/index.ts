@@ -100,7 +100,7 @@ function renderCommandFull(cliName: string, cmdName: string, cmd: Command<any, a
       const option = opt as CLIOption<any>
       const jsonSchema = toJsonSchema(option.schema)
       const type = resolveTypeName(jsonSchema)
-      const def = jsonSchema.default !== undefined ? String(jsonSchema.default) : ''
+      const def = jsonSchema && jsonSchema.default !== undefined ? String(jsonSchema.default) : ''
       const flag = option.short ? `--${key}, -${option.short}` : `--${key}`
       const desc = option.description ?? ''
       rows.push(`| \`${flag}\` | \`${type}\` | ${def ? `\`${def}\`` : ''} | ${desc} |`)

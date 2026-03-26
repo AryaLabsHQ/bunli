@@ -133,8 +133,14 @@ async function runOpenEditor(cwd: string): Promise<void> {
   }
 }
 
+export function getCommandSpawnArgs(cmd: string, platform: NodeJS.Platform = process.platform): string[] {
+  return platform === 'win32'
+    ? ['cmd', '/d', '/s', '/c', cmd]
+    : ['sh', '-c', cmd]
+}
+
 async function runCommand(cmd: string, cwd: string): Promise<void> {
-  const proc = Bun.spawn(['sh', '-c', cmd], {
+  const proc = Bun.spawn(getCommandSpawnArgs(cmd), {
     cwd,
     stdout: 'inherit',
     stderr: 'inherit',

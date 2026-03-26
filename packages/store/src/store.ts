@@ -17,6 +17,13 @@ function resolveStorePath(dirPath: string, name?: string): string {
   return join(dirPath, `${storeName}.json`)
 }
 
+function asPersistedRecord(value: unknown): Record<string, unknown> | undefined {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return undefined
+  }
+  return value as Record<string, unknown>
+}
+
 function applyFieldDefaults<F extends FieldsDef>(
   persisted: Record<string, unknown> | undefined,
   fields: F,
@@ -133,9 +140,9 @@ export function createStore<const F extends FieldsDef>(
   }
 
   async function readRaw(): Promise<InferStoreConfig<F>> {
-    const persisted = await readJson(filePath)
+    const persisted = asPersistedRecord(await readJson(filePath))
     const merged = applyFieldDefaults(
-      persisted as Record<string, unknown> | undefined,
+      persisted,
       fields,
       shouldPrune,
     )

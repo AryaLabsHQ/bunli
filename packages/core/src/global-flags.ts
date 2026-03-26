@@ -23,15 +23,6 @@ export const GLOBAL_FLAGS = {
     schema: z.enum(['json', 'yaml', 'md', 'toon']).optional(),
     description: 'Output format (json|yaml|md|toon)'
   },
-  verbose: {
-    schema: z.boolean().default(false),
-    description: 'Enable verbose output'
-  },
-  quiet: {
-    schema: z.boolean().default(false),
-    short: 'q',
-    description: 'Suppress non-essential output'
-  },
   llms: {
     schema: z.boolean().default(false),
     description: 'Print compact command manifest (Markdown)'
@@ -47,8 +38,6 @@ export type GlobalFlags = {
   version: boolean
   'image-mode'?: 'off' | 'auto' | 'on'
   format?: 'json' | 'yaml' | 'md' | 'toon'
-  verbose: boolean
-  quiet: boolean
   llms: boolean
   'llms-full': boolean
 }

@@ -4,6 +4,8 @@ import { completionsPlugin } from '../src/index.js'
 import { resolve } from 'node:path'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import type { CompletionsPluginOptions } from '../src/types.js'
+import { buildRegistry } from '../src/tab/registry.js'
+import type { GeneratedCommandMeta } from '@bunli/core'
 
 const EXAMPLE_DIR = resolve(import.meta.dir, '../../../examples/task-runner')
 const REPO_ROOT = resolve(import.meta.dir, '../../..')
@@ -119,6 +121,8 @@ describe('completions/complete command (Tab protocol)', () => {
     const output = cap.stdout()
     expect(output).toContain('--help')
     expect(output).toContain('--environment')
+    expect(output).not.toContain('--quiet')
+    expect(output).not.toContain('--verbose')
     const last = output.trim().split('\n').at(-1) ?? ''
     expect(last).toMatch(/^:\d+$/)
   })
@@ -139,6 +143,36 @@ describe('completions/complete command (Tab protocol)', () => {
     expect(output).toContain('production\t')
     const last = output.trim().split('\n').at(-1) ?? ''
     expect(last).toMatch(/^:\d+$/)
+  })
+
+  test('global enum flags are registered as value-taking options', () => {
+    const commands: GeneratedCommandMeta[] = [
+      {
+        name: 'deploy',
+        description: 'Deploy the app',
+        options: {}
+      }
+    ]
+
+    const root = buildRegistry(commands)
+    const deploy = root.commands.get('deploy')
+    const formatOption = deploy?.options.get('format')
+    const imageModeOption = deploy?.options.get('image-mode')
+
+    const formatValues: string[] = []
+    formatOption?.handler?.call(formatOption, (value) => {
+      formatValues.push(value)
+    }, deploy?.options ?? new Map())
+
+    const imageModeValues: string[] = []
+    imageModeOption?.handler?.call(imageModeOption, (value) => {
+      imageModeValues.push(value)
+    }, deploy?.options ?? new Map())
+
+    expect(formatOption?.isBoolean).toBe(false)
+    expect(formatValues).toEqual(['json', 'yaml', 'md', 'toon'])
+    expect(imageModeOption?.isBoolean).toBe(false)
+    expect(imageModeValues).toEqual(['off', 'auto', 'on'])
   })
 
   test('ends-with-space sentinel is preserved via runtime.args (trailing empty string)', async () => {

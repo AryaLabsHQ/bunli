@@ -83,6 +83,7 @@ export async function testPluginHooks<TStore = {}>(
     postRun?: any
     afterCommand?: any
   } = {}
+  const executionState = new ExecutionState()
 
   // Test setup hook
   if (plugin.setup) {
@@ -168,10 +169,9 @@ export async function testPluginHooks<TStore = {}>(
       options.flags || {},
       options.store || ({} as TStore)
     )
-    const state = new ExecutionState()
     try {
-      await plugin.preRun(context, state)
-      results.preRun = { success: true, context, state }
+      await plugin.preRun(context, executionState)
+      results.preRun = { success: true, context, state: executionState }
     } catch (error) {
       results.preRun = { success: false, error }
     }
@@ -185,10 +185,9 @@ export async function testPluginHooks<TStore = {}>(
       options.flags || {},
       options.store || ({} as TStore)
     )
-    const state = new ExecutionState()
     try {
-      await plugin.postRun({ ...context, exitCode: 0 }, state)
-      results.postRun = { success: true, context, state }
+      await plugin.postRun({ ...context, exitCode: 0 }, executionState)
+      results.postRun = { success: true, context, state: executionState }
     } catch (error) {
       results.postRun = { success: false, error }
     }

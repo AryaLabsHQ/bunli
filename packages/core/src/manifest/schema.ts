@@ -1,13 +1,20 @@
+import type { StandardSchemaV1 } from '../types.js'
 import { z } from 'zod'
 
 /**
- * Converts a StandardSchemaV1 (Zod v4) schema to a JSON Schema object.
- * Strips the `$schema` meta-property.
+ * Converts a Zod-backed StandardSchemaV1 to JSON Schema.
+ * Returns undefined for non-Zod schemas so manifest rendering can fall back to "unknown".
  */
-export function toJsonSchema(schema: z.ZodType): Record<string, unknown> {
+export function toJsonSchema(schema: StandardSchemaV1): Record<string, unknown> | undefined {
+  if (!isZodSchema(schema)) return undefined
+
   const result = z.toJSONSchema(schema) as Record<string, unknown>
   delete result.$schema
   return result
+}
+
+function isZodSchema(schema: StandardSchemaV1): schema is z.ZodType {
+  return typeof schema === 'object' && schema !== null && '_zod' in schema
 }
 
 /**
