@@ -23,13 +23,11 @@ export default defineCommand({
       } else {
         s.fail(flags.title)
       }
-      const stdout = result.stdout.toString().trim()
-      if (stdout) {
-        process.stdout.write(stdout + '\n')
+      if (result.stdout.length > 0) {
+        process.stdout.write(result.stdout)
       }
-      const stderr = result.stderr.toString().trim()
-      if (stderr) {
-        process.stderr.write(stderr + '\n')
+      if (result.stderr.length > 0) {
+        process.stderr.write(result.stderr)
       }
       process.exit(result.exitCode)
     } catch {

@@ -294,6 +294,7 @@
         "@standard-schema/utils": "catalog:",
         "better-result": "catalog:",
         "debug": "catalog:",
+        "fuse.js": "^7.1.0",
         "zod": "catalog:",
       },
       "devDependencies": {

@@ -111,6 +111,17 @@ describe('listDirectory', () => {
     expect(entries.length).toBe(2)
   })
 
+  test('hides directories when allowDirectories is false', () => {
+    const entries = listDirectory(testDir, {
+      showHidden: false,
+      allowFiles: true,
+      allowDirectories: false
+    })
+
+    expect(entries.every(e => !e.isDirectory)).toBe(true)
+    expect(entries.map(e => e.name)).toContain('readme.md')
+  })
+
   test('includes size and permissions in entries', () => {
     const entries = listDirectory(testDir, {
       showHidden: false,

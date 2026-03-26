@@ -57,8 +57,8 @@ export function FilePicker({
   const [showHidden, setShowHidden] = useState(initialShowHidden)
 
   const entries = useMemo(() => listDirectory(currentPath, {
-    showHidden, allowFiles, allowDirectories: true, fileExtensions
-  }), [currentPath, showHidden, fileExtensions, allowFiles])
+    showHidden, allowFiles, allowDirectories, fileExtensions
+  }), [currentPath, showHidden, fileExtensions, allowFiles, allowDirectories])
 
   const visibleEntries = useMemo(() => {
     return entries.slice(pageOffset, pageOffset + height)

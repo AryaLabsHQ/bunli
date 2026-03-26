@@ -4,7 +4,9 @@ import { displayWidth } from '../src/components/text-layout.js'
 import {
   text,
   confirm,
+  filter as promptFilter,
   multiselect,
+  pager as promptPager,
   password,
   select,
   log as promptLog,
@@ -33,6 +35,12 @@ describe('@bunli/runtime prompt adapters', () => {
     restoreRuntime = __setPromptRuntimeForTests({ password: async () => '  secret  ' as string })
     const value = await password('Password')
     expect(value).toBe('  secret  ')
+  })
+
+  test('multiline text preserves whitespace exactly', async () => {
+    restoreRuntime = __setPromptRuntimeForTests({ text: async () => '  line one\nline two  ' as string })
+    const value = await text('Write', { multiline: true })
+    expect(value).toBe('  line one\nline two  ')
   })
 
   test('password schema receives untrimmed input', async () => {
@@ -77,6 +85,56 @@ describe('@bunli/runtime prompt adapters', () => {
       { label: 'Option A', value: 'a', hint: 'first' },
       { label: 'Option B', value: 'b', disabled: true }
     ])
+  })
+
+  test('filter forwards placeholder and selection mode to the runtime', async () => {
+    let capturedArgs: unknown
+
+    restoreRuntime = __setPromptRuntimeForTests({
+      filter: async (args: unknown) => {
+        capturedArgs = args
+        return 'alpha'
+      }
+    })
+
+    const result = await promptFilter('Filter', {
+      options: [
+        { label: 'alpha', value: 'alpha' },
+        { label: 'beta', value: 'beta' }
+      ],
+      placeholder: 'Search...',
+      multiple: false,
+      height: 8
+    })
+
+    expect(result).toBe('alpha')
+    expect(capturedArgs).toMatchObject({
+      message: 'Filter',
+      placeholder: 'Search...',
+      multiple: false,
+      height: 8
+    })
+  })
+
+  test('pager forwards content and layout options to the runtime', async () => {
+    let capturedArgs: unknown
+
+    restoreRuntime = __setPromptRuntimeForTests({
+      pager: async (args: unknown) => {
+        capturedArgs = args
+      }
+    })
+
+    await promptPager('line one\nline two', {
+      title: 'Pager',
+      showLineNumbers: true
+    })
+
+    expect(capturedArgs).toMatchObject({
+      content: 'line one\nline two',
+      title: 'Pager',
+      showLineNumbers: true
+    })
   })
 
   test('multiselect retries until min/max constraints are satisfied', async () => {

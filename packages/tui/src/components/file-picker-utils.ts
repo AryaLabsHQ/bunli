@@ -29,7 +29,7 @@ export function listDirectory(dirPath: string, options: {
       .filter(entry => {
         if (!options.showHidden && entry.name.startsWith('.')) return false
 
-        if (entry.isDirectory()) return true
+        if (entry.isDirectory()) return options.allowDirectories
         if (!options.allowFiles) return false
 
         if (options.fileExtensions?.length) {

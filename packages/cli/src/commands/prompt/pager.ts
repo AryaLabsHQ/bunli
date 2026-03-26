@@ -8,7 +8,7 @@ export default defineCommand({
   options: {
     file: option(z.string().optional(), { short: 'f', description: 'File to display' }),
   },
-  async handler({ flags }) {
+  async handler({ flags, prompt }) {
     let content: string | undefined
 
     if (flags.file) {
@@ -30,9 +30,14 @@ export default defineCommand({
       process.exit(1)
     }
 
-    process.stdout.write(content)
-    if (!content.endsWith('\n')) {
-      process.stdout.write('\n')
+    if (!process.stdin.isTTY || !process.stdout.isTTY) {
+      process.stdout.write(content)
+      if (!content.endsWith('\n')) {
+        process.stdout.write('\n')
+      }
+      return
     }
+
+    await prompt.pager(content, { title: flags.file ?? 'Pager' })
   }
 })

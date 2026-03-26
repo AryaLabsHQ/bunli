@@ -17,6 +17,8 @@ export default defineCommand({
       default: flags.value,
       placeholder: flags.placeholder,
       multiline: true,
+      charLimit: flags['char-limit'],
+      height: flags.height,
     })
     writeStdout(result)
   }

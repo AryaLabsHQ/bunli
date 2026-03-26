@@ -27,6 +27,8 @@ export default defineCommand({
       const selected = await prompt.multiselect('Choose', {
         options,
         max: flags.limit,
+        ordered: flags.ordered,
+        height: flags.height,
       })
       writeStdoutLines(selected)
     } else {

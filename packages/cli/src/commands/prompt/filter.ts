@@ -1,5 +1,5 @@
 import { defineCommand, option } from '@bunli/core'
-import { readStdinLines, writeStdout } from '@bunli/utils'
+import { readStdinLines, writeStdout, writeStdoutLines } from '@bunli/utils'
 import { z } from 'zod'
 
 export default defineCommand({
@@ -10,7 +10,7 @@ export default defineCommand({
     limit: option(z.number().optional(), { description: 'Max selections' }),
     height: option(z.number().optional().default(10), { description: 'Visible items' }),
   },
-  async handler({ positional, prompt }) {
+  async handler({ flags, positional, prompt }) {
     let items = positional.length > 0 ? positional : []
     if (items.length === 0) {
       items = await readStdinLines()
@@ -21,7 +21,21 @@ export default defineCommand({
     }
 
     const options = items.map(item => ({ label: item, value: item }))
-    const selected = await prompt.select('Filter', { options })
+    const multiple = typeof flags.limit === 'number'
+    const selected = await prompt.filter('Filter', {
+      options,
+      placeholder: flags.placeholder,
+      multiple,
+      limit: flags.limit,
+      height: flags.height,
+      fuzzy: true
+    })
+
+    if (Array.isArray(selected)) {
+      writeStdoutLines(selected)
+      return
+    }
+
     writeStdout(selected)
   }
 })
