@@ -25,6 +25,8 @@
         "@bunli/core": "workspace:^",
         "@bunli/runtime": "workspace:^",
         "@bunli/tui": "workspace:^",
+        "@opentui/core": "catalog:",
+        "@opentui/react": "catalog:",
         "react": "catalog:",
         "zod": "catalog:",
       },
