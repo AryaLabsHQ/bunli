@@ -1,0 +1,115 @@
+---
+title: '@bunli/runtime'
+description: Runtime renderer and prompt primitives for Bunli TUI applications
+---
+
+## Overview
+
+`@bunli/runtime` provides terminal UI rendering capabilities and interactive prompt primitives for Bunli CLI applications. It is primarily used internally by `@bunli/tui` but also exports types and utilities used by command handlers.
+
+## Installation
+
+```bash
+bun add @bunli/runtime
+```
+
+<Callout type="info">
+  Most users won't directly use `@bunli/runtime`. The prompt API is available through the handler context's `prompt` property, and TUI components are provided by `@bunli/tui`.
+</Callout>
+
+## Subpath Exports
+
+The package has 8 subpath exports:
+
+| Export | Purpose |
+|--------|---------|
+| `@bunli/runtime` | Root - type re-exports only |
+| `@bunli/runtime/app` | React context providers (RuntimeProvider, RouteStore, CommandRegistry) |
+| `@bunli/runtime/renderer` | Prompt primitives (text, select, confirm, etc.) |
+| `@bunli/runtime/prompt` | Re-exports from renderer |
+| `@bunli/runtime/options` | TuiRenderOptions and OpenTuiRendererOptions |
+| `@bunli/runtime/events` | Runtime event schemas |
+| `@bunli/runtime/transport` | RuntimeTransport interface |
+| `@bunli/runtime/image` | Image capability detection and rendering |
+
+## Root Exports (Types Only)
+
+The root package only exports TypeScript types:
+
+```typescript
+import type {
+  OpenTuiRendererOptions,
+  TuiRenderOptions,
+  RuntimeTransport,
+  RuntimeTransportObserver,
+  RuntimeEvent,
+  RuntimeEventType
+} from '@bunli/runtime'
+```
+
+## Runtime Events
+
+Runtime events for telemetry and debugging:
+
+```typescript
+type RuntimeEvent =
+  | RuntimeRendererStartedEvent
+  | RuntimeRendererMissingRenderEvent
+  | RuntimeRendererDestroyedEvent
+  | RuntimeImageRenderAttemptEvent
+  | RuntimeImageRenderResultEvent
+  | RuntimePromptStartedEvent
+  | RuntimePromptCancelledEvent
+  | RuntimeTransportErrorEvent
+```
+
+## TUI Options
+
+```typescript
+interface TuiRenderOptions {
+  bufferMode?: 'alternate' | 'standard'
+  image?: {
+    mode?: 'off' | 'auto' | 'on'
+    protocol?: 'auto' | 'kitty'
+    width?: number
+    height?: number
+  }
+}
+```
+
+## Image Rendering
+
+Check terminal image capabilities:
+
+```typescript
+import { detectImageCapability, renderImage } from '@bunli/runtime/image'
+
+// Detect what image protocols the terminal supports
+const capability = detectImageCapability()
+// { supports: true, protocol: 'kitty' }
+
+// Render an image
+const result = await renderImage(imageData, {
+  protocol: 'auto',
+  width: 800
+})
+```
+
+## Transport
+
+Custom transport for runtime events:
+
+```typescript
+interface RuntimeTransport {
+  send(event: RuntimeEvent): void | Promise<void>
+}
+
+interface RuntimeTransportObserver {
+  onTransportError?(error: Error): void
+}
+```
+
+## See Also
+
+- [@bunli/tui](/docs/packages/tui) - Full TUI component library
+- [TUI Gallery](/docs/guides/tui-gallery) - Runnable component examples

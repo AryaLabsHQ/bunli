@@ -11,7 +11,7 @@ bun add @bunli/plugin-completions
 
 ## Features
 
-- 🐚 **Multi-shell support**: Generate completions for Bash, Zsh, and Fish
+- 🐚 **Multi-shell support**: Generate completions for Bash, Zsh, Fish, and PowerShell
 - 🎯 **Type-aware**: Leverages command metadata from Bunli's type generation
 - 📋 **Enum completions**: Automatically completes enum option values
 - ⚡ **Zero configuration**: Works out of the box with your existing commands
@@ -60,6 +60,7 @@ The plugin adds a `completions` command to your CLI:
 my-cli completions --shell bash
 my-cli completions --shell zsh
 my-cli completions --shell fish
+my-cli completions --shell powershell
 
 # Save to file
 my-cli completions --shell bash --output completions.sh
@@ -72,7 +73,7 @@ my-cli completions -s fish -o my-cli.fish
 ### Required Options
 
 - `--shell, -s <shell>`: Target shell for completion generation
-  - Values: `bash`, `zsh`, `fish`
+  - Values: `bash`, `zsh`, `fish`, `powershell`
 
 ### Optional Options
 
@@ -291,12 +292,55 @@ my-cli serve -w -o           # Short flags work too
 
 ```typescript
 interface CompletionsPluginOptions {
-  // Currently no configuration options
-  // Reserved for future features like:
-  // - Custom completion handlers
-  // - Additional shell support
-  // - Completion behavior customization
+  /**
+   * Path to Bunli-generated command metadata.
+   * Default: ".bunli/commands.gen.ts" (relative to process.cwd()).
+   */
+  generatedPath?: string
+
+  /**
+   * Name registered with the shell completion script (usually the package.json bin key).
+   */
+  commandName?: string
+
+  /**
+   * Executable invocation used by shell scripts (can include args, e.g. "bunx my-cli").
+   * Default: commandName.
+   */
+  executable?: string
+
+  /**
+   * Whether to register command aliases from generated metadata.
+   * Default: true.
+   */
+  includeAliases?: boolean
+
+  /**
+   * Whether to include Bunli global flags on every command.
+   * Default: true.
+   */
+  includeGlobalFlags?: boolean
 }
+```
+
+## Shell Types
+
+The plugin supports four shells:
+
+### PowerShell Completions
+
+**User profile:**
+```bash
+my-cli completions --shell powershell >> $PROFILE
+# Reload profile:
+. $PROFILE
+```
+
+**Or save to a file:**
+```bash
+my-cli completions --shell powershell > ~/Documents/PowerShell/my-cli_completions.ps1
+# Add to $PROFILE:
+. ~/Documents/PowerShell/my-cli_completions.ps1
 ```
 
 ## Best Practices

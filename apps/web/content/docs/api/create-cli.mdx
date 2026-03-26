@@ -10,29 +10,57 @@ Creates a new CLI instance with automatic configuration loading from `bunli.conf
 ## Syntax
 
 ```typescript
-function createCLI(configOverride?: Partial<BunliConfig>): Promise<CLI>
+function createCLI<TPlugins extends readonly BunliPlugin[] = []>(
+  configOverride?: BunliConfigInput & {
+    plugins?: TPlugins
+    generated?: string | boolean
+  },
+  runtimeDeps?: CreateCLIRuntimeDeps
+): Promise<CLI<MergeStores<TPlugins>>>
 ```
+
+## Type Parameters
+
+### TPlugins
+
+An array of typed plugin instances. When provided, the CLI's type signature includes the merged store type from all plugins, enabling full type safety for `context.store` in handlers.
 
 ## Parameters
 
 ### configOverride (optional)
 
-Override specific configuration values. If not provided, `createCLI` automatically loads configuration from `bunli.config.ts`.
+Override specific configuration values or provide configuration inline.
 
 ```typescript
-interface BunliConfig {
+interface BunliConfigInput {
   name?: string
   version?: string
   description?: string
   commands?: {
-    entry?: string
+    entry?: string | string[]
     directory?: string
+    generateReport?: boolean
   }
-  plugins?: PluginConfig[]
+  plugins?: BunliPlugin[]
   build?: BuildConfig
   dev?: DevConfig
   test?: TestConfig
-  // ... other config options
+  release?: ReleaseConfig
+  tui?: {
+    renderer?: {
+      bufferMode?: 'alternate' | 'standard'
+    }
+    image?: {
+      mode?: 'off' | 'auto' | 'on'
+      protocol?: 'auto' | 'kitty'
+      width?: number
+      height?: number
+    }
+  }
+  help?: {
+    renderer?: HelpRenderer
+  }
+  generated?: string | boolean
 }
 ```
 
@@ -45,10 +73,26 @@ interface BunliConfig {
 A `CLI` instance with the following methods:
 
 ```typescript
-interface CLI {
-  command(cmd: Command): void
+interface CLI<TStore = unknown> {
+  // Register a command
+  command<TCommandStore>(cmd: Command<TCommandStore>): void
+
+  // Initialize the CLI (no-op, kept for lifecycle symmetry)
   init(): Promise<void>
+
+  // Run the CLI with arguments
   run(argv?: string[]): Promise<void>
+
+  // Execute a named command programmatically
+  execute(
+    commandName: string,
+    options?: Record<string, unknown>
+  ): Promise<void>
+  execute(
+    commandName: string,
+    args?: string[],
+    options?: Record<string, unknown>
+  ): Promise<void>
 }
 ```
 
@@ -61,17 +105,11 @@ With automatic config loading from `bunli.config.ts`:
 ```typescript
 // cli.ts
 import { createCLI } from '@bunli/core'
+import greetCommand from './commands/greet.js'
 
 const cli = await createCLI()
 
-// Add commands
-cli.command({
-  name: 'hello',
-  description: 'Say hello',
-  handler: async () => {
-    console.log('Hello, World!')
-  }
-})
+cli.command(greetCommand)
 
 await cli.run()
 ```
@@ -85,6 +123,25 @@ export default defineConfig({
   version: '1.0.0',
   description: 'My awesome CLI tool'
 })
+```
+
+### With Typed Plugins
+
+When using plugins, pass them as a const tuple to get full type safety:
+
+```typescript
+import { createCLI } from '@bunli/core'
+import { aiAgentPlugin } from '@bunli/plugin-ai-detect'
+import { configMergerPlugin } from '@bunli/plugin-config'
+
+const cli = await createCLI({
+  plugins: [
+    aiAgentPlugin(),
+    configMergerPlugin({ sources: ['.myrc.json'] })
+  ] as const
+})
+
+// Handlers now have typed access to plugin stores via context.store
 ```
 
 ### With Explicit Registration
@@ -105,111 +162,25 @@ cli.command(deploy)
 await cli.run()
 ```
 
-```typescript
-// bunli.config.ts
-import { defineConfig } from '@bunli/core'
+### Programmatic Execution
 
-export default defineConfig({
-  name: 'my-cli',
-  version: '1.0.0',
-  description: 'My CLI with explicit command registration',
-  commands: {
-    entry: './cli.ts',
-    directory: './commands'
-  }
-})
-```
-
-### With Runtime Plugin Configuration
-
-For plugins that need runtime-specific options:
+Use `execute()` to run commands from code without going through the CLI argv parsing:
 
 ```typescript
-// cli.ts
-import { createCLI } from '@bunli/core'
-import { configMergerPlugin } from '@bunli/plugin-config'
-import { aiAgentPlugin } from '@bunli/plugin-ai-detect'
-
 const cli = await createCLI({
-  plugins: [
-    configMergerPlugin({ sources: ['.myrc.json'] }),
-    aiAgentPlugin({ verbose: true })
-  ] as const
+  plugins: [myPlugin] as const
 })
 
-await cli.run()
-```
+cli.command(myCommand)
 
-```typescript
-// bunli.config.ts
-import { defineConfig } from '@bunli/core'
+// Execute with options directly
+await cli.execute('my-command', { flag: 'value' })
 
-export default defineConfig({
-  name: 'my-cli',
-  version: '1.0.0',
-  description: 'My CLI with plugins',
-  // Plugins configured in cli.ts for runtime options
-  commands: {
-    directory: './commands'
-  }
-})
-```
+// Execute with args and options
+await cli.execute('deploy', ['--env', 'production'], { verbose: true })
 
-### Legacy: Explicit Configuration
-
-You can still provide full configuration explicitly:
-
-```typescript
-import { createCLI } from '@bunli/core'
-
-const cli = await createCLI({
-  name: 'my-cli',
-  version: '1.0.0',
-  description: 'My awesome CLI tool',
-  plugins: []
-})
-
-await cli.run()
-```
-
-<Callout type="warning">
-  **Deprecated**: Explicit configuration is still supported but not recommended. Use `bunli.config.ts` for better maintainability and consistency with the Bunli CLI toolchain.
-</Callout>
-
-## CLI Methods
-
-### command(cmd)
-
-Add a command to the CLI.
-
-```typescript
-cli.command({
-  name: 'build',
-  description: 'Build the project',
-  handler: async () => {
-    // Command implementation
-  }
-})
-```
-
-### init()
-
-Initialize the CLI.
-
-```typescript
-await cli.init()
-```
-
-### run(argv?)
-
-Run the CLI with the given arguments. If no arguments are provided, uses `process.argv.slice(2)`.
-
-```typescript
-// Use process arguments
-await cli.run()
-
-// Use custom arguments
-await cli.run(['build', '--watch'])
+// Nested commands use slash syntax
+await cli.execute('git/push', { remote: 'origin', branch: 'main' })
 ```
 
 ## Automatic Features
@@ -224,6 +195,8 @@ When you create a CLI with `createCLI`, you get:
 - **Alias support** - Commands can have shortcuts
 - **Plugin system** - Extend functionality with type-safe plugins
 - **Type-safe context** - Plugin stores are fully typed in commands
+- **TUI rendering** - Commands with `render:` show interactive views
+- **Format flags** - `--format json|yaml|toon` for structured output
 
 ## Help Output
 
@@ -247,6 +220,11 @@ Unknown commands show helpful messages:
 ```bash
 $ my-cli unknown
 Unknown command: unknown
+
+Did you mean 'unix'?
+
+Available commands:
+  build   deploy   hello   test
 ```
 
 <Callout type="tip">

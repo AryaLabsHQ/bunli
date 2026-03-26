@@ -1,48 +1,126 @@
 ---
 title: Hello World CLI
-description: The simplest possible CLI with Bunli
+description: A minimal TUI-based CLI with Bunli
 ---
 
 ## Complete Example
 
+This example demonstrates a TUI-based CLI using React components for rendering.
+
 ```typescript
 // cli.ts
 #!/usr/bin/env bun
-import { createCLI, defineCommand, option } from '@bunli/core'
-import { z } from 'zod'
+import { createCLI } from '@bunli/core'
+import greetCommand from './commands/greet.js'
 
-const cli = await createCLI({
-  name: 'hello-world',
-  version: '1.0.0',
-  description: 'Hello World - Simplest possible Bunli CLI'
-})
+const cli = await createCLI()
 
-cli.command(defineCommand({
-  name: 'greet',
-  description: 'Say hello to someone',
-  options: {
-    name: option(
-      z.string().default('World'),
-      { 
-        description: 'Name to greet',
-        short: 'n'
-      }
-    )
-  },
-  handler: async ({ flags, colors }) => {
-    console.log(colors.green(`Hello, ${flags.name}!`))
-  }
-}))
-
+cli.command(greetCommand)
 await cli.run()
 ```
 
-That's it! This creates a working CLI with:
-- `greet` command with a `--name` option
-- `--help` flag showing usage information
-- `--version` flag showing the version
-- Proper error handling for unknown commands
-- Type generation for enhanced developer experience
+```typescript
+// commands/greet.tsx
+import { defineCommand, option } from '@bunli/core'
+import { useRuntime } from '@bunli/runtime/app'
+import { ProgressBar, useKeyboard } from '@bunli/tui'
+import { useEffect, useState } from 'react'
+import { z } from 'zod'
+
+function GreetProgress({
+  name,
+  loud,
+  times
+}: {
+  name: string
+  loud: boolean
+  times: number
+}) {
+  const [progress, setProgress] = useState(0)
+  const runtime = useRuntime()
+
+  const closeTui = () => {
+    runtime.exit()
+  }
+
+  useKeyboard((key) => {
+    if (key.name === 'q' || key.name === 'escape') {
+      closeTui()
+    }
+  })
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setProgress((current) => {
+        if (current >= 100) return 100
+        return current + 5
+      })
+    }, 80)
+
+    return () => clearInterval(interval)
+  }, [])
+
+  useEffect(() => {
+    if (progress < 100) return
+    const timeout = setTimeout(() => closeTui(), 400)
+    return () => clearTimeout(timeout)
+  }, [progress, runtime])
+
+  const greeting = `Hello, ${name}!`
+  const message = loud ? greeting.toUpperCase() : greeting
+
+  return (
+    <ProgressBar
+      value={progress}
+      label={`${message} x${times}  (press q to quit, auto-exits at 100%)`}
+      color={loud ? '#f97316' : '#22c55e'}
+    />
+  )
+}
+
+const greetCommand = defineCommand({
+  name: 'greet' as const,
+  description: 'A minimal greeting CLI',
+  options: {
+    name: option(
+      z.string().default('world'),
+      { short: 'n', description: 'Who to greet' }
+    ),
+    loud: option(
+      z.coerce.boolean().default(false),
+      { short: 'l', description: 'Shout the greeting' }
+    ),
+    times: option(
+      z.coerce.number().int().positive().default(1),
+      { short: 't', description: 'Number of times to greet' }
+    )
+  },
+  render: ({ flags }) => (
+    <GreetProgress
+      name={String(flags.name)}
+      loud={Boolean(flags.loud)}
+      times={Number(flags.times)}
+    />
+  ),
+  handler: async ({ flags, colors }) => {
+    const greeting = `Hello, ${flags.name}!`
+    const message = flags.loud ? greeting.toUpperCase() : greeting
+
+    for (let i = 0; i < flags.times; i++) {
+      console.log(colors.cyan(message))
+    }
+  }
+})
+
+export default greetCommand
+```
+
+This example demonstrates:
+- `render:` property for TUI rendering with React components
+- `handler:` property for non-interactive CLI mode
+- `@bunli/runtime/app` for runtime integration
+- `@bunli/tui` components (`ProgressBar`, `useKeyboard`)
+- Type-safe options with short flags
 
 ## Running the CLI
 
@@ -53,25 +131,23 @@ cd examples/hello-world
 # Install dependencies
 bun install
 
-# Run in development mode
+# Run in development mode (uses bunli dev)
 bun run dev
+
+# Run greet command
+bun run dev -- greet --name Alice
 
 # Or run directly
 bun cli.ts greet --name Alice
-# Output: Hello, Alice!
-
-bun cli.ts greet
-# Output: Hello, World!
-
-bun cli.ts --help
-# Shows help with the greet command
 ```
 
 ## Project Structure
 
 ```
 hello-world/
-├── cli.ts              # Main CLI file
+├── cli.ts              # Main CLI entry point
+├── commands/
+│   └── greet.tsx       # Greet command with TUI render
 ├── bunli.config.ts     # Build configuration
 ├── package.json        # Dependencies and scripts
 ├── tsconfig.json       # TypeScript configuration
@@ -80,109 +156,113 @@ hello-world/
 
 ## Key Features Demonstrated
 
-### 1. Basic Command Definition
+### 1. TUI Rendering with React
+
+Commands can use the `render:` property to display interactive TUI views:
+
 ```typescript
-defineCommand({
+render: ({ flags }) => (
+  <GreetProgress
+    name={String(flags.name)}
+    loud={Boolean(flags.loud)}
+    times={Number(flags.times)}
+  />
+)
+```
+
+### 2. Dual Handler/Render Mode
+
+A command can provide both `render:` (for TUI mode) and `handler:` (for non-interactive mode):
+
+```typescript
+const greetCommand = defineCommand({
   name: 'greet',
-  description: 'Say hello to someone',
+  render: ({ flags }) => <TuiView flags={flags} />,
   handler: async ({ flags, colors }) => {
+    // Non-interactive fallback
     console.log(colors.green(`Hello, ${flags.name}!`))
   }
 })
 ```
 
-### 2. Type-Safe Options
+### 3. Type-Safe Options
+
 ```typescript
 options: {
   name: option(
-    z.string().default('World'),
-    { 
-      description: 'Name to greet',
-      short: 'n'
-    }
+    z.string().default('world'),
+    { short: 'n', description: 'Who to greet' }
+  ),
+  loud: option(
+    z.coerce.boolean().default(false),
+    { short: 'l', description: 'Shout the greeting' }
+  ),
+  times: option(
+    z.coerce.number().int().positive().default(1),
+    { short: 't', description: 'Number of times to greet' }
   )
 }
 ```
 
-### 3. Built-in Utilities
-- `colors` - Colored console output
-- `flags` - Type-safe access to command options
-- `spinner` - Progress indicators
-- `prompt` - Interactive prompts
-
-## Type Generation
-
-This example includes automatic type generation for enhanced developer experience:
+### 4. Using TUI Components
 
 ```typescript
-// Generated in .bunli/commands.gen.ts
-import { getCommandApi, listCommands } from './.bunli/commands.gen'
+import { ProgressBar, useKeyboard } from '@bunli/tui'
+import { useRuntime } from '@bunli/runtime/app'
 
-// Get command metadata
-const commands = listCommands()
-console.log(commands) // [{ name: 'greet', description: 'Say hello to someone' }]
+// Progress bar with keyboard handling
+function GreetProgress({ name, loud, times }) {
+  const runtime = useRuntime()
+  useKeyboard((key) => {
+    if (key.name === 'q') runtime.exit()
+  })
 
-// Type-safe command access
-const greetApi = getCommandApi('greet')
-console.log(greetApi.options) // { name: {...} }
+  return (
+    <ProgressBar
+      value={progress}
+      label={`Hello, ${name}! x${times}`}
+      color={loud ? '#f97316' : '#22c55e'}
+    />
+  )
+}
 ```
-
-The generated types provide:
-- **CommandRegistry interface** with all command metadata
-- **Helper functions** for type-safe command discovery
-- **Autocomplete** for command names and options
-- **IntelliSense** for command descriptions and types
-
-## Building for Distribution
-
-```bash
-# Build for production
-bun run build
-
-# Run the built executable
-bun run start
-
-# Or run directly
-bun cli.ts
-```
-
-The build process:
-1. Generates TypeScript definitions
-2. Compiles to optimized JavaScript
-3. Creates standalone executable (optional)
 
 ## Package.json Setup
 
 ```json
 {
   "name": "@bunli-examples/hello-world",
-  "version": "0.0.1",
-  "description": "Hello World - Simplest possible Bunli CLI",
+  "version": "1.0.0",
+  "private": true,
   "type": "module",
   "scripts": {
-    "dev": "bun run cli.ts",
+    "dev": "bunli dev",
     "build": "bunli build",
-    "start": "bun run dist/cli.js"
+    "cli": "bun cli.ts"
   },
   "dependencies": {
-    "@bunli/core": "workspace:*",
-    "zod": "^3.22.4"
+    "@bunli/core": "workspace:^",
+    "@bunli/runtime": "workspace:^",
+    "@bunli/tui": "workspace:^",
+    "@opentui/react": "catalog:",
+    "react": "catalog:",
+    "zod": "catalog:"
   }
 }
 ```
 
 ## Key Takeaways
 
-1. **Minimal Setup**: Just a few lines to get started
-2. **Automatic Features**: Help, version, and error handling built-in
-3. **Type Safety**: Full TypeScript support out of the box
-4. **Zero Config**: Works without any configuration files
-5. **Production Ready**: Can be compiled to standalone binary
-6. **Type Generation**: Enhanced developer experience with generated types
+1. **TUI Commands**: Use `render:` property for interactive terminal UI
+2. **Dual Mode**: Commands can work in both TUI and non-interactive modes
+3. **Runtime Integration**: Access runtime features via `useRuntime()` hook
+4. **TUI Components**: Build UI with `@bunli/tui` components
+5. **Type Safety**: Full TypeScript support with Zod validation
+6. **Production Ready**: Can be compiled to standalone binary
 
 ## Next Steps
 
 - **[Task Runner Example](/docs/examples/task-runner)** - Learn validation and interactivity
-- **[Type Generation Guide](/docs/guides/type-generation)** - Learn about code generation
+- **[Interactive Prompts Guide](/docs/guides/interactive-prompts)** - Learn about prompt primitives
 - **[Getting Started Guide](/docs/getting-started)** - Step-by-step tutorial
 - **[API Reference](/docs/api)** - Complete API documentation

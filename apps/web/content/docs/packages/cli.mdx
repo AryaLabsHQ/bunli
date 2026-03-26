@@ -5,7 +5,6 @@ description: 'CLI toolchain for developing, building, testing, and distributing 
 
 import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
 import { Callout } from 'fumadocs-ui/components/callout';
-import { Steps } from 'fumadocs-ui/components/steps';
 
 ## Installation
 
@@ -37,6 +36,8 @@ import { Steps } from 'fumadocs-ui/components/steps';
 - ⚙️ **Configuration** - Flexible `bunli.config.ts` system
 - 🔍 **Debugging** - Built-in debugger support
 - 📁 **Workspace Support** - Monorepo-friendly commands
+- 🐚 **Shell UI** - Terminal components for scripts and workflows
+- 🔧 **Diagnostics** - Built-in doctor command for troubleshooting
 
 ## Commands
 
@@ -63,16 +64,20 @@ Run your CLI in development mode with hot reload.
 
 ```bash
 bunli dev
+# alias: bunli d
 ```
 
 **Options:**
 - `--entry, -e` - Entry file (defaults to auto-detect)
+- `--generate` - Enable codegen (default: true)
+- `--clearScreen` - Clear screen on reload (default: true)
 - `--watch, -w` - Watch for changes (default: true)
 - `--inspect, -i` - Enable debugger
 - `--port, -p` - Debugger port (default: 9229)
 
 **Features:**
 - Automatic hot reload with Bun's `--hot` flag
+- Automatic type generation when code changes
 - Debugger support for breakpoint debugging
 - Auto-detection of entry point from package.json or common patterns
 - Pass-through arguments to your CLI
@@ -87,6 +92,9 @@ bunli dev --entry src/cli.ts -- --verbose
 
 # Disable watch mode
 bunli dev --watch false
+
+# Disable codegen
+bunli dev --generate false
 ```
 
 ### bunli build
@@ -95,6 +103,7 @@ Build your CLI for production, either as standalone executables or traditional J
 
 ```bash
 bunli build
+# alias: bunli b
 ```
 
 **Options:**
@@ -144,6 +153,7 @@ Generate TypeScript type definitions for your commands.
 
 ```bash
 bunli generate
+# alias: bunli gen
 ```
 
 **Options:**
@@ -180,10 +190,11 @@ Run tests for your CLI using Bun's native test runner.
 
 ```bash
 bunli test
+# alias: bunli t
 ```
 
 **Options:**
-- `--pattern, -p` - Test file patterns (default: `**/*.test.ts`)
+- `--pattern, -p` - Test file patterns (default: `**/*.test.ts`); can be specified multiple times
 - `--watch, -w` - Watch for changes
 - `--coverage, -c` - Generate coverage report
 - `--bail, -b` - Stop on first failure
@@ -214,14 +225,16 @@ Create a release of your CLI with automated version bumping, git tagging, and pu
 
 ```bash
 bunli release
+# alias: bunli r
 ```
 
 **Options:**
-- `--version, -v` - Version to release (patch/minor/major/x.y.z)
-- `--tag, -t` - Git tag format
-- `--npm` - Publish to npm (`--npm=false` to disable)
-- `--github` - Create GitHub release (`--github=true` to enable)
-- `--dry, -d` - Dry run (runs npm publish with `--dry-run` when npm publish is enabled)
+- `--version, -V` - Version to release (`patch`, `minor`, `major`, or `x.y.z`)
+- `--tag, -t` - Git tag format (default: `v{{version}}`)
+- `--npm` - Publish to npm
+- `--github` - Create GitHub release
+- `--resume` - Resume from unfinished release state (default: true)
+- `--dry, -d` - Dry run - show what would be done without making changes
 - `--all` - Workspace release mode (currently not implemented)
 
 **Features:**
@@ -230,7 +243,7 @@ bunli release
 - Git tag creation and pushing
 - npm publishing with proper build step
 - GitHub release creation (notes only; no build artifacts)
-- Workspace release mode placeholder (`--all` currently not implemented)
+- Resume support for interrupted releases
 - Dry run mode for testing
 
 **Examples:**
@@ -247,8 +260,184 @@ bunli release --version major --github
 # Dry run to preview changes
 bunli release --dry
 
-# Disable npm publish
+# Skip npm publish
 bunli release --npm=false
+
+# Skip GitHub release
+bunli release --github=false
+
+# Don't resume from previous state
+bunli release --resume=false
+```
+
+<Callout type="warning">
+  Use `--npm=false` (not `--no-npm`) to disable npm publishing. Boolean options work as `--flag` (true) or `--flag=false` (false).
+</Callout>
+
+### bunli doctor
+
+Run diagnostics for Bunli projects to identify and fix common issues.
+
+```bash
+bunli doctor
+```
+
+**Subcommands:**
+
+#### bunli doctor completions
+
+Check shell completion setup and fix issues.
+
+```bash
+bunli doctor completions
+```
+
+**Options:**
+- `--shell` - Target shell (`bash`, `zsh`, `fish`, `powershell`)
+
+**Examples:**
+```bash
+# Check all shell completions
+bunli doctor completions
+
+# Fix zsh completions
+bunli doctor completions --shell zsh
+
+# Fix fish completions
+bunli doctor completions --shell fish
+```
+
+### bunli shell
+
+Shell UI helpers for scripts and terminal workflows. A group of 12 commands for building interactive terminal experiences.
+
+```bash
+bunli shell <subcommand>
+```
+
+#### bunli shell confirm
+
+Ask a yes/no question.
+
+```bash
+bunli shell confirm "Continue with deployment?"
+```
+
+**Options:**
+- `--default` - Default value (default: false)
+- `--affirmative` - Affirmative label (default: "Yes")
+- `--negative` - Negative label (default: "No")
+- `--timeout, -t` - Timeout in seconds
+
+#### bunli shell choose
+
+Choose from a list of options.
+
+```bash
+bunli shell choose Option1 Option2 Option3
+# Or pipe via stdin:
+echo -e "Option1\nOption2\nOption3" | bunli shell choose
+```
+
+**Options:**
+- `--multiple` - Allow multiple selections
+- `--limit` - Max selections
+- `--height` - Visible items (default: 10)
+- `--ordered` - Maintain selection order
+
+#### bunli shell input
+
+Prompt for single-line text input.
+
+```bash
+bunli shell input "Enter your name:"
+```
+
+**Options:**
+- `--placeholder` - Placeholder text
+- `--prompt` - Prompt message
+- `--value` - Default value
+- `--char-limit` - Character limit
+
+#### bunli shell spin
+
+Run a command with a spinner.
+
+```bash
+bunli shell spin "Building..." -- bun run build
+```
+
+**Options:**
+- `--title` - Spinner title (default: "Loading...")
+
+#### bunli shell pager
+
+View content in a scrollable pager.
+
+```bash
+bunli shell pager --file README.md
+# Or pipe via stdin:
+cat README.md | bunli shell pager
+```
+
+**Options:**
+- `--file, -f` - File to display
+
+#### bunli shell filter
+
+Filter lines from stdin.
+
+```bash
+echo -e "foo\nbar\nbaz" | bunli shell filter "b*"
+```
+
+#### bunli shell file
+
+Interactive file picker.
+
+```bash
+bunli shell file
+```
+
+#### bunli shell style
+
+Apply ANSI styling to text.
+
+```bash
+bunli shell style --bold "Important text"
+```
+
+#### bunli shell join
+
+Join lines with a delimiter.
+
+```bash
+echo -e "a\nb\nc" | bunli shell join ", "
+# Output: a, b, c
+```
+
+#### bunli shell write
+
+Write stdin to a file.
+
+```bash
+echo "content" | bunli shell write output.txt
+```
+
+#### bunli shell format
+
+Format JSON or plain text.
+
+```bash
+echo '{"a":1}' | bunli shell format json
+```
+
+#### bunli shell log
+
+Structured logging output.
+
+```bash
+bunli shell log --level info "Server started"
 ```
 
 ## Configuration
@@ -262,13 +451,13 @@ export default defineConfig({
   name: 'my-cli',
   version: '1.0.0',
   description: 'My awesome CLI',
-  
+
   // Command configuration
   commands: {
     entry: './src/cli.ts',
     directory: './src/commands'
   },
-  
+
   // Build configuration
   build: {
     entry: './src/cli.ts',
@@ -279,21 +468,21 @@ export default defineConfig({
     minify: true,
     sourcemap: false
   },
-  
+
   // Development configuration
   dev: {
     watch: true,
     inspect: false,
     port: 9229
   },
-  
+
   // Test configuration
   test: {
     pattern: ['**/*.test.ts', '**/*.spec.ts'],
     coverage: false,
     watch: false
   },
-  
+
   // Release configuration
   release: {
     npm: true,
@@ -305,7 +494,7 @@ export default defineConfig({
       shimPath: 'bin/run.mjs'
     }
   },
-  
+
   // Workspace configuration (monorepos)
   workspace: {
     packages: ['packages/*'],
@@ -384,23 +573,6 @@ bunli build --targets all
 cd packages/my-package && bunli dev
 ```
 
-Configure workspaces in bunli.config.ts:
-
-```typescript
-export default defineConfig({
-  workspace: {
-    packages: ['packages/*'],
-    shared: {
-      // Shared configuration for all packages
-      build: {
-        minify: true
-      }
-    },
-    versionStrategy: 'independent' // or 'fixed'
-  }
-})
-```
-
 ## Environment Variables
 
 The CLI sets these environment variables:
@@ -452,8 +624,8 @@ When building for multiple platforms:
 export default defineConfig({
   build: {
     targets: ['darwin-arm64', 'linux-x64', 'windows-x64'],
-    external: process.platform === 'win32' 
-      ? ['node-pty'] 
+    external: process.platform === 'win32'
+      ? ['node-pty']
       : ['windows-specific-module']
   }
 })
@@ -476,13 +648,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v1
-      
+
       - name: Install dependencies
         run: bun install
-        
+
       - name: Run tests
         run: bunli test --coverage
-        
+
       - name: Build for all platforms
         run: bunli build --targets all
 ```
@@ -547,6 +719,11 @@ jobs:
 - Verify test file pattern matches your test files
 - Default pattern is `**/*.test.ts`
 - Use `--pattern` to specify custom patterns
+
+**Shell completions not working:**
+- Run `bunli doctor completions` to diagnose
+- Ensure your shell is configured to source completion scripts
+- Restart your shell after installing completions
 
 ## API Reference
 

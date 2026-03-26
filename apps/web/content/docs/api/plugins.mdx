@@ -15,22 +15,42 @@ The core plugin interface.
 interface BunliPlugin<TStore = {}> {
   /** Unique plugin name */
   name: string
-  
+
   /** Optional plugin version */
   version?: string
-  
+
   /** Plugin store schema/initial state */
   store?: TStore
-  
+
   /** Setup hook - Called during CLI initialization */
   setup?(context: PluginContext): void | Promise<void>
-  
+
   /** Config resolved hook - Called after configuration is finalized */
   configResolved?(config: ResolvedConfig): void | Promise<void>
-  
+
   /** Before command hook - Called before command execution */
   beforeCommand?(context: CommandContext<TStore>): void | Promise<void>
-  
+
+  /**
+   * Pre-run hook - Called immediately before the command handler executes.
+   * Receives an ExecutionState for sharing per-run data between plugins.
+   * Lifecycle: setup → configResolved → beforeCommand → preRun → [handler] → postRun → afterCommand
+   */
+  preRun?(
+    context: CommandContext<TStore>,
+    state: ExecutionState
+  ): void | Promise<void>
+
+  /**
+   * Post-run hook - Called immediately after the command handler completes.
+   * Receives the command result and the same ExecutionState from preRun.
+   * Lifecycle: setup → configResolved → beforeCommand → preRun → [handler] → postRun → afterCommand
+   */
+  postRun?(
+    context: CommandContext<TStore> & CommandResult,
+    state: ExecutionState
+  ): void | Promise<void>
+
   /** After command hook - Called after command execution */
   afterCommand?(
     context: CommandContext<TStore> & CommandResult
@@ -75,18 +95,33 @@ Context available during command execution.
 interface CommandContext<TStore = {}> {
   /** Command name being executed */
   readonly command: string
-  
+
+  /** The Command object being executed */
+  readonly commandDef: Command<any, TStore>
+
   /** Positional arguments */
   readonly args: string[]
-  
+
   /** Parsed flags/options */
-  readonly flags: Record<string, any>
-  
+  readonly flags: Record<string, unknown>
+
   /** Environment information */
   readonly env: EnvironmentInfo
-  
+
   /** Type-safe context store */
   readonly store: TStore
+
+  /** Type-safe store value access */
+  getStoreValue<K extends keyof TStore>(key: K): TStore[K]
+  getStoreValue(key: string | number | symbol): unknown
+
+  /** Type-safe store value update */
+  setStoreValue<K extends keyof TStore>(key: K, value: TStore[K]): void
+  setStoreValue(key: string | number | symbol, value: unknown): void
+
+  /** Check if a store property exists */
+  hasStoreValue<K extends keyof TStore>(key: K): boolean
+  hasStoreValue(key: string | number | symbol): boolean
 }
 ```
 
@@ -115,18 +150,27 @@ System path information.
 interface PathInfo {
   /** Current working directory */
   cwd: string
-  
+
   /** User home directory */
   home: string
-  
+
   /** Config directory path */
   config: string
+
+  /** Data directory path */
+  data: string
+
+  /** State directory path */
+  state: string
+
+  /** Cache directory path */
+  cache: string
 }
 ```
 
 ### EnvironmentInfo
 
-Environment information available to plugins.
+Environment information available to plugins. The `isCI` field is built-in; plugins like `@bunli/plugin-ai-detect` extend this with additional fields via module augmentation.
 
 ```typescript
 interface EnvironmentInfo {

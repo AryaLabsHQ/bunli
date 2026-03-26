@@ -187,7 +187,10 @@ export default defineCommand({
     // Accept multiple tags
     tags: option(
       z.array(z.string()),
-      { description: 'Tags (can be specified multiple times)' }
+      {
+        description: 'Tags (can be specified multiple times)',
+        repeatable: true
+      }
     ),
     
     // Comma-separated values

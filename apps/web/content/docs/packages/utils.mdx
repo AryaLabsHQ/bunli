@@ -6,10 +6,6 @@ description: Shared utilities for CLI development
 import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
 import { Callout } from 'fumadocs-ui/components/callout';
 
-<Callout type="info">
-  Prompt primitives now live in `@bunli/runtime/prompt`.
-</Callout>
-
 ## Installation
 
 <Tabs groupId="package-manager" defaultValue="bun">
@@ -29,98 +25,6 @@ import { Callout } from 'fumadocs-ui/components/callout';
     ```
   </Tab>
 </Tabs>
-
-<Callout type="info">
-  When using @bunli/core, these utilities are automatically injected into your command handlers. You typically don't need to import them directly.
-</Callout>
-
-## Prompts
-
-Prompt APIs are provided by `@bunli/runtime/prompt`:
-
-```typescript
-// prompt is provided via handler args by Bunli
-
-const name = await prompt('What is your name?')
-const proceed = await prompt.confirm('Continue?', { default: true })
-const env = await prompt.select('Select environment:', {
-  options: [
-    { value: 'dev', label: 'Development' },
-    { value: 'prod', label: 'Production' }
-  ]
-})
-
-prompt.intro('Setup')
-prompt.outro('Done')
-```
-
-## Spinners
-
-Progress indicators are provided via handler-injected `spinner` (backed by `@bunli/runtime/prompt`).
-
-### Basic Usage
-
-```typescript
-handler: async ({ spinner }) => {
-  const spin = spinner('Loading...')
-  spin.start()
-
-  // Update message
-  spin.update('Processing files...')
-
-  // Stop with success
-  spin.succeed('Done!')
-
-  // Stop with failure
-  spin.fail('Failed to process')
-
-  // Stop with warning
-  spin.warn('Completed with warnings')
-
-  // Just stop
-  spin.stop()
-}
-```
-
-### Spinner Patterns
-
-```typescript
-// With async operation
-handler: async ({ spinner }) => {
-  const spin = spinner('Downloading...')
-  spin.start()
-  try {
-    await downloadFile()
-    spin.succeed('Download complete')
-  } catch (error) {
-    spin.fail(`Download failed: ${error.message}`)
-  }
-}
-
-// Multiple steps
-async function deploy(spinner) {
-  const spin = spinner('Deploying application...')
-  spin.start()
-  
-  spin.update('Building...')
-  await build()
-  
-  spin.update('Uploading...')
-  await upload()
-  
-  spin.update('Restarting services...')
-  await restart()
-  
-  spin.succeed('Deployment complete!')
-}
-
-// Info and warning states
-handler: async ({ spinner }) => {
-  const spin = spinner('Initializing...')
-  spin.info('Configuration loaded')
-  spin.warn('Using default settings')
-}
-```
 
 ## Colors
 
@@ -177,47 +81,230 @@ console.log(colors.bgYellow.black('Warning'))
 // - NO_COLOR environment variable is set
 // - CI environment detected
 
-// The colors object always works, but returns plain text when disabled
 const message = colors.red('Error!') // Returns plain 'Error!' if colors disabled
+```
+
+## XDG Directory Paths
+
+Platform-standard directories following the XDG base directory specification.
+
+```typescript
+import { configDir, dataDir, stateDir, cacheDir } from '@bunli/utils'
+```
+
+### configDir
+
+Returns the platform-standard config directory:
+
+- **Linux/macOS**: `$XDG_CONFIG_HOME/<appName>` or `~/.config/<appName>`
+- **Windows**: `%APPDATA%/<appName>` or `~/AppData/Roaming/<appName>`
+
+```typescript
+const dir = configDir('my-cli')
+// Linux: /home/user/.config/my-cli
+// macOS: /Users/user/.config/my-cli
+// Windows: C:\Users\user\AppData\Roaming\my-cli
+```
+
+### dataDir
+
+Returns the platform-standard data directory:
+
+- **Linux/macOS**: `$XDG_DATA_HOME/<appName>` or `~/.local/share/<appName>`
+- **Windows**: `%LOCALAPPDATA%/<appName>/Data`
+
+```typescript
+const dir = dataDir('my-cli')
+// Linux: /home/user/.local/share/my-cli
+```
+
+### stateDir
+
+Returns the platform-standard state directory:
+
+- **Linux/macOS**: `$XDG_STATE_HOME/<appName>` or `~/.local/state/<appName>`
+- **Windows**: `%LOCALAPPDATA%/<appName>/State`
+
+```typescript
+const dir = stateDir('my-cli')
+// Linux: /home/user/.local/state/my-cli
+```
+
+### cacheDir
+
+Returns the platform-standard cache directory:
+
+- **Linux/macOS**: `$XDG_CACHE_HOME/<appName>` or `~/.cache/<appName>`
+- **Windows**: `%LOCALAPPDATA%/<appName>/Cache`
+
+```typescript
+const dir = cacheDir('my-cli')
+// Linux: /home/user/.cache/my-cli
+```
+
+### Testing with PlatformEnv
+
+All functions accept an optional `PlatformEnv` parameter for deterministic testing:
+
+```typescript
+import { configDir, type PlatformEnv } from '@bunli/utils'
+
+const testEnv: PlatformEnv = {
+  platform: 'linux',
+  env: { XDG_CONFIG_HOME: '/test/config' },
+  homedir: '/test/home'
+}
+
+const dir = configDir('my-cli', testEnv)
+// Returns: /test/config/my-cli
+```
+
+## Log Utilities
+
+Structured logging to stderr with level, timestamp, and field support.
+
+```typescript
+import { formatLog, log, type LogLevel, type LogOptions } from '@bunli/utils'
+```
+
+### formatLog
+
+Format a log message and return an ANSI-styled string:
+
+```typescript
+const msg = formatLog('Server started', { level: 'info' })
+// Returns: 'INFO  Server started'
+
+const msg = formatLog('Connection failed', {
+  level: 'error',
+  timestamp: true,
+  prefix: 'db',
+  fields: { host: 'localhost', port: 5432 }
+})
+// Returns: '2024-01-15 10:30:00 ERROR db Connection failed  host=localhost  port=5432'
+```
+
+**LogOptions:**
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `level` | `LogLevel` | `'info'` | Log level: `'debug' \| 'info' \| 'warn' \| 'error' \| 'fatal'` |
+| `timestamp` | `boolean` | `false` | Include timestamp |
+| `timestampFormat` | `'iso' \| 'short' \| 'time'` | `'short'` | Timestamp format |
+| `prefix` | `string` | — | Prefix shown after level |
+| `separator` | `string` | `'='` | Separator between field key and value |
+| `fields` | `Record<string, string \| number \| boolean>` | — | Structured fields to append |
+
+### log
+
+Write a formatted log message directly to stderr:
+
+```typescript
+log('Build complete', { level: 'info', timestamp: true })
+// Outputs to stderr: '2024-01-15 10:30:00 INFO  Build complete\n'
+```
+
+## Shell Integration
+
+Utilities for shell command composition and stdin/stdout handling.
+
+```typescript
+import {
+  EXIT_CODES,
+  readStdinLines,
+  stripAnsi,
+  writeStdout,
+  writeStdoutLines
+} from '@bunli/utils'
+```
+
+### readStdinLines
+
+Read lines from stdin when piped (non-TTY). Returns empty array if stdin is a TTY.
+
+```typescript
+// Piped input: echo -e "line1\nline2" | bun run script.ts
+const lines = await readStdinLines()
+// Returns: ['line1', 'line2']
+
+// With custom delimiter
+const paragraphs = await readStdinLines('\n\n')
+```
+
+### writeStdout
+
+Write to stdout, automatically stripping ANSI codes when piping to non-TTY:
+
+```typescript
+writeStdout(colors.green('Success!'))
+// TTY: outputs green text
+// Pipe: outputs plain 'Success!'
+```
+
+### writeStdoutLines
+
+Write multiple values to stdout, one per line:
+
+```typescript
+writeStdoutLines(['item1', 'item2', 'item3'])
+```
+
+### stripAnsi
+
+Remove ANSI escape codes from a string:
+
+```typescript
+const plain = stripAnsi('\x1b[32mSuccess!\x1b[0m')
+// Returns: 'Success!'
+```
+
+### EXIT_CODES
+
+Conventional exit codes matching gum conventions:
+
+```typescript
+import { EXIT_CODES } from '@bunli/utils'
+
+process.exit(EXIT_CODES.SUCCESS)  // 0
+process.exit(EXIT_CODES.CANCEL)   // 1
+process.exit(EXIT_CODES.TIMEOUT)  // 124
+process.exit(EXIT_CODES.SIGINT)   // 130
 ```
 
 ## Validation
 
-Schema validation helpers that work with any Standard Schema v1 library.
+Schema validation helpers that work with Standard Schema v1 libraries (Zod, Valibot, etc.):
+
+```typescript
+import { validate, validateFields, SchemaError } from '@bunli/utils'
+import { z } from 'zod'
+```
 
 ### validate
 
-```typescript
-import { validate } from '@bunli/utils'
-import { z } from 'zod'
+Validate a single value against a schema, returning a `Result`:
 
+```typescript
 const schema = z.object({
   name: z.string().min(1),
   email: z.string().email(),
   age: z.number().positive()
 })
 
-// Throws SchemaError on validation failure
-try {
-  const data = await validate(schema, input)
-  // data is fully typed
-} catch (error) {
-  if (error instanceof SchemaError) {
-    // Handle validation errors
-    for (const issue of error.issues) {
-      console.error(`${issue.path}: ${issue.message}`)
-    }
-  }
+const result = await validate(schema, { name: 'Alice', email: 'alice@example.com', age: 30 })
+
+if (result.ok) {
+  console.log(result.value) // Fully typed and validated
+} else {
+  console.error(result.error) // SchemaError with issues
 }
 ```
 
 ### validateFields
 
-```typescript
-import { validateFields } from '@bunli/utils'
-import { z } from 'zod'
+Validate multiple fields at once with aggregated errors:
 
-// Validate multiple fields at once
+```typescript
 const schemas = {
   name: z.string().min(1),
   email: z.string().email(),
@@ -230,136 +317,79 @@ const result = await validateFields(schemas, {
   port: -1
 })
 
-if ('errors' in result) {
-  // result.errors is Record<string, string[]>
-  console.error('Validation failed:')
-  for (const [field, errors] of Object.entries(result.errors)) {
-    console.error(`  ${field}: ${errors.join(', ')}`)
-  }
+if (result.ok) {
+  console.log(result.value.name)   // 'John'
+  console.log(result.value.port)   // typed as number
 } else {
-  // result is fully typed with validated values
-  console.log(result.name) // string
-  console.log(result.port) // number
+  // result.error is Record<string, string[]>
+  for (const [field, errors] of Object.entries(result.error)) {
+    console.error(`${field}: ${errors.join(', ')}`)
+  }
 }
 ```
 
-### Validation in Prompts
+### SchemaError
+
+Error class for validation failures:
 
 ```typescript
-// Schema validation in prompts
-const port = await prompt('Port:', {
-  schema: z.coerce.number().min(1).max(65535),
-  default: '3000'
-})
+import { SchemaError } from '@bunli/utils'
+// Also re-exported from @standard-schema/utils
 
-// The value is automatically parsed and validated
-// port is typed as number
-
-// Password with schema validation
-const apiKey = await prompt.password('API Key:', {
-  schema: z.string()
-    .min(32, 'API key must be at least 32 characters')
-    .regex(/^[A-Za-z0-9-_]+$/, 'Invalid characters in API key')
-})
+const result = await validate(schema, invalidValue)
+if (result.error instanceof SchemaError) {
+  console.log(result.error.issues)
+  // [{ path: ['email'], message: 'Invalid email' }]
+}
 ```
-
-<Callout type="note">
-  The formatting utilities (tables, lists, boxes) and utility functions (clear, sleep, exit) shown below are planned features and not yet implemented in the current version.
-</Callout>
 
 ## Best Practices
 
-1. **Handle Ctrl+C gracefully**:
+1. **Use appropriate log levels**:
+
    ```typescript
-   // Prompts automatically handle Ctrl+C and exit the process
-   // The spinner cleans up on process exit
-   process.on('SIGINT', () => {
-     console.log('\nOperation cancelled')
-     process.exit(0)
-   })
+   log('Debug info', { level: 'debug' })
+   log('Server started', { level: 'info' })
+   log('Connection failed', { level: 'error' })
    ```
 
-2. **Use appropriate spinner states**:
+2. **Use XDG directories for user data**:
+
    ```typescript
-   // ✅ Good
-   spin.succeed('Build complete')
-   spin.fail('Build failed')
-   spin.warn('Build completed with warnings')
-   
-   // ❌ Avoid
-   spin.stop() // User doesn't know if it succeeded
+   const configPath = configDir('my-cli')
+   const dataPath = dataDir('my-cli')
    ```
 
-3. **Provide defaults for better UX**:
-   ```typescript
-   const host = await prompt('Host:', { default: 'localhost' })
-   const port = await prompt('Port:', { default: '3000' })
-   ```
+3. **Handle shell stdin/stdout correctly**:
 
-4. **Use colors consistently**:
    ```typescript
-   const log = {
-     error: (msg: string) => console.error(colors.red(msg)),
-     success: (msg: string) => console.log(colors.green(msg)),
-     warning: (msg: string) => console.warn(colors.yellow(msg)),
-     info: (msg: string) => console.log(colors.blue(msg))
+   // Read piped input
+   const lines = await readStdinLines()
+   if (lines.length === 0) {
+     // No piped input - read from interactive prompt
    }
    ```
 
-5. **Schema validation in prompts**:
+4. **Use structured logging in production**:
+
    ```typescript
-   // Prefer schema validation over custom validate functions
-   // ✅ Good - automatic retry on validation failure
-   const email = await prompt('Email:', {
-     schema: z.string().email()
-   })
-   
-   // ❌ Avoid - requires manual retry logic
-   const email = await prompt('Email:', {
-     validate: (val) => val.includes('@') || 'Invalid email'
+   log('Request processed', {
+     level: 'info',
+     timestamp: true,
+     fields: { method: 'GET', status: 200, duration: 45 }
    })
    ```
 
+5. **Use colors for terminal output, not logging**:
+
+   ```typescript
+   // Good: colors for terminal display
+   console.log(colors.green('✓') + ' Done')
+
+   // Use log() for structured logging to stderr
+   log('Task completed', { level: 'info' })
+   ```
+
 <Callout type="tip">
-  All utilities respect NO_COLOR and CI environment variables, automatically adjusting their behavior for different environments.
-</Callout>
-
-## Type Utilities for Generated Types
-
-When working with generated types from `@bunli/generator`, you can use advanced type utilities from `@bunli/core` for complex type manipulation:
-
-```typescript
-import { 
-  UnionToIntersection, 
-  MergeAll, 
-  Expand,
-  DeepPartial,
-  Constrain
-} from '@bunli/core'
-import { getCommandApi, listCommands } from './commands.gen'
-
-// Get all command options as a union
-type AllCommandOptions = UnionToIntersection<
-  ReturnType<typeof getCommandApi>[keyof CommandRegistry]['options']
->
-
-// Merge all command metadata
-type AllCommands = MergeAll<
-  Array<{ name: string; description: string }>
->
-
-// Expand complex types for better IntelliSense
-type ExpandedCommand = Expand<typeof getCommandApi<'deploy'>>
-
-// Make all properties optional recursively
-type PartialCommand = DeepPartial<typeof getCommandApi<'build'>>
-
-// Constrain types with fallback
-type SafeCommandName = Constrain<string, keyof CommandRegistry, 'help'>
-```
-
-These utilities are especially powerful when combined with generated types for creating CLI wrappers, documentation generators, and command analytics tools.
-
-<Callout type="info">
-  Type utilities are exported from `@bunli/core`, not `@bunli/utils`. They're designed to work with generated types for advanced type manipulation patterns.
+  All utilities respect `NO_COLOR` and CI environment variables, automatically adjusting their behavior for different environments.
 </Callout>

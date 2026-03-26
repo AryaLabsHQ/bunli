@@ -140,28 +140,37 @@ export default defineConfig({
 ```typescript
 export default defineConfig({
   build: {
-    // Entry point (default: './cli.ts')
+    // Entry point (default: auto-detected)
     entry: './cli.ts',
-    
+
     // Output directory (default: './dist')
     outdir: './dist',
-    
+
+    // Output filename (for single executable)
+    outfile: 'my-cli',
+
     // Target platforms (default: [])
     targets: ['native'],  // Native for current platform
     // or specific platforms:
     // targets: ['darwin-arm64', 'linux-x64', 'windows-x64'],
-    
+
     // Compress output archives (default: false)
     compress: false,
-    
+
     // External dependencies (not bundled)
     external: ['sqlite3', 'sharp'],
-    
+
     // Minify output (default: false)
     minify: false,
-    
+
     // Generate sourcemaps (default: true)
-    sourcemap: true
+    sourcemap: true,
+
+    // Enable bytecode compilation (default: false)
+    bytecode: false,
+
+    // Runtime target (default: 'bun')
+    runtime: 'bun'  // 'bun' | 'node'
   }
 })
 ```
@@ -173,12 +182,53 @@ export default defineConfig({
   dev: {
     // Watch for file changes
     watch: true,
-    
+
     // Enable Node.js inspector
     inspect: true,
-    
+
     // Inspector port
-    port: 9229
+    port: 9229,
+
+    // Enable type generation (default: true)
+    generate: true,
+
+    // Clear screen on reload (default: true)
+    clearScreen: true
+  }
+})
+```
+
+### TUI Configuration
+
+Configure terminal UI rendering behavior:
+
+```typescript
+export default defineConfig({
+  tui: {
+    renderer: {
+      // Use alternate screen buffer (default: 'standard')
+      bufferMode: 'alternate'  // or 'standard'
+    },
+    image: {
+      // Image protocol mode (default: 'auto')
+      mode: 'auto',           // 'off' | 'auto' | 'on'
+      // Image protocol (default: 'auto')
+      protocol: 'kitty',      // 'auto' | 'kitty'
+      // Default image width
+      width: 800,
+      // Default image height
+      height: 600
+    }
+  }
+})
+```
+
+### Help Configuration
+
+```typescript
+export default defineConfig({
+  help: {
+    renderer: 'default'  // Help renderer type
   }
 })
 ```
@@ -215,12 +265,15 @@ export default defineConfig({
   test: {
     // Test file patterns
     pattern: ['**/*.test.ts', '**/*.spec.ts'],
-    
+
     // Coverage reporting
     coverage: true,
-    
+
     // Watch mode
-    watch: false
+    watch: false,
+
+    // Stop on first failure
+    bail: false
   }
 })
 ```
@@ -232,13 +285,16 @@ export default defineConfig({
   release: {
     // Publish to npm
     npm: true,
-    
+
     // Create GitHub release
     github: true,
-    
+
+    // Resume from unfinished release state (default: true)
+    resume: true,
+
     // Git tag format
     tagFormat: 'v{{version}}',
-    
+
     // Use conventional commits
     conventionalCommits: true,
 

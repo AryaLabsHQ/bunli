@@ -1,0 +1,303 @@
+---
+title: '@bunli/store'
+description: Typed file-backed persistence for Bunli CLI apps
+---
+
+## Installation
+
+```bash
+bun add @bunli/store
+```
+
+## Overview
+
+`@bunli/store` is a typed file-backed persistence layer for CLI applications. It provides:
+
+- **Atomic writes** - Uses temp file + rename pattern for safe writes
+- **Type coercion** - Automatically converts string values to numbers/booleans
+- **Field validation** - Custom validator functions per field
+- **Default values** - Fields with sensible defaults
+- **XDG support** - Works with standard XDG base directory paths
+
+## Basic Usage
+
+```typescript
+import { createStore } from '@bunli/store'
+import { configDir } from '@bunli/utils'
+
+// Define a typed config store
+const store = createStore({
+  dirPath: configDir('my-cli'),
+  name: 'settings',
+  fields: {
+    theme: { type: 'string', default: 'dark' },
+    port: { type: 'number', default: 3000 },
+    verbose: { type: 'boolean', default: false }
+  }
+})
+
+// Read current config
+const config = await store.read()
+// { theme: 'dark', port: 3000, verbose: false }
+
+// Update the entire config
+await store.write({ theme: 'light', port: 8080, verbose: true })
+
+// Patch specific fields
+await store.patch({ port: 9000 })
+
+// Update using a function
+await store.update((current) => ({
+  ...current,
+  port: current.port + 1
+}))
+
+// Reset to defaults (deletes the file)
+await store.reset()
+```
+
+## Field Types
+
+### Scalar Fields
+
+```typescript
+const store = createStore({
+  dirPath: './data',
+  fields: {
+    name: { type: 'string', default: 'unnamed' },
+    count: { type: 'number', default: 0 },
+    enabled: { type: 'boolean', default: false }
+  }
+})
+```
+
+### Array Fields
+
+```typescript
+const store = createStore({
+  dirPath: './data',
+  fields: {
+    tags: { type: 'string', array: true, default: [] },
+    scores: { type: 'number', array: true, default: [0, 0] }
+  }
+})
+
+await store.patch({ tags: ['a', 'b', 'c'] })
+// TypeScript knows tags is string[]
+```
+
+### Field Validation
+
+```typescript
+const store = createStore({
+  dirPath: './data',
+  fields: {
+    port: {
+      type: 'number',
+      default: 3000,
+      validate: (value) => {
+        if (value < 1 || value > 65535) {
+          throw new Error('Port must be between 1 and 65535')
+        }
+      }
+    },
+    email: {
+      type: 'string',
+      validate: (value) => {
+        if (!value.includes('@')) {
+          throw new Error('Invalid email address')
+        }
+      }
+    }
+  }
+})
+```
+
+### Field Descriptions
+
+```typescript
+const store = createStore({
+  dirPath: './data',
+  fields: {
+    theme: {
+      type: 'string',
+      default: 'dark',
+      description: 'Color theme to use'
+    }
+  }
+})
+```
+
+## Store Options
+
+```typescript
+interface StoreOptions<F extends FieldsDef> {
+  /** Directory path for the store file */
+  dirPath: string
+
+  /** Store file name (without .json). Default: 'config' */
+  name?: string
+
+  /** Field definitions */
+  fields: F
+
+  /** Remove unknown fields on read. Default: true */
+  pruneUnknown?: boolean
+}
+```
+
+## Store Instance
+
+```typescript
+interface StoreInstance<TConfig> {
+  /** Read and validate config from disk */
+  read(): Promise<TConfig>
+
+  /** Overwrite entire config */
+  write(config: TConfig): Promise<void>
+
+  /** Update via a transformation function */
+  update(updater: (current: TConfig) => TConfig): Promise<void>
+
+  /** Shallow merge partial config */
+  patch(partial: Partial<TConfig>): Promise<void>
+
+  /** Delete config file (resets to defaults) */
+  reset(): Promise<void>
+}
+```
+
+## Type Inference
+
+`createStore` automatically infers the config type from field definitions:
+
+```typescript
+const store = createStore({
+  dirPath: './data',
+  fields: {
+    name: { type: 'string', default: 'unnamed' },
+    count: { type: 'number', default: 0 }
+  }
+})
+
+// config is typed as { name: string; count: number }
+const config = await store.read()
+config.name // string
+config.count // number
+```
+
+## Error Handling
+
+All errors extend `TaggedError` from `better-result`:
+
+```typescript
+import {
+  StoreReadError,
+  StoreWriteError,
+  StoreParseError,
+  StoreValidationError
+} from '@bunli/store'
+
+try {
+  const config = await store.read()
+} catch (error) {
+  if (error instanceof StoreReadError) {
+    console.error(`Failed to read: ${error.path}`, error.cause)
+  } else if (error instanceof StoreParseError) {
+    console.error(`Malformed JSON: ${error.path}`)
+  } else if (error instanceof StoreValidationError) {
+    console.error(`Validation failed for ${error.field}:`, error.message)
+  }
+}
+```
+
+### Error Classes
+
+| Class | Description |
+|-------|-------------|
+| `StoreReadError` | Failed to read the store file |
+| `StoreWriteError` | Failed to write the store file |
+| `StoreParseError` | JSON parse error in store file |
+| `StoreValidationError` | Field validation failed |
+
+## Using with XDG Directories
+
+```typescript
+import { createStore } from '@bunli/store'
+import { configDir, dataDir, stateDir } from '@bunli/utils'
+
+// Store in config directory (for settings)
+const settings = createStore({
+  dirPath: configDir('my-cli'),
+  name: 'settings',
+  fields: { theme: { type: 'string', default: 'dark' } }
+})
+
+// Store in data directory (for application data)
+const cache = createStore({
+  dirPath: dataDir('my-cli'),
+  name: 'cache',
+  fields: { entries: { type: 'string', array: true, default: [] } }
+})
+
+// Store in state directory (for transient state)
+const session = createStore({
+  dirPath: stateDir('my-cli'),
+  name: 'session',
+  fields: { lastRun: { type: 'number' } }
+})
+```
+
+## Atomic Writes
+
+The store uses atomic writes for safety:
+
+1. Writes to a temp file (`.store-<uuid>.tmp`)
+2. Creates parent directories if needed
+3. Renames temp file to final location
+
+This means:
+- No partial writes on crash
+- No read during write
+- Safe on network filesystems
+
+## Best Practices
+
+### Use Defaults
+
+Always provide defaults for optional fields:
+
+```typescript
+fields: {
+  port: { type: 'number', default: 3000 },
+  timeout: { type: 'number', default: 5000 }
+}
+```
+
+### Validate Early
+
+```typescript
+fields: {
+  email: {
+    type: 'string',
+    validate: (v) => {
+      if (!v.includes('@')) throw new Error('Invalid email')
+    }
+  }
+}
+```
+
+### Use `patch` for User Settings
+
+```typescript
+// Good: Only update what user changed
+await store.patch({ theme: 'light' })
+
+// Avoid: Overwrites everything
+await store.write({ theme: 'light', port: 3000, verbose: false })
+```
+
+## See Also
+
+- [XDG Utilities](/docs/packages/utils) - `configDir`, `dataDir`, `stateDir` helpers
+- [Configuration](/docs/core-concepts/configuration) - Bunli config system

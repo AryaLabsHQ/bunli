@@ -69,10 +69,12 @@ In development mode with hot reload:
 bunli dev
 ```
 
-Or run directly with Bun:
+This starts your CLI with automatic hot reload enabled. Your CLI name will be used directly (e.g., if `name: 'my-cli'` in config, run `my-cli`).
+
+To pass arguments to your CLI:
 
 ```bash
-bun run cli.ts --help
+bunli dev -- --verbose
 ```
 
 ### Add your first command
@@ -218,7 +220,7 @@ bun add bunli @bunli/core
 ### Create your CLI entry point
 
 ```typescript
-// src/index.ts
+// src/cli.ts
 import { createCLI } from '@bunli/core'
 
 const cli = await createCLI({
@@ -244,7 +246,7 @@ await cli.run()
 {
   "name": "my-cli",
   "bin": {
-    "my-cli": "./src/index.ts"
+    "my-cli": "./src/cli.ts"
   },
   "scripts": {
     "dev": "bunli dev",

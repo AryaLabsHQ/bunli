@@ -98,7 +98,7 @@ setup(context) {
   context.updateConfig({
     description: 'Enhanced by my plugin'
   })
-  
+
   // Register a command
   context.registerCommand(defineCommand({
     name: 'plugin-command',
@@ -131,9 +131,35 @@ beforeCommand(context) {
 }
 ```
 
-### 4. After Command
+### 4. Pre-Run
 
-The `afterCommand` hook runs after command execution:
+The `preRun` hook runs immediately before the command handler executes. It receives an `ExecutionState` for sharing per-run data between plugins:
+
+```typescript
+preRun(context, state) {
+  // Store start time in execution state (shared with postRun)
+  state.set('startTime', Date.now())
+  console.log(`About to run command: ${context.command}`)
+}
+```
+
+### 5. Post-Run
+
+The `postRun` hook runs immediately after the command handler completes. It receives the same `ExecutionState` from `preRun`:
+
+```typescript
+postRun(context, state) {
+  const startTime = state.get<number>('startTime')
+  if (startTime) {
+    console.log(`Command took ${Date.now() - startTime}ms`)
+  }
+  console.log(`Command result: ${context.result}`)
+}
+```
+
+### 6. After Command
+
+The `afterCommand` hook runs after command execution (after postRun):
 
 ```typescript
 afterCommand(context) {
@@ -144,6 +170,8 @@ afterCommand(context) {
   }
 }
 ```
+
+**Full lifecycle order:** `setup` → `configResolved` → `beforeCommand` → `preRun` → `[handler]` → `postRun` → `afterCommand`
 
 ## Type-Safe Store System
 

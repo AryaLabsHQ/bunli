@@ -1,0 +1,204 @@
+---
+title: '@bunli/plugin-skills'
+description: Sync CLI commands as agent skill files for AI coding agents
+---
+
+## Installation
+
+```bash
+bun add @bunli/plugin-skills
+```
+
+## Overview
+
+`@bunli/plugin-skills` syncs your Bunli CLI commands as skill files for AI coding agents. When installed, agents like Claude Code, Cursor, and others can discover and use your CLI commands as part of their skill ecosystem.
+
+## Features
+
+- **Multi-agent support** - Syncs to 18+ AI coding agents
+- **Universal agents** - Uses `.agents/skills` directory (Clau, Cline, Codex, Cursor, etc.)
+- **Non-universal agents** - Creates symlinks from agent-specific dirs to canonical skills dir
+- **Project-local or global** - Install skills per-project or system-wide
+- **Smart detection** - Only installs for agents detected on the system
+
+## Basic Usage
+
+```typescript
+import { createCLI } from '@bunli/core'
+import { skillsPlugin } from '@bunli/plugin-skills'
+
+const cli = await createCLI({
+  name: 'my-cli',
+  plugins: [skillsPlugin()]
+})
+
+cli.command({
+  name: 'build',
+  description: 'Build the project',
+  handler: async ({ flags }) => { /* ... */ }
+})
+
+await cli.run()
+```
+
+Then in your project:
+
+```bash
+# Sync skills for detected agents
+my-cli skills sync
+
+# List detected agents
+my-cli skills list
+```
+
+## Built-in Agents
+
+The plugin supports these agents out of the box:
+
+### Universal Agents
+Use `.agents/skills` as their skills directory:
+
+| Agent | Global Skills Dir |
+|-------|------------------|
+| Amp | `~/.config/agents/skills` |
+| Cline | `~/.agents/skills` |
+| Codex | `~/.codex/skills` |
+| Cursor | `~/.cursor/skills` |
+| Gemini CLI | `~/.gemini/skills` |
+| GitHub Copilot | `~/.copilot/skills` |
+| Kimi CLI | `~/.config/agents/skills` |
+| OpenCode | `~/.config/opencode/skills` |
+
+### Non-Universal Agents
+Use agent-specific directories (plugin creates symlinks):
+
+| Agent | Global Skills Dir | Project Skills Dir |
+|-------|-------------------|-------------------|
+| Claude Code | `~/.claude/skills` | `.claude/skills` |
+| Windsurf | `~/.codeium/windsurf/skills` | `.windsurf/skills` |
+| Continue | `~/.continue/skills` | `.continue/skills` |
+| Roo | `~/.roo/skills` | `.roo/skills` |
+| Kilo | `~/.kilocode/skills` | `.kilocode/skills` |
+| Goose | `~/.config/goose/skills` | `.goose/skills` |
+| Augment | `~/.augment/skills` | `.augment/skills` |
+| Trae | `~/.trae/skills` | `.trae/skills` |
+| Junie | `~/.junie/skills` | `.junie/skills` |
+| Crush | `~/.config/crush/skills` | `.crush/skills` |
+| Kiro CLI | `~/.kiro/skills` | `.kiro/skills` |
+| Qwen Code | `~/.qwen/skills` | `.qwen/skills` |
+| OpenHands | `~/.openhands/skills` | `.openhands/skills` |
+
+## Plugin Options
+
+```typescript
+interface SkillsPluginOptions {
+  /** CLI description for the generated skill files */
+  description?: string
+
+  /** Additional custom agents beyond the built-in list */
+  agents?: Agent[]
+}
+```
+
+## Commands
+
+### skills sync
+
+Generate and install skill files for detected agents:
+
+```bash
+my-cli skills sync           # Sync with defaults
+my-cli skills sync --global  # Global installation (default)
+my-cli skills sync --force   # Force regeneration
+```
+
+**Options:**
+- `--global, -g` - Install globally (default) or project-local
+- `--force, -f` - Force regeneration even if up to date
+
+### skills list
+
+List detected agents on the system:
+
+```bash
+my-cli skills list
+```
+
+Example output:
+```
+Detected 3 agent(s):
+
+  Claude Code
+    ~/.claude/skills
+
+  Cursor
+    ~/.cursor/skills
+
+  Cline
+    ~/.agents/skills
+```
+
+## Custom Agents
+
+Add custom agent support:
+
+```typescript
+import { skillsPlugin } from '@bunli/plugin-skills'
+
+const cli = await createCLI({
+  plugins: [
+    skillsPlugin({
+      description: 'My custom CLI tool',
+      agents: [
+        {
+          name: 'MyAgent',
+          globalSkillsDir: '~/.myagent/skills',
+          projectSkillsDir: '.myagent/skills',
+          universal: true,
+          detect: () => process.env.MY_AGENT_DETECTED === '1'
+        }
+      ]
+    })
+  ]
+})
+```
+
+## Skill File Format
+
+The plugin generates JSON skill files:
+
+```json
+{
+  "name": "my-cli:build",
+  "description": "Build the project",
+  "command": "my-cli build",
+  "env": {
+    "BUNLI_COMMAND": "build"
+  }
+}
+```
+
+## How It Works
+
+1. **Detection** - Scans for agents by checking for their config directories
+2. **Discovery** - Collects all registered CLI commands
+3. **Generation** - Creates skill files for each command
+4. **Installation** - Installs to project-local or global skills directories
+5. **Symlinking** - For non-universal agents, creates symlinks to the canonical `.agents/skills` directory
+
+## Integration with AI Agents
+
+Once synced, agents can discover and invoke your CLI commands:
+
+```
+Agent: "Build the project using the CLI tool"
+↓
+Looks for skill: "my-cli:build"
+↓
+Executes: my-cli build
+```
+
+## See Also
+
+- [@bunli/plugin-ai-detect](/docs/packages/plugins/ai-detect) - Detect AI agents at runtime
+- [Plugins](/docs/core-concepts/plugins) - Bunli plugin system

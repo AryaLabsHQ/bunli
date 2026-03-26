@@ -630,24 +630,48 @@ This enables:
 ## Testing Interactive Commands
 
 ```typescript
-import { test, expect } from '@bunli/test'
+import { test, expect } from 'bun:test'
 import { createTestCLI } from '@bunli/test'
 
 test('interactive setup', async () => {
-  const cli = createTestCLI()
-  
-  // Mock prompt responses
-  cli.mockPrompts([
-    'my-project',     // Project name
-    true,             // Use TypeScript
-    ['tests', 'git'], // Features
-    true              // Confirm
-  ])
-  
-  const result = await cli.run(['setup'])
-  
+  const cli = createTestCLI({ commands: [setupCommand] })
+
+  // Mock prompt responses using stdin array
+  const result = await cli.run(['setup'], {
+    stdin: [
+      'my-project',     // Project name
+      'y',              // Use TypeScript
+      'tests,git',      // Features (comma-separated)
+      'y'               // Confirm
+    ]
+  })
+
   expect(result.exitCode).toBe(0)
-  expect(result.output).toContain('Project setup complete')
+  expect(result.stdout).toContain('Project setup complete')
+})
+```
+
+For more control over prompt mocking, use the `mockPromptResponses` helper:
+
+```typescript
+import { test, expect } from 'bun:test'
+import { createTestCLI, mockPromptResponses } from '@bunli/test'
+
+test('interactive setup with mockPromptResponses', async () => {
+  const cli = createTestCLI({ commands: [setupCommand] })
+
+  // Map prompt messages to responses
+  const result = await cli.run(['setup'], {
+    stdin: mockPromptResponses({
+      'Project name:': 'my-project',
+      'Use TypeScript?': true,
+      'Select features:': ['tests', 'git'],
+      'Proceed with setup?': true
+    })
+  })
+
+  expect(result.exitCode).toBe(0)
+  expect(result.stdout).toContain('Project setup complete')
 })
 ```
 

@@ -298,17 +298,18 @@ src/
 
 ```typescript
 import { createCLI } from '@bunli/core'
+import { cli } from './.bunli/commands.gen'
 
-const cli = await createCLI(config)
+const cliInstance = await createCLI(config)
 
-// ✅ Fully type-safe execution!
-await cli.execute('deploy', {
+// ✅ Fully type-safe execution via withCLI()
+await cli.withCLI(cliInstance).execute('deploy', {
   env: 'production', // ← Autocomplete: 'dev' | 'staging' | 'prod'
   dryRun: true       // ← Type: boolean
 })
 
 // ❌ Type errors for invalid options
-await cli.execute('deploy', {
+await cli.withCLI(cliInstance).execute('deploy', {
   env: 'invalid',  // ❌ Error: Type '"invalid"' is not assignable
   dryRun: 'yes'    // ❌ Error: Type 'string' is not assignable to type 'boolean'
 })

@@ -29,6 +29,10 @@ interface CommandDefinition<TOptions> {
   options?: TOptions
   handler?: Handler<InferOptions<TOptions>>
   commands?: Command[]
+  render?: RenderFunction<TOptions>
+  tui?: CommandTuiOptions
+  outputPolicy?: OutputPolicy
+  defaultFormat?: OutputFormat
 }
 ```
 
@@ -92,13 +96,38 @@ export default defineCommand({
   handler: async ({ flags, shell, spinner }) => {
     const spin = spinner(`Deploying to ${flags.env}...`)
     spin.start()
-    
+
     if (flags.tag) {
       await shell`git tag ${flags.tag}`
     }
-    
+
     await shell`deploy --env ${flags.env} ${flags.force ? '--force' : ''}`
     spin.succeed('Deployed successfully!')
+  }
+})
+```
+
+### TUI Rendering
+
+Commands can use `render:` instead of (or alongside) `handler:` for interactive TUI views:
+
+```typescript
+export default defineCommand({
+  name: 'greet',
+  description: 'Interactive greeting',
+  options: {
+    name: option(z.string().default('World'), { short: 'n' }),
+    loud: option(z.coerce.boolean().default(false), { short: 'l' })
+  },
+  render: ({ flags }) => (
+    <GreetProgress
+      name={String(flags.name)}
+      loud={Boolean(flags.loud)}
+    />
+  ),
+  handler: async ({ flags, colors }) => {
+    // Non-interactive fallback
+    console.log(colors.green(`Hello, ${flags.name}!`))
   }
 })
 ```
@@ -119,7 +148,7 @@ export default defineCommand({
 ### Nested Commands
 
 ```typescript
-export default defineCommand({
+export default defineGroup({
   name: 'db',
   description: 'Database operations',
   commands: [
@@ -153,36 +182,87 @@ export default defineCommand({
 The handler receives a context object with these properties:
 
 ```typescript
-interface HandlerArgs<TFlags> {
+interface HandlerArgs<TFlags, TStore = unknown> {
   // Parsed and validated option values
   flags: TFlags
-  
+
   // Non-flag arguments
   positional: string[]
-  
-  // Bun Shell ($)
+
+  // Bun Shell template tag
   shell: typeof Bun.$
-  
+
   // Environment variables
   env: typeof process.env
-  
+
   // Current working directory
   cwd: string
-  
-  // Interactive prompts (from @bunli/runtime/prompt)
+
+  // Interactive prompts
   prompt: {
-    (message: string, options?: PromptOptions): Promise<string>
+    text(message: string, options?: PromptOptions): Promise<string>
     confirm(message: string, options?: ConfirmOptions): Promise<boolean>
     select<T>(message: string, options: SelectOptions<T>): Promise<T>
     password(message: string, options?: PromptOptions): Promise<string>
+    multiselect<T>(message: string, options: MultiSelectOptions<T>): Promise<T[]>
+    pager(content: string, options?: PagerOptions): Promise<void>
   }
-  
-  // Progress spinner (from @bunli/utils)
-  spinner: (text?: string) => Spinner
-  
-  // Terminal colors (from @bunli/utils)
+
+  // Progress spinner factory
+  spinner: (text?: string) => {
+    start(text?: string): void
+    stop(text?: string): void
+    succeed(text?: string): void
+    fail(text?: string): void
+    warn(text?: string): void
+    info(text?: string): void
+    update(text: string): void
+  }
+
+  // Terminal colors
   colors: Colors
-  
+
+  // Terminal information
+  terminal: {
+    width: number
+    height: number
+    isInteractive: boolean
+    isCI: boolean
+    supportsColor: boolean
+    supportsMouse: boolean
+  }
+
+  // Runtime information
+  runtime: {
+    startTime: number
+    args: string[]
+    command: string
+    outputFormat: OutputFormat
+  }
+
+  // Abort signal for cancellation
+  signal: AbortSignal
+
+  // Image/TUI rendering options
+  image: {
+    mode: 'off' | 'auto' | 'on'
+    protocol: 'auto' | 'kitty'
+    width?: number
+    height?: number
+  }
+
+  // Output format (json, yaml, toon, md)
+  format: OutputFormat
+
+  // Whether format was explicitly set via flag
+  formatExplicit: boolean
+
+  // Whether running in an AI agent context
+  agent: boolean
+
+  // Write formatted output
+  output: (data: unknown) => void
+
   // Plugin context (when using plugins)
   context?: CommandContext<TStore>
 }
@@ -191,30 +271,102 @@ interface HandlerArgs<TFlags> {
 ### Using Handler Context
 
 ```typescript
-handler: async ({ flags, positional, shell, env, cwd, prompt, spinner, colors, context }) => {
+handler: async ({
+  flags,
+  positional,
+  shell,
+  env,
+  cwd,
+  prompt,
+  spinner,
+  colors,
+  terminal,
+  runtime,
+  signal,
+  image,
+  format,
+  formatExplicit,
+  agent,
+  output,
+  context
+}) => {
   // Access parsed flags
   console.log(`Port: ${flags.port}`)
-  
+
   // Use positional arguments
   const [file] = positional
-  
-  // Run shell commands
+
+  // Check terminal capabilities
+  if (terminal.supportsMouse) {
+    // Enable mouse mode
+  }
+
+  // Check if in AI agent context
+  if (agent) {
+    // Provide structured output for AI
+    output({ status: 'building', progress: 50 })
+  }
+
+  // Use format for structured output
+  if (formatExplicit) {
+    output({ status: 'done', result: 'value' })
+  }
+
+  // Run shell commands with template syntax
   const result = await shell`ls -la ${file}`.text()
-  
+
   // Check environment
   if (env.NODE_ENV === 'production') {
     const confirm = await prompt.confirm('Deploy to production?')
     if (!confirm) return
   }
-  
+
   // Show progress
   const spin = spinner('Building...')
   spin.start()
   await shell`bun run build`
   spin.succeed('Build complete!')
-  
+
   // Colored output
   console.log(colors.green('✓ Success'))
+
+  // Access timing from runtime
+  const duration = Date.now() - runtime.startTime
+}
+```
+
+## TUI Command Options
+
+Commands with `render:` can specify TUI options:
+
+```typescript
+export default defineCommand({
+  name: 'interactive',
+  description: 'Interactive TUI command',
+  tui: {
+    renderer: {
+      bufferMode: 'alternate'  // Use alternate screen buffer
+    }
+  },
+  outputPolicy: 'always',  // Always use TUI even in CI
+  defaultFormat: 'toon',   // Default to toon format
+  render: ({ flags }) => <InteractiveView flags={flags} />
+})
+```
+
+### CommandTuiOptions
+
+```typescript
+interface CommandTuiOptions {
+  renderer?: {
+    bufferMode?: 'alternate' | 'standard'
+  }
+  image?: {
+    mode?: 'off' | 'auto' | 'on'
+    protocol?: 'auto' | 'kitty'
+    width?: number
+    height?: number
+  }
 }
 ```
 
@@ -242,7 +394,7 @@ export default defineCommand({
 
 // Invalid input shows error:
 // $ my-cli serve --port 70000
-// Validation errors:
+// Validation Error:
 //   --port:
 //     • Number must be less than or equal to 65535
 ```
@@ -252,7 +404,7 @@ export default defineCommand({
 Commands can be defined without handlers when they only contain subcommands:
 
 ```typescript
-export default defineCommand({
+export default defineGroup({
   name: 'tools',
   description: 'Development tools',
   commands: [
@@ -281,7 +433,7 @@ export default defineCommand({
   description: 'Build the project',
   handler: async ({ flags, context, colors }) => {
     // Access plugin store with full type safety
-    if (context?.env.isAIAgent) {
+    if (context?.store.isAIAgent) {
       // Provide structured output for AI
       console.log(JSON.stringify({
         status: 'building',
@@ -291,7 +443,7 @@ export default defineCommand({
       // Human-friendly output
       console.log(colors.blue('Building project...'))
     }
-    
+
     // Access timing data from plugin
     if (context?.store.startTime) {
       console.log(`Started at: ${new Date(context.store.startTime)}`)
@@ -311,10 +463,12 @@ export default defineCommand({
 3. **Add short flags** - For frequently used options
 4. **Group related commands** - Use nested commands for organization
 5. **Validate early** - Use Zod schemas to validate input before processing
+6. **Provide both render and handler** - For commands that work in both TUI and non-interactive modes
 
 ## See Also
 
 - [option](/docs/api/option) - Create command options
+- [defineGroup](/docs/api/define-command) - Group commands together
 - [Commands](/docs/core-concepts/commands) - Command concepts
 - [Type Inference](/docs/core-concepts/type-inference) - How type inference works
 - [Plugins](/docs/core-concepts/plugins) - Learn about plugins and context

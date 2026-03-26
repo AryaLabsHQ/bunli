@@ -82,12 +82,28 @@ interface AIDetectStore {
 The plugin detects these AI agents out of the box:
 
 ### Claude (Anthropic)
-- Environment variable: `CLAUDECODE`
-- Detection: Checks for the presence of `CLAUDECODE` variable
+- Environment variables: `CLAUDECODE`, `CLAUDE_CODE`
+- Detection: Checks for the presence of either `CLAUDECODE` or `CLAUDE_CODE` variable
 
 ### Cursor
 - Environment variable: `CURSOR_AGENT`
 - Detection: Checks for the presence of `CURSOR_AGENT` variable
+
+### Codex (OpenAI)
+- Environment variables: `CODEX_CI`, `CODEX_THREAD_ID`, `CODEX_SANDBOX`
+- Detection: Checks for any of the Codex environment variables
+
+### Amp (Anthropic)
+- Environment variables: `AMP_CURRENT_THREAD_ID`, `AGENT`
+- Detection: Checks for `AMP_CURRENT_THREAD_ID` or when `AGENT=amp`
+
+### Gemini (Google)
+- Environment variable: `GEMINI_CLI`
+- Detection: Checks for the presence of `GEMINI_CLI` variable
+
+### OpenCode
+- Environment variable: `OPENCODE`
+- Detection: Checks for `OPENCODE=1`
 
 ## Examples
 

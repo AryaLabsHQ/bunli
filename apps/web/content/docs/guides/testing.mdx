@@ -40,26 +40,56 @@ export default defineCommand({
 
 ```typescript
 // src/commands/greet.test.ts
-import { test, expect } from '@bunli/test'
-import { createTestCLI } from '@bunli/test'
+import { test, expect } from 'bun:test'
+import { testCommand } from '@bunli/test'
 import greet from './greet'
 
 test('greet command says hello', async () => {
-  const cli = createTestCLI()
-  cli.command(greet)
-  
-  const result = await cli.run(['greet'])
-  
+  const result = await testCommand(greet, {
+    flags: { name: 'World' }
+  })
+
   expect(result.exitCode).toBe(0)
   expect(result.stdout).toContain('Hello, World!')
 })
 
 test('greet command with custom name', async () => {
-  const cli = createTestCLI()
-  cli.command(greet)
-  
-  const result = await cli.run(['greet', '--name', 'Alice'])
-  
+  const result = await testCommand(greet, {
+    flags: { name: 'Alice' }
+  })
+
+  expect(result.exitCode).toBe(0)
+  expect(result.stdout).toContain('Hello, Alice!')
+})
+```
+
+### Testing with createTestCLI
+
+For full CLI integration testing, use `createTestCLI`:
+
+```typescript
+import { test, expect } from 'bun:test'
+import { createTestCLI } from '@bunli/test'
+import greet from './greet'
+
+test('greet command via CLI', async () => {
+  const cli = await createTestCLI({
+    commands: [greet]
+  })
+
+  const result = await cli.run(['greet'])
+
+  expect(result.exitCode).toBe(0)
+  expect(result.stdout).toContain('Hello, World!')
+})
+
+test('greet with arguments via execute', async () => {
+  const cli = await createTestCLI({
+    commands: [greet]
+  })
+
+  const result = await cli.execute('greet', ['--name', 'Alice'])
+
   expect(result.exitCode).toBe(0)
   expect(result.stdout).toContain('Hello, Alice!')
 })
@@ -93,37 +123,34 @@ export default defineCommand({
 
 ```typescript
 // src/commands/serve.test.ts
-import { test, expect, describe } from '@bunli/test'
-import { createTestCLI } from '@bunli/test'
+import { test, expect, describe } from 'bun:test'
+import { testCommand } from '@bunli/test'
 import serve from './serve'
 
 describe('serve command', () => {
   test('valid port number', async () => {
-    const cli = createTestCLI()
-    cli.command(serve)
-    
-    const result = await cli.run(['serve', '--port', '3000'])
-    
+    const result = await testCommand(serve, {
+      flags: { port: 3000 }
+    })
+
     expect(result.exitCode).toBe(0)
     expect(result.stdout).toContain('Server running on localhost:3000')
   })
-  
+
   test('invalid port number', async () => {
-    const cli = createTestCLI()
-    cli.command(serve)
-    
-    const result = await cli.run(['serve', '--port', '70000'])
-    
+    const result = await testCommand(serve, {
+      flags: { port: 70000 }
+    })
+
     expect(result.exitCode).toBe(1)
     expect(result.stderr).toContain('less than or equal to 65535')
   })
-  
+
   test('non-numeric port', async () => {
-    const cli = createTestCLI()
-    cli.command(serve)
-    
-    const result = await cli.run(['serve', '--port', 'abc'])
-    
+    const result = await testCommand(serve, {
+      flags: { port: 'abc' as any }
+    })
+
     expect(result.exitCode).toBe(1)
     expect(result.stderr).toContain('Expected number')
   })
@@ -134,6 +161,8 @@ describe('serve command', () => {
 
 ### Mocking Prompts
 
+Use the `mockPromptResponses` helper with `testCommand`:
+
 ```typescript
 // src/commands/init.ts
 export default defineCommand({
@@ -142,18 +171,18 @@ export default defineCommand({
     const name = await prompt('Project name:', {
       default: 'my-project'
     })
-    
+
     const useTypeScript = await prompt.confirm('Use TypeScript?', {
       default: true
     })
-    
+
     const template = await prompt.select('Choose a template:', {
-      choices: [
+      options: [
         { value: 'basic', label: 'Basic' },
         { value: 'full', label: 'Full-featured' }
       ]
     })
-    
+
     console.log(colors.green('✓'), `Created ${name} with ${template} template`)
     if (useTypeScript) {
       console.log(colors.dim('  TypeScript enabled'))
@@ -164,39 +193,44 @@ export default defineCommand({
 
 ```typescript
 // src/commands/init.test.ts
+import { test, expect } from 'bun:test'
+import { testCommand, mockPromptResponses } from '@bunli/test'
+import init from './init'
+
 test('init command with prompts', async () => {
-  const cli = createTestCLI()
-  cli.command(init)
-  
-  // Mock prompt responses in order
-  cli.mockPrompts([
-    'awesome-cli',      // Project name
-    false,              // Use TypeScript
-    'full'              // Template
-  ])
-  
-  const result = await cli.run(['init'])
-  
+  const result = await testCommand(init, {
+    ...mockPromptResponses({
+      'Project name:': 'awesome-cli',
+      'Use TypeScript?': 'n',
+      'Choose a template:': 'full'
+    })
+  })
+
   expect(result.exitCode).toBe(0)
   expect(result.stdout).toContain('Created awesome-cli with full template')
   expect(result.stdout).not.toContain('TypeScript enabled')
 })
 
 test('init command with default values', async () => {
-  const cli = createTestCLI()
-  cli.command(init)
-  
-  // Press enter for all prompts (use defaults)
-  cli.mockPrompts([
-    '',     // Use default project name
-    '',     // Use default TypeScript option
-    'basic' // Select basic template
-  ])
-  
-  const result = await cli.run(['init'])
-  
+  const result = await testCommand(init, {
+    ...mockPromptResponses({
+      'Project name:': 'my-project',
+      'Use TypeScript?': '',
+      'Choose a template:': 'basic'
+    })
+  })
+
   expect(result.stdout).toContain('Created my-project with basic template')
   expect(result.stdout).toContain('TypeScript enabled')
+})
+
+test('init command with stdin array', async () => {
+  const result = await testCommand(init, {
+    stdin: ['my-app', 'y', 'basic']
+  })
+
+  expect(result.exitCode).toBe(0)
+  expect(result.stdout).toContain('Created my-app with basic template')
 })
 ```
 
@@ -206,37 +240,41 @@ test('init command with default values', async () => {
 
 ```typescript
 test('command output formatting', async () => {
-  const cli = createTestCLI()
-  
+  const cli = await createTestCLI({
+    commands: [listCommand]
+  })
+
   const result = await cli.run(['list'])
-  
+
   // Test stdout
   expect(result.stdout).toContain('Items:')
   expect(result.stdout.split('\n')).toHaveLength(5)
-  
+
   // Test stderr
   expect(result.stderr).toBe('')
-  
+
   // Test combined output
-  expect(result.output).toContain('Items:')
+  expect(result.stdout + result.stderr).toContain('Items:')
 })
 ```
 
 ### Testing Colored Output
 
 ```typescript
+import { stripAnsi } from '@bunli/utils'
+
 test('colored output', async () => {
-  const cli = createTestCLI({
-    // Force color output in tests
+  const cli = await createTestCLI({
+    commands: [statusCommand],
     env: { FORCE_COLOR: '1' }
   })
-  
+
   const result = await cli.run(['status'])
-  
+
   // Test for ANSI color codes
   expect(result.stdout).toContain('\x1b[32m') // Green
   expect(result.stdout).toContain('\x1b[31m') // Red
-  
+
   // Or strip colors for easier testing
   const stripped = stripAnsi(result.stdout)
   expect(stripped).toContain('✓ Success')
@@ -249,25 +287,24 @@ test('colored output', async () => {
 
 ```typescript
 test('command failure', async () => {
-  const cli = createTestCLI()
-  
+  const cli = await createTestCLI({
+    commands: [buildCommand]
+  })
+
   const result = await cli.run(['build', '--invalid-flag'])
-  
+
   expect(result.exitCode).toBe(1)
   expect(result.stderr).toContain('Unknown flag')
 })
 
 test('command throws error', async () => {
-  const cli = createTestCLI()
-  cli.command(defineCommand({
+  const result = await testCommand(defineCommand({
     name: 'fail',
     handler: async () => {
       throw new Error('Something went wrong')
     }
   }))
-  
-  const result = await cli.run(['fail'])
-  
+
   expect(result.exitCode).toBe(1)
   expect(result.stderr).toContain('Something went wrong')
 })
@@ -277,14 +314,16 @@ test('command throws error', async () => {
 
 ```typescript
 test('validation error messages', async () => {
-  const cli = createTestCLI()
-  
+  const cli = await createTestCLI({
+    commands: [deployCommand]
+  })
+
   const result = await cli.run([
     'deploy',
     '--env', 'invalid',
     '--port', '-1'
   ])
-  
+
   expect(result.exitCode).toBe(1)
   expect(result.stderr).toContain('Validation errors:')
   expect(result.stderr).toContain('--env: Invalid enum value')
@@ -306,21 +345,22 @@ test('command creates files', async () => {
       'package.json': JSON.stringify({ name: 'test' })
     }
   })
-  
-  const cli = createTestCLI({
+
+  const cli = await createTestCLI({
+    commands: [generateCommand],
     cwd: '/project'
   })
-  
+
   const result = await cli.run(['generate', 'component', 'Button'])
-  
+
   expect(result.exitCode).toBe(0)
-  
+
   // Verify files were created
   const fs = getMockFS()
   expect(fs.existsSync('/project/src/components/Button.tsx')).toBe(true)
   expect(fs.readFileSync('/project/src/components/Button.tsx', 'utf8'))
     .toContain('export function Button')
-  
+
   // Cleanup
   restoreFS()
 })
@@ -332,32 +372,14 @@ test('command creates files', async () => {
 
 ```typescript
 test('long running command', async () => {
-  const cli = createTestCLI()
-  
-  const result = await cli.run(['install'], {
-    timeout: 10000 // 10 seconds
+  const result = await testCommand(installCommand, {
+    flags: {},
+    // timeout is handled by test runner
   })
-  
+
   expect(result.exitCode).toBe(0)
   expect(result.stdout).toContain('Installing dependencies...')
   expect(result.stdout).toContain('✓ Installation complete')
-})
-
-test('command with progress updates', async () => {
-  const cli = createTestCLI()
-  
-  // Capture output as it happens
-  const outputs: string[] = []
-  cli.onOutput((chunk) => {
-    outputs.push(chunk)
-  })
-  
-  await cli.run(['download', 'large-file.zip'])
-  
-  // Verify progress updates
-  expect(outputs.some(o => o.includes('0%'))).toBe(true)
-  expect(outputs.some(o => o.includes('50%'))).toBe(true)
-  expect(outputs.some(o => o.includes('100%'))).toBe(true)
 })
 ```
 
@@ -365,15 +387,13 @@ test('command with progress updates', async () => {
 
 ```typescript
 test('command uses environment variables', async () => {
-  const cli = createTestCLI({
+  const result = await testCommand(apiCommand, {
     env: {
       API_KEY: 'test-key-123',
       DEBUG: 'true'
     }
   })
-  
-  const result = await cli.run(['api', 'status'])
-  
+
   expect(result.stdout).toContain('Using API key: test-***-123')
   expect(result.stdout).toContain('Debug mode enabled')
 })
@@ -381,25 +401,30 @@ test('command uses environment variables', async () => {
 
 ## Testing Shell Commands
 
+Use `mockShellCommands` to mock shell command outputs:
+
 ```typescript
+import { testCommand, mockShellCommands } from '@bunli/test'
+
 test('command executes shell commands', async () => {
-  const cli = createTestCLI()
-  
-  // Mock shell commands
-  cli.mockShell({
-    'git status': {
-      stdout: 'On branch main\nnothing to commit',
-      exitCode: 0
-    },
-    'git pull': {
-      stdout: 'Already up to date.',
-      exitCode: 0
-    }
+  const result = await testCommand(syncCommand, {
+    ...mockShellCommands({
+      'git status': 'On branch main\nnothing to commit',
+      'git pull': 'Already up to date.'
+    })
   })
-  
-  const result = await cli.run(['sync'])
-  
+
   expect(result.stdout).toContain('Already up to date')
+})
+
+test('shell command returns JSON', async () => {
+  const result = await testCommand(infoCommand, {
+    ...mockShellCommands({
+      'npm list --json': JSON.stringify({ dependencies: {} })
+    })
+  })
+
+  expect(result.stdout).toContain('dependencies')
 })
 ```
 
@@ -409,16 +434,18 @@ test('command executes shell commands', async () => {
 
 ```typescript
 test('command workflow', async () => {
-  const cli = createTestCLI()
-  
+  const cli = await createTestCLI({
+    commands: [initCommand, addCommand, buildCommand]
+  })
+
   // Initialize project
   let result = await cli.run(['init', '--name', 'test-app'])
   expect(result.exitCode).toBe(0)
-  
+
   // Add a component
   result = await cli.run(['add', 'component', 'Button'])
   expect(result.exitCode).toBe(0)
-  
+
   // Build project
   result = await cli.run(['build'])
   expect(result.exitCode).toBe(0)
@@ -430,25 +457,22 @@ test('command workflow', async () => {
 
 ### Custom Matchers
 
-```typescript
-import { expect } from '@bunli/test'
+`@bunli/test` provides custom matchers via `expectCommand`:
 
-// Add custom matchers
-expect.extend({
-  toBeValidPort(received: number) {
-    const pass = received >= 1 && received <= 65535
-    return {
-      pass,
-      message: () => 
-        `Expected ${received} to be a valid port number (1-65535)`
-    }
-  }
+```typescript
+import { expectCommand } from '@bunli/test'
+
+// Use with testCommand
+test('command succeeds', async () => {
+  const result = await testCommand(myCommand)
+  expectCommand(result).toHaveSucceeded()
+  expectCommand(result).toContainInStdout('success')
 })
 
-// Use in tests
-test('port validation', () => {
-  expect(3000).toBeValidPort()
-  expect(70000).not.toBeValidPort()
+test('command fails', async () => {
+  const result = await testCommand(failCommand)
+  expectCommand(result).toHaveFailed()
+  expectCommand(result).toContainInStderr('error')
 })
 ```
 
@@ -456,23 +480,21 @@ test('port validation', () => {
 
 ```typescript
 // test-helpers.ts
+import { createTestCLI } from '@bunli/test'
+import { loginCommand, logoutCommand } from './commands'
+
 export function createAuthenticatedCLI() {
-  const cli = createTestCLI({
+  return createTestCLI({
     env: {
       AUTH_TOKEN: 'test-token'
-    }
+    },
+    commands: [loginCommand, logoutCommand]
   })
-  
-  // Add common commands
-  cli.command(loginCommand)
-  cli.command(logoutCommand)
-  
-  return cli
 }
 
 // Use in tests
 test('authenticated command', async () => {
-  const cli = createAuthenticatedCLI()
+  const cli = await createAuthenticatedCLI()
   const result = await cli.run(['profile'])
   expect(result.stdout).toContain('Logged in as: test-user')
 })
@@ -497,10 +519,10 @@ This generates a coverage report showing:
 ### Testing Plugin Integration
 
 ```typescript
-// src/plugins/analytics.test.ts
-import { test, expect } from '@bunli/test'
-import { createTestCLI } from '@bunli/test'
+import { test, expect } from 'bun:test'
+import { testCommand } from '@bunli/test'
 import { createPlugin } from '@bunli/core/plugin'
+import type { BunliPlugin } from '@bunli/core/plugin'
 
 const analyticsPlugin = createPlugin({
   name: 'analytics',
@@ -515,20 +537,15 @@ const analyticsPlugin = createPlugin({
 })
 
 test('analytics plugin tracks commands', async () => {
-  const cli = createTestCLI({
-    plugins: [analyticsPlugin]
-  })
-  
-  cli.command(defineCommand({
+  const result = await testCommand(defineCommand({
     name: 'test',
+    plugins: [analyticsPlugin as BunliPlugin<typeof analyticsPlugin>],
     handler: async ({ context }) => {
       // Access plugin store in command
       console.log(`Count: ${context?.store.commandCount}`)
     }
   }))
-  
-  const result = await cli.run(['test'])
-  
+
   expect(result.exitCode).toBe(0)
   expect(result.stdout).toContain('Count: 1')
 })
@@ -539,7 +556,7 @@ test('analytics plugin tracks commands', async () => {
 ```typescript
 test('plugin lifecycle hooks', async () => {
   const events: string[] = []
-  
+
   const testPlugin = createPlugin({
     name: 'test-plugin',
     setup() {
@@ -555,13 +572,13 @@ test('plugin lifecycle hooks', async () => {
       events.push('afterCommand')
     }
   })
-  
-  const cli = createTestCLI({
-    plugins: [testPlugin]
-  })
-  
-  await cli.run(['help'])
-  
+
+  const result = await testCommand(defineCommand({
+    name: 'test',
+    plugins: [testPlugin as BunliPlugin<typeof testPlugin>],
+    handler: async () => {}
+  }))
+
   expect(events).toEqual([
     'setup',
     'configResolved',
@@ -579,7 +596,7 @@ interface TimerStore {
   endTime: number | null
 }
 
-const timerPlugin = createPlugin((): BunliPlugin<TimerStore> => ({
+const timerPlugin = createPlugin({
   name: 'timer',
   store: {
     startTime: null,
@@ -591,24 +608,18 @@ const timerPlugin = createPlugin((): BunliPlugin<TimerStore> => ({
   afterCommand({ store }) {
     store.endTime = Date.now()
   }
-}))
+})
 
 test('plugin store type safety', async () => {
-  const cli = createTestCLI({
-    plugins: [timerPlugin] as const
-  })
-  
-  cli.command(defineCommand({
+  const result = await testCommand(defineCommand({
     name: 'timed',
+    plugins: [timerPlugin as BunliPlugin<typeof timerPlugin>],
     handler: async ({ context }) => {
-      // TypeScript knows the store types!
       if (context?.store.startTime) {
         console.log(`Started at: ${context.store.startTime}`)
       }
     }
   }))
-  
-  const result = await cli.run(['timed'])
   expect(result.stdout).toMatch(/Started at: \d+/)
 })
 ```
@@ -621,26 +632,21 @@ test('multiple plugins interaction', async () => {
     name: 'plugin-a',
     store: { valueA: 'A' }
   })
-  
+
   const pluginB = createPlugin({
     name: 'plugin-b',
     store: { valueB: 'B' }
   })
-  
-  const cli = createTestCLI({
-    plugins: [pluginA, pluginB] as const
-  })
-  
-  cli.command(defineCommand({
+
+  const result = await testCommand(defineCommand({
     name: 'test',
+    plugins: [pluginA, pluginB] as any,
     handler: async ({ context }) => {
-      // Access both plugin stores
-      console.log(context?.store.valueA) // 'A'
-      console.log(context?.store.valueB) // 'B'
+      console.log(context?.store.valueA)
+      console.log(context?.store.valueB)
     }
   }))
-  
-  const result = await cli.run(['test'])
+
   expect(result.stdout).toContain('A')
   expect(result.stdout).toContain('B')
 })
@@ -653,74 +659,26 @@ When using type generation, you can test the generated types themselves:
 ```typescript
 // test/generated-types.test.ts
 import { test, expect } from 'bun:test'
-import { getCommandApi, listCommands, hasCommand } from '../commands.gen'
+import { listCommands, getCommandApi } from '../commands.gen'
 
 test('generated types are valid', () => {
   const commands = listCommands()
   expect(commands.length).toBeGreaterThan(0)
-  
+
   // Test specific command
   const greetApi = getCommandApi('greet')
   expect(greetApi.description).toBe('A friendly greeting')
   expect(greetApi.options).toHaveProperty('name')
 })
 
-test('command discovery works', () => {
-  const commands = listCommands()
-  const commandNames = commands.map(c => c.name)
-  
-  expect(commandNames).toContain('greet')
-  expect(hasCommand('greet')).toBe(true)
-  expect(hasCommand('nonexistent')).toBe(false)
-})
-
 test('command options are properly typed', () => {
   const greetApi = getCommandApi('greet')
-  
+
   // Test option structure
   expect(greetApi.options.name.type).toBe('string')
   expect(greetApi.options.name.required).toBe(true)
   expect(greetApi.options.excited.type).toBe('boolean')
   expect(greetApi.options.excited.default).toBe(false)
-})
-```
-
-### Testing CLI Wrappers
-
-Test CLI wrappers that use generated types:
-
-```typescript
-// test/cli-wrapper.test.ts
-import { test, expect } from 'bun:test'
-import { DevToolsCLI } from '../src/cli-wrapper'
-import { getCommandApi } from '../commands.gen'
-
-test('CLI wrapper validates commands', async () => {
-  const cli = new DevToolsCLI()
-  
-  // Test valid command
-  await expect(cli.executeCommand('greet', { name: 'Alice' }))
-    .resolves.not.toThrow()
-  
-  // Test invalid command
-  await expect(cli.executeCommand('nonexistent', {}))
-    .rejects.toThrow('Unknown command: nonexistent')
-  
-  // Test invalid options
-  await expect(cli.executeCommand('greet', { name: 123 }))
-    .rejects.toThrow('Option name must be a string')
-})
-
-test('command discovery works', () => {
-  const cli = new DevToolsCLI()
-  const commands = cli.getAvailableCommands()
-  
-  expect(commands).toHaveLength(2)
-  expect(commands[0]).toMatchObject({
-    name: 'greet',
-    description: 'A friendly greeting',
-    options: ['name', 'excited']
-  })
 })
 ```
 
@@ -734,26 +692,23 @@ test('command discovery works', () => {
 6. **Test Output Format**: Users depend on consistent output
 7. **Test Plugin Integration**: Ensure plugins work with your commands
 8. **Test Generated Types**: Verify type generation works correctly
-9. **Test CLI Wrappers**: Ensure type-safe wrappers function properly
 
 ## Debugging Tests
 
 ```typescript
 test('debugging example', async () => {
-  const cli = createTestCLI({
-    // Enable debug output
-    debug: true
+  const cli = await createTestCLI({
+    commands: [complexCommand]
   })
-  
-  // Log intermediate values
-  cli.onOutput((chunk) => {
-    console.log('Output:', chunk)
-  })
-  
+
   const result = await cli.run(['complex-command'])
-  
+
+  // Log output for debugging
+  console.log('STDOUT:', result.stdout)
+  console.log('STDERR:', result.stderr)
+
   // Detailed assertion messages
-  expect(result.exitCode).toBe(0, 
+  expect(result.exitCode).toBe(0,
     `Command failed with: ${result.stderr}`
   )
 })
@@ -763,5 +718,4 @@ test('debugging example', async () => {
 
 - [Type Generation Guide](/docs/guides/type-generation) - Learn about code generation
 - [Distribution](/docs/guides/distribution) - Package and distribute your CLI
-- [@bunli/test API](/docs/packages/test) - Complete testing API reference
 - [Examples](/docs/examples) - See tests in real projects

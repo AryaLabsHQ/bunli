@@ -15,6 +15,7 @@ function option<S extends StandardSchemaV1>(
   metadata?: {
     short?: string
     description?: string
+    repeatable?: boolean
   }
 ): CLIOption<S>
 ```
@@ -30,6 +31,7 @@ A Standard Schema v1 compatible schema (Zod, Valibot, etc.) that validates and t
 Additional metadata for the option:
 - `short` - Single character alias for the option
 - `description` - Help text shown in --help output
+- `repeatable` - Collect repeated flag occurrences and validate them as an array
 
 ## Returns
 
@@ -314,7 +316,10 @@ const apiKey = option(
 // From repeated flags: --tag foo --tag bar
 const tags = option(
   z.array(z.string()).default([]),
-  { description: 'Tags (can be used multiple times)' }
+  {
+    description: 'Tags (can be used multiple times)',
+    repeatable: true
+  }
 )
 
 // From comma-separated: --tags foo,bar,baz
