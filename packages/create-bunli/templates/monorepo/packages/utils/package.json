@@ -14,12 +14,13 @@
     }
   },
   "scripts": {
-    "build": "bun scripts/build.ts && bun run tsc",
+    "build": "bun scripts/build.ts && bun run tsgo",
     "test": "bun test",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsgo --noEmit",
     "clean": "rm -rf dist"
   },
   "devDependencies": {
+    "@tsconfig/bun": "catalog:",
     "@types/bun": "latest",
     "typescript": "^5.0.0"
   }

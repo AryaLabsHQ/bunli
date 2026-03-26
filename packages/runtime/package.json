@@ -39,9 +39,9 @@
     }
   },
   "scripts": {
-    "build": "bun run scripts/build.ts",
+    "build": "bun run scripts/build.ts && tsgo",
     "test": "bun test",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsgo --noEmit"
   },
   "dependencies": {
     "@opentui/core": "catalog:",
@@ -53,8 +53,10 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@tsconfig/bun": "catalog:",
     "@types/bun": "catalog:",
     "@types/react": "catalog:",
+    "@types/debug": "catalog:",
     "react": "catalog:",
     "typescript": "catalog:"
   },

@@ -29,9 +29,9 @@
     "README.md"
   ],
   "scripts": {
-    "build": "bun scripts/build.ts && bun run tsc",
+    "build": "bun scripts/build.ts && bun run tsgo",
     "test": "bun test",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsgo --noEmit",
     "prepublishOnly": "bun run build"
   },
   "keywords": [
@@ -58,8 +58,9 @@
   },
   "homepage": "https://github.com/AryaLabsHQ/bunli#readme",
   "devDependencies": {
+    "@tsconfig/bun": "catalog:",
     "@types/bun": "catalog:",
-    "@types/debug": "^4.1.12",
+    "@types/debug": "^4.1.13",
     "typescript": "catalog:"
   },
   "engines": {

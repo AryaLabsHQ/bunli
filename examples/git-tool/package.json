@@ -7,7 +7,7 @@
     "generate": "bunli generate",
     "dev": "bunli dev",
     "build": "bunli build",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsgo --noEmit",
     "cli": "bun cli.ts"
   },
   "dependencies": {
@@ -15,6 +15,7 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@tsconfig/bun": "catalog:",
     "@types/node": "catalog:",
     "bunli": "workspace:^",
     "typescript": "catalog:"

@@ -7,7 +7,7 @@
     "./plugin": "./src/plugin.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsgo --noEmit",
     "test": "bun test"
   },
   "dependencies": {
@@ -19,6 +19,7 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@tsconfig/bun": "catalog:",
     "@types/babel__parser": "^7.1.0",
     "@types/babel__traverse": "^7.20.0",
     "@types/bun": "catalog:",

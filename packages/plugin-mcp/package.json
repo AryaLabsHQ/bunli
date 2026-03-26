@@ -28,7 +28,7 @@
   ],
   "scripts": {
     "build": "bun run scripts/build.ts",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsgo --noEmit",
     "test": "bun test"
   },
   "dependencies": {
@@ -39,6 +39,7 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@tsconfig/bun": "catalog:",
     "@modelcontextprotocol/sdk": "^1.25.3",
     "@types/bun": "catalog:",
     "typescript": "catalog:",
