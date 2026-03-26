@@ -13,8 +13,8 @@ import formatCommand from './prompt/format.js'
 import logCommand from './prompt/log.js'
 
 export default defineGroup({
-  name: 'prompt',
-  description: 'Interactive prompts for shell scripts (gum-compatible)',
+  name: 'shell',
+  description: 'Shell UI helpers for scripts and terminal workflows',
   commands: [
     confirmCommand,
     chooseCommand,

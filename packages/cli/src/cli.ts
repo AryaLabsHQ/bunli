@@ -7,7 +7,7 @@ import initCommand from './commands/init.js'
 import releaseCommand from './commands/release.js'
 import testCommand from './commands/test.js'
 import doctorCommand from './commands/doctor.js'
-import promptCommand from './commands/prompt.js'
+import shellCommand from './commands/shell.js'
 
 const cli = await createCLI({
   name: 'bunli',
@@ -22,6 +22,6 @@ cli.command(testCommand)
 cli.command(releaseCommand)
 cli.command(initCommand)
 cli.command(doctorCommand)
-cli.command(promptCommand)
+cli.command(shellCommand)
 
 await cli.run()

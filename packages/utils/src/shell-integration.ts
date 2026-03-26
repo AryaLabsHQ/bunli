@@ -1,8 +1,8 @@
 /**
- * Shell integration utilities for CLI prompt commands.
+ * Shell integration utilities for CLI shell commands.
  *
  * Provides stdin/stdout helpers and conventional exit codes so that
- * `bunli prompt *` subcommands compose cleanly with other shell tools.
+ * `bunli shell *` subcommands compose cleanly with other shell tools.
  */
 
 /**
