@@ -38,6 +38,7 @@ jobs:
         env:
           ANTHROPIC_BASE_URL: https://api.minimax.io/anthropic
           ANTHROPIC_AUTH_TOKEN: ${{ secrets.MINIMAX_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
           ANTHROPIC_MODEL: MiniMax-M2.7
           ANTHROPIC_SMALL_FAST_MODEL: MiniMax-M2.7
           ANTHROPIC_DEFAULT_SONNET_MODEL: MiniMax-M2.7
@@ -66,6 +67,7 @@ jobs:
         env:
           ANTHROPIC_BASE_URL: https://api.minimax.io/anthropic
           ANTHROPIC_AUTH_TOKEN: ${{ secrets.MINIMAX_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
           ANTHROPIC_MODEL: MiniMax-M2.7
           ANTHROPIC_SMALL_FAST_MODEL: MiniMax-M2.7
           ANTHROPIC_DEFAULT_SONNET_MODEL: MiniMax-M2.7
