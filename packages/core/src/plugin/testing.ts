@@ -62,6 +62,17 @@ export function createMockCommandContext<TStore = {}>(
   }
 }
 
+function createMockResultContext<TStore = {}>(
+  context: CommandContext<TStore>,
+  exitCode: number
+): CommandContext<TStore> & { exitCode: number } {
+  return Object.assign(
+    Object.create(Object.getPrototypeOf(context)),
+    context,
+    { exitCode }
+  ) as CommandContext<TStore> & { exitCode: number }
+}
+
 /**
  * Test plugin lifecycle hooks
  */
@@ -84,6 +95,14 @@ export async function testPluginHooks<TStore = {}>(
     afterCommand?: any
   } = {}
   const executionState = new ExecutionState()
+  const sharedHookContext = (plugin.preRun || plugin.postRun)
+    ? createMockCommandContext(
+        options.command || 'test',
+        options.args || [],
+        options.flags || {},
+        options.store || ({} as TStore)
+      )
+    : undefined
 
   // Test setup hook
   if (plugin.setup) {
@@ -163,12 +182,7 @@ export async function testPluginHooks<TStore = {}>(
 
   // Test preRun hook
   if (plugin.preRun) {
-    const context = createMockCommandContext(
-      options.command || 'test',
-      options.args || [],
-      options.flags || {},
-      options.store || ({} as TStore)
-    )
+    const context = sharedHookContext!
     try {
       await plugin.preRun(context, executionState)
       results.preRun = { success: true, context, state: executionState }
@@ -179,14 +193,9 @@ export async function testPluginHooks<TStore = {}>(
 
   // Test postRun hook
   if (plugin.postRun) {
-    const context = createMockCommandContext(
-      options.command || 'test',
-      options.args || [],
-      options.flags || {},
-      options.store || ({} as TStore)
-    )
+    const context = sharedHookContext!
     try {
-      await plugin.postRun({ ...context, exitCode: 0 }, executionState)
+      await plugin.postRun(createMockResultContext(context, 0), executionState)
       results.postRun = { success: true, context, state: executionState }
     } catch (error) {
       results.postRun = { success: false, error }
@@ -202,7 +211,7 @@ export async function testPluginHooks<TStore = {}>(
       options.store || ({} as TStore)
     )
     try {
-      await plugin.afterCommand({ ...context, exitCode: 0 })
+      await plugin.afterCommand(createMockResultContext(context, 0))
       results.afterCommand = { success: true, context }
     } catch (error) {
       results.afterCommand = { success: false, error }

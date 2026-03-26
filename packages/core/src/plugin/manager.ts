@@ -247,6 +247,17 @@ export class PluginManager<TStore = {}> {
     return new ExecutionState()
   }
 
+  private createResultContext(
+    context: CommandContext<TStore>,
+    result: CommandResult
+  ): CommandContext<TStore> & CommandResult {
+    return Object.assign(
+      Object.create(Object.getPrototypeOf(context)),
+      context,
+      result
+    ) as CommandContext<TStore> & CommandResult
+  }
+
   /**
    * Run preRun hooks — called immediately before the command handler.
    * Lifecycle: beforeCommand → preRun → [handler] → postRun → afterCommand
@@ -292,10 +303,7 @@ export class PluginManager<TStore = {}> {
     result: CommandResult,
     state: ExecutionState
   ): Promise<void> {
-    const fullContext = Object.assign(
-      context,
-      result
-    ) as CommandContext<TStore> & CommandResult
+    const fullContext = this.createResultContext(context, result)
 
     for (const plugin of this.plugins) {
       if (plugin.postRun) {
@@ -317,10 +325,7 @@ export class PluginManager<TStore = {}> {
     context: CommandContext<TStore>,
     result: CommandResult
   ): Promise<void> {
-    const fullContext = Object.assign(
-      context,
-      result
-    ) as CommandContext<TStore> & CommandResult
+    const fullContext = this.createResultContext(context, result)
     
     // Run all afterCommand hooks
     for (const plugin of this.plugins) {

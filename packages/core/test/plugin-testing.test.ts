@@ -17,3 +17,21 @@ test('testPluginHooks reuses execution state across preRun and postRun', async (
   expect(results.preRun?.success).toBe(true)
   expect(results.postRun?.success).toBe(true)
 })
+
+test('testPluginHooks reuses the same command context across preRun and postRun', async () => {
+  const plugin = {
+    name: 'shared-context-test',
+    async preRun(context: Record<string, unknown>) {
+      context.marker = 'persisted'
+    },
+    async postRun(context: Record<string, unknown>) {
+      expect(context.marker).toBe('persisted')
+    }
+  }
+
+  const results = await testPluginHooks(plugin)
+
+  expect(results.preRun?.success).toBe(true)
+  expect(results.postRun?.success).toBe(true)
+  expect(results.preRun?.context).toBe(results.postRun?.context)
+})
