@@ -1,0 +1,74 @@
+name: Documentation
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    paths:
+      - "packages/*/src/**"
+      - "packages/*/package.json"
+  schedule:
+    - cron: "0 9 * * 3" # Every Wednesday at 9am UTC
+  workflow_dispatch: # Manual trigger
+
+concurrency:
+  group: docs-audit-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  docs-audit-pr:
+    if: >-
+      github.event_name == 'pull_request' &&
+      contains(fromJSON('["MEMBER", "OWNER"]'), github.event.pull_request.author_association)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          prompt: "Audit docs affected by this PR's code changes. Implementation is the source of truth — update documentation to match code, never modify implementation. Commit doc fixes directly to this PR branch."
+          claude_args: "--agent documentation --max-turns 50"
+        env:
+          ANTHROPIC_BASE_URL: https://api.minimax.io/anthropic
+          ANTHROPIC_AUTH_TOKEN: ${{ secrets.MINIMAX_API_KEY }}
+          ANTHROPIC_MODEL: MiniMax-M2.7
+          ANTHROPIC_SMALL_FAST_MODEL: MiniMax-M2.7
+          ANTHROPIC_DEFAULT_SONNET_MODEL: MiniMax-M2.7
+          ANTHROPIC_DEFAULT_OPUS_MODEL: MiniMax-M2.7
+          ANTHROPIC_DEFAULT_HAIKU_MODEL: MiniMax-M2.7
+          API_TIMEOUT_MS: "3000000"
+          CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1"
+
+  docs-sync:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          prompt: |
+            Run a full documentation audit against the main branch.
+            Implementation is the source of truth — only update docs, never code.
+            If you find issues, create a new branch and open a PR with the fixes.
+            Title the PR using conventional commit format (e.g., "docs: update plugin lifecycle hooks" or "docs(api): add missing handler context properties"). Be specific about what changed.
+          claude_args: "--agent documentation --max-turns 50"
+        env:
+          ANTHROPIC_BASE_URL: https://api.minimax.io/anthropic
+          ANTHROPIC_AUTH_TOKEN: ${{ secrets.MINIMAX_API_KEY }}
+          ANTHROPIC_MODEL: MiniMax-M2.7
+          ANTHROPIC_SMALL_FAST_MODEL: MiniMax-M2.7
+          ANTHROPIC_DEFAULT_SONNET_MODEL: MiniMax-M2.7
+          ANTHROPIC_DEFAULT_OPUS_MODEL: MiniMax-M2.7
+          ANTHROPIC_DEFAULT_HAIKU_MODEL: MiniMax-M2.7
+          API_TIMEOUT_MS: "3000000"
+          CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1"
