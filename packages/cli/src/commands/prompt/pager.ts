@@ -25,7 +25,7 @@ export default defineCommand({
       }
     }
 
-    if (!content) {
+    if (content === undefined) {
       process.stderr.write('Error: no content provided (use --file or pipe via stdin)\n')
       process.exit(1)
     }

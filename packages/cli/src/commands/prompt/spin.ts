@@ -1,6 +1,5 @@
 import { defineCommand, option } from '@bunli/core'
 import { z } from 'zod'
-import { $ } from 'bun'
 
 export default defineCommand({
   name: 'spin',
@@ -14,22 +13,31 @@ export default defineCommand({
       process.exit(1)
     }
 
-    const command = positional.join(' ')
     const s = spinner(flags.title)
     try {
-      const result = await $`sh -c ${command}`.quiet().nothrow()
-      if (result.exitCode === 0) {
+      const proc = Bun.spawn(positional, {
+        stdin: 'inherit',
+        stdout: 'pipe',
+        stderr: 'pipe',
+      })
+      const [exitCode, stdout, stderr] = await Promise.all([
+        proc.exited,
+        new Response(proc.stdout).arrayBuffer(),
+        new Response(proc.stderr).arrayBuffer(),
+      ])
+
+      if (exitCode === 0) {
         s.succeed(flags.title)
       } else {
         s.fail(flags.title)
       }
-      if (result.stdout.length > 0) {
-        process.stdout.write(result.stdout)
+      if (stdout.byteLength > 0) {
+        process.stdout.write(Buffer.from(stdout))
       }
-      if (result.stderr.length > 0) {
-        process.stderr.write(result.stderr)
+      if (stderr.byteLength > 0) {
+        process.stderr.write(Buffer.from(stderr))
       }
-      process.exit(result.exitCode)
+      process.exit(exitCode)
     } catch {
       s.fail(flags.title)
       process.exit(1)

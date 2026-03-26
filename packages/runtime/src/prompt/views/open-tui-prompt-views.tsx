@@ -481,7 +481,7 @@ interface FilterResult<T> {
 const filterKeymap = createKeyMatcher({
   up: ['up'],
   down: ['down'],
-  toggle: ['tab', 'space'],
+  toggle: ['tab'],
   submit: ['enter']
 })
 

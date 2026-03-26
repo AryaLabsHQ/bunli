@@ -14,6 +14,7 @@ export default defineCommand({
   async handler({ flags, positional, prompt }) {
     const message = positional[0] ?? flags.prompt ?? 'Input'
     const result = await prompt.text(message, {
+      charLimit: flags['char-limit'],
       default: flags.value,
       placeholder: flags.placeholder,
     })
