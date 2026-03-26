@@ -37,7 +37,8 @@
     "@opentui/react": "catalog:",
     "@standard-schema/spec": "catalog:",
     "@standard-schema/utils": "catalog:",
-    "debug": "catalog:"
+    "debug": "catalog:",
+    "fuse.js": "^7.1.0"
   },
   "devDependencies": {
     "@tsconfig/bun": "catalog:",

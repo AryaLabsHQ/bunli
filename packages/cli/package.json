@@ -50,6 +50,7 @@
     "@bunli/core": "workspace:^",
     "@bunli/generator": "workspace:^",
     "@bunli/plugin-completions": "workspace:^",
+    "@bunli/tui": "workspace:^",
     "@bunli/utils": "workspace:^",
     "better-result": "catalog:",
     "zod": "catalog:"
