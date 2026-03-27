@@ -36,7 +36,7 @@ jobs:
           anthropic_api_key: ${{ secrets.MINIMAX_API_KEY }}
           show_full_output: true
           prompt: "Audit docs affected by this PR's code changes. Implementation is the source of truth — update documentation to match code, never modify implementation. Commit doc fixes directly to this PR branch."
-          claude_args: "--agent documentation --max-turns 50 --dangerously-skip-permissions"
+          claude_args: "--agent documentation --dangerously-skip-permissions"
         env:
           ANTHROPIC_BASE_URL: https://api.minimax.io/anthropic
           ANTHROPIC_MODEL: MiniMax-M2.7
@@ -65,7 +65,7 @@ jobs:
             Implementation is the source of truth — only update docs, never code.
             If you find issues, create a new branch and open a PR with the fixes.
             Title the PR using conventional commit format (e.g., "docs: update plugin lifecycle hooks" or "docs(api): add missing handler context properties"). Be specific about what changed.
-          claude_args: "--agent documentation --max-turns 50 --dangerously-skip-permissions"
+          claude_args: "--agent documentation --dangerously-skip-permissions"
         env:
           ANTHROPIC_BASE_URL: https://api.minimax.io/anthropic
           ANTHROPIC_MODEL: MiniMax-M2.7
