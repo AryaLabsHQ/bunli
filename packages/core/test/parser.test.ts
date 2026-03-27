@@ -34,6 +34,21 @@ describe('parseArgs repeatable options', () => {
     expect(parsed.flags.tag).toEqual(['ui', 'backend'])
   })
 
+  test('coerces repeated boolean string values before array validation', async () => {
+    const parsed = await parseArgs(
+      ['--flag', 'true', '--flag', 'false'],
+      {
+        flag: option(z.array(z.boolean()).default([]), {
+          repeatable: true,
+          argumentKind: 'flag',
+        }),
+      },
+      'deploy'
+    )
+
+    expect(parsed.flags.flag).toEqual([true, false])
+  })
+
   test('keeps last-write-wins semantics for non-repeatable options', async () => {
     const parsed = await parseArgs(
       ['--tag', 'ui', '--tag', 'backend'],

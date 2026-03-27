@@ -156,6 +156,26 @@ test('createTestCLI preserves global --format for built-in help on commands with
   expect(result.stdout).toContain('"path": [')
 })
 
+test('createTestCLI derives help path from the matched command prefix', async () => {
+  const buildCommand = defineCommand({
+    name: 'build',
+    description: 'Build the project',
+    async handler() {}
+  })
+
+  const testCli = await createTestCLI({
+    commands: [buildCommand]
+  })
+
+  const result = await testCli.run(['--format', 'json', '--help', 'build', '--target', 'prod'])
+  const payload = JSON.parse(result.stdout) as { ok: boolean; data: { type: string; path: string[] } }
+
+  expect(result.exitCode).toBe(0)
+  expect(payload.ok).toBe(true)
+  expect(payload.data.type).toBe('help')
+  expect(payload.data.path).toEqual(['build'])
+})
+
 test('createTestCLI preserves global --version when a command defines a version option', async () => {
   const releaseCommand = defineCommand({
     name: 'release',
