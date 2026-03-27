@@ -4,6 +4,8 @@
     "index",
     "config",
     "ai-detect",
-    "completions"
+    "completions",
+    "mcp",
+    "skills"
   ]
 }

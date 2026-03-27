@@ -72,7 +72,25 @@ export default defineCommand({
 Every command handler receives a rich context object:
 
 ```typescript
-handler: async ({ flags, positional, shell, env, cwd, prompt, spinner, colors }) => {
+handler: async ({
+  flags,
+  positional,
+  shell,
+  env,
+  cwd,
+  prompt,
+  spinner,
+  colors,
+  terminal,
+  runtime,
+  signal,
+  image,
+  format,
+  formatExplicit,
+  agent,
+  output,
+  context
+}) => {
   // flags - Parsed and validated command options
   // positional - Non-flag arguments
   // shell - Bun Shell for running commands (Bun.$)
@@ -81,6 +99,15 @@ handler: async ({ flags, positional, shell, env, cwd, prompt, spinner, colors })
   // prompt - Interactive prompts (auto-imported from @bunli/runtime/prompt)
   // spinner - Progress indicators (auto-imported from @bunli/utils)
   // colors - Terminal colors (auto-imported from @bunli/utils)
+  // terminal - Terminal information (width, height, isInteractive, isCI, etc.)
+  // runtime - Runtime info (startTime, args, command, outputFormat)
+  // signal - AbortSignal for cancellation
+  // image - TUI image rendering options (mode, protocol, width, height)
+  // format - Output format (json, yaml, toon, md)
+  // formatExplicit - Whether format was explicitly set via flag
+  // agent - Whether running in an AI agent context
+  // output - Write formatted output
+  // context - Plugin context (only present when plugins are loaded)
 }
 ```
 

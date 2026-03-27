@@ -65,7 +65,7 @@ Context available during the setup phase.
 ```typescript
 interface PluginContext {
   /** Current configuration (being built) */
-  readonly config: Partial<BunliConfig>
+  readonly config: BunliConfigInput
   
   /** Update configuration */
   updateConfig(partial: Partial<BunliConfig>): void
@@ -135,7 +135,7 @@ interface CommandResult {
   result?: any
   
   /** Error if command failed */
-  error?: Error
+  error?: unknown
   
   /** Exit code */
   exitCode?: number
@@ -186,7 +186,15 @@ interface EnvironmentInfo {
 Helper function for creating plugins with proper typing.
 
 ```typescript
-function createPlugin<T>(input: T): T
+// Direct plugin overload
+function createPlugin<TStore = {}>(
+  plugin: BunliPlugin<TStore>
+): BunliPlugin<TStore>
+
+// Factory overload
+function createPlugin<TOptions, TStore = {}>(
+  factory: (options: TOptions) => BunliPlugin<TStore>
+): (options: TOptions) => BunliPlugin<TStore>
 ```
 
 **Examples:**
@@ -246,34 +254,6 @@ type CombinedStore = MergeStores<[
   typeof pluginA,
   typeof pluginB
 ]>
-```
-
-### InferPluginOptions\<T\>
-
-Infer plugin options type from a plugin factory.
-
-```typescript
-type InferPluginOptions<T> = 
-  T extends PluginFactory<infer O, any> ? O : never
-
-// Example
-type Options = InferPluginOptions<typeof myPlugin>
-```
-
-### InferPluginStore\<T\>
-
-Infer plugin store type.
-
-```typescript
-type InferPluginStore<T> = 
-  T extends BunliPlugin<infer S> 
-    ? S 
-    : T extends PluginFactory<any, infer S> 
-      ? S 
-      : {}
-
-// Example
-type Store = InferPluginStore<typeof myPlugin>
 ```
 
 ## Plugin Configuration
@@ -336,9 +316,9 @@ Middleware function type for global command interception.
 
 ```typescript
 type Middleware = (
-  context: CommandContext, 
-  next: () => Promise<any>
-) => Promise<any>
+  context: CommandContext,
+  next: () => Promise<unknown>
+) => Promise<unknown>
 
 // Example
 const loggingMiddleware: Middleware = async (context, next) => {
@@ -354,28 +334,15 @@ const loggingMiddleware: Middleware = async (context, next) => {
 Extend core interfaces in your plugins.
 
 ```typescript
-declare module '@bunli/core/plugin' {
-  interface EnvironmentInfo {
-    // Add custom fields
-    isDocker: boolean
-    containerName?: string
-  }
-  
+declare module '@bunli/core' {
   interface PluginStore {
     // Extend shared store
     myPluginData: string
   }
-  
+
   interface CommandContext {
     // Extend command context
     customField: number
-  }
-  
-  interface BunliConfig {
-    // Extend configuration
-    myPluginConfig?: {
-      enabled: boolean
-    }
   }
 }
 ```

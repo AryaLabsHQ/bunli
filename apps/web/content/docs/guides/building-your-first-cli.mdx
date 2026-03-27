@@ -310,9 +310,9 @@ Now your commands can use plugin features:
 
 ```typescript
 // src/commands/list.ts
-handler: async ({ flags, colors, context }) => {
+handler: async ({ flags, colors, agent }) => {
   // Provide structured output for AI agents
-  if (context?.env.isAIAgent) {
+  if (agent) {
     console.log(JSON.stringify({ tasks }, null, 2))
   } else {
     // Human-friendly output

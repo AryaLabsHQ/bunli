@@ -18,10 +18,10 @@ This example demonstrates advanced CLI patterns:
 
 ### `branch` - Branch Management
 ```bash
-bun run cli.ts branch create feature/new-feature
+bun run cli.ts branch create --name feature/new-feature
 bun run cli.ts branch switch main
 bun run cli.ts branch list
-bun run cli.ts branch delete feature/old-feature
+bun run cli.ts branch delete --name feature/old-feature
 ```
 
 Branch management with git integration:

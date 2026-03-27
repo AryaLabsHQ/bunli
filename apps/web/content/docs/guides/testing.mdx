@@ -331,41 +331,6 @@ test('validation error messages', async () => {
 })
 ```
 
-## Testing File System Operations
-
-### Mocking File System
-
-```typescript
-import { mockFS, restoreFS } from '@bunli/test'
-
-test('command creates files', async () => {
-  // Setup mock file system
-  mockFS({
-    '/project': {
-      'package.json': JSON.stringify({ name: 'test' })
-    }
-  })
-
-  const cli = await createTestCLI({
-    commands: [generateCommand],
-    cwd: '/project'
-  })
-
-  const result = await cli.run(['generate', 'component', 'Button'])
-
-  expect(result.exitCode).toBe(0)
-
-  // Verify files were created
-  const fs = getMockFS()
-  expect(fs.existsSync('/project/src/components/Button.tsx')).toBe(true)
-  expect(fs.readFileSync('/project/src/components/Button.tsx', 'utf8'))
-    .toContain('export function Button')
-
-  // Cleanup
-  restoreFS()
-})
-```
-
 ## Testing Async Operations
 
 ### Testing Spinners and Progress

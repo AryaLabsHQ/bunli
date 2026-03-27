@@ -17,29 +17,29 @@ This example consolidates validation and interactive patterns into a cohesive ta
 
 ### `build` - Build Project
 ```bash
-bun run cli.ts build --target production --minify --sourcemap
+bun run cli.ts build --env production
 ```
 
 Builds the project with validation and transformation:
-- Target selection (development/production)
-- Minification and source map generation
+- Environment selection (development/production)
+- Output directory configuration
 - Progress tracking with spinners
 - Validation of build configuration
 
 ### `test` - Run Tests
 ```bash
-bun run cli.ts test --filter unit --coverage --watch
+bun run cli.ts test --pattern "**/*.test.ts" --coverage --watch
 ```
 
 Runs tests with filtering and coverage:
-- Test filtering by type (unit, integration, e2e)
+- Test file pattern specification
 - Coverage reporting
 - Watch mode for development
 - Complex validation patterns
 
 ### `deploy` - Deploy Application
 ```bash
-bun run cli.ts deploy --env production --confirm
+bun run cli.ts deploy --environment production
 ```
 
 Deploys with interactive confirmation:

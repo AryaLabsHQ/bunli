@@ -146,9 +146,6 @@ export default defineConfig({
     // Output directory (default: './dist')
     outdir: './dist',
 
-    // Output filename (for single executable)
-    outfile: 'my-cli',
-
     // Target platforms (default: [])
     targets: ['native'],  // Native for current platform
     // or specific platforms:
@@ -164,13 +161,7 @@ export default defineConfig({
     minify: false,
 
     // Generate sourcemaps (default: true)
-    sourcemap: true,
-
-    // Enable bytecode compilation (default: false)
-    bytecode: false,
-
-    // Runtime target (default: 'bun')
-    runtime: 'bun'  // 'bun' | 'node'
+    sourcemap: true
   }
 })
 ```
@@ -187,13 +178,7 @@ export default defineConfig({
     inspect: true,
 
     // Inspector port
-    port: 9229,
-
-    // Enable type generation (default: true)
-    generate: true,
-
-    // Clear screen on reload (default: true)
-    clearScreen: true
+    port: 9229
   }
 })
 ```
@@ -288,9 +273,6 @@ export default defineConfig({
 
     // Create GitHub release
     github: true,
-
-    // Resume from unfinished release state (default: true)
-    resume: true,
 
     // Git tag format
     tagFormat: 'v{{version}}',

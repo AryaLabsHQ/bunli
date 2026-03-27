@@ -18,7 +18,7 @@ This example consolidates plugin system and configuration patterns:
 
 ### `start` - Start Development Server
 ```bash
-bun run cli.ts start --port 3000 --host localhost --watch --open
+bun run cli.ts start --port 3000 --host localhost --watch
 ```
 
 Starts a development server with hot reload:
@@ -30,7 +30,7 @@ Starts a development server with hot reload:
 
 ### `build` - Build for Production
 ```bash
-bun run cli.ts build --output dist --minify --sourcemap --target node
+bun run cli.ts build --env node --outdir dist
 ```
 
 Builds the project for production:
@@ -127,27 +127,18 @@ export const metricsPlugin = createPlugin<MetricsStore>({
     }
   },
   
-  beforeCommand({ store, flags }) {
+  beforeCommand({ store, command }) {
     // Record command start
     store.metrics.recordEvent('command_started', {
-      command: flags._[0] || 'unknown',
+      command,
       timestamp: new Date().toISOString()
     })
   },
-  
-  afterCommand({ store, flags }) {
+
+  afterCommand({ store, command }) {
     // Record command completion
     store.metrics.recordEvent('command_completed', {
-      command: flags._[0] || 'unknown',
-      timestamp: new Date().toISOString()
-    })
-  },
-  
-  onError({ store, error, flags }) {
-    // Record command errors
-    store.metrics.recordEvent('command_error', {
-      command: flags._[0] || 'unknown',
-      error: error.message,
+      command,
       timestamp: new Date().toISOString()
     })
   }

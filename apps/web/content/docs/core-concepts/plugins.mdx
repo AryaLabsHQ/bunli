@@ -259,21 +259,17 @@ cli.command(defineCommand({
 Plugins can extend core interfaces using TypeScript's module augmentation:
 
 ```typescript
-declare module '@bunli/core/plugin' {
-  interface EnvironmentInfo {
-    isDocker: boolean
-    containerName?: string
+declare module '@bunli/core' {
+  interface PluginStore {
+    // Extend the shared plugin store
+    myPluginData: string
+  }
+
+  interface CommandContext {
+    // Extend command execution context
+    customField: number
   }
 }
-
-const dockerPlugin = createPlugin({
-  name: 'docker-detect',
-  
-  beforeCommand({ env }) {
-    env.isDocker = !!process.env.DOCKER_CONTAINER
-    env.containerName = process.env.HOSTNAME
-  }
-})
 ```
 
 ## Built-in Plugins
