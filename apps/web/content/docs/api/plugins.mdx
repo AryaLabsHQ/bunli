@@ -64,10 +64,10 @@ Context available during the setup phase.
 
 ```typescript
 interface PluginContext {
-  /** Current configuration (being built) */
+  /** Current configuration (readonly snapshot; use updateConfig to accumulate changes) */
   readonly config: BunliConfigInput
-  
-  /** Update configuration */
+
+  /** Accumulate partial configuration changes (config is immutable — changes are merged separately) */
   updateConfig(partial: Partial<BunliConfigInput>): void
   
   /** Register a new command */
@@ -183,7 +183,10 @@ interface EnvironmentInfo {
 
 ### createPlugin
 
-Helper function for creating plugins with proper typing.
+Type-safe plugin factory. Acts as a thin type helper — it returns the plugin as-is (an identity function), enabling TypeScript to infer store and option types:
+
+- **Direct form**: `createPlugin(plugin)` — infers `TStore` from the plugin's `store` property
+- **Factory form**: `createPlugin(factory)` — infers `TOptions` and `TStore` from the factory function's parameter and return type
 
 ```typescript
 // Direct plugin overload

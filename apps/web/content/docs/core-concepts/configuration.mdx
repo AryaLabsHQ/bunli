@@ -213,7 +213,7 @@ export default defineConfig({
 ```typescript
 export default defineConfig({
   help: {
-    renderer: 'default'  // Help renderer type
+    renderer: myCustomRenderer  // Custom HelpRenderer function (any type accepted)
   }
 })
 ```
@@ -255,10 +255,7 @@ export default defineConfig({
     coverage: true,
 
     // Watch mode
-    watch: false,
-
-    // Stop on first failure
-    bail: false
+    watch: false
   }
 })
 ```

@@ -168,7 +168,7 @@ Use the `mockPromptResponses` helper with `testCommand`:
 export default defineCommand({
   name: 'init',
   handler: async ({ prompt, colors }) => {
-    const name = await prompt('Project name:', {
+    const name = await prompt.text('Enter project name:', {
       default: 'my-project'
     })
 

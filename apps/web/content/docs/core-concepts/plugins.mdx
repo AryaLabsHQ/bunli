@@ -354,28 +354,30 @@ const plugin = createPlugin({
 
 ### 2. Handle Errors Gracefully
 
-Error handling behavior varies by hook:
+Error handling behavior varies by hook. Hooks return `Result` — the framework acts on errors:
 
 | Hook | On Error | Recommendation |
 |------|----------|---------------|
-| `setup` | Throws, stops CLI init | Validate inputs; don't throw for recoverable errors |
-| `beforeCommand` | Throws, stops command execution | Return early on validation failure |
-| `preRun` | Throws, stops handler | Use for command-level guards only |
+| `setup` | Stops CLI init | Validate inputs; don't return errors for recoverable issues |
+| `beforeCommand` | Stops command execution | Return `Err()` for validation failures; return `Ok()` to continue |
+| `preRun` | Stops handler | Use for command-level guards only |
 | `configResolved` | Logs, continues | Safe for telemetry and reporting |
 | `postRun` | Logs, continues | Safe for cleanup and metrics |
 | `afterCommand` | Logs, continues | Safe for reporting and cleanup |
 
 ```typescript
+import { Ok, Err } from 'better-result'
+
 beforeCommand(context) {
-  // Errors thrown here stop command execution
+  // Return Err() to stop command execution
   if (!isValid(context)) {
-    throw new PluginHookError('Validation failed')
+    return Err({ message: 'Validation failed', code: 'INVALID_CONTEXT' })
   }
+  return Ok()
 }
 
 configResolved(config) {
-  // Errors here are logged but don't stop execution
-  // Good for telemetry:
+  // Errors are caught internally and logged — safe for telemetry:
   reportConfig({ plugins: config.plugins?.length ?? 0 })
 }
 ```

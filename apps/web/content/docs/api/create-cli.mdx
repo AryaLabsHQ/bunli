@@ -41,7 +41,7 @@ interface BunliConfigInput {
     directory?: string
     generateReport?: boolean
   }
-  plugins?: BunliPlugin[]
+  plugins?: PluginConfig[]
   build?: BuildConfig
   dev?: DevConfig
   test?: TestConfig
@@ -75,7 +75,7 @@ A `CLI` instance with the following methods:
 ```typescript
 interface CLI<TStore = unknown> {
   // Register a command
-  command<TCommandStore>(cmd: Command<TCommandStore>): void
+  command<TCommandStore = unknown>(cmd: Command<any, TCommandStore>): void
 
   // Initialize the CLI (no-op, kept for lifecycle symmetry)
   init(): Promise<void>

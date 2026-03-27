@@ -104,6 +104,8 @@ await cli.execute('deploy', {
 })
 ```
 
+> **Note**: The type overloads (`execute<T extends keyof RegisteredCommands>`) provide compile-time safety for the options shape, but the `commandName` parameter accepts any `string` at runtime. Always validate command names before calling `execute()` in production code.
+
 ## Command Discovery
 
 The generated store provides helper methods for command discovery. Import the generated store from the auto-generated `.bunli/commands.gen.ts`:

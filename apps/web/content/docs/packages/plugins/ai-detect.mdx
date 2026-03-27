@@ -238,14 +238,11 @@ try {
 ### 2. Skip Interactive Prompts
 
 ```typescript
-import { prompt } from '@bunli/prompts'
+import { prompt } from '@bunli/runtime/prompt'
 
-const name = context?.env.isAIAgent 
+const name = context?.env.isAIAgent
   ? flags.name || 'default-name'  // Use defaults for AI
-  : await prompt({                 // Interactive for humans
-      type: 'text',
-      message: 'Enter project name:'
-    })
+  : await prompt.text('Enter project name:')  // Interactive for humans
 ```
 
 ### 3. Enhanced Logging
