@@ -456,8 +456,17 @@ export async function createCLI<
     }
 
     const commandOptionNames = new Set(Object.keys(command.options))
+    const preservedGlobalFlags = new Set<GlobalFlagName>([
+      'help',
+      'version',
+      'llms',
+      'llms-full'
+    ])
+
     return Object.fromEntries(
-      Object.entries(GLOBAL_FLAGS).filter(([name]) => !commandOptionNames.has(name))
+      Object.entries(GLOBAL_FLAGS).filter(
+        ([name]) => preservedGlobalFlags.has(name as GlobalFlagName) || !commandOptionNames.has(name)
+      )
     ) as Record<string, CLIOption<any>>
   }
 

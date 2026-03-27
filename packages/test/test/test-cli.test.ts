@@ -156,6 +156,33 @@ test('createTestCLI preserves global --format for built-in help on commands with
   expect(result.stdout).toContain('"path": [')
 })
 
+test('createTestCLI preserves global --version when a command defines a version option', async () => {
+  const releaseCommand = defineCommand({
+    name: 'release',
+    description: 'Release the CLI',
+    options: {
+      version: option(z.string().optional())
+    },
+    async handler() {
+      console.log('release handler ran')
+    }
+  })
+
+  const testCli = await createTestCLI({
+    name: 'bunli',
+    version: '9.9.9',
+    commands: [releaseCommand]
+  })
+
+  const result = await testCli.run(['release', '--version'])
+
+  expect(result.exitCode).toBe(0)
+  expect(result.stdout).toContain('"type": "version"')
+  expect(result.stdout).toContain('"name": "bunli"')
+  expect(result.stdout).toContain('"version": "9.9.9"')
+  expect(result.stdout).not.toContain('release handler ran')
+})
+
 test('createTestCLI honors explicit --format when global parsing fails', async () => {
   const testCli = await createTestCLI()
 
