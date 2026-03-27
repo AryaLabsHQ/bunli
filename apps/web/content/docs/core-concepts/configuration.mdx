@@ -419,7 +419,11 @@ const configSchema = z.object({
     npm: z.boolean().optional(),
     github: z.boolean().optional(),
     tagFormat: z.string().optional(),
-    conventionalCommits: z.boolean().optional()
+    conventionalCommits: z.boolean().optional(),
+    binary: z.object({
+      packageNameFormat: z.string().optional(),
+      shimPath: z.string().optional()
+    }).optional()
   }).optional(),
   plugins: z.array(z.unknown()).optional(),
   tui: z.object({
