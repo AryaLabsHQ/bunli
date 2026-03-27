@@ -213,10 +213,16 @@ async function shouldSkipNextValueForBooleanFlag(
   schema: StandardSchemaV1,
   nextValue: string
 ): Promise<boolean> {
-  const [acceptsTrue, acceptsFalse, acceptsNextValue] = await Promise.all([
+  const [acceptsTrue, acceptsFalse, acceptsNumber, acceptsNextValue] = await Promise.all([
     schema['~standard'].validate(true),
     schema['~standard'].validate(false),
+    schema['~standard'].validate(42),
     schema['~standard'].validate(nextValue),
   ])
-  return !acceptsTrue.issues && !acceptsFalse.issues && !!acceptsNextValue.issues
+  return (
+    !acceptsTrue.issues &&
+    !acceptsFalse.issues &&
+    !!acceptsNumber.issues &&
+    !!acceptsNextValue.issues
+  )
 }

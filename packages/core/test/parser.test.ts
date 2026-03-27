@@ -84,4 +84,16 @@ describe('parseArgs repeatable options', () => {
     expect(parsed.flags.mode).toBe('auto')
     expect(parsed.positional).toEqual([])
   })
+
+  test('does not skip invalid values for coercible non-boolean schemas', async () => {
+    await expect(async () => {
+      await parseArgs(
+        ['--total', 'abc'],
+        {
+          total: option(z.coerce.number().int()),
+        },
+        'deploy'
+      )
+    }).toThrow(/Invalid option 'total'/)
+  })
 })
