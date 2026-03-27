@@ -350,6 +350,14 @@ export async function createCLI<
     return { command: undefined, remainingArgs: args }
   }
 
+  function isBooleanGlobalFlag(flag: CLIOption<any>): boolean {
+    const acceptsTrue = flag.schema['~standard'].validate(true)
+    const acceptsFalse = flag.schema['~standard'].validate(false)
+    const acceptsNumber = flag.schema['~standard'].validate(42)
+    if (acceptsTrue instanceof Promise || acceptsFalse instanceof Promise || acceptsNumber instanceof Promise) return false
+    return !acceptsTrue.issues && !acceptsFalse.issues && !!acceptsNumber.issues
+  }
+
   function stripRecognizedGlobalFlags(args: string[]): { args: string[]; originalIndexes: number[] } {
     const positional: string[] = []
     const originalIndexes: number[] = []
@@ -375,8 +383,9 @@ export async function createCLI<
       if (arg.startsWith('--')) {
         const eqIndex = arg.indexOf('=')
         const name = eqIndex > 0 ? arg.slice(2, eqIndex) : arg.slice(2)
-        if (name && getGlobalFlag(name)) {
-          if (eqIndex < 0 && i + 1 < args.length && !args[i + 1]?.startsWith('-')) {
+        const flag = name ? getGlobalFlag(name) : undefined
+        if (flag) {
+          if (eqIndex < 0 && i + 1 < args.length && !args[i + 1]?.startsWith('-') && !isBooleanGlobalFlag(flag)) {
             i += 1
           }
           continue
@@ -384,8 +393,9 @@ export async function createCLI<
       } else if (arg.startsWith('-') && arg.length > 1) {
         const short = arg.slice(1)
         const name = shortToName.get(short)
-        if (name && getGlobalFlag(name)) {
-          if (i + 1 < args.length && !args[i + 1]?.startsWith('-')) {
+        const flag = name ? getGlobalFlag(name) : undefined
+        if (flag) {
+          if (i + 1 < args.length && !args[i + 1]?.startsWith('-') && !isBooleanGlobalFlag(flag)) {
             i += 1
           }
           continue

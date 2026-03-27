@@ -49,11 +49,16 @@ export async function parseArgs(
       const inlineValue = eqIndex > 0 ? arg.slice(eqIndex + 1) : undefined
       
       if (!name || !options[name]) continue
-      
+
       // Get the value (inline, next arg, or 'true' for boolean-like flags)
       let value: string | undefined = inlineValue
       if (value === undefined && i + 1 < args.length && !args[i + 1]?.startsWith('-')) {
-        value = args[++i]
+        const next = args[i + 1]!
+        if (await isBooleanSchema(options[name]!.schema) && next !== 'true' && next !== 'false') {
+          // Boolean flags should not consume the next positional argument
+        } else {
+          value = args[++i]
+        }
       }
       
       const option = options[name]
@@ -78,7 +83,12 @@ export async function parseArgs(
         // Get the next argument as value if available
         let value: string | undefined
         if (i + 1 < args.length && !args[i + 1]?.startsWith('-')) {
-          value = args[++i]
+          const next = args[i + 1]!
+          if (await isBooleanSchema(option.schema) && next !== 'true' && next !== 'false') {
+            // Boolean flags should not consume the next positional argument
+          } else {
+            value = args[++i]
+          }
         }
 
         if (option.repeatable) {
@@ -189,4 +199,13 @@ function generateHint(schema: StandardSchemaV1, value: unknown): string {
     return 'Choose from the available options'
   }
   return ''
+}
+
+async function isBooleanSchema(schema: StandardSchemaV1): Promise<boolean> {
+  const [acceptsTrue, acceptsFalse, acceptsNumber] = await Promise.all([
+    schema['~standard'].validate(true),
+    schema['~standard'].validate(false),
+    schema['~standard'].validate(42),
+  ])
+  return !acceptsTrue.issues && !acceptsFalse.issues && !!acceptsNumber.issues
 }
