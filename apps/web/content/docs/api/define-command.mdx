@@ -24,7 +24,7 @@ The command definition object.
 ```typescript
 interface RunnableCommand<TOptions = Options, TStore = {}> {
   name: string
-  description?: string
+  description: string
   alias?: string | string[]
   options?: TOptions
   handler?: Handler<TOptions, TStore>
