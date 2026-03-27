@@ -26,15 +26,19 @@ export const skillsPlugin = createPlugin<SkillsPluginOptions>(
             options: {
               global: {
                 schema: z.boolean().default(true),
-                description: 'Install globally (default) or project-local'
+                description: 'Install globally (default) or project-local',
+                argumentKind: 'flag'
               },
               force: {
                 schema: z.boolean().default(false),
                 short: 'f',
-                description: 'Force regeneration even if up to date'
+                description: 'Force regeneration even if up to date',
+                argumentKind: 'flag'
               }
             },
             async handler({ flags, colors, output }) {
+              const typedFlags = flags as { global: boolean; force: boolean }
+
               // Dynamically import to avoid loading fs at plugin registration time
               const { syncSkills } = await import('./sync.js')
               const { detectAgents, builtinAgents } = await import('./agents.js')
@@ -55,13 +59,13 @@ export const skillsPlugin = createPlugin<SkillsPluginOptions>(
               const cliName = context.store.get('_skillsCliName') as string || 'cli'
 
               const result = await syncSkills(cliName, commands, {
-                global: flags.global,
-                force: flags.force,
+                global: typedFlags.global,
+                force: typedFlags.force,
                 description: options.description,
                 agents: detected
               })
 
-              if (!result.updated && !flags.force) {
+              if (!result.updated && !typedFlags.force) {
                 console.log(colors.dim('Skills are up to date.'))
                 output({ updated: false, agents: detected.map((a) => a.name) })
                 return
