@@ -19,13 +19,15 @@ const validateCommand = defineCommand({
       z.boolean().default(false),
       {
         short: 'f',
-        description: 'Auto-fix issues'
+        description: 'Auto-fix issues',
+        argumentKind: 'flag'
       }
     ),
     cache: option(
       z.boolean().default(true),
       {
-        description: 'Enable caching'
+        description: 'Enable caching',
+        argumentKind: 'flag'
       }
     )
   },

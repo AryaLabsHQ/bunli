@@ -11,7 +11,8 @@ const analyzeCommand = defineCommand({
       z.boolean().default(false),
       {
         short: 'd',
-        description: 'Show detailed analysis'
+        description: 'Show detailed analysis',
+        argumentKind: 'flag'
       }
     )
   },

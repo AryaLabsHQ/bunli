@@ -153,7 +153,8 @@ const configCommand = defineCommand({
           z.boolean().default(false),
           {
             short: 'f',
-            description: 'Skip confirmation'
+            description: 'Skip confirmation',
+            argumentKind: 'flag'
           }
         )
       },

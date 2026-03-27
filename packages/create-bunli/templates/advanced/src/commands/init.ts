@@ -10,7 +10,8 @@ const initCommand = defineCommand({
       z.boolean().default(false),
       { 
         short: 'f',
-        description: 'Overwrite existing config' 
+        description: 'Overwrite existing config',
+        argumentKind: 'flag'
       }
     ),
     template: option(
