@@ -575,12 +575,11 @@ Notify users of new versions using the npm registry API:
 
 ```typescript
 // src/utils/check-update.ts
-import { shell } from '@bunli/core'
-
 export async function checkForUpdates(currentVersion: string, packageName: string) {
   try {
-    const result = await shell`npm view ${packageName} version`.text()
-    const latest = result.trim()
+    const res = await fetch(`https://registry.npmjs.org/${packageName}/latest`)
+    const data = await res.json() as { version: string }
+    const latest = data.version
     if (latest !== currentVersion) {
       console.log(`\n  Update available: ${currentVersion} → ${latest}`)
       console.log('  Run: npm update -g my-cli\n')
