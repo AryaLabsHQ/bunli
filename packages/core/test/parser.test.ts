@@ -190,6 +190,25 @@ describe('parseArgs auto-coercion', () => {
     )
     expect(parsed.flags.debug).toBe(false)
   })
+
+  test('surfaces constraint errors, not type-mismatch errors', async () => {
+    try {
+      await parseArgs(
+        ['--port', '70000'],
+        { port: defineOption(z.number().max(65535)) },
+        'serve'
+      )
+      expect.unreachable('should have thrown')
+    } catch (error) {
+      expect(error).toBeInstanceOf(AggregateValidationError)
+      const aggError = error as InstanceType<typeof AggregateValidationError>
+      const portIssue = aggError.issues.find(i => i.option === 'port')
+      expect(portIssue).toBeDefined()
+      // Must say "65535" (constraint), NOT "Expected number, received string"
+      expect(portIssue!.message).toContain('65535')
+      expect(portIssue!.message).not.toContain('received string')
+    }
+  })
 })
 
 describe('parseArgs error accumulation', () => {
@@ -226,6 +245,28 @@ describe('parseArgs error accumulation', () => {
       const aggError = error as InstanceType<typeof AggregateValidationError>
       expect(aggError.issues.some(i => i.option === 'unknownflag')).toBe(true)
     }
+  })
+})
+
+describe('parseArgs unknownFlags return value', () => {
+  test('returns unknown flags in lenient mode', async () => {
+    const parsed = await parseArgs(
+      ['--known', 'val', '--unknown1', '--unknown2', 'x'],
+      { known: defineOption(z.string()) },
+      'cmd',
+      { strict: false }
+    )
+    expect(parsed.flags.known).toBe('val')
+    expect(parsed.unknownFlags).toEqual(['unknown1', 'unknown2'])
+  })
+
+  test('returns empty unknownFlags when all flags are known', async () => {
+    const parsed = await parseArgs(
+      ['--name', 'hello'],
+      { name: defineOption(z.string()) },
+      'cmd'
+    )
+    expect(parsed.unknownFlags).toEqual([])
   })
 })
 

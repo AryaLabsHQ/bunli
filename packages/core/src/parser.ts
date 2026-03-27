@@ -123,21 +123,19 @@ export async function parseArgs(
     const result = await coerceValue(rawValue, option.schema)
     if (result.coerced) {
       flags[name] = result.value
+    } else if (result.issues && result.issues.length > 0) {
+      // Coercion captured the best error (e.g. constraint violation after
+      // successful type coercion) — use it directly
+      const issue = result.issues[0]
+      issues.push({
+        option: name,
+        message: issue ? issue.message : `Invalid value for '${name}'`,
+        value: rawValue,
+        expectedType: extractSchemaType(option.schema),
+        hint: generateHint(option.schema, rawValue)
+      })
     } else {
-      // Coercion failed — validate raw to get error message
-      const valResult = await option.schema['~standard'].validate(rawValue)
-      if (valResult.issues && valResult.issues.length > 0) {
-        const issue = valResult.issues[0]
-        issues.push({
-          option: name,
-          message: issue ? issue.message : `Invalid value for '${name}'`,
-          value: rawValue,
-          expectedType: extractSchemaType(option.schema),
-          hint: generateHint(option.schema, rawValue)
-        })
-      } else {
-        flags[name] = 'value' in valResult ? valResult.value : rawValue
-      }
+      flags[name] = rawValue
     }
   }
 
@@ -148,20 +146,17 @@ export async function parseArgs(
     const result = await coerceArray(values, option.schema)
     if (result.coerced) {
       flags[name] = result.value
+    } else if (result.issues && result.issues.length > 0) {
+      const issue = result.issues[0]
+      issues.push({
+        option: name,
+        message: issue ? issue.message : `Invalid value for '${name}'`,
+        value: values,
+        expectedType: extractSchemaType(option.schema),
+        hint: generateHint(option.schema, values)
+      })
     } else {
-      const valResult = await option.schema['~standard'].validate(values)
-      if (valResult.issues && valResult.issues.length > 0) {
-        const issue = valResult.issues[0]
-        issues.push({
-          option: name,
-          message: issue ? issue.message : `Invalid value for '${name}'`,
-          value: values,
-          expectedType: extractSchemaType(option.schema),
-          hint: generateHint(option.schema, values)
-        })
-      } else {
-        flags[name] = 'value' in valResult ? valResult.value : values
-      }
+      flags[name] = values
     }
   }
 
@@ -169,23 +164,18 @@ export async function parseArgs(
   for (const [name, opt] of Object.entries(options)) {
     if (name in flags || name in rawFlags || name in repeatableRaw) continue
     const result = await coerceValue(undefined, opt.schema)
-    if (result.coerced) {
+    if (result.value !== undefined || !result.issues) {
+      // Schema provided a default or accepted undefined
       flags[name] = result.value
-    } else {
-      // Validate undefined to get the default or error
-      const valResult = await opt.schema['~standard'].validate(undefined)
-      if (valResult.issues && valResult.issues.length > 0) {
-        const issue = valResult.issues[0]
-        issues.push({
-          option: name,
-          message: issue ? issue.message : `Missing required option '${name}'`,
-          value: undefined,
-          expectedType: extractSchemaType(opt.schema),
-          hint: generateHint(opt.schema, undefined)
-        })
-      } else {
-        flags[name] = 'value' in valResult ? valResult.value : undefined
-      }
+    } else if (result.issues.length > 0) {
+      const issue = result.issues[0]
+      issues.push({
+        option: name,
+        message: issue ? issue.message : `Missing required option '${name}'`,
+        value: undefined,
+        expectedType: extractSchemaType(opt.schema),
+        hint: generateHint(opt.schema, undefined)
+      })
     }
   }
 
@@ -214,5 +204,5 @@ export async function parseArgs(
     })
   }
 
-  return { flags, positional, unknownFlags: [] }
+  return { flags, positional, unknownFlags }
 }

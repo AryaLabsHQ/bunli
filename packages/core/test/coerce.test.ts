@@ -91,6 +91,24 @@ describe('coerceValue', () => {
       // Then tries number (0) -> rejected by min(1)
       expect(result.coerced).toBe(false)
     })
+
+    test('preserves constraint error for "70000" with z.number().max(65535)', async () => {
+      const schema = z.number().max(65535)
+      const result = await coerceValue('70000', schema)
+      expect(result.coerced).toBe(false)
+      // Must surface the constraint error, NOT "Expected number, received string"
+      expect(result.issues).toBeDefined()
+      expect(result.issues!.length).toBeGreaterThan(0)
+      expect(result.issues![0]!.message).toContain('65535')
+    })
+
+    test('preserves constraint error for negative number with z.number().nonnegative()', async () => {
+      const schema = z.number().nonnegative()
+      const result = await coerceValue('-5', schema)
+      expect(result.coerced).toBe(false)
+      expect(result.issues).toBeDefined()
+      expect(result.issues![0]!.message).not.toContain('received string')
+    })
   })
 
   describe('date coercion', () => {
