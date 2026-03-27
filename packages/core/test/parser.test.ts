@@ -71,4 +71,17 @@ describe('parseArgs repeatable options', () => {
       )
     }).toThrow(/Invalid option 'tag'/)
   })
+
+  test('consumes the next token for mixed boolean schemas when the value is valid', async () => {
+    const parsed = await parseArgs(
+      ['--mode', 'auto'],
+      {
+        mode: option(z.union([z.boolean(), z.literal('auto')]).default(false)),
+      },
+      'deploy'
+    )
+
+    expect(parsed.flags.mode).toBe('auto')
+    expect(parsed.positional).toEqual([])
+  })
 })

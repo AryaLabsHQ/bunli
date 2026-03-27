@@ -112,3 +112,25 @@ test('createTestCLI formats validation errors for machine-readable consumers', a
   expect(result.stderr).toContain('"name": "BunliValidationError"')
   expect(result.stderr).toContain('"option": "total"')
 })
+
+test('createTestCLI allows command-local format flags to shadow the global format flag', async () => {
+  const processCommand = defineCommand({
+    name: 'process',
+    description: 'Process files',
+    options: {
+      format: option(z.enum(['json', 'yaml', 'text']).default('json'))
+    },
+    async handler({ flags }) {
+      console.log(flags.format)
+    }
+  })
+
+  const testCli = await createTestCLI({
+    commands: [processCommand]
+  })
+
+  const result = await testCli.run(['process', '--format', 'text'])
+
+  expect(result.exitCode).toBe(0)
+  expect(result.stdout).toContain('text')
+})

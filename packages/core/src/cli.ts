@@ -408,6 +408,17 @@ export async function createCLI<
 
     return { args: positional, originalIndexes }
   }
+
+  function getGlobalFlagsForCommand(command?: Command<any, any>): Record<string, CLIOption<any>> {
+    if (!command?.options) {
+      return GLOBAL_FLAGS
+    }
+
+    const commandOptionNames = new Set(Object.keys(command.options))
+    return Object.fromEntries(
+      Object.entries(GLOBAL_FLAGS).filter(([name]) => !commandOptionNames.has(name))
+    ) as Record<string, CLIOption<any>>
+  }
   
   // Help rendering — delegates to the extracted help module
   function showHelp(cmd?: Command<any, TStore>, path: string[] = []) {
@@ -915,10 +926,16 @@ export async function createCLI<
       const separatorIndex = argv.indexOf('--')
       const commandArgs = separatorIndex >= 0 ? argv.slice(0, separatorIndex) : argv
       const passthroughArgs = separatorIndex >= 0 ? argv.slice(separatorIndex + 1) : []
+      const commandLookup = stripRecognizedGlobalFlags(commandArgs)
+      const { command, remainingArgs } = findCommand(commandLookup.args)
 
       let globalParsed: Awaited<ReturnType<typeof parseArgs>>
       try {
-        globalParsed = await parseArgs(commandArgs, GLOBAL_FLAGS, '__global__')
+        globalParsed = await parseArgs(
+          commandArgs,
+          getGlobalFlagsForCommand(command),
+          '__global__'
+        )
       } catch (error) {
         await printRunCommandError(error as RunCommandError, resolveOutputContext(terminalInfo))
         process.exit(1)
@@ -977,9 +994,6 @@ export async function createCLI<
       }
       
       // Find and execute command
-      const commandLookup = stripRecognizedGlobalFlags(commandArgs)
-      const { command, remainingArgs } = findCommand(commandLookup.args)
-      
       if (!command) {
         const available = getAvailableCommandNames()
         const input = commandLookup.args[0] ?? ''
