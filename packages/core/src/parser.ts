@@ -58,12 +58,13 @@ export async function parseArgs(
       
       const option = options[name]
       if (!option) continue
+      const parsedValue = value ?? (option.argumentKind === 'flag' ? 'true' : undefined)
 
       if (option.repeatable) {
         if (!repeatableValues[name]) repeatableValues[name] = []
-        repeatableValues[name].push(value ?? 'true')
+        repeatableValues[name].push(parsedValue)
       } else {
-        flags[name] = await validateOption(name, value ?? 'true', option.schema, commandName)
+        flags[name] = await validateOption(name, parsedValue, option.schema, commandName)
       }
       
     } else if (arg.startsWith('-') && arg.length > 1) {
@@ -80,12 +81,13 @@ export async function parseArgs(
         if (i + 1 < args.length && !args[i + 1]?.startsWith('-')) {
           value = args[++i]
         }
+        const parsedValue = value ?? (option.argumentKind === 'flag' ? 'true' : undefined)
 
         if (option.repeatable) {
           if (!repeatableValues[name]) repeatableValues[name] = []
-          repeatableValues[name].push(value ?? 'true')
+          repeatableValues[name].push(parsedValue)
         } else {
-          flags[name] = await validateOption(name, value ?? 'true', option.schema, commandName)
+          flags[name] = await validateOption(name, parsedValue, option.schema, commandName)
         }
       }
     } else {

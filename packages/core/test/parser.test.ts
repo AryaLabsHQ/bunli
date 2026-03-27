@@ -34,6 +34,20 @@ describe('parseArgs repeatable options', () => {
     expect(parsed.flags.tag).toEqual(['ui', 'backend'])
   })
 
+  test('rejects missing values for repeatable value options', async () => {
+    await expect(async () => {
+      await parseArgs(
+        ['--tag'],
+        {
+          tag: option(z.array(z.string()), {
+            repeatable: true,
+          }),
+        },
+        'deploy'
+      )
+    }).toThrow(/Invalid option 'tag'/)
+  })
+
   test('coerces repeated boolean string values before array validation', async () => {
     const parsed = await parseArgs(
       ['--flag', 'true', '--flag', 'false'],
