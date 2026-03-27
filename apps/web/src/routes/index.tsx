@@ -28,6 +28,19 @@ function HomePage() {
         <ExamplesShowcase />
         <WorkbenchDemo />
         <CTASection />
+        <footer className="border-t border-terminal-border py-6">
+          <div className="mx-auto max-w-5xl px-4 text-center font-mono text-xs text-terminal-muted sm:px-6 lg:px-8">
+            &copy; {new Date().getFullYear()} Bunli, built by{" "}
+            <a
+              href="https://aryalabs.ai"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-terminal-foreground hover:text-accent transition-colors"
+            >
+              Arya Labs
+            </a>
+          </div>
+        </footer>
       </main>
     </HomeLayout>
   );
