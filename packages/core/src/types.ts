@@ -307,7 +307,7 @@ export type ResolvedConfig = Required<Omit<BunliConfig, 'build' | 'dev' | 'test'
 }
 
 // Helper to create a CLI option with metadata
-export function option<S extends StandardSchemaV1>(
+export function defineOption<S extends StandardSchemaV1>(
   schema: S,
   metadata?: {
     short?: string

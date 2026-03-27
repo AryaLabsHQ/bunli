@@ -58,9 +58,34 @@ export class BunliValidationError extends TaggedError('BunliValidationError')<{
 
   override toString(): string {
     return `${this.name}: Invalid option '${this.option}' for command '${this.command}'
-    
+
 Expected: ${this.expectedType}
 Received: ${typeof this.value} (${JSON.stringify(this.value)})
 ${this.hint ? `\nHint: ${this.hint}` : ''}`
+  }
+}
+
+export interface ValidationIssue {
+  option: string
+  message: string
+  value: unknown
+  expectedType: string
+  hint?: string
+  suggestion?: string
+}
+
+export class AggregateValidationError extends TaggedError('AggregateValidationError')<{
+  message: string
+  command: string
+  issues: ValidationIssue[]
+}>() {
+  override toString(): string {
+    const lines = [`${this.name}: Validation failed for command '${this.command}'`]
+    for (const issue of this.issues) {
+      lines.push(`  --${issue.option}: ${issue.message}`)
+      if (issue.hint) lines.push(`    Hint: ${issue.hint}`)
+      if (issue.suggestion) lines.push(`    Did you mean: --${issue.suggestion}?`)
+    }
+    return lines.join('\n')
   }
 }

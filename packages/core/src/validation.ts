@@ -3,10 +3,13 @@
  */
 
 import type { StandardSchemaV1 } from '@standard-schema/spec'
-import { BunliValidationError } from './errors.js'
+import { BunliValidationError, AggregateValidationError, type ValidationIssue } from './errors.js'
+import { coerceValue } from './coerce.js'
+import { extractSchemaType, generateHint } from './utils/schema-helpers.js'
 
 /**
- * Validate a value against a schema at runtime
+ * Validate a value against a schema at runtime.
+ * Applies coercion for string values before validation.
  */
 export async function validateValue(
   value: unknown,
@@ -16,16 +19,24 @@ export async function validateValue(
     command: string
   }
 ): Promise<unknown> {
+  // Apply coercion for string inputs
+  if (typeof value === 'string') {
+    const coerced = await coerceValue(value, schema)
+    if (coerced.coerced) {
+      return coerced.value
+    }
+  }
+
   try {
     const result = await schema['~standard'].validate(value)
-    
+
     if (result.issues && result.issues.length > 0) {
       const issue = result.issues[0]
       if (!issue) return value
-      
+
       const expectedType = extractSchemaType(schema)
       const hint = generateHint(schema, value)
-      
+
       throw new BunliValidationError(
         `Invalid option '${context.option}': ${issue.message}`,
         {
@@ -37,13 +48,13 @@ export async function validateValue(
         }
       )
     }
-    
+
     return 'value' in result ? result.value : value
   } catch (error) {
     if (error instanceof BunliValidationError) {
       throw error
     }
-    
+
     // Wrap other errors
     throw new BunliValidationError(
       `Validation failed for option '${context.option}': ${error}`,
@@ -67,30 +78,45 @@ export async function validateValues(
   command: string
 ): Promise<Record<string, unknown>> {
   const results: Record<string, unknown> = {}
-  const errors: string[] = []
-  
+  const issues: ValidationIssue[] = []
+
   for (const [key, value] of Object.entries(values)) {
     const schema = schemas[key]
     if (!schema) {
       results[key] = value
       continue
     }
-    
+
     try {
       results[key] = await validateValue(value, schema, { option: key, command })
     } catch (error) {
       if (error instanceof BunliValidationError) {
-        errors.push(error.toString())
+        issues.push({
+          option: error.option,
+          message: error.message,
+          value: error.value,
+          expectedType: error.expectedType,
+          hint: error.hint
+        })
       } else {
-        errors.push(`Validation error for ${key}: ${error}`)
+        issues.push({
+          option: key,
+          message: error instanceof Error ? error.message : `Validation error for ${key}: ${error}`,
+          value,
+          expectedType: 'unknown'
+        })
       }
     }
   }
-  
-  if (errors.length > 0) {
-    throw new Error(`Validation failed:\n${errors.join('\n')}`)
+
+  if (issues.length > 0) {
+    throw new AggregateValidationError({
+      message: `Validation failed for command '${command}'`,
+      command,
+      issues
+    })
   }
-  
+
   return results
 }
 
@@ -112,43 +138,6 @@ export function isValueOfType(value: unknown, expectedType: string): boolean {
     default:
       return false
   }
-}
-
-/**
- * Extract a human-readable type description from a schema
- */
-function extractSchemaType(schema: StandardSchemaV1): string {
-  if ('type' in schema && typeof schema.type === 'string') {
-    return schema.type
-  }
-  
-  if ('enum' in schema) return 'enum'
-  if ('items' in schema) return 'array'
-  if ('properties' in schema) return 'object'
-  if ('format' in schema) return 'string'
-  
-  return 'unknown'
-}
-
-/**
- * Generate a helpful hint based on the schema and value
- */
-function generateHint(schema: StandardSchemaV1, value: unknown): string {
-  const type = extractSchemaType(schema)
-  
-  if (type === 'boolean' && typeof value === 'string') {
-    return 'Use --flag, --flag=true, or --flag=false for boolean options'
-  }
-  if (type === 'number' && typeof value === 'string') {
-    return 'Provide a numeric value'
-  }
-  if (type === 'array' && !Array.isArray(value)) {
-    return 'Provide a comma-separated list of values'
-  }
-  if (type === 'enum' && typeof value === 'string') {
-    return 'Choose from the available options'
-  }
-  return ''
 }
 
 /**

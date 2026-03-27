@@ -1,6 +1,6 @@
 // Note: createCLI is now async and returns Promise<CLI>
 export { createCLI } from './cli.js'
-export { defineCommand, defineGroup, option } from './types.js'
+export { defineCommand, defineGroup, defineOption } from './types.js'
 export { defineConfig, bunliConfigSchema, type BunliConfig, type BunliConfigInput } from './config.js'
 export { loadConfig, loadConfigResult } from './config-loader.js'
 export {
@@ -47,7 +47,7 @@ export { GLOBAL_FLAGS } from './global-flags.js'
 export type { GlobalFlags } from './global-flags.js'
 
 // Note: Plugin system is exported via subpath export
-// Usage: import { PluginManager, createPlugin } from '@bunli/core/plugin'
+// Usage: import { PluginManager, definePlugin } from '@bunli/core/plugin'
 
 // Export validation utilities
 export {
@@ -57,6 +57,14 @@ export {
   createValidator,
   createBatchValidator
 } from './validation.js'
+
+// Export coercion utilities
+export { coerceValue, coerceArray } from './coerce.js'
+export type { CoercionResult } from './coerce.js'
+
+// Export file/directory validation combinators
+export { file, directory } from './fs-validators.js'
+export type { FileValidatorOptions, DirectoryValidatorOptions } from './fs-validators.js'
 
 // Export type utilities
 export type {
@@ -98,12 +106,14 @@ export {
   ConfigLoadError
 } from './config-loader.js'
 export {
+  AggregateValidationError,
   BunliValidationError,
   InvalidConfigError,
   CommandNotFoundError,
   CommandExecutionError,
   OptionValidationError
 } from './errors.js'
+export type { ValidationIssue } from './errors.js'
 export {
   PluginLoadError,
   PluginValidationError,
