@@ -343,6 +343,30 @@ if (result.error instanceof SchemaError) {
 }
 ```
 
+### getDotPath
+
+Re-exported from `@standard-schema/utils`. Retrieves a nested value from an object using a dot-notation path:
+
+```typescript
+import { getDotPath } from '@bunli/utils'
+
+const obj = { user: { profile: { name: 'Alice' } } }
+
+getDotPath(obj, 'user.profile.name')  // 'Alice'
+getDotPath(obj, 'user.profile.age')   // undefined
+
+// Useful for extracting config values from nested objects
+const config = { build: { outdir: 'dist' } }
+const outdir = getDotPath(config, 'build.outdir') ?? 'build'
+```
+
+Also exported from `@standard-schema/utils` directly:
+
+```typescript
+import { getDotPath } from '@standard-schema/utils'
+```
+```
+
 ## Best Practices
 
 1. **Use appropriate log levels**:

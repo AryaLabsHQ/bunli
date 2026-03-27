@@ -679,3 +679,72 @@ test('command discovery works', () => {
 <Callout type="tip">
   Testing generated types ensures your CLI's type generation is working correctly and provides confidence in type-safe CLI wrappers.
 </Callout>
+
+## Testing Full CLIs with `createTestCLI`
+
+For full CLI integration tests, use `createTestCLI` to create a test harness that captures stdout/stderr and intercepts `process.exit`:
+
+```typescript
+import { createTestCLI } from '@bunli/test'
+import { greetCommand } from '../commands/greet'
+import { deployCommand } from '../commands/deploy'
+
+test('greet via CLI harness', async () => {
+  const cli = await createTestCLI({
+    commands: [greetCommand]
+  })
+
+  const result = await cli.run(['greet', '--name', 'Alice'])
+
+  expect(result.exitCode).toBe(0)
+  expect(result.stdout).toContain('Hello, Alice!')
+})
+
+test('deploy via programmatic execute', async () => {
+  const cli = await createTestCLI({
+    commands: [deployCommand]
+  })
+
+  const result = await cli.execute('deploy', { env: 'prod' })
+
+  expect(result.exitCode).toBe(0)
+  expect(result.stdout).toContain('Deploying to prod')
+})
+```
+
+### Configuration
+
+```typescript
+interface TestCLIConfig {
+  name?: string         // CLI name (default: 'test-cli')
+  version?: string      // CLI version (default: '1.0.0')
+  description?: string   // CLI description
+  commands?: Command[]   // Commands to register (required for run/execute)
+  plugins?: BunliPlugin[]  // Plugins to load
+  env?: Record<string, string | undefined>  // Environment overrides
+  config?: Partial<BunliConfigInput>   // Config overrides
+}
+```
+
+### Result Shape
+
+`cli.run()` and `cli.execute()` return:
+
+```typescript
+interface TestCLIRunResult {
+  stdout: string   // Captured stdout (lines joined by newlines)
+  stderr: string   // Captured stderr
+  exitCode: number // Process exit code (0 = success)
+  error?: Error    // Error thrown during execution
+}
+```
+
+### Key Differences from `testCommand`
+
+| | `testCommand` | `createTestCLI` |
+|--|---------------|----------------|
+| Scope | Single command | Full CLI with plugin lifecycle |
+| Commands | Passed per-test | Registered once at setup |
+| Plugins | Not supported | Supported |
+| `cli.run(argv)` | — | Run with argv like CLI invocation |
+| `cli.execute(name, args?)` | — | Execute a named command programmatically |
