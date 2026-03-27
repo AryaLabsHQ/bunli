@@ -582,7 +582,7 @@ export async function checkForUpdates(currentVersion: string, packageName: strin
     const latest = data.version
     if (latest !== currentVersion) {
       console.log(`\n  Update available: ${currentVersion} → ${latest}`)
-      console.log('  Run: npm update -g my-cli\n')
+      console.log(`  Run: npm update -g ${packageName}\n`)
     }
   } catch {
     // Ignore update check failures
