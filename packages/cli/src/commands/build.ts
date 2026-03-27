@@ -81,15 +81,15 @@ export default defineCommand({
     ),
     minify: option(
       z.boolean().optional(),
-      { short: 'm', description: 'Minify output' }
+      { short: 'm', description: 'Minify output', argumentKind: 'flag' }
     ),
     sourcemap: option(
       z.boolean().optional(),
-      { short: 's', description: 'Generate sourcemaps' }
+      { short: 's', description: 'Generate sourcemaps', argumentKind: 'flag' }
     ),
     bytecode: option(
       z.boolean().default(false),
-      { description: 'Enable bytecode compilation (experimental)' }
+      { description: 'Enable bytecode compilation (experimental)', argumentKind: 'flag' }
     ),
     runtime: option(
       z.enum(['bun', 'node']).optional(),
@@ -105,7 +105,7 @@ export default defineCommand({
     ),
     watch: option(
       z.boolean().default(false),
-      { short: 'w', description: 'Watch for changes' }
+      { short: 'w', description: 'Watch for changes', argumentKind: 'flag' }
     )
   },
   handler: async ({ flags, spinner, colors }) => {

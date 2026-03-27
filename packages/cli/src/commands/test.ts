@@ -17,15 +17,15 @@ export default defineCommand({
     ),
     watch: option(
       z.boolean().default(false),
-      { short: 'w', description: 'Watch for changes' }
+      { short: 'w', description: 'Watch for changes', argumentKind: 'flag' }
     ),
     coverage: option(
       z.boolean().default(false),
-      { short: 'c', description: 'Generate coverage report' }
+      { short: 'c', description: 'Generate coverage report', argumentKind: 'flag' }
     ),
     bail: option(
       z.boolean().default(false),
-      { short: 'b', description: 'Stop on first failure' }
+      { short: 'b', description: 'Stop on first failure', argumentKind: 'flag' }
     ),
     timeout: option(
       z.coerce.number().int().positive().optional(),
@@ -33,7 +33,7 @@ export default defineCommand({
     ),
     all: option(
       z.boolean().default(false),
-      { description: 'Run tests in all packages (workspace mode)' }
+      { description: 'Run tests in all packages (workspace mode)', argumentKind: 'flag' }
     )
   },
   handler: async ({ flags, positional, spinner, colors }) => {

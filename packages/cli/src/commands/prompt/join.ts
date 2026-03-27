@@ -43,7 +43,7 @@ export default defineCommand({
   name: 'join',
   description: 'Join text blocks together',
   options: {
-    horizontal: option(z.boolean().optional().default(false), { description: 'Join horizontally' }),
+    horizontal: option(z.boolean().optional().default(false), { description: 'Join horizontally', argumentKind: 'flag' }),
     separator: option(z.string().optional().default(''), { description: 'Separator between blocks' }),
     align: option(z.string().optional().default('left'), { description: 'Alignment (left, center, right)' }),
   },
