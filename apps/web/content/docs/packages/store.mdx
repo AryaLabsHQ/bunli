@@ -297,6 +297,27 @@ await store.patch({ theme: 'light' })
 await store.write({ theme: 'light', port: 3000, verbose: false })
 ```
 
+## Type Utilities
+
+### InferStoreConfig
+
+Extract the field type from a `StoreOptions` definition for use in function signatures:
+
+```typescript
+import { createStore, type InferStoreConfig } from '@bunli/store'
+
+type MyConfig = InferStoreConfig<{
+  theme: { type: 'string'; default: 'dark' }
+  port: { type: 'number'; default: 3000 }
+}>
+// → { theme: string; port: number }
+
+function useStore(config: InferStoreConfig<typeof defaultOptions>) {
+  const store = createStore(config)
+  // store.get() returns fully typed values
+}
+```
+
 ## See Also
 
 - [XDG Utilities](/docs/packages/utils) - `configDir`, `dataDir`, `stateDir` helpers

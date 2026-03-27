@@ -81,6 +81,18 @@ const files = await scanner.scanCommands('./src/cli.ts', './src/commands')
 console.log(files) // ['greet.ts', 'deploy.ts', 'test.ts']
 ```
 
+### isCommandFile Function
+
+Check whether a file should be treated as a command file (skips test files, node_modules, etc.):
+
+```typescript
+import { isCommandFile } from '@bunli/generator'
+
+isCommandFile('./src/commands/deploy.ts') // true
+isCommandFile('./src/commands/deploy.test.ts') // false
+isCommandFile('./node_modules/foo/index.ts') // false
+```
+
 ### parseCommand Function
 
 Parse individual command files:
@@ -254,24 +266,26 @@ bunli generate --watch
 ### Generator
 
 ```typescript
+import { Result } from '@bunli/core'
+
 class Generator {
-  constructor(options: GeneratorOptions)
+  constructor(config: GeneratorConfig)
 
   // Generate types
-  run(options?: RunOptions): Promise<void>
+  run(event?: GeneratorEvent): Promise<Result<void, GeneratorRunError>>
 
   // Get current configuration
-  getConfig(): GeneratorOptions
+  getConfig(): GeneratorConfig
 
   // Update configuration
-  updateConfig(options: Partial<GeneratorOptions>): void
+  updateConfig(config: Partial<GeneratorConfig>): void
 }
 ```
 
-### GeneratorOptions
+### GeneratorConfig
 
 ```typescript
-interface GeneratorOptions {
+interface GeneratorConfig {
   entry: string
   directory?: string
   outputFile: string
@@ -280,12 +294,12 @@ interface GeneratorOptions {
 }
 ```
 
-### RunOptions
+### GeneratorEvent
 
 ```typescript
-interface RunOptions {
-  type?: 'update' | 'delete'
-  path?: string
+interface GeneratorEvent {
+  type: 'create' | 'update' | 'delete'
+  path: string
 }
 ```
 

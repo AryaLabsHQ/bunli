@@ -79,6 +79,20 @@ my-cli completions -s fish -o my-cli.fish
 
 - `--output, -o <path>`: Output file path (default: stdout)
 
+## Type Reference
+
+### ShellType
+
+The `ShellType` union type represents supported shells:
+
+```typescript
+import type { ShellType } from '@bunli/plugin-completions'
+
+type ShellType = 'bash' | 'zsh' | 'fish' | 'powershell'
+```
+
+This type is used in `CompletionsPluginOptions` to constrain the `shell` field.
+
 ## Installation Methods
 
 ### Bash Completions

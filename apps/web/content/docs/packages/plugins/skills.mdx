@@ -230,6 +230,61 @@ Looks for skill: "my-cli:build"
 Executes: my-cli build
 ```
 
+## Utility Exports
+
+The package also exports several utilities beyond the main plugin:
+
+### Agent Detection
+
+```typescript
+import { builtinAgents, detectAgents } from '@bunli/plugin-skills'
+
+// List all supported agent identifiers
+builtinAgents
+// → ['claude-code', 'cursor', 'copilot', 'windsurf', ...] (18+ agents)
+
+// Detect which agents are present in the current environment
+const agents = await detectAgents()
+console.log(agents)
+// → [{ id: 'claude-code', name: 'Claude Code', isInstalled: true }, ...]
+```
+
+### Skill File Generation
+
+```typescript
+import { generateSkillFile, generateCommandSkill } from '@bunli/plugin-skills'
+
+// Generate a skill file string for a single command
+const skillFile = await generateSkillFile(
+  myCommand,        // a Command object
+  { includeOptions: true }
+)
+
+// Generate a skill record for a named command
+const skill = await generateCommandSkill(
+  'my-cli',         // CLI name
+  myCommand,        // Command object
+  { includeOptions: true }
+)
+```
+
+### Skill Sync
+
+```typescript
+import { syncSkills } from '@bunli/plugin-skills'
+import type { SyncOptions, SyncResult, AgentInstall } from '@bunli/plugin-skills'
+
+const result = await syncSkills({
+  cliName: 'my-cli',
+  agents: ['claude-code', 'cursor'],
+  global: false  // install globally vs project-local
+})
+
+result.installed    // Array of AgentInstall records
+result.skipped      // Agents that were skipped
+result.errors       // Any errors encountered
+```
+
 ## See Also
 
 - [@bunli/plugin-ai-detect](/docs/packages/plugins/ai-detect) - Detect AI agents at runtime

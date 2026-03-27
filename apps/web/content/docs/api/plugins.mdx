@@ -29,7 +29,7 @@ interface BunliPlugin<TStore = {}> {
   configResolved?(config: ResolvedConfig): void | Promise<void>
 
   /** Before command hook - Called before command execution */
-  beforeCommand?(context: CommandContext<TStore>): void | Promise<void>
+  beforeCommand?(context: CommandContext<any>): void | Promise<void>
 
   /**
    * Pre-run hook - Called immediately before the command handler executes.
@@ -37,7 +37,7 @@ interface BunliPlugin<TStore = {}> {
    * Lifecycle: setup → configResolved → beforeCommand → preRun → [handler] → postRun → afterCommand
    */
   preRun?(
-    context: CommandContext<TStore>,
+    context: CommandContext<any>,
     state: ExecutionState
   ): void | Promise<void>
 
@@ -47,13 +47,13 @@ interface BunliPlugin<TStore = {}> {
    * Lifecycle: setup → configResolved → beforeCommand → preRun → [handler] → postRun → afterCommand
    */
   postRun?(
-    context: CommandContext<TStore> & CommandResult,
+    context: CommandContext<any> & CommandResult,
     state: ExecutionState
   ): void | Promise<void>
 
   /** After command hook - Called after command execution */
   afterCommand?(
-    context: CommandContext<TStore> & CommandResult
+    context: CommandContext<any> & CommandResult
   ): void | Promise<void>
 }
 ```
@@ -133,12 +133,44 @@ Result of command execution.
 interface CommandResult {
   /** Command return value */
   result?: any
-  
+
   /** Error if command failed */
   error?: unknown
-  
+
   /** Exit code */
   exitCode?: number
+}
+```
+
+### ExecutionState
+
+Per-run state shared between `preRun` and `postRun` hooks across all plugins.
+
+```typescript
+interface ExecutionState {
+  /** Get a value from the shared state */
+  get<T = unknown>(key: string): T | undefined
+
+  /** Set a value in the shared state */
+  set<T = unknown>(key: string, value: T): void
+
+  /** Check if a key exists */
+  has(key: string): boolean
+
+  /** Delete a key */
+  delete(key: string): boolean
+}
+```
+
+Plugins use `ExecutionState` to pass data from `preRun` to `postRun` without coupling:
+
+```typescript
+preRun?(context, state) {
+  state.set('startTime', Date.now())
+},
+postRun?(context, state) {
+  const elapsed = Date.now() - state.get('startTime')
+  console.log(`Command took ${elapsed}ms`)
 }
 ```
 

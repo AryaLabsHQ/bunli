@@ -238,6 +238,52 @@ linear issues list --team=backend --limit=10
 linear issues create --title="Bug fix" --team=backend
 ```
 
+## Utility Exports
+
+Beyond the main plugin, `@bunli/plugin-mcp` exports utilities for custom MCP integrations:
+
+### Metadata Extraction
+
+```typescript
+import { extractCommandMetadata, extractSchemaMetadata } from '@bunli/plugin-mcp'
+import type { MCPCommandMetadata, SchemaMetadata, SchemaConversionOptions } from '@bunli/plugin-mcp'
+
+// Extract command metadata from an MCP tool
+const meta = extractCommandMetadata(mcpTool)
+// → { name, description, options: { ... }, filePath, ... }
+
+// Extract detailed schema metadata for completions
+const schemaMeta = extractSchemaMetadata(jsonSchema)
+// → { type, required, enumValues, minLength, maxLength, ... }
+```
+
+### Type Code Generation
+
+```typescript
+import { generateMCPTypes } from '@bunli/plugin-mcp'
+
+// Generate TypeScript type definitions from MCP tools
+const types = generateMCPTypes(tools, {
+  namespace: 'linear',
+  includeDescriptions: true
+})
+// → "export interface LinearIssuesList { ... }"
+```
+
+### String Utilities
+
+```typescript
+import {
+  toKebabCase, toCommandName, toFlagName,
+  toPascalCase, toCamelCase, escapeString
+} from '@bunli/plugin-mcp'
+
+toCommandName('list-issues')    // 'listIssues'
+toFlagName('list_issues')       // 'listIssues'
+toKebabCase('listIssues')        // 'list-issues'
+escapeString('foo --bar')        // 'foo --bar' (safe for shell)
+```
+
 ## See Also
 
 - [Plugin API](/docs/api/plugins) - Bunli plugin system

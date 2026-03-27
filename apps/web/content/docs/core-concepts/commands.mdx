@@ -430,16 +430,15 @@ Commands can control when structured output is displayed using `outputPolicy`:
 export default defineCommand({
   name: 'config-get',
   description: 'Print a config value',
-  outputPolicy: 'always', // 'always' | 'never' | 'auto' (default)
+  outputPolicy: 'all', // 'all' | 'agent-only' (default: 'all')
   handler: async ({ output, flags }) => {
     output({ key: flags.key, value: getConfigValue(flags.key) })
   }
 })
 ```
 
-- **`'auto'`** — Only show output when not a TTY (default)
-- **`'always'`** — Always show structured output
-- **`'never'`** — Suppress structured output entirely
+- **`'all'`** — Show structured output in all environments (default)
+- **`'agent-only'`** — Only show structured output when a TUI is not available (agent/headless mode)
 
 
 

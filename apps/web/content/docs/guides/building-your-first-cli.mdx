@@ -137,8 +137,8 @@ export default defineCommand({
   },
   handler: async ({ flags, colors, spinner }) => {
     const spin = spinner('Loading tasks...')
-    spin.start()
-    
+    // Note: spinner('text') auto-starts the spinner — no manual .start() needed
+
     // Simulate loading
     await new Promise(resolve => setTimeout(resolve, 500))
     
@@ -317,7 +317,7 @@ handler: async ({ flags, colors, agent }) => {
   } else {
     // Human-friendly output
     tasks.forEach(task => {
-      console.log(`${colors.green('✓')} ${task.name}`)
+      console.log(`${colors.green('✓')} ${task.task}`)
     })
   }
 }
