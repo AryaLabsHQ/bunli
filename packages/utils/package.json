@@ -1,6 +1,6 @@
 {
   "name": "@bunli/utils",
-  "version": "0.5.1",
+  "version": "0.6.0",
   "description": "Built-in utilities for Bunli CLI framework - colors and validation",
   "type": "module",
   "module": "./dist/index.js",

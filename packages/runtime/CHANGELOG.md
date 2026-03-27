@@ -1,5 +1,11 @@
 # @bunli/runtime
 
+## 0.3.0
+
+### Minor Changes
+
+- 586d586: Add shell-scriptable `bunli shell` commands and a new set of terminal prompt components and utilities, including the follow-up fixes for command wiring, formatting, confirm behavior, and shell utility packaging.
+
 ## 0.2.0
 
 ### Minor Changes

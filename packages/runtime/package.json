@@ -1,6 +1,6 @@
 {
   "name": "@bunli/runtime",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Runtime renderer and prompt primitives for Bunli",
   "type": "module",
   "main": "src/index.ts",
