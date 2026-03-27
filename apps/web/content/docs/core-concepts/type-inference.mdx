@@ -149,20 +149,19 @@ Bunli exports helper type utilities from `@bunli/core` for extracting and manipu
 ```typescript
 import type {
   CommandOptions,
-  CommandFlags,
-  RegisteredCommandNames,
+  RegisteredCommands,
 } from '@bunli/core'
 
 // Extract option type for a specific command
-type DeployFlags = CommandFlags<'deploy'>
+type DeployFlags = CommandOptions<'deploy'>
 // → { env: 'dev' | 'staging' | 'prod', dryRun: boolean }
 
 // All registered command names as a union
-type AllCommands = RegisteredCommandNames
+type AllCommands = keyof RegisteredCommands
 // → 'deploy' | 'build' | 'test' | ...
 
 // Extract options type for any registered command
-type CmdOpts<T extends RegisteredCommandNames> = CommandOptions<T>
+type CmdOpts<T extends keyof RegisteredCommands> = CommandOptions<T>
 ```
 
 ## Configuration
