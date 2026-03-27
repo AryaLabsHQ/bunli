@@ -134,3 +134,34 @@ test('createTestCLI allows command-local format flags to shadow the global forma
   expect(result.exitCode).toBe(0)
   expect(result.stdout).toContain('text')
 })
+
+test('createTestCLI preserves global --format for built-in help on commands with local format options', async () => {
+  const processCommand = defineCommand({
+    name: 'process',
+    description: 'Process files',
+    options: {
+      format: option(z.enum(['json', 'yaml', 'text']).default('json'))
+    },
+    async handler() {}
+  })
+
+  const testCli = await createTestCLI({
+    commands: [processCommand]
+  })
+
+  const result = await testCli.run(['process', '--help', '--format', 'json'])
+
+  expect(result.exitCode).toBe(0)
+  expect(result.stdout).toContain('"type": "help"')
+  expect(result.stdout).toContain('"path": [')
+})
+
+test('createTestCLI honors explicit --format when global parsing fails', async () => {
+  const testCli = await createTestCLI()
+
+  const result = await testCli.run(['--format', 'yaml', '--image-mode', 'invalid'])
+
+  expect(result.exitCode).toBe(1)
+  expect(result.stderr).toContain('kind: validation')
+  expect(result.stderr).toContain('name: BunliValidationError')
+})

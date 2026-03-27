@@ -419,6 +419,34 @@ export async function createCLI<
       Object.entries(GLOBAL_FLAGS).filter(([name]) => !commandOptionNames.has(name))
     ) as Record<string, CLIOption<any>>
   }
+
+  function extractExplicitOutputFormat(args: string[]): OutputFormat | undefined {
+    let format: OutputFormat | undefined
+
+    for (let i = 0; i < args.length; i++) {
+      const arg = args[i]
+      if (!arg) continue
+
+      if (arg.startsWith('--format=')) {
+        const value = arg.slice('--format='.length)
+        if (value === 'json' || value === 'yaml' || value === 'md' || value === 'toon') {
+          format = value
+        }
+        continue
+      }
+
+      if (arg === '--format') {
+        const value = args[i + 1]
+        if (value === 'json' || value === 'yaml' || value === 'md' || value === 'toon') {
+          format = value
+          i += 1
+          continue
+        }
+      }
+    }
+
+    return format
+  }
   
   // Help rendering — delegates to the extracted help module
   function showHelp(cmd?: Command<any, TStore>, path: string[] = []) {
@@ -928,6 +956,7 @@ export async function createCLI<
       const passthroughArgs = separatorIndex >= 0 ? argv.slice(separatorIndex + 1) : []
       const commandLookup = stripRecognizedGlobalFlags(commandArgs)
       const { command, remainingArgs } = findCommand(commandLookup.args)
+      const explicitOutputFormat = extractExplicitOutputFormat(commandArgs)
 
       let globalParsed: Awaited<ReturnType<typeof parseArgs>>
       try {
@@ -937,13 +966,16 @@ export async function createCLI<
           '__global__'
         )
       } catch (error) {
-        await printRunCommandError(error as RunCommandError, resolveOutputContext(terminalInfo))
+        await printRunCommandError(
+          error as RunCommandError,
+          resolveOutputContext(terminalInfo, explicitOutputFormat)
+        )
         process.exit(1)
       }
 
       const outputContext = resolveOutputContext(
         terminalInfo,
-        globalParsed.flags['format'] as OutputFormat | undefined
+        (globalParsed.flags['format'] as OutputFormat | undefined) ?? explicitOutputFormat
       )
       
       // Handle version flag (only check before -- separator)
@@ -1012,7 +1044,7 @@ export async function createCLI<
 
       const commandOutputContext = resolveOutputContext(
         terminalInfo,
-        globalParsed.flags['format'] as OutputFormat | undefined,
+        (globalParsed.flags['format'] as OutputFormat | undefined) ?? explicitOutputFormat,
         command.defaultFormat
       )
       
