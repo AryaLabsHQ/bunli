@@ -152,7 +152,7 @@
     },
     "packages/cli": {
       "name": "bunli",
-      "version": "0.8.2",
+      "version": "0.9.0",
       "bin": {
         "bunli": "./dist/cli.js",
       },
@@ -174,7 +174,7 @@
     },
     "packages/core": {
       "name": "@bunli/core",
-      "version": "0.8.2",
+      "version": "0.9.0",
       "dependencies": {
         "@bunli/runtime": "workspace:^",
         "@bunli/utils": "workspace:^",
@@ -195,7 +195,7 @@
     },
     "packages/create-bunli": {
       "name": "create-bunli",
-      "version": "0.7.0",
+      "version": "0.8.0",
       "bin": {
         "create-bunli": "./dist/cli.js",
       },
@@ -215,7 +215,7 @@
     },
     "packages/generator": {
       "name": "@bunli/generator",
-      "version": "0.6.4",
+      "version": "0.6.5",
       "dependencies": {
         "@babel/parser": "^7.28.6",
         "@babel/traverse": "^7.28.6",
@@ -234,7 +234,7 @@
     },
     "packages/plugin-ai-detect": {
       "name": "@bunli/plugin-ai-detect",
-      "version": "0.6.3",
+      "version": "0.6.4",
       "dependencies": {
         "@bunli/core": "workspace:^",
       },
@@ -246,7 +246,7 @@
     },
     "packages/plugin-completions": {
       "name": "@bunli/plugin-completions",
-      "version": "0.3.4",
+      "version": "0.3.5",
       "dependencies": {
         "@bunli/core": "workspace:^",
         "better-result": "catalog:",
@@ -258,7 +258,7 @@
     },
     "packages/plugin-config": {
       "name": "@bunli/plugin-config",
-      "version": "0.4.3",
+      "version": "0.4.4",
       "dependencies": {
         "@bunli/core": "workspace:^",
         "better-result": "catalog:",
@@ -271,7 +271,7 @@
     },
     "packages/plugin-mcp": {
       "name": "@bunli/plugin-mcp",
-      "version": "0.2.3",
+      "version": "0.2.4",
       "dependencies": {
         "@bunli/core": "workspace:^",
         "better-result": "catalog:",
@@ -289,7 +289,7 @@
     },
     "packages/plugin-skills": {
       "name": "@bunli/plugin-skills",
-      "version": "0.0.0",
+      "version": "0.1.0",
       "dependencies": {
         "@bunli/core": "workspace:^",
         "zod": "^4.1.11",
@@ -301,7 +301,7 @@
     },
     "packages/runtime": {
       "name": "@bunli/runtime",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "dependencies": {
         "@opentui/core": "catalog:",
         "@opentui/react": "catalog:",
@@ -327,7 +327,7 @@
     },
     "packages/store": {
       "name": "@bunli/store",
-      "version": "0.0.0",
+      "version": "0.1.0",
       "dependencies": {
         "@bunli/utils": "workspace:^",
         "better-result": "catalog:",
@@ -342,7 +342,7 @@
     },
     "packages/test": {
       "name": "@bunli/test",
-      "version": "0.5.2",
+      "version": "0.6.0",
       "dependencies": {
         "@bunli/core": "workspace:^",
       },
@@ -358,7 +358,7 @@
     },
     "packages/tui": {
       "name": "@bunli/tui",
-      "version": "0.5.3",
+      "version": "0.6.0",
       "dependencies": {
         "@bunli/runtime": "workspace:^",
         "@opentui/core": "catalog:",
@@ -382,7 +382,7 @@
     },
     "packages/utils": {
       "name": "@bunli/utils",
-      "version": "0.5.1",
+      "version": "0.6.0",
       "dependencies": {
         "@standard-schema/spec": "catalog:",
         "@standard-schema/utils": "catalog:",

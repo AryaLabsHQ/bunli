@@ -1,5 +1,13 @@
 # @bunli/plugin-ai-detect
 
+## 0.6.4
+
+### Patch Changes
+
+- Updated dependencies [44bb5d0]
+- Updated dependencies [aa971b5]
+  - @bunli/core@0.9.0
+
 ## 0.6.3
 
 ### Patch Changes

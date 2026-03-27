@@ -1,6 +1,6 @@
 {
   "name": "@bunli/plugin-skills",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "description": "Agent skill generation plugin for Bunli - generates SKILL.md files for AI agents",
   "keywords": [
