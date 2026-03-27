@@ -68,19 +68,19 @@ export default defineCommand({
     ),
     generate: option(
       z.boolean().default(true),
-      { description: 'Enable codegen' }
+      { description: 'Enable codegen', argumentKind: 'flag' }
     ),
     clearScreen: option(
       z.boolean().default(true),
-      { description: 'Clear screen on reload' }
+      { description: 'Clear screen on reload', argumentKind: 'flag' }
     ),
     watch: option(
       z.boolean().default(true),
-      { short: 'w', description: 'Watch for changes' }
+      { short: 'w', description: 'Watch for changes', argumentKind: 'flag' }
     ),
     inspect: option(
       z.boolean().default(false),
-      { short: 'i', description: 'Enable debugger' }
+      { short: 'i', description: 'Enable debugger', argumentKind: 'flag' }
     ),
     port: option(
       z.coerce.number().int().min(1).max(65535).optional(),

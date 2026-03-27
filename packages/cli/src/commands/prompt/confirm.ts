@@ -5,7 +5,7 @@ export default defineCommand({
   name: 'confirm',
   description: 'Ask a yes/no question',
   options: {
-    default: option(z.boolean().optional().default(false), { description: 'Default value' }),
+    default: option(z.boolean().optional().default(false), { description: 'Default value', argumentKind: 'flag' }),
     affirmative: option(z.string().optional().default('Yes'), { description: 'Affirmative label' }),
     negative: option(z.string().optional().default('No'), { description: 'Negative label' }),
     timeout: option(z.number().optional(), { short: 't', description: 'Timeout in seconds' }),

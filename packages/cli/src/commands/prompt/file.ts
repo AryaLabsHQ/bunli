@@ -9,9 +9,9 @@ export default defineCommand({
   description: 'Pick a file or directory',
   options: {
     path: option(z.string().optional().default('.'), { description: 'Starting directory' }),
-    files: option(z.boolean().optional().default(true), { description: 'Show files' }),
-    directories: option(z.boolean().optional().default(true), { description: 'Show directories' }),
-    hidden: option(z.boolean().optional().default(false), { description: 'Show hidden files' }),
+    files: option(z.boolean().optional().default(true), { description: 'Show files', argumentKind: 'flag' }),
+    directories: option(z.boolean().optional().default(true), { description: 'Show directories', argumentKind: 'flag' }),
+    hidden: option(z.boolean().optional().default(false), { description: 'Show hidden files', argumentKind: 'flag' }),
     extensions: option(z.string().optional(), { description: 'Filter by extensions (comma-separated)' }),
   },
   async handler({ flags, prompt }) {

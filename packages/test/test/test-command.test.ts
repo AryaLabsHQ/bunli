@@ -26,7 +26,7 @@ test('testCommand - with flags', async () => {
     description: 'Greet someone',
     options: {
       name: option(z.string().default('World')),
-      loud: option(z.boolean().default(false), { short: 'l' })
+      loud: option(z.boolean().default(false), { short: 'l', argumentKind: 'flag' })
     },
     handler: async ({ flags }) => {
       const message = `Hello, ${flags.name}!`

@@ -133,23 +133,23 @@ export default defineCommand({
     ),
     npm: option(
       z.boolean().optional(),
-      { description: 'Publish to npm' }
+      { description: 'Publish to npm', argumentKind: 'flag' }
     ),
     github: option(
       z.boolean().optional(),
-      { description: 'Create GitHub release' }
+      { description: 'Create GitHub release', argumentKind: 'flag' }
     ),
     resume: option(
       z.boolean().default(true),
-      { description: 'Resume from unfinished release state' }
+      { description: 'Resume from unfinished release state', argumentKind: 'flag' }
     ),
     dry: option(
       z.boolean().default(false),
-      { short: 'd', description: 'Dry run - show what would be done' }
+      { short: 'd', description: 'Dry run - show what would be done', argumentKind: 'flag' }
     ),
     all: option(
       z.boolean().default(false),
-      { description: 'Release all packages (workspace mode)' }
+      { description: 'Release all packages (workspace mode)', argumentKind: 'flag' }
     )
   },
   handler: async ({ flags, prompt, spinner, colors, runtime, terminal }) => {

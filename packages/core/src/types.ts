@@ -207,6 +207,7 @@ export interface RuntimeInfo {
   startTime: number
   args: string[]
   command: string
+  outputFormat: OutputFormat
 }
 
 export interface HelpRenderContext<TStore = {}> {
@@ -221,11 +222,15 @@ export interface HelpRenderContext<TStore = {}> {
 
 export type HelpRenderer<TStore = {}> = (context: HelpRenderContext<TStore>) => void
 
+export type OptionArgumentKind = 'flag' | 'value'
+
 // CLI option with metadata - generic to preserve schema type
 export interface CLIOption<S extends StandardSchemaV1 = StandardSchemaV1> {
   schema: S
   short?: string
   description?: string
+  repeatable?: boolean
+  argumentKind?: OptionArgumentKind
 }
 
 // Options must use the CLIOption wrapper
@@ -301,38 +306,15 @@ export type ResolvedConfig = Required<Omit<BunliConfig, 'build' | 'dev' | 'test'
   help?: BunliConfig['help']
 }
 
-/**
- * Rich validation error with context information
- */
-export class BunliValidationError extends Error {
-  constructor(
-    message: string,
-    public readonly context: {
-      option: string
-      value: unknown
-      command: string
-      expectedType: string
-      hint?: string
-    }
-  ) {
-    super(message)
-    this.name = 'BunliValidationError'
-  }
-  
-  override toString(): string {
-    return `${this.name}: Invalid option '${this.context.option}' for command '${this.context.command}'
-    
-Expected: ${this.context.expectedType}
-Received: ${typeof this.context.value} (${JSON.stringify(this.context.value)})
-${this.context.hint ? `\nHint: ${this.context.hint}` : ''}`
-  }
-}
-
-
 // Helper to create a CLI option with metadata
 export function option<S extends StandardSchemaV1>(
   schema: S,
-  metadata?: { short?: string; description?: string }
+  metadata?: {
+    short?: string
+    description?: string
+    repeatable?: boolean
+    argumentKind?: OptionArgumentKind
+  }
 ): CLIOption<S> {
   return {
     schema,

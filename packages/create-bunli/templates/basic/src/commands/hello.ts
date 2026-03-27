@@ -16,7 +16,8 @@ const helloCommand = defineCommand({
       z.boolean().default(false),
       {
         description: 'Add excitement!',
-        short: 'e'
+        short: 'e',
+        argumentKind: 'flag'
       }
     )
   },

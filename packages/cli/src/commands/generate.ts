@@ -37,7 +37,8 @@ export default defineCommand({
     }),
     watch: option(z.boolean().default(false), {
       short: 'w',
-      description: 'Watch for changes'
+      description: 'Watch for changes',
+      argumentKind: 'flag'
     })
   },
   

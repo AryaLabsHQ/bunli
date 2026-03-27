@@ -25,7 +25,8 @@ const processCommand = defineCommand({
       z.boolean().default(false),
       {
         short: 'v',
-        description: 'Verbose output'
+        description: 'Verbose output',
+        argumentKind: 'flag'
       }
     )
   },

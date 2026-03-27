@@ -23,7 +23,8 @@ const serveCommand = defineCommand({
     open: option(
       z.boolean().default(true),
       {
-        description: 'Open browser on start'
+        description: 'Open browser on start',
+        argumentKind: 'flag'
       }
     )
   },

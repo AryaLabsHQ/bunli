@@ -21,11 +21,11 @@ export default defineCommand({
     ),
     git: option(
       z.boolean().default(true),
-      { short: 'g', description: 'Initialize git repository' }
+      { short: 'g', description: 'Initialize git repository', argumentKind: 'flag' }
     ),
     install: option(
       z.boolean().default(true),
-      { description: 'Install dependencies' }
+      { description: 'Install dependencies', argumentKind: 'flag' }
     ),
     'package-manager': option(
       z.enum(['bun', 'pnpm', 'yarn', 'npm']).default('bun'),

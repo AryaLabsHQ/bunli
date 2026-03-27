@@ -8,7 +8,7 @@ export default defineCommand({
     level: option(z.enum(['info', 'warn', 'error', 'debug']).optional().default('info'), {
       description: 'Log level',
     }),
-    time: option(z.boolean().optional().default(false), { description: 'Include timestamp' }),
+    time: option(z.boolean().optional().default(false), { description: 'Include timestamp', argumentKind: 'flag' }),
     prefix: option(z.string().optional(), { description: 'Message prefix' }),
   },
   async handler({ flags, positional, colors }) {

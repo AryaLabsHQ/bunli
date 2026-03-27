@@ -20,7 +20,7 @@ test('defineCommand infers handler flags from options', () => {
     description: 'Test command',
     options: {
       name: option(z.string()),
-      verbose: option(z.boolean().default(false)),
+      verbose: option(z.boolean().default(false), { argumentKind: 'flag' }),
       count: option(z.number().optional()),
     },
     handler({ flags }) {

@@ -34,15 +34,15 @@ async function run(): Promise<void> {
       ),
       git: option(
         z.boolean().default(true),
-        { short: 'g', description: 'Initialize git repository' }
+        { short: 'g', description: 'Initialize git repository', argumentKind: 'flag' }
       ),
       install: option(
         z.boolean().default(true),
-        { short: 'i', description: 'Install dependencies' }
+        { short: 'i', description: 'Install dependencies', argumentKind: 'flag' }
       ),
       offline: option(
         z.boolean().default(false),
-        { description: 'Use cached templates when available' }
+        { description: 'Use cached templates when available', argumentKind: 'flag' }
       )
     },
     handler: async (context) => {

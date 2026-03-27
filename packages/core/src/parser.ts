@@ -1,5 +1,5 @@
-import type { Options, StandardSchemaV1, CLIOption } from './types.js'
-import { BunliValidationError } from './types.js'
+import type { Options, StandardSchemaV1 } from './types.js'
+import { BunliValidationError } from './errors.js'
 import { SchemaError } from '@standard-schema/utils'
 
 export interface ParsedArgs {
@@ -13,6 +13,7 @@ export async function parseArgs(
   commandName: string = 'unknown'
 ): Promise<ParsedArgs> {
   const flags: Record<string, unknown> = {}
+  const repeatableValues: Record<string, unknown[]> = {}
   const positional: string[] = []
   
   // Build lookup maps for short aliases
@@ -48,15 +49,23 @@ export async function parseArgs(
       const inlineValue = eqIndex > 0 ? arg.slice(eqIndex + 1) : undefined
       
       if (!name || !options[name]) continue
-      
+
       // Get the value (inline, next arg, or 'true' for boolean-like flags)
       let value: string | undefined = inlineValue
       if (value === undefined && i + 1 < args.length && !args[i + 1]?.startsWith('-')) {
         value = args[++i]
       }
       
-      // Pass the value to the schema for validation
-      flags[name] = await validateOption(name, value ?? 'true', options[name]!.schema, commandName)
+      const option = options[name]
+      if (!option) continue
+      const parsedValue = value ?? (option.argumentKind === 'flag' ? 'true' : undefined)
+
+      if (option.repeatable) {
+        if (!repeatableValues[name]) repeatableValues[name] = []
+        repeatableValues[name].push(parsedValue)
+      } else {
+        flags[name] = await validateOption(name, parsedValue, option.schema, commandName)
+      }
       
     } else if (arg.startsWith('-') && arg.length > 1) {
       // Short flag: -n or -n value
@@ -64,13 +73,22 @@ export async function parseArgs(
       const name = shortToName.get(short)
       
       if (name && options[name]) {
+        const option = options[name]
+        if (!option) continue
+
         // Get the next argument as value if available
         let value: string | undefined
         if (i + 1 < args.length && !args[i + 1]?.startsWith('-')) {
           value = args[++i]
         }
-        
-        flags[name] = await validateOption(name, value ?? 'true', options[name]!.schema, commandName)
+        const parsedValue = value ?? (option.argumentKind === 'flag' ? 'true' : undefined)
+
+        if (option.repeatable) {
+          if (!repeatableValues[name]) repeatableValues[name] = []
+          repeatableValues[name].push(parsedValue)
+        } else {
+          flags[name] = await validateOption(name, parsedValue, option.schema, commandName)
+        }
       }
     } else {
       // Positional argument
@@ -81,6 +99,11 @@ export async function parseArgs(
   // Validate all options were provided (schemas handle their own defaults/required logic)
   // We run validation with undefined for options not provided on command line
   for (const [name, opt] of Object.entries(options)) {
+    if (opt.repeatable && name in repeatableValues) {
+      flags[name] = await validateOption(name, repeatableValues[name], opt.schema, commandName)
+      continue
+    }
+
     if (!(name in flags)) {
       flags[name] = await validateOption(name, undefined, opt.schema, commandName)
     }
@@ -103,6 +126,19 @@ async function validateOption(
     if (!testResult.issues) {
       // Schema accepts boolean, convert the string
       processedValue = value === 'true'
+    }
+  }
+
+  if (Array.isArray(value)) {
+    const coercedArray = value.map(item => {
+      if (item === 'true') return true
+      if (item === 'false') return false
+      return item
+    })
+
+    const coercedArrayResult = await schema['~standard'].validate(coercedArray)
+    if (!coercedArrayResult.issues) {
+      processedValue = coercedArray
     }
   }
   

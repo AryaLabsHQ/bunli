@@ -377,7 +377,8 @@ export async function testCommand<TOptions extends Options = Options>(
       runtime: {
         startTime: Date.now(),
         args: options.args || [],
-        command: command.name
+        command: command.name,
+        outputFormat: 'json'
       },
       signal: new AbortController().signal,
       image: {

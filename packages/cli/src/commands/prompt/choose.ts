@@ -6,10 +6,10 @@ export default defineCommand({
   name: 'choose',
   description: 'Choose from a list of options',
   options: {
-    multiple: option(z.boolean().optional().default(false), { description: 'Allow multiple selections' }),
+    multiple: option(z.boolean().optional().default(false), { description: 'Allow multiple selections', argumentKind: 'flag' }),
     limit: option(z.number().optional(), { description: 'Max selections' }),
     height: option(z.number().optional().default(10), { description: 'Visible items' }),
-    ordered: option(z.boolean().optional().default(false), { description: 'Maintain selection order' }),
+    ordered: option(z.boolean().optional().default(false), { description: 'Maintain selection order', argumentKind: 'flag' }),
   },
   async handler({ flags, positional, prompt }) {
     let items = positional.length > 0 ? positional : []
