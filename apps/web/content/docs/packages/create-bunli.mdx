@@ -280,12 +280,17 @@ Templates support multiple variable formats:
 | Python | `__projectName__` | File names |
 
 **Available Variables:**
-- `{{projectName}}` - The project name
-- `{{description}}` - Project description
-- `{{author}}` - Author name
-- `{{license}}` - License type
-- `{{year}}` - Current year
-- `{{packageManager}}` - Selected package manager
+
+These are the variables passed to the template engine from `create-project.ts`:
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `{{name}}` | The project name (slug) | User input |
+| `{{description}}` | Project description | `"A CLI built with Bunli"` |
+| `{{version}}` | Project version | `"0.1.0"` |
+| `{{author}}` | Author name | `""` (empty) |
+| `{{license}}` | License type | `"MIT"` |
+| `{{year}}` | Current year | e.g. `"2026"` |
 
 ### File Name Variables
 
