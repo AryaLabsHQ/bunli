@@ -140,6 +140,9 @@ The generated store interface includes:
 | `getCommandNames()` | `string[]` | All command names |
 | `get(name)` | `Command` | Raw command object |
 | `getMetadata(name)` | `GeneratedCommandMeta` | Metadata for a command |
+| `getFlags(name)` | `Record<string, unknown>` | Default flag values from metadata |
+| `getFlagsMeta(name)` | `Record<string, GeneratedOptionMeta>` | Raw option metadata |
+| `validateCommand(name, flags)` | `{ success, data } \| { success, errors }` | Runtime flag validation |
 | `withCLI(cli)` | `GeneratedExecutor` | Executor wrapper |
 
 ## Advanced Type Utilities
@@ -157,7 +160,7 @@ type DeployFlags = CommandOptions<'deploy'>
 // → { env: 'dev' | 'staging' | 'prod', dryRun: boolean }
 
 // All registered command names as a union
-type AllCommands = keyof RegisteredCommands
+type AllCommandNames = keyof RegisteredCommands
 // → 'deploy' | 'build' | 'test' | ...
 
 // Extract options type for any registered command
