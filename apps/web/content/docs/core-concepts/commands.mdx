@@ -392,7 +392,56 @@ export default defineCommand({
 })
 ```
 
-## Error Handling
+## Command Lookup and Execution
+
+### Deepest-Match Algorithm
+
+Bunli resolves commands using a **deepest-match** algorithm: when you run `my-cli git log`, it tries to match the longest possible path first (`git log` as a single command), then falls back to shorter paths (`git` as a group, `log` as a subcommand).
+
+```bash
+# Matches: git group → log subcommand
+my-cli git log --oneline
+
+# Matches: git-push as a single top-level command
+my-cli git-push origin main
+```
+
+This means `git log` will always be interpreted as the `git` group with `log` subcommand, not as a top-level `git-log` command — even if one exists.
+
+### The `--` Separator
+
+Use `--` to pass arguments through to the underlying command or shell:
+
+```bash
+# Pass --force through to git push
+my-cli git push origin main -- --force
+
+# Useful for commands that wrap other CLIs
+my-cli docker run -- --rm -it my-image /bin/sh
+```
+
+Arguments after `--` are added to `positional` after the matched command's own positional arguments.
+
+### Output Policy
+
+Commands can control when structured output is displayed using `outputPolicy`:
+
+```typescript
+export default defineCommand({
+  name: 'config-get',
+  description: 'Print a config value',
+  outputPolicy: 'always', // 'always' | 'never' | 'auto' (default)
+  handler: async ({ output, flags }) => {
+    output({ key: flags.key, value: getConfigValue(flags.key) })
+  }
+})
+```
+
+- **`'auto'`** — Only show output when not a TTY (default)
+- **`'always'`** — Always show structured output
+- **`'never'`** — Suppress structured output entirely
+
+
 
 Bunli provides automatic error handling with formatted output:
 

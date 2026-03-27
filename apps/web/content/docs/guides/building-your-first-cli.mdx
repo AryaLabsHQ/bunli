@@ -194,7 +194,7 @@ export default defineCommand({
     }
     
     const selected = await prompt.select('Which task did you complete?', {
-      choices: pendingTasks.map(task => ({
+      options: pendingTasks.map(task => ({
         value: task.id,
         label: task.task
       }))

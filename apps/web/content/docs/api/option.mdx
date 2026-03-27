@@ -16,6 +16,7 @@ function option<S extends StandardSchemaV1>(
     short?: string
     description?: string
     repeatable?: boolean
+    argumentKind?: 'flag' | 'value'
   }
 ): CLIOption<S>
 ```
@@ -32,6 +33,7 @@ Additional metadata for the option:
 - `short` - Single character alias for the option
 - `description` - Help text shown in --help output
 - `repeatable` - Collect repeated flag occurrences and validate them as an array
+- `argumentKind` - Controls whether the option takes a value (`'value'`, the default) or is a boolean flag (`'flag'`) that doesn't consume a following argument
 
 ## Returns
 

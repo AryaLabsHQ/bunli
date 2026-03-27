@@ -242,8 +242,9 @@ function Trend({ values }) {
 React hooks for terminal UI:
 
 ```tsx
-import { useKeyboard, useTerminalDimensions, useTimeline } from '@bunli/tui'
-import { useTuiTheme, useFormField } from '@bunli/tui'
+import { useKeyboard, useTerminalDimensions, useTimeline } from '@opentui/react'
+import { useTuiTheme } from '@bunli/runtime/app'
+import { useFormField } from '@bunli/tui'
 
 function KeyboardExample() {
   useKeyboard({

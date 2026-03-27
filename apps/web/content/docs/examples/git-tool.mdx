@@ -86,8 +86,8 @@ export const branchCommand = defineCommand({
           console.error(colors.red('Branch name required'))
           process.exit(1)
         }
-        
-        await shell.run(`git checkout -b ${branchName}`)
+
+        await shell`git checkout -b ${branchName}`
         console.log(colors.green(`Created branch: ${branchName}`))
       }
     }),
@@ -96,7 +96,7 @@ export const branchCommand = defineCommand({
       description: 'Switch to a branch',
       handler: async ({ positional, shell, colors }) => {
         const branchName = positional[0]
-        await shell.run(`git checkout ${branchName}`)
+        await shell`git checkout ${branchName}`
         console.log(colors.green(`Switched to: ${branchName}`))
       }
     })
@@ -110,18 +110,18 @@ import { shell } from '@bunli/core'
 
 handler: async ({ shell, colors, spinner }) => {
   spinner.start('Fetching latest changes...')
-  
+
   try {
     // Pull latest changes
-    await shell.run('git pull origin main')
-    
+    await shell`git pull origin main`
+
     // Push local commits
-    await shell.run('git push origin main')
-    
+    await shell`git push origin main`
+
     spinner.succeed('Repository synchronized')
   } catch (error) {
     spinner.fail('Sync failed')
-    console.error(colors.red(error.message))
+    console.error(colors.red(String(error)))
     process.exit(1)
   }
 }
@@ -150,19 +150,19 @@ import { colors } from '@bunli/core'
 
 handler: async ({ shell, colors }) => {
   // Get git status
-  const status = await shell.run('git status --porcelain')
-  const lines = status.stdout.split('\n').filter(Boolean)
-  
+  const statusOutput = await shell`git status --porcelain`
+  const lines = statusOutput.split('\n').filter(Boolean)
+
   if (lines.length === 0) {
     console.log(colors.green('✓ Working directory clean'))
     return
   }
-  
+
   console.log(colors.cyan('Changes:'))
   lines.forEach(line => {
     const status = line.substring(0, 2)
     const file = line.substring(3)
-    
+
     if (status.includes('M')) {
       console.log(colors.yellow(`  M ${file}`))
     } else if (status.includes('A')) {
@@ -229,13 +229,13 @@ export const branchCommand = defineCommand({
 ```typescript
 // utils/git.ts
 export async function getCurrentBranch(): Promise<string> {
-  const result = await shell.run('git branch --show-current')
-  return result.stdout.trim()
+  const branch = await shell`git branch --show-current`
+  return branch.trim()
 }
 
 export async function isGitRepository(): Promise<boolean> {
   try {
-    await shell.run('git rev-parse --git-dir')
+    await shell`git rev-parse --git-dir`
     return true
   } catch {
     return false
@@ -248,17 +248,18 @@ export async function isGitRepository(): Promise<boolean> {
 handler: async ({ shell, colors, spinner }) => {
   try {
     spinner.start('Creating branch...')
-    await shell.run(`git checkout -b ${branchName}`)
+    await shell`git checkout -b ${branchName}`
     spinner.succeed(`Created branch: ${branchName}`)
   } catch (error) {
     spinner.fail('Failed to create branch')
-    
-    if (error.message.includes('already exists')) {
+
+    const msg = error instanceof Error ? error.message : String(error)
+    if (msg.includes('already exists')) {
       console.error(colors.yellow('Branch already exists'))
     } else {
-      console.error(colors.red(error.message))
+      console.error(colors.red(msg))
     }
-    
+
     process.exit(1)
   }
 }
@@ -270,19 +271,20 @@ handler: async ({ shell, colors, spinner }) => {
 ```typescript
 import { shell } from '@bunli/core'
 
-// Simple command execution
-const result = await shell.run('git status')
-console.log(result.stdout)
+// Simple command execution — tagged template literal returns stdout as string
+const statusOutput = await shell`git status`
+console.log(statusOutput)
 
 // Command with options
-const result = await shell.run('git log --oneline -10')
-const commits = result.stdout.split('\n').filter(Boolean)
+const logOutput = await shell`git log --oneline -10`
+const commits = logOutput.split('\n').filter(Boolean)
 
 // Error handling
 try {
-  await shell.run('git push origin main')
+  await shell`git push origin main`
 } catch (error) {
-  if (error.message.includes('rejected')) {
+  const msg = error instanceof Error ? error.message : String(error)
+  if (msg.includes('rejected')) {
     console.error('Push rejected - need to pull first')
   }
 }
@@ -293,20 +295,20 @@ try {
 handler: async ({ shell, colors }) => {
   // Check if git is available
   try {
-    await shell.run('git --version')
+    await shell`git --version`
   } catch {
     console.error(colors.red('Git is not installed or not in PATH'))
     process.exit(1)
   }
-  
+
   // Check if we're in a git repository
   try {
-    await shell.run('git rev-parse --git-dir')
+    await shell`git rev-parse --git-dir`
   } catch {
     console.error(colors.red('Not in a git repository'))
     process.exit(1)
   }
-  
+
   // Continue with git operations
 }
 ```

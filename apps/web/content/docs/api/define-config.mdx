@@ -28,8 +28,9 @@ interface BunliConfig {
   
   // Command configuration
   commands?: {
-    entry?: string
+    entry?: string | string[]
     directory?: string
+    generateReport?: boolean
   }
   
   // Build configuration
@@ -68,12 +69,25 @@ interface BunliConfig {
       shimPath?: string
     }
   }
-  
+
   // Workspace configuration
   workspace?: {
     packages?: string[]
     shared?: any
     versionStrategy?: 'fixed' | 'independent'
+  }
+
+  // TUI configuration (for commands using the render() path)
+  tui?: {
+    renderer?: {
+      bufferMode?: 'alternate' | 'standard'
+    }
+    image?: {
+      mode?: 'off' | 'auto' | 'on'
+      protocol?: 'auto' | 'kitty'
+      width?: number
+      height?: number
+    }
   }
 }
 ```
@@ -192,12 +206,21 @@ Configure command loading:
 Configure production builds:
 
 - `entry` - Entry file(s) to build
-- `outdir` - Output directory (default: `./dist`)
+- `outdir` - Output directory
 - `targets` - Platform targets for multi-platform builds
 - `compress` - Compress builds with tar.gz
 - `external` - Packages to exclude from bundle
 - `minify` - Minify output (default: false)
 - `sourcemap` - Generate sourcemaps (default: true)
+
+### tui
+
+Configure the terminal UI rendering (for commands using the `render()` path):
+
+- `renderer.bufferMode` - `'alternate'` (full-screen) or `'standard'` (scrollback-friendly, default)
+- `image.mode` - `'off'`, `'auto'` (default), or `'on'` — controls terminal image preview
+- `image.protocol` - `'auto'` (default) or `'kitty'` — image protocol to use
+- `image.width` / `image.height` - Terminal cell dimensions for image layout
 
 ### dev
 

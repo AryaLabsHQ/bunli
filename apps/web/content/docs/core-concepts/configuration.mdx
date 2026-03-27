@@ -388,7 +388,8 @@ const configSchema = z.object({
   description: z.string().optional(),
   commands: z.object({
     entry: z.string().optional(),
-    directory: z.string().optional()
+    directory: z.string().optional(),
+    generateReport: z.boolean().optional()
   }).optional(),
   build: z.object({
     entry: z.string().or(z.array(z.string())).optional(),
@@ -397,10 +398,39 @@ const configSchema = z.object({
     compress: z.boolean().optional(),
     external: z.array(z.string()).optional(),
     minify: z.boolean().optional(),
-    sourcemap: z.boolean().optional(),
-    compile: z.boolean().optional()
+    sourcemap: z.boolean().optional()
   }).optional(),
-  // ... more options
+  dev: z.object({
+    watch: z.boolean().optional(),
+    inspect: z.boolean().optional(),
+    port: z.number().optional()
+  }).optional(),
+  test: z.object({
+    pattern: z.string().or(z.array(z.string())).optional(),
+    coverage: z.boolean().optional(),
+    watch: z.boolean().optional()
+  }).optional(),
+  workspace: z.object({
+    packages: z.array(z.string()).optional(),
+    shared: z.unknown().optional(),
+    versionStrategy: z.enum(['fixed', 'independent']).optional()
+  }).optional(),
+  release: z.object({
+    npm: z.boolean().optional(),
+    github: z.boolean().optional(),
+    tagFormat: z.string().optional(),
+    conventionalCommits: z.boolean().optional()
+  }).optional(),
+  plugins: z.array(z.unknown()).optional(),
+  tui: z.object({
+    renderer: z.object({ bufferMode: z.enum(['alternate', 'standard']).optional() }).optional(),
+    image: z.object({
+      mode: z.enum(['off', 'auto', 'on']).optional(),
+      protocol: z.enum(['auto', 'kitty']).optional(),
+      width: z.number().optional(),
+      height: z.number().optional()
+    }).optional()
+  }).optional()
 })
 ```
 
