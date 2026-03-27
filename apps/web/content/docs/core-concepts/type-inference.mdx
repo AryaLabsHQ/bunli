@@ -75,20 +75,29 @@ export default defineCommand({
 
 ## Type-Safe Command Execution
 
-With generated types, you can execute commands programmatically with full type safety:
+With generated types, you can execute commands programmatically with full type safety. The `execute()` method has three overloads:
 
 ```typescript
 import { createCLI } from '@bunli/core'
 
 const cli = await createCLI(config)
 
-// ✅ Fully type-safe!
+// ✅ Overload 1: args-only form
+await cli.execute('deploy', ['--env', 'production', '--dry-run'])
+
+// ✅ Overload 2: typed options (requires RegisteredCommands augmentation)
 await cli.execute('deploy', {
   env: 'production', // ← Autocomplete: 'dev' | 'staging' | 'prod'
   dryRun: true       // ← Type: boolean
 })
 
-// ❌ Type errors!
+// ✅ Overload 3: args + typed options
+await cli.execute('deploy', ['--dry-run'], {
+  env: 'production',
+  dryRun: true
+})
+
+// ❌ Type errors when using typed overloads!
 await cli.execute('deploy', {
   env: 'invalid',  // ❌ Error: Type '"invalid"' is not assignable
   dryRun: 'yes'    // ❌ Error: Type 'string' is not assignable to type 'boolean'
@@ -97,44 +106,65 @@ await cli.execute('deploy', {
 
 ## Command Discovery
 
-Generated types provide helper functions for type-safe command discovery:
+The generated store provides helper methods for command discovery. Import the generated store from the auto-generated `.bunli/commands.gen.ts`:
 
 ```typescript
-import { listCommands, getCommandApi, hasCommand } from './commands.gen'
+import { cli } from './.bunli/commands.gen'
 
 // List all commands
-const commands = listCommands()
+const commands = cli.list()
 console.log(`Total commands: ${commands.length}`)
 
-// Type-safe command lookup
-if (hasCommand('deploy')) {
-  const deployApi = getCommandApi('deploy')
-  // deployApi is fully typed!
-}
+// Find a command by name
+const deploy = cli.findByName('deploy')
+console.log(deploy.metadata.description)
+
+// Get all command names
+const names = cli.getCommandNames()
+
+// Type-checked flags for a command (requires RegisteredCommands augmentation)
+const flags = cli.getFlags('deploy')
+
+// Wrap with a CLI instance for typed execution
+const executor = cli.withCLI(myCLI)
+await executor.execute('deploy', { env: 'production', dryRun: true })
 ```
+
+The generated store interface includes:
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `list()` | `Array<{ name, command, metadata }>` | All registered commands |
+| `findByName(name)` | `{ name, command, metadata }` | Single command by name |
+| `findByDescription(term)` | `Array<{ name, command, metadata }>` | Search by description |
+| `getCommandNames()` | `string[]` | All command names |
+| `get(name)` | `Command` | Raw command object |
+| `getMetadata(name)` | `GeneratedCommandMeta` | Metadata for a command |
+| `getFlags(name)` | `Record<string, unknown>` | Default flag values from metadata |
+| `getFlagsMeta(name)` | `Record<string, GeneratedOptionMeta>` | Raw option metadata |
+| `validateCommand(name, flags)` | `{ success, data } \| { success, errors }` | Runtime flag validation |
+| `withCLI(cli)` | `GeneratedExecutor` | Executor wrapper |
 
 ## Advanced Type Utilities
 
-Bunli exports advanced TypeScript type utilities for complex type manipulation:
+Bunli exports helper type utilities from `@bunli/core` for extracting and manipulating command types:
 
 ```typescript
-import { 
-  UnionToIntersection, 
-  MergeAll, 
-  Expand,
-  DeepPartial,
-  Constrain
+import type {
+  CommandOptions,
+  RegisteredCommands,
 } from '@bunli/core'
 
-// Get all command options as a union
-type AllCommandOptions = UnionToIntersection<
-  ReturnType<typeof getCommandApi>[keyof CommandRegistry]['options']
->
+// Extract option type for a specific command
+type DeployFlags = CommandOptions<'deploy'>
+// → { env: 'dev' | 'staging' | 'prod', dryRun: boolean }
 
-// Merge all command metadata
-type AllCommands = MergeAll<
-  Array<{ name: string; description: string }>
->
+// All registered command names as a union
+type AllCommandNames = keyof RegisteredCommands
+// → 'deploy' | 'build' | 'test' | ...
+
+// Extract options type for any registered command
+type CmdOpts<T extends keyof RegisteredCommands> = CommandOptions<T>
 ```
 
 ## Configuration
@@ -152,10 +182,10 @@ export default defineConfig({
 
 The `.bunli/commands.gen.ts` file contains:
 
-- `CommandsByName` interface - Maps command names to their definitions
-- `RegisteredCommands` module augmentation - Extends @bunli/core types
-- Helper functions - `getCommandApi`, `listCommands`, `hasCommand`
-- Runtime registry - For command discovery
+- `commands` — the command objects themselves (named exports for each command)
+- `metadata` — command metadata including descriptions, options, aliases
+- `cli` — a `GeneratedStore` instance with `list()`, `findByName()`, `getCommandNames()`, `get()`, `getMetadata()`, `getFlags()`, `withCLI()` methods
+- `register(cli?)` — registers commands with a CLI instance
 
 ## See Also
 

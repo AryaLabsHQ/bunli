@@ -161,8 +161,7 @@ bunli generate --watch
 |--------|------|---------|-------------|
 | `entry` | `string` | `'./cli.ts'` | CLI entry file used for command discovery |
 | `directory` | `string` | `undefined` | Optional fallback directory for command scanning |
-| `outputFile` | `string` | `'./.bunli/commands.gen.ts'` | Output file for generated types |
-| `watch` | `boolean` | `false` | Watch for file changes |
+| `outputFile` | `string` | `'./commands.gen.ts'` | Output file for generated types |
 | `include` | `string[]` | `['**/*.ts', '**/*.js']` | File patterns to include |
 | `exclude` | `string[]` | `['**/*.test.*', '**/*.spec.*']` | File patterns to exclude |
 
@@ -170,47 +169,53 @@ bunli generate --watch
 
 ## Generated Output Structure
 
-The generator creates a comprehensive TypeScript API:
+The generator creates `.bunli/commands.gen.ts` which exports a `GeneratedStore` instance:
 
-### GeneratedCLI Interface
+### GeneratedStore Interface
+
+The generated file exports a `cli` object (a `GeneratedStore` instance) and named command exports:
 
 ```typescript
-interface GeneratedCLI {
-  register(cli?: CLI<any>): GeneratedCLI
-  list(): Array<{
-    name: GeneratedNames
-    command: Command<any>
-    metadata: GeneratedCommandMeta
-  }>
-  get<Name extends GeneratedNames>(name: Name): Command<any>
-  getMetadata<Name extends GeneratedNames>(name: Name): GeneratedCommandMeta
-  getFlags<Name extends GeneratedNames>(name: Name): CommandOptions<Name>
-  getFlagsMeta<Name extends GeneratedNames>(name: Name): Record<string, GeneratedOptionMeta>
-  withCLI(cli: CLI<any>): { execute(name: string, options: unknown): Promise<void> }
+// Named command exports
+export { greet } from '../src/commands/greet.js'
+export { deploy } from '../src/commands/deploy.js'
+
+// Generated command metadata
+export const metadata: Record<string, GeneratedCommandMeta>
+
+// Generated store instance
+export const cli: GeneratedStore<typeof commands, typeof metadata>
+```
+
+### GeneratedStore Methods
+
+```typescript
+interface GeneratedStore<TModules, TMeta> {
+  commands: TModules
+  metadata: TMeta
+  register(cli?: CLI<any>): GeneratedStore<TModules, TMeta>
+  list(): Array<{ name: keyof TModules; command: TModules[keyof TModules]; metadata: TMeta[keyof TModules] }>
+  get<Name extends keyof TModules>(name: Name): TModules[Name]
+  getMetadata<Name extends keyof TModules>(name: Name): TMeta[Name]
+  findByName<Name extends keyof TModules>(name: Name): { name: Name; command: TModules[Name]; metadata: TMeta[Name] }
+  findByDescription(searchTerm: string): Array<{ name: keyof TModules; command: TModules[keyof TModules]; metadata: TMeta[keyof TModules] }>
+  getCommandNames(): Array<keyof TModules & string>
+  getFlags<Name extends keyof RegisteredCommands>(name: Name): Record<string, unknown>
+  getFlagsMeta<Name extends keyof TModules>(name: Name): Record<string, GeneratedOptionMeta>
+  validateCommand<Name extends keyof TModules>(
+    name: Name,
+    flags: Record<string, unknown>
+  ): { success: true; data: Record<string, unknown> } | { success: false; errors: string[] }
+  withCLI(cli: CLI<any>): GeneratedExecutor<TModules>
 }
 ```
 
-### Helper Functions
+### GeneratedExecutor
 
 ```typescript
-// Get command metadata by name
-function getCommandApi<Name extends GeneratedNames>(name: Name): GeneratedCommandMeta
-
-// Get all command names
-function getCommandNames(): GeneratedNames[]
-
-// List all commands with metadata
-function listCommands(): GeneratedNames[]
-
-// Get typed flags for a command
-function getTypedFlags<Name extends GeneratedNames>(name: Name): CommandOptions<Name>
-
-// Validate command arguments
-function validateCommand<Name extends GeneratedNames>(name: Name, flags: Record<string, unknown>): ValidationResult
-
-// Find commands by name or description
-function findCommandByName<Name extends GeneratedNames>(name: Name): CommandInfo
-function findCommandsByDescription(searchTerm: string): CommandInfo[]
+interface GeneratedExecutor<TModules extends Record<string, Command<any>>> {
+  execute(name: string, options: unknown): Promise<void>
+}
 ```
 
 ## Usage
@@ -251,15 +256,15 @@ bunli generate --watch
 ```typescript
 class Generator {
   constructor(options: GeneratorOptions)
-  
-  // Generate types once
+
+  // Generate types
   run(options?: RunOptions): Promise<void>
-  
-  // Watch for changes
-  watch(): Promise<void>
-  
-  // Stop watching
-  stop(): void
+
+  // Get current configuration
+  getConfig(): GeneratorOptions
+
+  // Update configuration
+  updateConfig(options: Partial<GeneratorOptions>): void
 }
 ```
 

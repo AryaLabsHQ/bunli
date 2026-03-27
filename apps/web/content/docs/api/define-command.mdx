@@ -15,6 +15,14 @@ function defineCommand<TOptions extends Options = Options, TStore = {}, TName ex
 ): RunnableCommand<TOptions, TStore> & { name: TName }
 ```
 
+Defines a non-runnable command group:
+
+```typescript
+function defineGroup<TStore = {}, TName extends string = string>(
+  group: Group<TStore, TName>
+): Group<TStore, TName>
+```
+
 ## Parameters
 
 ### command
