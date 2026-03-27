@@ -53,12 +53,7 @@ export async function parseArgs(
       // Get the value (inline, next arg, or 'true' for boolean-like flags)
       let value: string | undefined = inlineValue
       if (value === undefined && i + 1 < args.length && !args[i + 1]?.startsWith('-')) {
-        const next = args[i + 1]!
-        if (options[name]!.argumentKind === 'flag' && next !== 'true' && next !== 'false') {
-          // Boolean flags should not consume the next positional argument
-        } else {
-          value = args[++i]
-        }
+        value = args[++i]
       }
       
       const option = options[name]
@@ -83,12 +78,7 @@ export async function parseArgs(
         // Get the next argument as value if available
         let value: string | undefined
         if (i + 1 < args.length && !args[i + 1]?.startsWith('-')) {
-          const next = args[i + 1]!
-          if (option.argumentKind === 'flag' && next !== 'true' && next !== 'false') {
-            // Boolean flags should not consume the next positional argument
-          } else {
-            value = args[++i]
-          }
+          value = args[++i]
         }
 
         if (option.repeatable) {

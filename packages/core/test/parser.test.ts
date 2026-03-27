@@ -49,6 +49,20 @@ describe('parseArgs repeatable options', () => {
     expect(parsed.flags.flag).toEqual([true, false])
   })
 
+  test('rejects invalid explicit values for flag-kind booleans', async () => {
+    await expect(async () => {
+      await parseArgs(
+        ['--publish', 'maybe'],
+        {
+          publish: option(z.boolean().default(false), {
+            argumentKind: 'flag',
+          }),
+        },
+        'release'
+      )
+    }).toThrow(/Invalid option 'publish'/)
+  })
+
   test('keeps last-write-wins semantics for non-repeatable options', async () => {
     const parsed = await parseArgs(
       ['--tag', 'ui', '--tag', 'backend'],
