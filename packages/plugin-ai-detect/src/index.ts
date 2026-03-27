@@ -4,7 +4,7 @@
  */
 
 import type { BunliPlugin } from '@bunli/core/plugin'
-import { createPlugin } from '@bunli/core/plugin'
+import { definePlugin } from '@bunli/core/plugin'
 
 // Extend core interfaces with AI-specific fields
 declare module '@bunli/core/plugin' {
@@ -79,7 +79,7 @@ export interface AIDetectStore {
 /**
  * AI agent detection plugin factory
  */
-export const aiAgentPlugin = createPlugin<AIDetectPluginOptions, AIDetectStore>((options = {}) => {
+export const aiAgentPlugin = definePlugin<AIDetectPluginOptions, AIDetectStore>((options = {}) => {
   const agents = [...AI_AGENTS, ...(options.customAgents || [])]
   
   return {

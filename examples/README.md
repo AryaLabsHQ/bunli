@@ -90,12 +90,12 @@ For a dedicated component and runtime showcase, use [`apps/tui-gallery`](../apps
 Bunli uses Standard Schema for validation, allowing you to use any compatible validation library:
 
 ```typescript
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { z } from 'zod'
 
 export default defineCommand({
   options: {
-    port: option(
+    port: defineOption(
       z.coerce.number().min(1000).max(65535),
       { short: 'p', description: 'Port number' }
     )
@@ -155,9 +155,9 @@ Render lifecycle: commands using `render` should call `useRuntime().exit()` (for
 Extend functionality with type-safe plugins:
 
 ```typescript
-import { createPlugin } from '@bunli/core/plugin'
+import { definePlugin } from '@bunli/core/plugin'
 
-export const myPlugin = createPlugin({
+export const myPlugin = definePlugin({
   name: 'my-plugin',
   store: { count: 0 },
   beforeCommand({ store }) {

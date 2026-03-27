@@ -48,7 +48,7 @@
 
 ### Patch Changes
 
-- 98fccfb: fix(core): prefer factory overload in createPlugin to keep plugin factories callable and avoid BunliPlugin mis-inference
+- 98fccfb: fix(core): prefer factory overload in definePlugin to keep plugin factories callable and avoid BunliPlugin mis-inference
 - b481746: chore(deps): use workspace:^ for internal package references instead of workspace:\*
 
 ## 0.6.0

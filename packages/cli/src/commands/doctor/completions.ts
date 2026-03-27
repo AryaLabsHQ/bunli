@@ -1,4 +1,4 @@
-import { createCLI, defineCommand, option } from '@bunli/core'
+import { createCLI, defineCommand, defineOption } from '@bunli/core'
 import { completionsPlugin } from '@bunli/plugin-completions'
 import { z } from 'zod'
 import { resolve } from 'node:path'
@@ -169,10 +169,10 @@ export default defineCommand({
   name: 'completions',
   description: 'Validate generated completion metadata and command graph shape',
   options: {
-    generatedPath: option(z.string().default('./.bunli/commands.gen.ts'), {
+    generatedPath: defineOption(z.string().default('./.bunli/commands.gen.ts'), {
       description: 'Path to generated command metadata module'
     }),
-    strict: option(z.boolean().default(false), {
+    strict: defineOption(z.boolean().default(false), {
       description: 'Fail if any warnings are found',
       argumentKind: 'flag'
     })

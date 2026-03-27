@@ -2,6 +2,7 @@ import { SchemaError, getDotPath } from '@standard-schema/utils'
 import { isTaggedError, matchError } from 'better-result'
 import { ConfigLoadError, ConfigNotFoundError } from '../config-loader.js'
 import {
+  AggregateValidationError,
   BunliValidationError,
   CommandExecutionError,
   CommandNotFoundError,
@@ -15,6 +16,7 @@ export interface SerializedCliIssue {
 }
 
 type KnownCliTaggedError =
+  | AggregateValidationError
   | BunliValidationError
   | CommandExecutionError
   | CommandNotFoundError
@@ -35,6 +37,18 @@ export type SerializedSchemaCliError = {
   tag: 'SchemaError'
   message: string
   issues: SerializedCliIssue[]
+}
+
+export type SerializedAggregateValidationCliError = SerializedTaggedErrorBase<AggregateValidationError> & {
+  kind: 'aggregate-validation'
+  command: AggregateValidationError['command']
+  issues: Array<{
+    option: string
+    message: string
+    expectedType: string
+    hint?: string
+    suggestion?: string
+  }>
 }
 
 export type SerializedValidationCliError = SerializedTaggedErrorBase<BunliValidationError> & {
@@ -93,6 +107,7 @@ export type SerializedUnknownCliError = {
 
 export type SerializedCliError =
   | SerializedSchemaCliError
+  | SerializedAggregateValidationCliError
   | SerializedValidationCliError
   | SerializedOptionValidationCliError
   | SerializedCommandNotFoundCliError
@@ -122,6 +137,7 @@ function serializeTaggedErrorBase<E extends KnownCliTaggedError>(error: E): Seri
 
 function isKnownCliTaggedError(error: unknown): error is KnownCliTaggedError {
   return (
+    AggregateValidationError.is(error) ||
     BunliValidationError.is(error) ||
     CommandExecutionError.is(error) ||
     CommandNotFoundError.is(error) ||
@@ -137,6 +153,18 @@ function serializeKnownCliTaggedError(error: KnownCliTaggedError): Exclude<
   SerializedSchemaCliError | SerializedTaggedFallbackCliError | SerializedUnknownCliError
 > {
   return matchError(error, {
+    AggregateValidationError: (current) => ({
+      kind: 'aggregate-validation',
+      ...serializeTaggedErrorBase(current),
+      command: current.command,
+      issues: current.issues.map((issue) => ({
+        option: issue.option,
+        message: issue.message,
+        expectedType: issue.expectedType,
+        ...(issue.hint ? { hint: issue.hint } : {}),
+        ...(issue.suggestion ? { suggestion: issue.suggestion } : {})
+      }))
+    }),
     BunliValidationError: (current) => ({
       kind: 'validation',
       ...serializeTaggedErrorBase(current),

@@ -1,4 +1,4 @@
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { z } from 'zod'
 
 export default defineCommand({
@@ -7,7 +7,7 @@ export default defineCommand({
   alias: 'st',
   options: {
     // Show detailed information
-    detailed: option(
+    detailed: defineOption(
       z.coerce.boolean().default(false),
       { 
         short: 'd', 
@@ -16,7 +16,7 @@ export default defineCommand({
     ),
     
     // Show branch information
-    branches: option(
+    branches: defineOption(
       z.coerce.boolean().default(false),
       { 
         short: 'b', 
@@ -25,7 +25,7 @@ export default defineCommand({
     ),
     
     // Show remote information
-    remote: option(
+    remote: defineOption(
       z.coerce.boolean().default(false),
       { 
         short: 'r', 
@@ -34,7 +34,7 @@ export default defineCommand({
     ),
     
     // Show commit history
-    history: option(
+    history: defineOption(
       z.coerce.number()
         .int('History count must be a whole number')
         .min(1, 'History count must be at least 1')

@@ -21,7 +21,7 @@ await cli.run()
 
 ```typescript
 // commands/greet.tsx
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { useRuntime } from '@bunli/runtime/app'
 import { ProgressBar, useKeyboard } from '@bunli/tui'
 import { useEffect, useState } from 'react'
@@ -82,15 +82,15 @@ const greetCommand = defineCommand({
   name: 'greet' as const,
   description: 'A minimal greeting CLI',
   options: {
-    name: option(
+    name: defineOption(
       z.string().default('world'),
       { short: 'n', description: 'Who to greet' }
     ),
-    loud: option(
+    loud: defineOption(
       z.coerce.boolean().default(false),
       { short: 'l', description: 'Shout the greeting' }
     ),
-    times: option(
+    times: defineOption(
       z.coerce.number().int().positive().default(1),
       { short: 't', description: 'Number of times to greet' }
     )
@@ -189,15 +189,15 @@ const greetCommand = defineCommand({
 
 ```typescript
 options: {
-  name: option(
+  name: defineOption(
     z.string().default('world'),
     { short: 'n', description: 'Who to greet' }
   ),
-  loud: option(
+  loud: defineOption(
     z.coerce.boolean().default(false),
     { short: 'l', description: 'Shout the greeting' }
   ),
-  times: option(
+  times: defineOption(
     z.coerce.number().int().positive().default(1),
     { short: 't', description: 'Number of times to greet' }
   )

@@ -1,4 +1,4 @@
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { useRuntime } from '@bunli/runtime/app'
 import { ProgressBar, useKeyboard } from '@bunli/tui'
 import { useEffect, useState } from 'react'
@@ -60,19 +60,19 @@ const greetCommand = defineCommand({
   description: 'A minimal greeting CLI',
   options: {
     // Simple string with default
-    name: option(
+    name: defineOption(
       z.string().default('world'),
       { short: 'n', description: 'Who to greet' }
     ),
     
     // Boolean with short flag
-    loud: option(
+    loud: defineOption(
       z.coerce.boolean().default(false),
       { short: 'l', description: 'Shout the greeting' }
     ),
     
     // Number with validation
-    times: option(
+    times: defineOption(
       z.coerce.number().int().positive().default(1),
       { short: 't', description: 'Number of times to greet' }
     )

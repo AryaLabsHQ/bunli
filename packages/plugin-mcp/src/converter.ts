@@ -5,7 +5,7 @@
  * into Bunli commands. No SDK dependency, just pure transformation.
  */
 
-import { option, type Command, type CLIOption, type Options } from '@bunli/core'
+import { defineOption, type Command, type CLIOption, type Options } from '@bunli/core'
 import { Result } from 'better-result'
 import type { MCPTool, ConvertOptions, MCPCommand } from './types.js'
 import { ConvertToolsError } from './errors.js'
@@ -143,7 +143,7 @@ function convertInputSchemaToOptions(
       : propSchema.description
 
     // Create CLI option
-    bunliOptions[flagName] = option(zodSchema, {
+    bunliOptions[flagName] = defineOption(zodSchema, {
       description,
       short
     })

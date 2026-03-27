@@ -1,14 +1,14 @@
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { z } from 'zod'
 
 export default defineCommand({
   name: 'confirm',
   description: 'Ask a yes/no question',
   options: {
-    default: option(z.boolean().optional().default(false), { description: 'Default value', argumentKind: 'flag' }),
-    affirmative: option(z.string().optional().default('Yes'), { description: 'Affirmative label' }),
-    negative: option(z.string().optional().default('No'), { description: 'Negative label' }),
-    timeout: option(z.number().optional(), { short: 't', description: 'Timeout in seconds' }),
+    default: defineOption(z.boolean().optional().default(false), { description: 'Default value', argumentKind: 'flag' }),
+    affirmative: defineOption(z.string().optional().default('Yes'), { description: 'Affirmative label' }),
+    negative: defineOption(z.string().optional().default('No'), { description: 'Negative label' }),
+    timeout: defineOption(z.number().optional(), { short: 't', description: 'Timeout in seconds' }),
   },
   async handler({ flags, positional, prompt }) {
     const message = positional[0] ?? 'Are you sure?'

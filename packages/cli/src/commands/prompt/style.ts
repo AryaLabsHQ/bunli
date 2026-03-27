@@ -1,4 +1,4 @@
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { styled } from '@bunli/tui'
 import { readStdinLines, writeStdout } from '@bunli/utils'
 import { z } from 'zod'
@@ -7,14 +7,14 @@ export default defineCommand({
   name: 'style',
   description: 'Apply styling to text',
   options: {
-    foreground: option(z.string().optional(), { description: 'Foreground color' }),
-    background: option(z.string().optional(), { description: 'Background color' }),
-    bold: option(z.boolean().optional(), { description: 'Bold text', argumentKind: 'flag' }),
-    italic: option(z.boolean().optional(), { description: 'Italic text', argumentKind: 'flag' }),
-    underline: option(z.boolean().optional(), { description: 'Underline text', argumentKind: 'flag' }),
-    strikethrough: option(z.boolean().optional(), { description: 'Strikethrough text', argumentKind: 'flag' }),
-    width: option(z.number().optional(), { description: 'Width' }),
-    align: option(z.string().optional(), { description: 'Alignment (left, center, right)' }),
+    foreground: defineOption(z.string().optional(), { description: 'Foreground color' }),
+    background: defineOption(z.string().optional(), { description: 'Background color' }),
+    bold: defineOption(z.boolean().optional(), { description: 'Bold text', argumentKind: 'flag' }),
+    italic: defineOption(z.boolean().optional(), { description: 'Italic text', argumentKind: 'flag' }),
+    underline: defineOption(z.boolean().optional(), { description: 'Underline text', argumentKind: 'flag' }),
+    strikethrough: defineOption(z.boolean().optional(), { description: 'Strikethrough text', argumentKind: 'flag' }),
+    width: defineOption(z.number().optional(), { description: 'Width' }),
+    align: defineOption(z.string().optional(), { description: 'Alignment (left, center, right)' }),
   },
   async handler({ flags, positional }) {
     let text = positional.length > 0 ? positional.join(' ') : undefined

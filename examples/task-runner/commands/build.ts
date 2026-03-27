@@ -1,4 +1,4 @@
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { z } from 'zod'
 
 export default defineCommand({
@@ -6,7 +6,7 @@ export default defineCommand({
   description: 'Build project with validation and transformation',
   options: {
     // Environment with validation
-    env: option(
+    env: defineOption(
       z.enum(['development', 'staging', 'production'])
         .default('development'),
       { 
@@ -16,7 +16,7 @@ export default defineCommand({
     ),
     
     // Output directory with validation
-    outdir: option(
+    outdir: defineOption(
       z.string()
         .min(1, 'Output directory cannot be empty')
         .default('dist'),
@@ -27,7 +27,7 @@ export default defineCommand({
     ),
     
     // Configuration file with JSON parsing
-    config: option(
+    config: defineOption(
       z.string()
         .transform((val) => {
           try {
@@ -44,7 +44,7 @@ export default defineCommand({
     ),
     
     // Memory limit with size parsing
-    memory: option(
+    memory: defineOption(
       z.string()
         .regex(/^\d+[kmg]?$/i, 'Memory must be a number with optional unit (k, m, g)')
         .optional()
@@ -62,7 +62,7 @@ export default defineCommand({
     ),
     
     // Variables with key=value parsing
-    variables: option(
+    variables: defineOption(
       z.string()
         .transform((val) => {
           const vars: Record<string, string> = {}
@@ -82,7 +82,7 @@ export default defineCommand({
     ),
     
     // Watch mode
-    watch: option(
+    watch: defineOption(
       z.coerce.boolean().default(false),
       { 
         short: 'w', 

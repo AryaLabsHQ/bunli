@@ -1,4 +1,4 @@
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { Result, TaggedError } from 'better-result'
 import { Generator } from '@bunli/generator'
 import { bunliCodegenPlugin } from '@bunli/generator/plugin'
@@ -67,35 +67,35 @@ export default defineCommand({
   description: 'Build your CLI for production',
   alias: 'b',
   options: {
-    entry: option(
+    entry: defineOption(
       z.string().optional(),
       { short: 'e', description: 'Entry file (defaults to auto-detect)' }
     ),
-    outdir: option(
+    outdir: defineOption(
       z.string().optional(),
       { short: 'o', description: 'Output directory' }
     ),
-    outfile: option(
+    outfile: defineOption(
       z.string().optional(),
       { description: 'Output filename (for single executable)' }
     ),
-    minify: option(
+    minify: defineOption(
       z.boolean().optional(),
       { short: 'm', description: 'Minify output', argumentKind: 'flag' }
     ),
-    sourcemap: option(
+    sourcemap: defineOption(
       z.boolean().optional(),
       { short: 's', description: 'Generate sourcemaps', argumentKind: 'flag' }
     ),
-    bytecode: option(
+    bytecode: defineOption(
       z.boolean().default(false),
       { description: 'Enable bytecode compilation (experimental)', argumentKind: 'flag' }
     ),
-    runtime: option(
+    runtime: defineOption(
       z.enum(['bun', 'node']).optional(),
       { short: 'r', description: 'Runtime target (for non-compiled builds)' }
     ),
-    targets: option(
+    targets: defineOption(
       z.string().optional().transform((val) => {
         if (!val) return undefined
         // Split comma-separated values into array
@@ -103,7 +103,7 @@ export default defineCommand({
       }),
       { short: 't', description: 'Target platforms for compilation (e.g., darwin-arm64,linux-x64)' }
     ),
-    watch: option(
+    watch: defineOption(
       z.boolean().default(false),
       { short: 'w', description: 'Watch for changes', argumentKind: 'flag' }
     )

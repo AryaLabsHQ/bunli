@@ -18,20 +18,20 @@ Standard Schema is a specification that provides a common interface for validati
 ## Basic Validation
 
 ```typescript
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { z } from 'zod'
 
 export default defineCommand({
   name: 'deploy',
   options: {
-    port: option(
+    port: defineOption(
       z.coerce.number()
         .int()
         .min(1)
         .max(65535),
       { description: 'Server port' }
     ),
-    email: option(
+    email: defineOption(
       z.string().email(),
       { description: 'Contact email' }
     )
@@ -53,12 +53,12 @@ import { z } from 'zod'
 export default defineCommand({
   options: {
     // Basic types
-    name: option(z.string()),
-    age: option(z.coerce.number()),
-    active: option(z.coerce.boolean()),
+    name: defineOption(z.string()),
+    age: defineOption(z.coerce.number()),
+    active: defineOption(z.coerce.boolean()),
     
     // With constraints
-    username: option(
+    username: defineOption(
       z.string()
         .min(3)
         .max(20)
@@ -66,12 +66,12 @@ export default defineCommand({
     ),
     
     // Optional with default
-    timeout: option(
+    timeout: defineOption(
       z.coerce.number().default(30)
     ),
     
     // Complex types
-    config: option(
+    config: defineOption(
       z.object({
         host: z.string(),
         port: z.number(),
@@ -90,17 +90,17 @@ import * as v from 'valibot'
 export default defineCommand({
   options: {
     // Basic validation
-    name: option(v.string()),
-    count: option(v.number([
+    name: defineOption(v.string()),
+    count: defineOption(v.number([
       v.minValue(0),
       v.maxValue(100)
     ])),
     
     // Email validation
-    email: option(v.string([v.email()])),
+    email: defineOption(v.string([v.email()])),
     
     // Custom validation
-    password: option(
+    password: defineOption(
       v.string([
         v.minLength(8),
         v.regex(/[A-Z]/),
@@ -119,14 +119,14 @@ import { Type } from '@sinclair/typebox'
 export default defineCommand({
   options: {
     // JSON Schema compatible
-    name: option(Type.String()),
-    port: option(Type.Number({ 
+    name: defineOption(Type.String()),
+    port: defineOption(Type.Number({ 
       minimum: 1, 
       maximum: 65535 
     })),
     
     // Complex schema
-    server: option(Type.Object({
+    server: defineOption(Type.Object({
       host: Type.String(),
       port: Type.Number(),
       ssl: Type.Optional(Type.Boolean())
@@ -143,13 +143,13 @@ Bunli automatically handles string-to-type coercion for command-line inputs:
 export default defineCommand({
   options: {
     // String inputs are coerced to numbers
-    port: option(z.coerce.number()),
+    port: defineOption(z.coerce.number()),
     
     // String "true"/"false" coerced to boolean
-    verbose: option(z.coerce.boolean()),
+    verbose: defineOption(z.coerce.boolean()),
     
     // String dates coerced to Date objects
-    since: option(z.coerce.date())
+    since: defineOption(z.coerce.date())
   },
   handler: async ({ flags }) => {
     // Types are properly coerced:
@@ -172,7 +172,7 @@ const portSchema = z.number().refine(
 
 export default defineCommand({
   options: {
-    port: option(portSchema)
+    port: defineOption(portSchema)
   }
 })
 ```
@@ -185,7 +185,7 @@ Handle multiple values for an option:
 export default defineCommand({
   options: {
     // Accept multiple tags
-    tags: option(
+    tags: defineOption(
       z.array(z.string()),
       {
         description: 'Tags (can be specified multiple times)',
@@ -194,7 +194,7 @@ export default defineCommand({
     ),
     
     // Comma-separated values
-    features: option(
+    features: defineOption(
       z.string().transform(val => val.split(','))
     )
   }
@@ -227,16 +227,16 @@ Control whether options are required:
 export default defineCommand({
   options: {
     // Required option
-    name: option(z.string()),
+    name: defineOption(z.string()),
     
     // Optional option
-    description: option(z.string().optional()),
+    description: defineOption(z.string().optional()),
     
     // Optional with default
-    port: option(z.coerce.number().default(3000)),
+    port: defineOption(z.coerce.number().default(3000)),
     
     // Nullable option
-    config: option(z.string().nullable())
+    config: defineOption(z.string().nullable())
   }
 })
 ```
@@ -260,7 +260,7 @@ const schema = z.object({
 ```typescript
 export default defineCommand({
   options: {
-    output: option(
+    output: defineOption(
       z.union([
         z.literal('json'),
         z.literal('yaml'),
@@ -278,17 +278,17 @@ export default defineCommand({
 export default defineCommand({
   options: {
     // Parse JSON input
-    data: option(
+    data: defineOption(
       z.string().transform(str => JSON.parse(str))
     ),
     
     // Normalize paths
-    file: option(
+    file: defineOption(
       z.string().transform(path => resolve(path))
     ),
     
     // Parse environment variables
-    env: option(
+    env: defineOption(
       z.string()
         .transform(str => str.split(','))
         .pipe(z.array(z.enum(['dev', 'test', 'prod'])))

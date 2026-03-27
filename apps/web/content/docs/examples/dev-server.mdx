@@ -83,7 +83,7 @@ const cli = await createCLI({
 ### Custom Metrics Plugin
 ```typescript
 // plugins/metrics.ts
-import { createPlugin } from '@bunli/core/plugin'
+import { definePlugin } from '@bunli/core/plugin'
 
 interface MetricsStore {
   metrics: {
@@ -98,7 +98,7 @@ interface MetricsStore {
   }
 }
 
-export const metricsPlugin = createPlugin<MetricsStore>({
+export const metricsPlugin = definePlugin<MetricsStore>({
   name: 'metrics',
   store: {
     metrics: {
@@ -274,7 +274,7 @@ bun run cli.ts logs --follow
 
 ### 1. Plugin Lifecycle Hooks
 ```typescript
-export const myPlugin = createPlugin({
+export const myPlugin = definePlugin({
   name: 'my-plugin',
   store: { count: 0 },
   
@@ -307,7 +307,7 @@ interface MyStore {
   getSettings: () => Record<string, any>
 }
 
-export const myPlugin = createPlugin<MyStore>({
+export const myPlugin = definePlugin<MyStore>({
   name: 'my-plugin',
   store: {
     data: {
@@ -327,7 +327,7 @@ export const myPlugin = createPlugin<MyStore>({
 ### 3. Plugin Configuration
 ```typescript
 // Plugin with configuration
-export const configurablePlugin = createPlugin({
+export const configurablePlugin = definePlugin({
   name: 'configurable',
   store: { enabled: false },
   

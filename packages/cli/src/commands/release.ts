@@ -1,4 +1,4 @@
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import type { BunliConfig, PromptApi, PromptSpinnerFactory, TerminalInfo } from '@bunli/core'
 import { z } from 'zod'
 import { loadConfig } from '@bunli/core'
@@ -123,31 +123,31 @@ export default defineCommand({
   description: 'Create a release of your CLI',
   alias: 'r',
   options: {
-    version: option(
+    version: defineOption(
       z.enum(['patch', 'minor', 'major']).or(z.string()).optional(),
       { short: 'V', description: 'Version to release (patch/minor/major/x.y.z)' }
     ),
-    tag: option(
+    tag: defineOption(
       z.string().optional(),
       { short: 't', description: 'Git tag format' }
     ),
-    npm: option(
+    npm: defineOption(
       z.boolean().optional(),
       { description: 'Publish to npm', argumentKind: 'flag' }
     ),
-    github: option(
+    github: defineOption(
       z.boolean().optional(),
       { description: 'Create GitHub release', argumentKind: 'flag' }
     ),
-    resume: option(
+    resume: defineOption(
       z.boolean().default(true),
       { description: 'Resume from unfinished release state', argumentKind: 'flag' }
     ),
-    dry: option(
+    dry: defineOption(
       z.boolean().default(false),
       { short: 'd', description: 'Dry run - show what would be done', argumentKind: 'flag' }
     ),
-    all: option(
+    all: defineOption(
       z.boolean().default(false),
       { description: 'Release all packages (workspace mode)', argumentKind: 'flag' }
     )

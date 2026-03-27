@@ -1,4 +1,4 @@
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { z } from 'zod'
 import { hasMetricsStore } from './store-guards.js'
 
@@ -6,28 +6,28 @@ const envCommand = defineCommand({
   name: 'env',
   description: 'Manage environment variables',
   options: {
-    set: option(
+    set: defineOption(
       z.string().optional(),
       { 
         description: 'Set environment variable (format: KEY=VALUE)',
         short: 's'
       }
     ),
-    get: option(
+    get: defineOption(
       z.string().optional(),
       { 
         description: 'Get environment variable value',
         short: 'g'
       }
     ),
-    list: option(
+    list: defineOption(
       z.boolean().default(false),
       { 
         description: 'List all environment variables',
         short: 'l'
       }
     ),
-    file: option(
+    file: defineOption(
       z.string().default('.env'),
       { 
         description: 'Environment file to use',

@@ -1,4 +1,4 @@
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { z } from 'zod'
 import { spawn } from 'node:child_process'
 
@@ -7,27 +7,27 @@ export default defineCommand({
   description: 'Initialize a new Bunli CLI project',
   alias: 'i',
   options: {
-    name: option(
+    name: defineOption(
       z.string().optional(),
       { short: 'n', description: 'Project name' }
     ),
-    template: option(
+    template: defineOption(
       z.enum(['basic', 'advanced', 'monorepo']).default('basic'),
       { short: 't', description: 'Project template' }
     ),
-    dir: option(
+    dir: defineOption(
       z.string().optional(),
       { short: 'd', description: 'Directory to create project in' }
     ),
-    git: option(
+    git: defineOption(
       z.boolean().default(true),
       { short: 'g', description: 'Initialize git repository', argumentKind: 'flag' }
     ),
-    install: option(
+    install: defineOption(
       z.boolean().default(true),
       { description: 'Install dependencies', argumentKind: 'flag' }
     ),
-    'package-manager': option(
+    'package-manager': defineOption(
       z.enum(['bun', 'pnpm', 'yarn', 'npm']).default('bun'),
       { short: 'p', description: 'Package manager to use' }
     )

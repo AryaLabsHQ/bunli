@@ -63,21 +63,21 @@ Interactive setup wizard:
 
 ### 1. Schema Validation
 ```typescript
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { z } from 'zod'
 
 export const buildCommand = defineCommand({
   name: 'build',
   options: {
-    target: option(
+    target: defineOption(
       z.enum(['development', 'production']).default('production'),
       { description: 'Build target' }
     ),
-    minify: option(
+    minify: defineOption(
       z.boolean().default(true),
       { description: 'Minify output', short: 'm' }
     ),
-    sourcemap: option(
+    sourcemap: defineOption(
       z.boolean().default(false),
       { description: 'Generate source maps', short: 's' }
     )
@@ -192,15 +192,15 @@ bun run cli.ts setup
 ### Complex Option Validation
 ```typescript
 options: {
-  filter: option(
+  filter: defineOption(
     z.enum(['unit', 'integration', 'e2e']).array().optional(),
     { description: 'Test types to run' }
   ),
-  coverage: option(
+  coverage: defineOption(
     z.coerce.boolean().default(false),
     { description: 'Generate coverage report' }
   ),
-  threshold: option(
+  threshold: defineOption(
     z.coerce.number().min(0).max(100).default(80),
     { description: 'Coverage threshold percentage' }
   )

@@ -54,9 +54,9 @@ Execution `store` is a typed object copied from merged plugin stores for each co
 ## Creating plugins
 
 ```typescript
-import { createPlugin } from "@bunli/core/plugin"
+import { definePlugin } from "@bunli/core/plugin"
 
-const myPlugin = createPlugin({
+const myPlugin = definePlugin({
   name: "my-plugin",
   store: { count: 0 },
   beforeCommand(context) {
@@ -64,7 +64,7 @@ const myPlugin = createPlugin({
   }
 })
 
-const myFactoryPlugin = createPlugin((options: { prefix: string }) => ({
+const myFactoryPlugin = definePlugin((options: { prefix: string }) => ({
   name: "my-factory-plugin",
   beforeCommand(context) {
     console.log(`${options.prefix}: ${context.command}`)

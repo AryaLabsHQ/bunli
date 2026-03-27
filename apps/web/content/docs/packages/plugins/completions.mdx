@@ -156,21 +156,21 @@ The plugin leverages Bunli's metadata generation system to create accurate compl
 Given a command with enum options:
 
 ```typescript
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { z } from 'zod'
 
 export default defineCommand({
   name: 'deploy',
   description: 'Deploy application',
   options: {
-    environment: option(
+    environment: defineOption(
       z.enum(['development', 'staging', 'production']),
       {
         short: 'e',
         description: 'Target environment'
       }
     ),
-    region: option(
+    region: defineOption(
       z.enum(['us-east-1', 'us-west-2', 'eu-west-1']),
       {
         short: 'r',
@@ -223,7 +223,7 @@ export default defineCommand({
   name: 'build',
   description: 'Build the project',
   options: {
-    mode: option(z.enum(['development', 'production']), {
+    mode: defineOption(z.enum(['development', 'production']), {
       short: 'm',
       description: 'Build mode'
     })
@@ -238,7 +238,7 @@ export default defineCommand({
   name: 'test',
   description: 'Run tests',
   options: {
-    coverage: option(z.boolean().optional(), {
+    coverage: defineOption(z.boolean().optional(), {
       short: 'c',
       description: 'Generate coverage report'
     })
@@ -268,11 +268,11 @@ Boolean flags are automatically detected and don't require values:
 export default defineCommand({
   name: 'serve',
   options: {
-    watch: option(z.boolean().optional(), {
+    watch: defineOption(z.boolean().optional(), {
       short: 'w',
       description: 'Watch for changes'
     }),
-    open: option(z.boolean().optional(), {
+    open: defineOption(z.boolean().optional(), {
       short: 'o',
       description: 'Open in browser'
     })
@@ -349,12 +349,12 @@ my-cli completions --shell powershell > ~/Documents/PowerShell/my-cli_completion
 
 ```typescript
 // ✅ Good - generates completions
-environment: option(z.enum(['dev', 'staging', 'prod']), {
+environment: defineOption(z.enum(['dev', 'staging', 'prod']), {
   description: 'Target environment'
 })
 
 // ❌ Less useful - no completions
-environment: option(z.string(), {
+environment: defineOption(z.string(), {
   description: 'Target environment'
 })
 ```
@@ -363,19 +363,19 @@ environment: option(z.string(), {
 
 ```typescript
 // ✅ Good - shows helpful descriptions
-preset: option(z.enum(['minimal', 'standard', 'full']), {
+preset: defineOption(z.enum(['minimal', 'standard', 'full']), {
   description: 'Configuration preset'
 })
 
 // ❌ Less helpful - no context
-preset: option(z.enum(['minimal', 'standard', 'full']))
+preset: defineOption(z.enum(['minimal', 'standard', 'full']))
 ```
 
 ### 3. Use Short Flags
 
 ```typescript
 // ✅ Good - both long and short forms complete
-force: option(z.boolean().optional(), {
+force: defineOption(z.boolean().optional(), {
   short: 'f',
   description: 'Force operation'
 })

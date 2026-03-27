@@ -49,22 +49,22 @@ Let's create a simple todo list CLI. Replace the hello command with a new `add` 
 
 ```typescript
 // src/commands/add.ts
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { z } from 'zod'
 
 export default defineCommand({
   name: 'add',
   description: 'Add a new todo item',
   options: {
-    task: option(
+    task: defineOption(
       z.string().min(1),
       { description: 'Task description' }
     ),
-    priority: option(
+    priority: defineOption(
       z.enum(['low', 'medium', 'high']).default('medium'),
       { short: 'p', description: 'Task priority' }
     ),
-    due: option(
+    due: defineOption(
       z.string().optional(),
       { short: 'd', description: 'Due date' }
     )
@@ -118,7 +118,7 @@ Let's add a `list` command:
 
 ```typescript
 // src/commands/list.ts
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { z } from 'zod'
 
 export default defineCommand({
@@ -126,11 +126,11 @@ export default defineCommand({
   description: 'List all todos',
   alias: 'ls',
   options: {
-    filter: option(
+    filter: defineOption(
       z.enum(['all', 'pending', 'completed']).default('all'),
       { short: 'f', description: 'Filter tasks' }
     ),
-    sort: option(
+    sort: defineOption(
       z.enum(['priority', 'due', 'created']).default('created'),
       { short: 's', description: 'Sort order' }
     )

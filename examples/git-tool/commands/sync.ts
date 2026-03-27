@@ -1,4 +1,4 @@
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { z } from 'zod'
 
 export default defineCommand({
@@ -7,7 +7,7 @@ export default defineCommand({
   alias: 'pull',
   options: {
     // Remote name
-    remote: option(
+    remote: defineOption(
       z.string().default('origin'),
       { 
         short: 'r', 
@@ -16,7 +16,7 @@ export default defineCommand({
     ),
     
     // Branch to sync
-    branch: option(
+    branch: defineOption(
       z.string().optional(),
       { 
         short: 'b', 
@@ -25,7 +25,7 @@ export default defineCommand({
     ),
     
     // Force sync
-    force: option(
+    force: defineOption(
       z.coerce.boolean().default(false),
       { 
         short: 'f', 
@@ -34,7 +34,7 @@ export default defineCommand({
     ),
     
     // Rebase instead of merge
-    rebase: option(
+    rebase: defineOption(
       z.coerce.boolean().default(false),
       { 
         description: 'Use rebase instead of merge' 
@@ -42,7 +42,7 @@ export default defineCommand({
     ),
     
     // Prune remote branches
-    prune: option(
+    prune: defineOption(
       z.coerce.boolean().default(false),
       { 
         short: 'p', 

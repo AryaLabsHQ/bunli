@@ -1,9 +1,9 @@
-import { createPlugin } from '@bunli/core/plugin'
+import { definePlugin } from '@bunli/core/plugin'
 import type { PluginContext } from '@bunli/core/plugin'
 import type { CompletionsPluginOptions } from './types.js'
 import completionsCommand from './commands/completions.js'
 
-export const completionsPlugin = createPlugin<CompletionsPluginOptions>(
+export const completionsPlugin = definePlugin<CompletionsPluginOptions>(
   (options = {}) => ({
     name: 'completions',
 

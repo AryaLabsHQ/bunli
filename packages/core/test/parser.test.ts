@@ -1,14 +1,15 @@
 import { describe, expect, test } from 'bun:test'
 import { z } from 'zod'
 import { parseArgs } from '../src/parser.js'
-import { option } from '../src/types.js'
+import { defineOption } from '../src/types.js'
+import { AggregateValidationError } from '../src/errors.js'
 
 describe('parseArgs repeatable options', () => {
   test('collects repeated long flags into arrays for repeatable options', async () => {
     const parsed = await parseArgs(
       ['--tag', 'ui', '--tag', 'backend'],
       {
-        tag: option(z.array(z.string()).default([]), {
+        tag: defineOption(z.array(z.string()).default([]), {
           description: 'Tags',
           repeatable: true,
         }),
@@ -23,7 +24,7 @@ describe('parseArgs repeatable options', () => {
     const parsed = await parseArgs(
       ['-t', 'ui', '-t', 'backend'],
       {
-        tag: option(z.array(z.string()).default([]), {
+        tag: defineOption(z.array(z.string()).default([]), {
           short: 't',
           repeatable: true,
         }),
@@ -39,20 +40,20 @@ describe('parseArgs repeatable options', () => {
       await parseArgs(
         ['--tag'],
         {
-          tag: option(z.array(z.string()), {
+          tag: defineOption(z.array(z.string()), {
             repeatable: true,
           }),
         },
         'deploy'
       )
-    }).toThrow(/Invalid option 'tag'/)
+    }).toThrow(AggregateValidationError)
   })
 
   test('coerces repeated boolean string values before array validation', async () => {
     const parsed = await parseArgs(
       ['--flag', 'true', '--flag', 'false'],
       {
-        flag: option(z.array(z.boolean()).default([]), {
+        flag: defineOption(z.array(z.boolean()).default([]), {
           repeatable: true,
           argumentKind: 'flag',
         }),
@@ -68,20 +69,20 @@ describe('parseArgs repeatable options', () => {
       await parseArgs(
         ['--publish', 'maybe'],
         {
-          publish: option(z.boolean().default(false), {
+          publish: defineOption(z.boolean().default(false), {
             argumentKind: 'flag',
           }),
         },
         'release'
       )
-    }).toThrow(/Invalid option 'publish'/)
+    }).toThrow(AggregateValidationError)
   })
 
   test('keeps last-write-wins semantics for non-repeatable options', async () => {
     const parsed = await parseArgs(
       ['--tag', 'ui', '--tag', 'backend'],
       {
-        tag: option(z.string().default('default')),
+        tag: defineOption(z.string().default('default')),
       },
       'deploy'
     )
@@ -93,7 +94,7 @@ describe('parseArgs repeatable options', () => {
     const parsed = await parseArgs(
       [],
       {
-        tag: option(z.array(z.string()).default([]), {
+        tag: defineOption(z.array(z.string()).default([]), {
           repeatable: true,
         }),
       },
@@ -108,18 +109,18 @@ describe('parseArgs repeatable options', () => {
       await parseArgs(
         ['--tag', 'ui'],
         {
-          tag: option(z.array(z.string())),
+          tag: defineOption(z.array(z.string())),
         },
         'deploy'
       )
-    }).toThrow(/Invalid option 'tag'/)
+    }).toThrow(AggregateValidationError)
   })
 
   test('consumes the next token for mixed boolean schemas when the value is valid', async () => {
     const parsed = await parseArgs(
       ['--mode', 'auto'],
       {
-        mode: option(z.union([z.boolean(), z.literal('auto')]).default(false)),
+        mode: defineOption(z.union([z.boolean(), z.literal('auto')]).default(false)),
       },
       'deploy'
     )
@@ -133,11 +134,11 @@ describe('parseArgs repeatable options', () => {
       await parseArgs(
         ['--mode', 'invalid'],
         {
-          mode: option(z.union([z.boolean(), z.literal('auto')]).default(false)),
+          mode: defineOption(z.union([z.boolean(), z.literal('auto')]).default(false)),
         },
         'deploy'
       )
-    }).toThrow(/Invalid option 'mode'/)
+    }).toThrow(AggregateValidationError)
   })
 
   test('does not skip invalid values for coercible non-boolean schemas', async () => {
@@ -145,10 +146,122 @@ describe('parseArgs repeatable options', () => {
       await parseArgs(
         ['--total', 'abc'],
         {
-          total: option(z.coerce.number().int()),
+          total: defineOption(z.coerce.number().int()),
         },
         'deploy'
       )
-    }).toThrow(/Invalid option 'total'/)
+    }).toThrow(AggregateValidationError)
+  })
+})
+
+describe('parseArgs auto-coercion', () => {
+  test('coerces string to number without z.coerce', async () => {
+    const parsed = await parseArgs(
+      ['--port', '3000'],
+      { port: defineOption(z.number().min(1)) },
+      'serve'
+    )
+    expect(parsed.flags.port).toBe(3000)
+  })
+
+  test('coerces "yes" to boolean', async () => {
+    const parsed = await parseArgs(
+      ['--verbose', 'yes'],
+      { verbose: defineOption(z.boolean().default(false)) },
+      'build'
+    )
+    expect(parsed.flags.verbose).toBe(true)
+  })
+
+  test('coerces "no" to boolean', async () => {
+    const parsed = await parseArgs(
+      ['--verbose', 'no'],
+      { verbose: defineOption(z.boolean().default(false)) },
+      'build'
+    )
+    expect(parsed.flags.verbose).toBe(false)
+  })
+
+  test('coerces "0" to boolean false', async () => {
+    const parsed = await parseArgs(
+      ['--debug', '0'],
+      { debug: defineOption(z.boolean().default(false)) },
+      'run'
+    )
+    expect(parsed.flags.debug).toBe(false)
+  })
+})
+
+describe('parseArgs error accumulation', () => {
+  test('reports multiple validation errors at once', async () => {
+    try {
+      await parseArgs(
+        ['--port', 'abc', '--name', ''],
+        {
+          port: defineOption(z.number()),
+          name: defineOption(z.string().min(1)),
+        },
+        'serve'
+      )
+      expect.unreachable('should have thrown')
+    } catch (error) {
+      expect(error).toBeInstanceOf(AggregateValidationError)
+      const aggError = error as InstanceType<typeof AggregateValidationError>
+      expect(aggError.issues.length).toBe(2)
+      expect(aggError.issues.map(i => i.option)).toContain('port')
+      expect(aggError.issues.map(i => i.option)).toContain('name')
+    }
+  })
+
+  test('includes unknown flags in aggregate error', async () => {
+    try {
+      await parseArgs(
+        ['--unknownflag', 'value'],
+        { port: defineOption(z.number().default(3000)) },
+        'serve'
+      )
+      expect.unreachable('should have thrown')
+    } catch (error) {
+      expect(error).toBeInstanceOf(AggregateValidationError)
+      const aggError = error as InstanceType<typeof AggregateValidationError>
+      expect(aggError.issues.some(i => i.option === 'unknownflag')).toBe(true)
+    }
+  })
+})
+
+describe('parseArgs typo suggestions', () => {
+  test('suggests --verbose for --verbos', async () => {
+    try {
+      await parseArgs(
+        ['--verbos'],
+        { verbose: defineOption(z.boolean().default(false), { argumentKind: 'flag' }) },
+        'build'
+      )
+      expect.unreachable('should have thrown')
+    } catch (error) {
+      expect(error).toBeInstanceOf(AggregateValidationError)
+      const aggError = error as InstanceType<typeof AggregateValidationError>
+      const issue = aggError.issues.find(i => i.option === 'verbos')
+      expect(issue).toBeDefined()
+      expect(issue!.suggestion).toBe('verbose')
+      expect(issue!.message).toContain('Did you mean')
+    }
+  })
+
+  test('does not suggest for completely unrelated flags', async () => {
+    try {
+      await parseArgs(
+        ['--xyz'],
+        { verbose: defineOption(z.boolean().default(false), { argumentKind: 'flag' }) },
+        'build'
+      )
+      expect.unreachable('should have thrown')
+    } catch (error) {
+      expect(error).toBeInstanceOf(AggregateValidationError)
+      const aggError = error as InstanceType<typeof AggregateValidationError>
+      const issue = aggError.issues.find(i => i.option === 'xyz')
+      expect(issue).toBeDefined()
+      expect(issue!.suggestion).toBeUndefined()
+    }
   })
 })

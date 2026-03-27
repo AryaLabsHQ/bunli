@@ -1,6 +1,6 @@
 ---
 name: bunli
-description: "Build type-safe CLIs with Bun. Use when: (1) Creating a new CLI application with Bun, (2) Adding commands with defineCommand/option(), (3) Building a plugin system, (4) Using prompt/spinner APIs for interactive CLIs, (5) Building TUI components, (6) Publishing CLI to npm. For advanced TUI (custom components, animations, full layout control), use the 'opentui' skill. Covers: defineCommand, option() APIs, plugin architecture, bunli CLI commands (dev/build/generate/test/release/init/doctor), create-bunli scaffolding, and utilities."
+description: "Build type-safe CLIs with Bun. Use when: (1) Creating a new CLI application with Bun, (2) Adding commands with defineCommand/defineOption(), (3) Building a plugin system, (4) Using prompt/spinner APIs for interactive CLIs, (5) Building TUI components, (6) Publishing CLI to npm. For advanced TUI (custom components, animations, full layout control), use the 'opentui' skill. Covers: defineCommand, defineOption() APIs, plugin architecture, bunli CLI commands (dev/build/generate/test/release/init/doctor), create-bunli scaffolding, and utilities."
 ---
 
 # Bunli Skill
@@ -25,15 +25,15 @@ Then create your entry point:
 ```typescript
 // cli.ts
 import { createCLI } from "@bunli/core"
-import { defineCommand, option } from "@bunli/core"
+import { defineCommand, defineOption } from "@bunli/core"
 import { z } from "zod"
 
 const hello = defineCommand({
   name: "hello",
   description: "Print a greeting",
   options: {
-    name: option(z.string().default("World"), { short: "n", description: "Name to greet" }),
-    count: option(z.coerce.number().default(1), { short: "c", description: "Number of times" })
+    name: defineOption(z.string().default("World"), { short: "n", description: "Name to greet" }),
+    count: defineOption(z.coerce.number().default(1), { short: "c", description: "Number of times" })
   },
   handler: ({ flags, signal }) => {
     if (signal.aborted) return
@@ -71,7 +71,7 @@ npm view bunli           # CLI version
 ```
 Define Command?
 ├─ Basic command → defineCommand({ name: "mycmd", description: "...", handler: ({ flags }) => {...} })
-├─ With options → Add options: { options: { debug: option(z.coerce.boolean(), { short: "d" }) } }
+├─ With options → Add options: { options: { debug: defineOption(z.coerce.boolean(), { short: "d" }) } }
 ├─ Nested commands → Use defineGroup({ name: "group", description: "...", commands: [...] })
 ├─ With alias → Add alias: "m" for "mycmd"
 └─ With TUI → Add render (optionally keep handler; render commands run without TUI flags)
@@ -81,12 +81,12 @@ Define Command?
 
 ```
 Add Options?
-├─ Boolean flag → option(z.coerce.boolean(), { short: "d", description: "Debug output" })
-├─ String input → option(z.string(), { description: "Name" })
-├─ Number input → option(z.coerce.number(), { description: "Port" })
-├─ Enum/choice → option(z.enum(["dev", "prod"]), { description: "Environment" })
-├─ With default → option(z.string().default("default"))
-└─ Required → option(z.string().min(1))
+├─ Boolean flag → defineOption(z.coerce.boolean(), { short: "d", description: "Debug output" })
+├─ String input → defineOption(z.string(), { description: "Name" })
+├─ Number input → defineOption(z.coerce.number(), { description: "Port" })
+├─ Enum/choice → defineOption(z.enum(["dev", "prod"]), { description: "Environment" })
+├─ With default → defineOption(z.string().default("default"))
+└─ Required → defineOption(z.string().min(1))
 ```
 
 > **Important**: Use `z.coerce.number()` and `z.coerce.boolean()` for numeric and boolean flags because CLI args are strings. Enums should use `z.enum(...)`.
@@ -97,8 +97,8 @@ Add Options?
 
 ```
 Create Plugin?
-├─ Direct plugin → createPlugin({ name: "my-plugin", setup(ctx) {...} })
-├─ Factory → createPlugin((options) => ({ name: "my-plugin", ... }))
+├─ Direct plugin → definePlugin({ name: "my-plugin", setup(ctx) {...} })
+├─ Factory → definePlugin((options) => ({ name: "my-plugin", ... }))
 ├─ With store → Add store: { counter: 0 }, access via context.store
 └─ Lifecycle hooks → setup, configResolved, beforeCommand, afterCommand
 ```
@@ -201,14 +201,14 @@ Buffer Mode?
 ### CLI Structure
 ```typescript
 // my-cli/src/commands/hello.ts
-import { defineCommand, option } from "@bunli/core"
+import { defineCommand, defineOption } from "@bunli/core"
 import { z } from "zod"
 
 export const hello = defineCommand({
   name: "hello",
   description: "Greet someone",
   options: {
-    name: option(z.string().default("World"), {
+    name: defineOption(z.string().default("World"), {
       short: "n",
       description: "Name to greet"
     })
@@ -221,9 +221,9 @@ export const hello = defineCommand({
 
 ### Plugin Creation
 ```typescript
-import { createPlugin } from "@bunli/core/plugin"
+import { definePlugin } from "@bunli/core/plugin"
 
-const myPlugin = createPlugin({
+const myPlugin = definePlugin({
   name: "my-plugin",
   store: { count: 0 },
   setup(context) {
@@ -254,7 +254,7 @@ handler: async ({ prompt }) => {
 
 | Package | Purpose |
 |---------|---------|
-| `@bunli/core` | CLI framework (defineCommand, option, createCLI) |
+| `@bunli/core` | CLI framework (defineCommand, defineOption, createCLI) |
 | `@bunli/utils` | Colors and validation utilities |
 | `@bunli/runtime/prompt` | Prompt and spinner APIs |
 | `@bunli/tui` | Terminal UI components |

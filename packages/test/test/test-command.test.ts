@@ -1,5 +1,5 @@
 import { test, expect } from 'bun:test'
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { z } from 'zod'
 import { testCommand, expectCommand } from '../src/index.js'
 import { mockPromptResponses, mockShellCommands, mockInteractive } from '../src/helpers.js'
@@ -25,8 +25,8 @@ test('testCommand - with flags', async () => {
     name: 'greet',
     description: 'Greet someone',
     options: {
-      name: option(z.string().default('World')),
-      loud: option(z.boolean().default(false), { short: 'l', argumentKind: 'flag' })
+      name: defineOption(z.string().default('World')),
+      loud: defineOption(z.boolean().default(false), { short: 'l', argumentKind: 'flag' })
     },
     handler: async ({ flags }) => {
       const message = `Hello, ${flags.name}!`

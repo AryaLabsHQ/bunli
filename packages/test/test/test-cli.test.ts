@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test'
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { createTestCLI } from '../src/index.js'
 import { z } from 'zod'
 
@@ -31,7 +31,7 @@ test('createTestCLI forwards options-only execute calls', async () => {
     name: 'greet',
     description: 'Greet someone',
     options: {
-      name: option(z.string().default('World'))
+      name: defineOption(z.string().default('World'))
     },
     async handler({ flags }) {
       console.log(`Hello, ${flags.name}!`)
@@ -128,7 +128,7 @@ test('createTestCLI formats validation errors for machine-readable consumers', a
     name: 'count',
     description: 'Count things',
     options: {
-      total: option(z.coerce.number().int().min(1), { short: 't' })
+      total: defineOption(z.coerce.number().int().min(1), { short: 't' })
     },
     async handler() {}
   })
@@ -141,7 +141,7 @@ test('createTestCLI formats validation errors for machine-readable consumers', a
 
   expect(result.exitCode).toBe(1)
   expect(result.stderr).toContain('"ok": false')
-  expect(result.stderr).toContain('"name": "BunliValidationError"')
+  expect(result.stderr).toContain('"name": "AggregateValidationError"')
   expect(result.stderr).toContain('"option": "total"')
 })
 
@@ -150,7 +150,7 @@ test('createTestCLI allows command-local format flags to shadow the global forma
     name: 'process',
     description: 'Process files',
     options: {
-      format: option(z.enum(['json', 'yaml', 'text']).default('json'))
+      format: defineOption(z.enum(['json', 'yaml', 'text']).default('json'))
     },
     async handler({ flags }) {
       console.log(flags.format)
@@ -172,7 +172,7 @@ test('createTestCLI preserves global --format for built-in help on commands with
     name: 'process',
     description: 'Process files',
     options: {
-      format: option(z.enum(['json', 'yaml', 'text']).default('json'))
+      format: defineOption(z.enum(['json', 'yaml', 'text']).default('json'))
     },
     async handler() {}
   })
@@ -213,7 +213,7 @@ test('createTestCLI preserves global --version when a command defines a version 
     name: 'release',
     description: 'Release the CLI',
     options: {
-      version: option(z.string().optional())
+      version: defineOption(z.string().optional())
     },
     async handler() {
       console.log('release handler ran')
@@ -241,8 +241,8 @@ test('createTestCLI honors explicit --format when global parsing fails', async (
   const result = await testCli.run(['--format', 'yaml', '--image-mode', 'invalid'])
 
   expect(result.exitCode).toBe(1)
-  expect(result.stderr).toContain('kind: validation')
-  expect(result.stderr).toContain('name: BunliValidationError')
+  expect(result.stderr).toContain('kind: aggregate-validation')
+  expect(result.stderr).toContain('name: AggregateValidationError')
 })
 
 test('createTestCLI strips explicit boolean global values before command resolution', async () => {

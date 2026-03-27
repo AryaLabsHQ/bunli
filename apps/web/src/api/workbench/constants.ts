@@ -91,15 +91,15 @@ export function buildWorkbenchExecCommand(
 }
 
 /** Fallback source written to sandbox if no file exists yet */
-export const DEFAULT_SOURCE_FILE = `import { createCLI, defineCommand, option } from '@bunli/core'
+export const DEFAULT_SOURCE_FILE = `import { createCLI, defineCommand, defineOption } from '@bunli/core'
 import { z } from 'zod'
 
 const helloCommand = defineCommand({
   name: 'hello',
   description: 'Say hello',
   options: {
-    name: option(z.string().default('bunli'), { short: 'n' }),
-    excited: option(z.boolean().default(false), { short: 'e' }),
+    name: defineOption(z.string().default('bunli'), { short: 'n' }),
+    excited: defineOption(z.boolean().default(false), { short: 'e' }),
   },
   handler: async ({ flags, colors }) => {
     const suffix = flags.excited ? '!' : '.'

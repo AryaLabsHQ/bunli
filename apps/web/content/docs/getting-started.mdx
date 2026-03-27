@@ -82,18 +82,18 @@ bunli dev -- --verbose
 Create a new command in `commands/greet.ts`:
 
 ```typescript
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { z } from 'zod'
 
 export default defineCommand({
   name: 'greet',
   description: 'Greet someone',
   options: {
-    name: option(
+    name: defineOption(
       z.string().min(1),
       { description: 'Name to greet', short: 'n' }
     ),
-    excited: option(
+    excited: defineOption(
       z.coerce.boolean().default(false),
       { description: 'Add excitement', short: 'e' }
     )

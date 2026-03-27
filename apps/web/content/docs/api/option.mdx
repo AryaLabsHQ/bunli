@@ -44,29 +44,29 @@ A `CLIOption` object that can be used in command definitions.
 ### Basic Options
 
 ```typescript
-import { option } from '@bunli/core'
+import { defineOption } from '@bunli/core'
 import { z } from 'zod'
 
 // String option with default
-const name = option(
+const name = defineOption(
   z.string().default('world'),
   { description: 'Name to greet' }
 )
 
 // Number with validation
-const port = option(
+const port = defineOption(
   z.coerce.number().int().min(1).max(65535).default(3000),
   { short: 'p', description: 'Port number' }
 )
 
 // Boolean flag
-const verbose = option(
+const verbose = defineOption(
   z.coerce.boolean().default(false),
   { short: 'v', description: 'Enable verbose output' }
 )
 
 // Enum option
-const env = option(
+const env = defineOption(
   z.enum(['dev', 'staging', 'prod']),
   { short: 'e', description: 'Target environment' }
 )
@@ -75,22 +75,22 @@ const env = option(
 ### Using in Commands
 
 ```typescript
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { z } from 'zod'
 
 export default defineCommand({
   name: 'serve',
   description: 'Start the server',
   options: {
-    port: option(
+    port: defineOption(
       z.coerce.number().default(3000),
       { short: 'p', description: 'Port to listen on' }
     ),
-    host: option(
+    host: defineOption(
       z.string().default('localhost'),
       { short: 'h', description: 'Host to bind to' }
     ),
-    secure: option(
+    secure: defineOption(
       z.coerce.boolean().default(false),
       { short: 's', description: 'Use HTTPS' }
     )
@@ -111,13 +111,13 @@ Use `z.coerce` for automatic type conversion from command-line strings:
 
 ```typescript
 // Coerce string to number
-option(z.coerce.number())  // "123" → 123
+defineOption(z.coerce.number())  // "123" → 123
 
 // Coerce string to boolean
-option(z.coerce.boolean()) // "true" → true, "false" → false
+defineOption(z.coerce.boolean()) // "true" → true, "false" → false
 
 // Coerce string to date
-option(z.coerce.date())    // "2024-01-01" → Date object
+defineOption(z.coerce.date())    // "2024-01-01" → Date object
 ```
 
 ### Transformations
@@ -126,25 +126,25 @@ Transform input values with custom logic:
 
 ```typescript
 // Parse JSON
-const config = option(
+const config = defineOption(
   z.string().transform(val => JSON.parse(val)),
   { description: 'JSON configuration' }
 )
 
 // Convert to uppercase
-const env = option(
+const env = defineOption(
   z.string().transform(val => val.toUpperCase()),
   { description: 'Environment name' }
 )
 
 // Parse comma-separated values
-const tags = option(
+const tags = defineOption(
   z.string().transform(val => val.split(',')),
   { description: 'Comma-separated tags' }
 )
 
 // Parse file size with units
-const size = option(
+const size = defineOption(
   z.string()
     .regex(/^\d+[kmg]b?$/i)
     .transform(val => {
@@ -161,7 +161,7 @@ const size = option(
 
 ```typescript
 // Object validation
-const server = option(
+const server = defineOption(
   z.string()
     .transform(val => JSON.parse(val))
     .pipe(z.object({
@@ -173,7 +173,7 @@ const server = option(
 )
 
 // Array with validation
-const ignore = option(
+const ignore = defineOption(
   z.string()
     .transform(val => val.split(','))
     .pipe(z.array(z.string().min(1))),
@@ -181,7 +181,7 @@ const ignore = option(
 )
 
 // Union types
-const output = option(
+const output = defineOption(
   z.union([
     z.literal('json'),
     z.literal('yaml'),
@@ -196,7 +196,7 @@ const output = option(
 Schemas are validated automatically when commands run:
 
 ```typescript
-const port = option(
+const port = defineOption(
   z.coerce.number()
     .int('Port must be an integer')
     .min(1, 'Port must be at least 1')
@@ -224,25 +224,25 @@ const port = option(
 
 ```typescript
 // Required option (no default)
-const input = option(
+const input = defineOption(
   z.string(),
   { description: 'Input file' }
 )
 
 // Optional with default
-const output = option(
+const output = defineOption(
   z.string().default('./output'),
   { description: 'Output directory' }
 )
 
 // Truly optional (can be undefined)
-const config = option(
+const config = defineOption(
   z.string().optional(),
   { description: 'Config file path' }
 )
 
 // Nullable option
-const template = option(
+const template = defineOption(
   z.string().nullable().default(null),
   { description: 'Template name' }
 )
@@ -250,20 +250,20 @@ const template = option(
 
 ## Standard Schema Support
 
-The `option` function accepts any Standard Schema v1 compatible schema:
+The `defineOption` function accepts any Standard Schema v1 compatible schema:
 
 ```typescript
 // Using Zod
 import { z } from 'zod'
-option(z.string())
+defineOption(z.string())
 
 // Using Valibot
 import * as v from 'valibot'
-option(v.pipe(v.string(), v.minLength(1)))
+defineOption(v.pipe(v.string(), v.minLength(1)))
 
 // Any Standard Schema v1 library
 import { schema } from 'any-standard-schema-lib'
-option(schema.string())
+defineOption(schema.string())
 ```
 
 <Callout type="important">
@@ -285,7 +285,7 @@ option(schema.string())
 ### File Paths
 
 ```typescript
-const file = option(
+const file = defineOption(
   z.string().refine(
     (val) => existsSync(val),
     (val) => ({ message: `File not found: ${val}` })
@@ -297,7 +297,7 @@ const file = option(
 ### URLs
 
 ```typescript
-const url = option(
+const url = defineOption(
   z.string().url('Must be a valid URL'),
   { description: 'API endpoint' }
 )
@@ -306,7 +306,7 @@ const url = option(
 ### Environment Variables
 
 ```typescript
-const apiKey = option(
+const apiKey = defineOption(
   z.string().default(process.env.API_KEY || ''),
   { description: 'API key (or set API_KEY env var)' }
 )
@@ -316,7 +316,7 @@ const apiKey = option(
 
 ```typescript
 // From repeated flags: --tag foo --tag bar
-const tags = option(
+const tags = defineOption(
   z.array(z.string()).default([]),
   {
     description: 'Tags (can be used multiple times)',
@@ -325,7 +325,7 @@ const tags = option(
 )
 
 // From comma-separated: --tags foo,bar,baz
-const tags = option(
+const tags = defineOption(
   z.string()
     .transform(val => val.split(',').map(s => s.trim()))
     .pipe(z.array(z.string())),

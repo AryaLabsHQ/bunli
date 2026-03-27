@@ -5,7 +5,7 @@
 Type helper for defining commands with proper type inference.
 
 ```typescript
-import { defineCommand, option } from "@bunli/core"
+import { defineCommand, defineOption } from "@bunli/core"
 import { z } from "zod"
 
 export const myCommand = defineCommand({
@@ -13,7 +13,7 @@ export const myCommand = defineCommand({
   description: "My command description",
   alias: "mc", // optional: string or string[]
   options: {
-    debug: option(z.boolean().default(false), { short: "d", description: "Debug output" })
+    debug: defineOption(z.boolean().default(false), { short: "d", description: "Debug output" })
   },
   handler: async ({ flags, prompt, spinner, signal }) => {
     if (signal.aborted) return
@@ -36,17 +36,17 @@ export const adminGroup = defineGroup({
 })
 ```
 
-## option()
+## defineOption()
 
 Creates a CLI option with StandardSchema validation.
 
 Use `z.coerce.number()` for numeric flags because CLI args are strings.
 
 ```typescript
-name: option(z.string(), { short: "n", description: "Your name" })
-debug: option(z.boolean(), { short: "d", description: "Enable debug output" })
-port: option(z.coerce.number(), { description: "Port number" })
-mode: option(z.enum(["dev", "prod"]).default("dev"))
+name: defineOption(z.string(), { short: "n", description: "Your name" })
+debug: defineOption(z.boolean(), { short: "d", description: "Enable debug output" })
+port: defineOption(z.coerce.number(), { description: "Port number" })
+mode: defineOption(z.enum(["dev", "prod"]).default("dev"))
 ```
 
 ## Positional arguments

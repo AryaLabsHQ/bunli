@@ -122,7 +122,7 @@ bun cli.ts setup --preset full
 
 ```typescript
 // Custom validation with refine
-env: option(
+env: defineOption(
   z.string()
     .refine((val) => {
       const vars = val.split(',')
@@ -131,7 +131,7 @@ env: option(
 )
 
 // Data transformation
-memory: option(
+memory: defineOption(
   z.string()
     .regex(/^\d+[kmg]?$/i, 'Memory must be a number with optional unit')
     .transform((val) => {

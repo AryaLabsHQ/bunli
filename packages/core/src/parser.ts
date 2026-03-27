@@ -1,21 +1,32 @@
-import type { Options, StandardSchemaV1 } from './types.js'
-import { BunliValidationError } from './errors.js'
-import { SchemaError } from '@standard-schema/utils'
+import type { Options } from './types.js'
+import { AggregateValidationError, type ValidationIssue } from './errors.js'
+import { coerceValue, coerceArray } from './coerce.js'
+import { extractSchemaType, generateHint } from './utils/schema-helpers.js'
+import { findSuggestion } from './utils/levenshtein.js'
+
+export interface ParseOptions {
+  /** When true, unknown flags throw AggregateValidationError with typo suggestions. Default: true */
+  strict?: boolean
+}
 
 export interface ParsedArgs {
   flags: Record<string, unknown>
   positional: string[]
+  unknownFlags: string[]
 }
 
 export async function parseArgs(
   args: string[],
   options: Options,
-  commandName: string = 'unknown'
+  commandName: string = 'unknown',
+  parseOptions?: ParseOptions
 ): Promise<ParsedArgs> {
-  const flags: Record<string, unknown> = {}
-  const repeatableValues: Record<string, unknown[]> = {}
+  const strict = parseOptions?.strict ?? true
+  const rawFlags: Record<string, string | undefined> = {}
+  const repeatableRaw: Record<string, unknown[]> = {}
   const positional: string[] = []
-  
+  const unknownFlags: string[] = []
+
   // Build lookup maps for short aliases
   const shortToName = new Map<string, string>()
   for (const [name, opt] of Object.entries(options)) {
@@ -23,185 +34,185 @@ export async function parseArgs(
       shortToName.set(opt.short, name)
     }
   }
-  
-  // Parse arguments
+
+  // ── Pass 1: collect raw string values ──────────────────────────────
   let stopParsingFlags = false
   for (let i = 0; i < args.length; i++) {
     const arg = args[i]
     if (!arg) continue
-    
+
     // Handle -- separator: everything after is positional
     if (arg === '--') {
       stopParsingFlags = true
       continue
     }
-    
+
     // After -- separator, treat everything as positional
     if (stopParsingFlags) {
       positional.push(arg)
       continue
     }
-    
+
     if (arg.startsWith('--')) {
       // Long flag: --name or --name=value
       const eqIndex = arg.indexOf('=')
       const name = eqIndex > 0 ? arg.slice(2, eqIndex) : arg.slice(2)
       const inlineValue = eqIndex > 0 ? arg.slice(eqIndex + 1) : undefined
-      
-      if (!name || !options[name]) continue
+
+      if (!name || !options[name]) {
+        if (name) unknownFlags.push(name)
+        continue
+      }
 
       // Get the value (inline, next arg, or 'true' for boolean-like flags)
       let value: string | undefined = inlineValue
       if (value === undefined && i + 1 < args.length && !args[i + 1]?.startsWith('-')) {
         value = args[++i]
       }
-      
+
       const option = options[name]
       if (!option) continue
       const parsedValue = value ?? (option.argumentKind === 'flag' ? 'true' : undefined)
 
       if (option.repeatable) {
-        if (!repeatableValues[name]) repeatableValues[name] = []
-        repeatableValues[name].push(parsedValue)
+        if (!repeatableRaw[name]) repeatableRaw[name] = []
+        repeatableRaw[name].push(parsedValue)
       } else {
-        flags[name] = await validateOption(name, parsedValue, option.schema, commandName)
+        rawFlags[name] = parsedValue
       }
-      
+
     } else if (arg.startsWith('-') && arg.length > 1) {
       // Short flag: -n or -n value
       const short = arg.slice(1)
       const name = shortToName.get(short)
-      
-      if (name && options[name]) {
-        const option = options[name]
-        if (!option) continue
 
-        // Get the next argument as value if available
-        let value: string | undefined
-        if (i + 1 < args.length && !args[i + 1]?.startsWith('-')) {
-          value = args[++i]
-        }
-        const parsedValue = value ?? (option.argumentKind === 'flag' ? 'true' : undefined)
+      if (!name || !options[name]) {
+        continue
+      }
 
-        if (option.repeatable) {
-          if (!repeatableValues[name]) repeatableValues[name] = []
-          repeatableValues[name].push(parsedValue)
-        } else {
-          flags[name] = await validateOption(name, parsedValue, option.schema, commandName)
-        }
+      const option = options[name]
+      if (!option) continue
+
+      // Get the next argument as value if available
+      let value: string | undefined
+      if (i + 1 < args.length && !args[i + 1]?.startsWith('-')) {
+        value = args[++i]
+      }
+      const parsedValue = value ?? (option.argumentKind === 'flag' ? 'true' : undefined)
+
+      if (option.repeatable) {
+        if (!repeatableRaw[name]) repeatableRaw[name] = []
+        repeatableRaw[name].push(parsedValue)
+      } else {
+        rawFlags[name] = parsedValue
       }
     } else {
       // Positional argument
       positional.push(arg)
     }
   }
-  
-  // Validate all options were provided (schemas handle their own defaults/required logic)
-  // We run validation with undefined for options not provided on command line
-  for (const [name, opt] of Object.entries(options)) {
-    if (opt.repeatable && name in repeatableValues) {
-      flags[name] = await validateOption(name, repeatableValues[name], opt.schema, commandName)
-      continue
-    }
 
-    if (!(name in flags)) {
-      flags[name] = await validateOption(name, undefined, opt.schema, commandName)
-    }
-  }
-  
-  return { flags, positional }
-}
+  // ── Pass 2: coerce + validate all collected values ─────────────────
+  const flags: Record<string, unknown> = {}
+  const issues: ValidationIssue[] = []
 
-async function validateOption(
-  name: string,
-  value: unknown,
-  schema: StandardSchemaV1,
-  commandName: string = 'unknown'
-): Promise<unknown> {
-  // Convert string 'true'/'false' to boolean for boolean schemas
-  let processedValue = value
-  if (typeof value === 'string' && (value === 'true' || value === 'false')) {
-    // Check if the schema expects a boolean by trying to validate true
-    const testResult = await schema['~standard'].validate(true)
-    if (!testResult.issues) {
-      // Schema accepts boolean, convert the string
-      processedValue = value === 'true'
-    }
-  }
-
-  if (Array.isArray(value)) {
-    const coercedArray = value.map(item => {
-      if (item === 'true') return true
-      if (item === 'false') return false
-      return item
-    })
-
-    const coercedArrayResult = await schema['~standard'].validate(coercedArray)
-    if (!coercedArrayResult.issues) {
-      processedValue = coercedArray
-    }
-  }
-  
-  // Use Standard Schema validation
-  const result = await schema['~standard'].validate(processedValue)
-  
-  if (result.issues && result.issues.length > 0) {
-    const issue = result.issues[0]
-    if (!issue) return processedValue // Fallback if no issues
-    
-    const expectedType = extractSchemaType(schema)
-    const hint = generateHint(schema, value)
-    
-    throw new BunliValidationError(
-      `Invalid option '${name}': ${issue.message}`,
-      {
-        option: name,
-        value: value,
-        command: commandName,
-        expectedType,
-        hint
+  // Process explicitly provided flags
+  for (const [name, rawValue] of Object.entries(rawFlags)) {
+    const option = options[name]
+    if (!option) continue
+    const result = await coerceValue(rawValue, option.schema)
+    if (result.coerced) {
+      flags[name] = result.value
+    } else {
+      // Coercion failed — validate raw to get error message
+      const valResult = await option.schema['~standard'].validate(rawValue)
+      if (valResult.issues && valResult.issues.length > 0) {
+        const issue = valResult.issues[0]
+        issues.push({
+          option: name,
+          message: issue ? issue.message : `Invalid value for '${name}'`,
+          value: rawValue,
+          expectedType: extractSchemaType(option.schema),
+          hint: generateHint(option.schema, rawValue)
+        })
+      } else {
+        flags[name] = 'value' in valResult ? valResult.value : rawValue
       }
-    )
+    }
   }
-  
-  return 'value' in result ? result.value : processedValue
-}
 
-/**
- * Extract a human-readable type description from a schema
- */
-function extractSchemaType(schema: StandardSchemaV1): string {
-  // Try to infer type from the schema structure
-  if ('type' in schema && typeof schema.type === 'string') {
-    return schema.type
+  // Process repeatable flags
+  for (const [name, values] of Object.entries(repeatableRaw)) {
+    const option = options[name]
+    if (!option) continue
+    const result = await coerceArray(values, option.schema)
+    if (result.coerced) {
+      flags[name] = result.value
+    } else {
+      const valResult = await option.schema['~standard'].validate(values)
+      if (valResult.issues && valResult.issues.length > 0) {
+        const issue = valResult.issues[0]
+        issues.push({
+          option: name,
+          message: issue ? issue.message : `Invalid value for '${name}'`,
+          value: values,
+          expectedType: extractSchemaType(option.schema),
+          hint: generateHint(option.schema, values)
+        })
+      } else {
+        flags[name] = 'value' in valResult ? valResult.value : values
+      }
+    }
   }
-  
-  // Fallback to checking common patterns
-  if ('enum' in schema) return 'enum'
-  if ('items' in schema) return 'array'
-  if ('properties' in schema) return 'object'
-  if ('format' in schema) return 'string'
-  
-  return 'unknown'
-}
 
-/**
- * Generate a helpful hint based on the schema and value
- */
-function generateHint(schema: StandardSchemaV1, value: unknown): string {
-  const type = extractSchemaType(schema)
-  
-  if (type === 'boolean' && typeof value === 'string') {
-    return 'Use --flag, --flag=true, or --flag=false for boolean options'
+  // Process options not provided on command line (schemas handle defaults/required)
+  for (const [name, opt] of Object.entries(options)) {
+    if (name in flags || name in rawFlags || name in repeatableRaw) continue
+    const result = await coerceValue(undefined, opt.schema)
+    if (result.coerced) {
+      flags[name] = result.value
+    } else {
+      // Validate undefined to get the default or error
+      const valResult = await opt.schema['~standard'].validate(undefined)
+      if (valResult.issues && valResult.issues.length > 0) {
+        const issue = valResult.issues[0]
+        issues.push({
+          option: name,
+          message: issue ? issue.message : `Missing required option '${name}'`,
+          value: undefined,
+          expectedType: extractSchemaType(opt.schema),
+          hint: generateHint(opt.schema, undefined)
+        })
+      } else {
+        flags[name] = 'value' in valResult ? valResult.value : undefined
+      }
+    }
   }
-  if (type === 'number' && typeof value === 'string') {
-    return 'Provide a numeric value'
+
+  // Process unknown flags — generate typo suggestions (strict mode only)
+  if (strict) {
+    const knownNames = Object.keys(options)
+    for (const flag of unknownFlags) {
+      const suggestion = findSuggestion(flag, knownNames)
+      issues.push({
+        option: flag,
+        message: suggestion
+          ? `Unknown option '--${flag}'. Did you mean '--${suggestion}'?`
+          : `Unknown option '--${flag}'`,
+        value: undefined,
+        expectedType: 'unknown',
+        suggestion: suggestion || undefined
+      })
+    }
   }
-  if (type === 'array' && !Array.isArray(value)) {
-    return 'Provide a comma-separated list of values'
+
+  if (issues.length > 0) {
+    throw new AggregateValidationError({
+      message: `Validation failed for command '${commandName}'`,
+      command: commandName,
+      issues
+    })
   }
-  if (type === 'enum' && typeof value === 'string') {
-    return 'Choose from the available options'
-  }
-  return ''
+
+  return { flags, positional, unknownFlags: [] }
 }

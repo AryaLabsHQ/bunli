@@ -7,7 +7,7 @@ import { readFile, access } from 'fs/promises'
 import { join } from 'path'
 import { homedir } from 'os'
 import { Result, TaggedError } from 'better-result'
-import { createPlugin } from '@bunli/core/plugin'
+import { definePlugin } from '@bunli/core/plugin'
 import { deepMerge } from '@bunli/core/utils'
 import type { BunliPlugin } from '@bunli/core/plugin'
 
@@ -59,7 +59,7 @@ type ReadConfigError =
 /**
  * Config merger plugin factory
  */
-export const configMergerPlugin = createPlugin<ConfigPluginOptions, {}>((options = {}) => {
+export const configMergerPlugin = definePlugin<ConfigPluginOptions, {}>((options = {}) => {
   const sources = options.sources || [
     '~/.config/{{name}}/config.json',
     '.{{name}}rc',

@@ -1,4 +1,4 @@
-import { createPlugin } from '@bunli/core/plugin'
+import { definePlugin } from '@bunli/core/plugin'
 import type { PluginContext } from '@bunli/core/plugin'
 import { defineCommand, defineGroup } from '@bunli/core'
 import { z } from 'zod'
@@ -11,7 +11,7 @@ export interface SkillsPluginOptions {
   agents?: Agent[]
 }
 
-export const skillsPlugin = createPlugin<SkillsPluginOptions>(
+export const skillsPlugin = definePlugin<SkillsPluginOptions>(
   (options = {}) => ({
     name: 'skills',
 

@@ -18,7 +18,7 @@ You are the documentation auditor for the bunli CLI framework monorepo.
 - **Documentation**: `apps/web/content/docs/` — MDX files organized by section
 - **Navigation**: `apps/web/content/docs/**/meta.json` — page ordering
 - **Doc sections**:
-  - `api/` — API reference (createCLI, defineCommand, option, defineConfig, plugins)
+  - `api/` — API reference (createCLI, defineCommand, defineOption, defineConfig, plugins)
   - `core-concepts/` — conceptual guides (commands, validation, plugins, etc.)
   - `packages/` — per-package docs including `packages/plugins/`
   - `guides/` — how-to guides

@@ -76,7 +76,7 @@ function generateNamespaceTypes(namespace: string, tools: MCPTool[]): string {
   lines.push(`// DO NOT EDIT - changes will be overwritten`)
   lines.push(``)
   lines.push(`import type { Command, Options, CLIOption } from '@bunli/core'`)
-  lines.push(`import { option } from '@bunli/core'`)
+  lines.push(`import { defineOption } from '@bunli/core'`)
   lines.push(`import { z } from 'zod'`)
   lines.push(``)
 
@@ -118,7 +118,7 @@ function generateCommandSchema(cmd: MCPCommandMetadata): string {
     }
 
     const metadataStr = metadata.length > 0 ? `, { ${metadata.join(', ')} }` : ''
-    lines.push(`  '${flagName}': option(${zodSchema}${metadataStr}),`)
+    lines.push(`  '${flagName}': defineOption(${zodSchema}${metadataStr}),`)
   }
 
   lines.push(`} as const`)

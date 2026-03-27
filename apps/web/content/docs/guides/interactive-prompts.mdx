@@ -227,7 +227,7 @@ export default defineCommand({
 export default defineCommand({
   name: 'deploy',
   options: {
-    env: option(z.enum(['dev', 'staging', 'production']))
+    env: defineOption(z.enum(['dev', 'staging', 'production']))
   },
   handler: async ({ flags, prompt, colors }) => {
     if (flags.env === 'production') {

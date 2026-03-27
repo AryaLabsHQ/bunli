@@ -88,11 +88,11 @@ Test commands that accept flags and arguments:
 const deployCommand = defineCommand({
   name: 'deploy',
   options: {
-    env: option(
+    env: defineOption(
       z.enum(['dev', 'staging', 'prod']),
       { description: 'Target environment' }
     ),
-    force: option(
+    force: defineOption(
       z.coerce.boolean().default(false),
       { description: 'Force deployment' }
     )

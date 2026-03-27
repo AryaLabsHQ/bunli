@@ -21,10 +21,10 @@ export default defineCommand({
   name: 'deploy' as const, // ← REQUIRED: 'as const' enables type inference
   description: 'Deploy the application',
   options: {
-    env: option(z.enum(['dev', 'staging', 'prod']), {
+    env: defineOption(z.enum(['dev', 'staging', 'prod']), {
       description: 'Environment to deploy to'
     }),
-    dryRun: option(z.boolean().default(false), {
+    dryRun: defineOption(z.boolean().default(false), {
       description: 'Run without making changes'
     })
   },

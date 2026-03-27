@@ -5,7 +5,7 @@
  * Provides dynamic command registration from MCP tool schemas.
  */
 
-import { createPlugin } from '@bunli/core/plugin'
+import { definePlugin } from '@bunli/core/plugin'
 import type { BunliPlugin } from '@bunli/core/plugin'
 import { Result } from 'better-result'
 import type { McpPluginOptions, McpPluginStore, MCPToolGroup } from './types.js'
@@ -43,7 +43,7 @@ import { McpToolsProviderError } from './errors.js'
 export function mcpPlugin<TStore = Record<string, unknown>>(
   options: McpPluginOptions<TStore>
 ): BunliPlugin<McpPluginStore> {
-  return createPlugin<McpPluginStore>({
+  return definePlugin<McpPluginStore>({
     name: '@bunli/plugin-mcp',
     version: '0.1.0',
 

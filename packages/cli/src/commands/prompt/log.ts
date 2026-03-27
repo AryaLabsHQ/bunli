@@ -1,15 +1,15 @@
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { z } from 'zod'
 
 export default defineCommand({
   name: 'log',
   description: 'Log a structured message to stderr',
   options: {
-    level: option(z.enum(['info', 'warn', 'error', 'debug']).optional().default('info'), {
+    level: defineOption(z.enum(['info', 'warn', 'error', 'debug']).optional().default('info'), {
       description: 'Log level',
     }),
-    time: option(z.boolean().optional().default(false), { description: 'Include timestamp', argumentKind: 'flag' }),
-    prefix: option(z.string().optional(), { description: 'Message prefix' }),
+    time: defineOption(z.boolean().optional().default(false), { description: 'Include timestamp', argumentKind: 'flag' }),
+    prefix: defineOption(z.string().optional(), { description: 'Message prefix' }),
   },
   async handler({ flags, positional, colors }) {
     const message = positional.join(' ')

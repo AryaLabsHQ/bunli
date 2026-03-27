@@ -1,4 +1,4 @@
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { readStdinLines } from '@bunli/utils'
 import { z } from 'zod'
 
@@ -6,7 +6,7 @@ export default defineCommand({
   name: 'pager',
   description: 'View content in a scrollable pager',
   options: {
-    file: option(z.string().optional(), { short: 'f', description: 'File to display' }),
+    file: defineOption(z.string().optional(), { short: 'f', description: 'File to display' }),
   },
   async handler({ flags, prompt }) {
     let content: string | undefined

@@ -1,18 +1,18 @@
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { z } from 'zod'
 
 const helloCommand = defineCommand({
   name: 'hello',
   description: 'Say hello to someone',
   options: {
-    name: option(
+    name: defineOption(
       z.string().default('World'),
       { 
         description: 'Name to greet',
         short: 'n'
       }
     ),
-    excited: option(
+    excited: defineOption(
       z.boolean().default(false),
       {
         description: 'Add excitement!',

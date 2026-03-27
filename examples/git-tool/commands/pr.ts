@@ -1,4 +1,4 @@
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { z } from 'zod'
 
 export default defineCommand({
@@ -7,7 +7,7 @@ export default defineCommand({
   alias: 'pull-request',
   options: {
     // PR title
-    title: option(
+    title: defineOption(
       z.string()
         .min(1, 'Title cannot be empty')
         .max(100, 'Title must be 100 characters or less'),
@@ -18,7 +18,7 @@ export default defineCommand({
     ),
     
     // PR description
-    description: option(
+    description: defineOption(
       z.string().optional(),
       { 
         short: 'd', 
@@ -27,7 +27,7 @@ export default defineCommand({
     ),
     
     // Base branch
-    base: option(
+    base: defineOption(
       z.string().default('main'),
       { 
         short: 'b', 
@@ -36,7 +36,7 @@ export default defineCommand({
     ),
     
     // Head branch
-    head: option(
+    head: defineOption(
       z.string().optional(),
       { 
         short: 'h', 
@@ -45,7 +45,7 @@ export default defineCommand({
     ),
     
     // Draft PR
-    draft: option(
+    draft: defineOption(
       z.coerce.boolean().default(false),
       { 
         description: 'Create as draft pull request' 
@@ -53,7 +53,7 @@ export default defineCommand({
     ),
     
     // Assign reviewers
-    reviewers: option(
+    reviewers: defineOption(
       z.string()
         .transform((val) => val.split(',').map(s => s.trim()))
         .optional(),
@@ -64,7 +64,7 @@ export default defineCommand({
     ),
     
     // Labels
-    labels: option(
+    labels: defineOption(
       z.string()
         .transform((val) => val.split(',').map(s => s.trim()))
         .optional(),

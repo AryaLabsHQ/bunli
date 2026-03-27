@@ -1,4 +1,4 @@
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { z } from 'zod'
 
 export default defineCommand({
@@ -7,7 +7,7 @@ export default defineCommand({
   alias: 'br',
   options: {
     // Branch name
-    name: option(
+    name: defineOption(
       z.string()
         .min(1, 'Branch name cannot be empty')
         .regex(/^[a-zA-Z0-9._/-]+$/, 'Branch name can only contain letters, numbers, dots, underscores, hyphens, and slashes')
@@ -20,7 +20,7 @@ export default defineCommand({
     ),
     
     // Base branch
-    base: option(
+    base: defineOption(
       z.string().default('main'),
       { 
         short: 'b', 
@@ -29,7 +29,7 @@ export default defineCommand({
     ),
     
     // Switch to branch
-    switch: option(
+    switch: defineOption(
       z.coerce.boolean().default(false),
       { 
         short: 's', 
@@ -38,7 +38,7 @@ export default defineCommand({
     ),
     
     // Delete branch
-    delete: option(
+    delete: defineOption(
       z.coerce.boolean().default(false),
       { 
         short: 'd', 
@@ -47,7 +47,7 @@ export default defineCommand({
     ),
     
     // Force operations
-    force: option(
+    force: defineOption(
       z.coerce.boolean().default(false),
       { 
         short: 'f', 

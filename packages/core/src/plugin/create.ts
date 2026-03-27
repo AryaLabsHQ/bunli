@@ -14,7 +14,7 @@ import type { BunliPlugin, PluginFactory, MergeStores } from './types.js'
  *   message: string
  * }
  * 
- * const myPlugin = createPlugin<MyStore>({
+ * const myPlugin = definePlugin<MyStore>({
  *   name: 'my-plugin',
  *   store: {
  *     count: 0,
@@ -28,7 +28,7 @@ import type { BunliPlugin, PluginFactory, MergeStores } from './types.js'
  * 
  * @example Plugin factory with options:
  * ```typescript
- * const myPlugin = createPlugin((options: { prefix: string }) => ({
+ * const myPlugin = definePlugin((options: { prefix: string }) => ({
  *   name: 'my-plugin',
  *   store: {
  *     count: 0
@@ -42,16 +42,16 @@ import type { BunliPlugin, PluginFactory, MergeStores } from './types.js'
  * myPlugin({ prefix: 'Hello' })
  * ```
  */
-export function createPlugin<TOptions, TStore = {}>(
+export function definePlugin<TOptions, TStore = {}>(
   factory: (options: TOptions) => BunliPlugin<TStore>
 ): (options: TOptions) => BunliPlugin<TStore>
 
 // Overload for direct plugin
-export function createPlugin<TStore = {}>(
+export function definePlugin<TStore = {}>(
   plugin: BunliPlugin<TStore>
 ): BunliPlugin<TStore>
 
-export function createPlugin<T>(
+export function definePlugin<T>(
   input: T
 ): T {
   return input
@@ -82,7 +82,7 @@ export type InferPluginStore<T> = T extends BunliPlugin<infer S> ? S : T extends
  * 
  * @example
  * ```typescript
- * const testPlugin = createTestPlugin(
+ * const testPlugin = defineTestPlugin(
  *   { count: 0, message: '' },
  *   {
  *     beforeCommand(context) {
@@ -93,7 +93,7 @@ export type InferPluginStore<T> = T extends BunliPlugin<infer S> ? S : T extends
  * )
  * ```
  */
-export function createTestPlugin<TStore = {}>(
+export function defineTestPlugin<TStore = {}>(
   store: TStore,
   hooks: Partial<BunliPlugin<TStore>>
 ): BunliPlugin<TStore> {

@@ -1,4 +1,4 @@
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { z } from 'zod'
 import { hasConfigStore, hasMetricsStore } from './store-guards.js'
 
@@ -6,28 +6,28 @@ const buildCommand = defineCommand({
   name: 'build',
   description: 'Build for production',
   options: {
-    output: option(
+    output: defineOption(
       z.string().default('dist'),
       { 
         description: 'Output directory',
         short: 'o'
       }
     ),
-    minify: option(
+    minify: defineOption(
       z.boolean().default(true),
       { 
         description: 'Minify output',
         short: 'm'
       }
     ),
-    sourcemap: option(
+    sourcemap: defineOption(
       z.boolean().default(false),
       { 
         description: 'Generate source maps',
         short: 's'
       }
     ),
-    target: option(
+    target: defineOption(
       z.enum(['node', 'bun', 'browser']).default('node'),
       { 
         description: 'Build target',

@@ -24,10 +24,10 @@ bun add zod
 
 ```typescript
 import { z } from 'zod'
-import { option } from '@bunli/core'
+import { defineOption } from '@bunli/core'
 
 // Use Zod schemas with the option helper
-const portOption = option(
+const portOption = defineOption(
   z.coerce.number().min(1).max(65535)
 )
 ```
@@ -40,10 +40,10 @@ bun add valibot
 
 ```typescript
 import * as v from 'valibot'
-import { option } from '@bunli/core'
+import { defineOption } from '@bunli/core'
 
 // Valibot schemas work too
-const emailOption = option(
+const emailOption = defineOption(
   v.string([v.email()])
 )
 ```
@@ -56,10 +56,10 @@ bun add @sinclair/typebox
 
 ```typescript
 import { Type } from '@sinclair/typebox'
-import { option } from '@bunli/core'
+import { defineOption } from '@bunli/core'
 
 // TypeBox for JSON Schema compatibility
-const configOption = option(
+const configOption = defineOption(
   Type.Object({
     host: Type.String(),
     port: Type.Number()
@@ -75,10 +75,10 @@ const configOption = option(
 export default defineCommand({
   options: {
     // Basic string
-    name: option(z.string()),
+    name: defineOption(z.string()),
     
     // With constraints
-    username: option(
+    username: defineOption(
       z.string()
         .min(3, 'Username must be at least 3 characters')
         .max(20, 'Username must be at most 20 characters')
@@ -86,13 +86,13 @@ export default defineCommand({
     ),
     
     // Email validation
-    email: option(z.string().email('Invalid email address')),
+    email: defineOption(z.string().email('Invalid email address')),
     
     // URL validation
-    webhook: option(z.string().url('Invalid URL')),
+    webhook: defineOption(z.string().url('Invalid URL')),
     
     // Custom validation
-    password: option(
+    password: defineOption(
       z.string().refine(
         (val) => /[A-Z]/.test(val) && /[0-9]/.test(val),
         'Password must contain at least one uppercase letter and one number'
@@ -108,10 +108,10 @@ export default defineCommand({
 export default defineCommand({
   options: {
     // Basic number with coercion
-    port: option(z.coerce.number()),
+    port: defineOption(z.coerce.number()),
     
     // With constraints
-    age: option(
+    age: defineOption(
       z.coerce.number()
         .int('Age must be a whole number')
         .min(0, 'Age cannot be negative')
@@ -119,13 +119,13 @@ export default defineCommand({
     ),
     
     // Float with precision
-    price: option(
+    price: defineOption(
       z.coerce.number()
         .multipleOf(0.01, 'Price must have at most 2 decimal places')
     ),
     
     // Port number validation
-    serverPort: option(
+    serverPort: defineOption(
       z.coerce.number()
         .int()
         .min(1)
@@ -142,13 +142,13 @@ export default defineCommand({
 export default defineCommand({
   options: {
     // Boolean with coercion
-    verbose: option(z.coerce.boolean()),
+    verbose: defineOption(z.coerce.boolean()),
     
     // Optional boolean
-    debug: option(z.coerce.boolean().optional()),
+    debug: defineOption(z.coerce.boolean().optional()),
     
     // Boolean with default
-    production: option(z.coerce.boolean().default(false))
+    production: defineOption(z.coerce.boolean().default(false))
   }
 })
 
@@ -165,10 +165,10 @@ export default defineCommand({
 export default defineCommand({
   options: {
     // Date with coercion
-    since: option(z.coerce.date()),
+    since: defineOption(z.coerce.date()),
     
     // Date with constraints
-    deadline: option(
+    deadline: defineOption(
       z.coerce.date().refine(
         (date) => date > new Date(),
         'Deadline must be in the future'
@@ -176,8 +176,8 @@ export default defineCommand({
     ),
     
     // Date range
-    startDate: option(z.coerce.date()),
-    endDate: option(z.coerce.date())
+    startDate: defineOption(z.coerce.date()),
+    endDate: defineOption(z.coerce.date())
   },
   handler: async ({ flags }) => {
     // Validate date range
@@ -201,7 +201,7 @@ export default defineCommand({
 export default defineCommand({
   options: {
     // Enum validation
-    logLevel: option(
+    logLevel: defineOption(
       z.enum(['debug', 'info', 'warn', 'error']),
       { 
         description: 'Logging level',
@@ -210,13 +210,13 @@ export default defineCommand({
     ),
     
     // Multiple choice with default
-    environment: option(
+    environment: defineOption(
       z.enum(['development', 'staging', 'production'])
         .default('development')
     ),
     
     // Union of literals
-    output: option(
+    output: defineOption(
       z.union([
         z.literal('json'),
         z.literal('yaml'),
@@ -233,20 +233,20 @@ export default defineCommand({
 export default defineCommand({
   options: {
     // Array of strings
-    tags: option(
+    tags: defineOption(
       z.array(z.string()),
       { description: 'Tags (can be specified multiple times)' }
     ),
     
     // Comma-separated values
-    features: option(
+    features: defineOption(
       z.string().transform(val => 
         val.split(',').map(s => s.trim())
       )
     ),
     
     // Array with validation
-    ports: option(
+    ports: defineOption(
       z.array(
         z.coerce.number().min(1).max(65535)
       ).min(1, 'At least one port required')
@@ -266,7 +266,7 @@ export default defineCommand({
 export default defineCommand({
   options: {
     // JSON string to object
-    config: option(
+    config: defineOption(
       z.string()
         .transform(str => JSON.parse(str))
         .pipe(z.object({
@@ -277,7 +277,7 @@ export default defineCommand({
     ),
     
     // Nested object validation
-    database: option(
+    database: defineOption(
       z.object({
         host: z.string(),
         port: z.number().default(5432),
@@ -317,7 +317,7 @@ const deploySchema = z.object({
 
 export default defineCommand({
   options: {
-    deploy: option(deploySchema)
+    deploy: defineOption(deploySchema)
   }
 })
 ```
@@ -329,13 +329,13 @@ export default defineCommand({
 ```typescript
 export default defineCommand({
   options: {
-    email: option(
+    email: defineOption(
       z.string().email({
         message: 'Please provide a valid email address (e.g., user@example.com)'
       })
     ),
     
-    age: option(
+    age: defineOption(
       z.coerce.number().int().min(18, {
         message: 'You must be at least 18 years old'
       })
@@ -349,7 +349,7 @@ export default defineCommand({
 ```typescript
 export default defineCommand({
   options: {
-    config: option(z.string())
+    config: defineOption(z.string())
   },
   handler: async ({ flags }) => {
     try {
@@ -391,7 +391,7 @@ const apiConfigSchema = z.object({
 export default defineCommand({
   name: 'api-call',
   options: {
-    config: option(apiConfigSchema)
+    config: defineOption(apiConfigSchema)
   }
 })
 ```
@@ -402,14 +402,14 @@ export default defineCommand({
 export default defineCommand({
   name: 'process',
   options: {
-    input: option(
+    input: defineOption(
       z.string().refine(
         (path) => existsSync(path),
         'Input file does not exist'
       )
     ),
     
-    output: option(
+    output: defineOption(
       z.string().refine(
         (path) => {
           const dir = dirname(path)
@@ -419,11 +419,11 @@ export default defineCommand({
       )
     ),
     
-    format: option(
+    format: defineOption(
       z.enum(['csv', 'json', 'xml']).transform(fmt => fmt.toLowerCase())
     ),
     
-    encoding: option(
+    encoding: defineOption(
       z.enum(['utf8', 'utf16', 'ascii']).default('utf8')
     )
   }

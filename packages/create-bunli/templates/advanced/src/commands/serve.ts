@@ -1,4 +1,4 @@
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { z } from 'zod'
 import { loadConfig } from '../utils/config.js'
 
@@ -6,21 +6,21 @@ const serveCommand = defineCommand({
   name: 'serve',
   description: 'Start a development server',
   options: {
-    port: option(
+    port: defineOption(
       z.coerce.number().int().min(1).max(65535).default(3000),
       {
         short: 'p',
         description: 'Port to listen on'
       }
     ),
-    host: option(
+    host: defineOption(
       z.string().default('localhost'),
       {
         short: 'h',
         description: 'Host to bind to'
       }
     ),
-    open: option(
+    open: defineOption(
       z.boolean().default(true),
       {
         description: 'Open browser on start',

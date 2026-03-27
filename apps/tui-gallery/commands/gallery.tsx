@@ -1,4 +1,4 @@
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { z } from 'zod'
 import { GalleryShell } from '../gallery/shell.js'
 import type { GallerySectionId, GalleryTheme } from '../gallery/model.js'
@@ -7,15 +7,15 @@ const galleryCommand = defineCommand({
   name: 'gallery' as const,
   description: 'Browse Bunli component examples and runtime recipes',
   options: {
-    theme: option(z.enum(['dark', 'light']).default('dark'), {
+    theme: defineOption(z.enum(['dark', 'light']).default('dark'), {
       short: 'm',
       description: 'Initial theme preset'
     }),
-    section: option(z.enum(['components', 'recipes']).default('components'), {
+    section: defineOption(z.enum(['components', 'recipes']).default('components'), {
       short: 's',
       description: 'Initial gallery section'
     }),
-    entry: option(z.string().optional(), {
+    entry: defineOption(z.string().optional(), {
       short: 'e',
       description: 'Open a specific gallery entry id'
     })

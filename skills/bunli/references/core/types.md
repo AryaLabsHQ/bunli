@@ -5,11 +5,11 @@
 Bunli uses `@standard-schema/spec` for validation with full type inference.
 
 ```typescript
-import { option } from "@bunli/core"
+import { defineOption } from "@bunli/core"
 import { z } from "zod"
 
 const opts = {
-  name: option(z.string(), { description: "Your name" })
+  name: defineOption(z.string(), { description: "Your name" })
 }
 
 // Option schemas are inferred into handler `flags` types automatically.

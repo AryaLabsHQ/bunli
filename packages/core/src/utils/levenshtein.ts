@@ -36,7 +36,7 @@ export function findSuggestion(input: string, candidates: string[]): string | un
     }
 
     const distance = levenshtein(input, candidate)
-    if (distance <= 3 && (!best || distance < best.distance)) {
+    if (distance <= 2 && (!best || distance < best.distance)) {
       best = { name: candidate, distance }
     }
   }
