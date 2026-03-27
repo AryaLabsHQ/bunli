@@ -68,7 +68,7 @@ interface PluginContext {
   readonly config: BunliConfigInput
   
   /** Update configuration */
-  updateConfig(partial: Partial<BunliConfig>): void
+  updateConfig(partial: Partial<BunliConfigInput>): void
   
   /** Register a new command */
   registerCommand(command: CommandDefinition): void
