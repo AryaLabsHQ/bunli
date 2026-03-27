@@ -556,7 +556,7 @@ export async function createCLI<
     path: string[] = []
   ) {
     const customRenderer = fullConfig.help?.renderer as import('./types.js').HelpRenderer<TStore> | undefined
-    if (outputContext.format === 'toon' || customRenderer) {
+    if (outputContext.format === 'toon') {
       showHelpImpl(
         {
           cliName: fullConfig.name,
@@ -590,7 +590,7 @@ export async function createCLI<
     variant: 'compact' | 'full',
     markdown: string
   ) {
-    if (outputContext.format === 'toon' || outputContext.format === 'md') {
+    if (!outputContext.formatExplicit || outputContext.format === 'md' || outputContext.format === 'toon') {
       process.stdout.write(markdown + '\n')
       return
     }

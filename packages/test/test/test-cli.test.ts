@@ -80,6 +80,38 @@ test('createTestCLI formats help output for machine-readable consumers', async (
   expect(result.stdout).toContain('text:')
 })
 
+test('createTestCLI preserves markdown output for --llms in non-TTY runs when no format is specified', async () => {
+  const testCli = await createTestCLI({
+    name: 'bunli',
+    version: '2.3.4'
+  })
+
+  const result = await testCli.run(['--llms'])
+
+  expect(result.exitCode).toBe(0)
+  expect(result.stdout).toContain('# bunli')
+  expect(result.stdout).toContain('Run `bunli --llms-full` for full manifest.')
+  expect(result.stdout).not.toContain('"type": "manifest"')
+})
+
+test('createTestCLI preserves explicit machine-readable help output even with a custom help renderer', async () => {
+  const testCli = await createTestCLI({
+    config: {
+      help: {
+        renderer: ({ cliName }) => {
+          process.stdout.write(`custom help for ${cliName}\n`)
+        }
+      }
+    }
+  })
+
+  const result = await testCli.run(['--format', 'json', '--help'])
+
+  expect(result.exitCode).toBe(0)
+  expect(result.stdout).toContain('"type": "help"')
+  expect(result.stdout).not.toContain('custom help for')
+})
+
 test('createTestCLI formats unknown-command errors for machine-readable consumers', async () => {
   const testCli = await createTestCLI()
 
