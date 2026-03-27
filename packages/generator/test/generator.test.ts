@@ -33,15 +33,15 @@ ${registerLines}
 
     // Create a test command file
     const testCommandContent = `
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { z } from 'zod'
 
 export default defineCommand({
   name: 'test-command',
   description: 'A test command',
   options: {
-    name: option(z.string(), { description: 'Name option' }),
-    count: option(z.number().default(1), { description: 'Count option' })
+    name: defineOption(z.string(), { description: 'Name option' }),
+    count: defineOption(z.number().default(1), { description: 'Count option' })
   },
   handler: async ({ flags }) => {
     console.log('Test command executed')
@@ -192,15 +192,15 @@ cli.command(defineCommand({
 
     // Create a test command file
     const testCommandContent = `
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { z } from 'zod'
 
 export default defineCommand({
   name: 'test-command',
   description: 'A test command',
   options: {
-    name: option(z.string(), { description: 'Name option' }),
-    count: option(z.number().default(1), { description: 'Count option' })
+    name: defineOption(z.string(), { description: 'Name option' }),
+    count: defineOption(z.number().default(1), { description: 'Count option' })
   },
   handler: async ({ flags }) => {
     console.log('Test command executed')
@@ -247,15 +247,15 @@ export default defineCommand({
 
     // Create a test command file
     const testCommandContent = `
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { z } from 'zod'
 
 export default defineCommand({
   name: 'test-command',
   description: 'A test command',
   options: {
-    name: option(z.string(), { description: 'Name option' }),
-    count: option(z.number().default(1), { description: 'Count option' })
+    name: defineOption(z.string(), { description: 'Name option' }),
+    count: defineOption(z.number().default(1), { description: 'Count option' })
   },
   handler: async ({ flags }) => {
     console.log('Test command executed')
@@ -362,15 +362,15 @@ export default defineGroup({
     await mkdir(join(testDir, 'config'), { recursive: true })
 
     await Bun.write(join(testDir, 'config/options.ts'), `
-import { option } from '@bunli/core'
+import { defineOption } from '@bunli/core'
 import { z } from 'zod'
 
-export const keyOption = option(z.enum(['model', 'size']), {
+export const keyOption = defineOption(z.enum(['model', 'size']), {
   description: 'Config key',
   short: 'k'
 })
 
-export const valueOption = option(z.string(), {
+export const valueOption = defineOption(z.string(), {
   description: 'Config value'
 })
 

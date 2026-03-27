@@ -41,15 +41,15 @@ interface RunnableCommand<TOptions = Options, TStore = {}> {
 `defineCommand` automatically infers types from your Zod schemas:
 
 ```typescript
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { z } from 'zod'
 
 const command = defineCommand({
   name: 'serve',
   description: 'Start server',
   options: {
-    port: option(z.coerce.number().default(3000)),
-    host: option(z.string().default('localhost'))
+    port: defineOption(z.coerce.number().default(3000)),
+    host: defineOption(z.string().default('localhost'))
   },
   handler: async ({ flags }) => {
     // TypeScript knows:
@@ -80,15 +80,15 @@ export default defineCommand({
   name: 'deploy',
   description: 'Deploy application',
   options: {
-    env: option(
+    env: defineOption(
       z.enum(['dev', 'staging', 'prod']),
       { description: 'Target environment', short: 'e' }
     ),
-    force: option(
+    force: defineOption(
       z.coerce.boolean().default(false),
       { description: 'Force deployment', short: 'f' }
     ),
-    tag: option(
+    tag: defineOption(
       z.string().optional(),
       { description: 'Version tag' }
     )
@@ -116,8 +116,8 @@ export default defineCommand({
   name: 'greet',
   description: 'Interactive greeting',
   options: {
-    name: option(z.string().default('World'), { short: 'n' }),
-    loud: option(z.coerce.boolean().default(false), { short: 'l' })
+    name: defineOption(z.string().default('World'), { short: 'n' }),
+    loud: defineOption(z.coerce.boolean().default(false), { short: 'l' })
   },
   render: ({ flags }) => (
     <GreetProgress
@@ -157,7 +157,7 @@ export default defineGroup({
       alias: 'm',
       description: 'Run migrations',
       options: {
-        direction: option(
+        direction: defineOption(
           z.enum(['up', 'down']).default('up'),
           { short: 'd', description: 'Migration direction' }
         )
@@ -383,7 +383,7 @@ Options are validated automatically before the handler runs:
 export default defineCommand({
   name: 'serve',
   options: {
-    port: option(
+    port: defineOption(
       z.coerce.number()
         .int()
         .min(1)

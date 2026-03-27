@@ -33,14 +33,14 @@ cd apps/web && bun dev
 
 ### Command Definition
 ```typescript
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { z } from 'zod'
 
 export const myCommand = defineCommand({
   name: 'my-command',
   description: 'Description',
   options: {
-    input: option(
+    input: defineOption(
       z.string().default('default'),
       { description: 'Input value', short: 'i' }
     )
@@ -80,8 +80,8 @@ describe('My Command', () => {
 
 ```typescript
 // Core framework
-import { defineCommand, defineConfig, option, createCLI } from '@bunli/core'
-import { createPlugin } from '@bunli/core/plugin'
+import { defineCommand, defineConfig, defineOption, createCLI } from '@bunli/core'
+import { definePlugin } from '@bunli/core/plugin'
 
 // Utilities
 import { colors, spinner, prompt } from '@bunli/utils'

@@ -51,8 +51,8 @@ interface MyPluginStore {
   count: number
 }
 
-// Use createPlugin with generics for type safety
-const myPlugin = createPlugin<MyPluginStore>({
+// Use definePlugin with generics for type safety
+const myPlugin = definePlugin<MyPluginStore>({
   name: 'my-plugin',
   store: {
     data: [],
@@ -65,7 +65,7 @@ const myPlugin = createPlugin<MyPluginStore>({
 })
 
 // For plugin factories with options
-const myPlugin = createPlugin<Options, Store>((options) => ({
+const myPlugin = definePlugin<Options, Store>((options) => ({
   // Plugin definition
 }))
 ```
@@ -93,8 +93,8 @@ const myPlugin = createPlugin<Options, Store>((options) => ({
 ```typescript
 // ✅ Good import order
 import { z } from 'zod'
-import { defineCommand, option } from '@bunli/core'
-import { createPlugin } from '@bunli/core/plugin'
+import { defineCommand, defineOption } from '@bunli/core'
+import { definePlugin } from '@bunli/core/plugin'
 import { colors, spinner } from '@bunli/utils'
 import { parseConfig } from './config.js'
 import { validateInput } from '../validation/index.js'

@@ -1,4 +1,4 @@
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { z } from 'zod'
 import { logger, formatTable } from '@{{name}}/utils'
 import type { AnalyzeResult } from '../types.js'
@@ -7,7 +7,7 @@ const analyzeCommand = defineCommand({
   name: 'analyze',
   description: 'Analyze files and generate reports',
   options: {
-    detailed: option(
+    detailed: defineOption(
       z.boolean().default(false),
       {
         short: 'd',

@@ -1,11 +1,11 @@
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { z } from 'zod'
 
 export default defineCommand({
   name: 'setup' as const,
   description: 'Interactive project setup wizard',
   options: {
-    preset: option(
+    preset: defineOption(
       z.enum(['minimal', 'standard', 'full']).optional(),
       {
         short: 'p',

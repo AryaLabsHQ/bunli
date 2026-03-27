@@ -34,7 +34,7 @@ Minimal, type-safe CLI framework for Bun with advanced plugin system. Uses Zod f
 | Task | Location | Notes |
 |------|----------|-------|
 | Add command | `packages/cli/src/commands/` | Use `defineCommand` pattern |
-| Plugin system | `packages/core/src/plugin/` | `createPlugin<T>()` with typed store |
+| Plugin system | `packages/core/src/plugin/` | `definePlugin<T>()` with typed store |
 | Type generation | `packages/generator/src/` | Creates `commands.gen.ts` |
 | Utilities | `packages/utils/src/` | colors, validation |
 | Runtime | `packages/runtime/src/` | OpenTUI prompt/renderer runtime |
@@ -45,8 +45,8 @@ Minimal, type-safe CLI framework for Bun with advanced plugin system. Uses Zod f
 | Symbol | Location | Purpose |
 |--------|----------|---------|
 | `defineCommand` | `packages/core/src/command/` | Command builder |
-| `option()` | `packages/core/src/option/` | Flag definition |
-| `createPlugin` | `packages/core/src/plugin/` | Plugin factory |
+| `defineOption()` | `packages/core/src/option/` | Flag definition |
+| `definePlugin` | `packages/core/src/plugin/` | Plugin factory |
 | `createCLI` | `packages/core/src/cli.ts` | CLI entry point |
 | `TaggedError` | `better-result` | Error class pattern |
 

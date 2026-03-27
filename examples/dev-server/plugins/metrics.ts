@@ -1,4 +1,4 @@
-import { createPlugin } from '@bunli/core/plugin'
+import { definePlugin } from '@bunli/core/plugin'
 
 interface MetricsStore {
   metrics: {
@@ -13,7 +13,7 @@ interface MetricsStore {
   }
 }
 
-export const metricsPlugin = createPlugin<MetricsStore>({
+export const metricsPlugin = definePlugin<MetricsStore>({
   name: 'metrics',
   store: {
     metrics: {

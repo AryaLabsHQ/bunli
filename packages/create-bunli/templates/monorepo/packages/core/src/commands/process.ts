@@ -1,4 +1,4 @@
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { z } from 'zod'
 import { logger } from '@{{name}}/utils'
 import type { ProcessOptions } from '../types.js'
@@ -7,21 +7,21 @@ const processCommand = defineCommand({
   name: 'process',
   description: 'Process input files',
   options: {
-    output: option(
+    output: defineOption(
       z.string().optional(),
       {
         short: 'o',
         description: 'Output directory'
       }
     ),
-    format: option(
+    format: defineOption(
       z.enum(['json', 'yaml', 'text']).default('json'),
       {
         short: 'f',
         description: 'Output format'
       }
     ),
-    verbose: option(
+    verbose: defineOption(
       z.boolean().default(false),
       {
         short: 'v',

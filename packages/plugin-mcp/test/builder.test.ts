@@ -56,24 +56,24 @@ describe('CommandBuilder', () => {
       const withRaw = Commands.from(sampleTools).commands()
       const withoutRaw = Commands.from(sampleTools).includeRawOption(false).commands()
 
-      expect(withRaw).toContain("'raw': option(z.string().optional()")
-      expect(withoutRaw).not.toContain("'raw': option(z.string().optional()")
+      expect(withRaw).toContain("'raw': defineOption(z.string().optional()")
+      expect(withoutRaw).not.toContain("'raw': defineOption(z.string().optional()")
     })
 
     test('includeTimeoutOption() controls --timeout flag', () => {
       const withTimeout = Commands.from(sampleTools).commands()
       const withoutTimeout = Commands.from(sampleTools).includeTimeoutOption(false).commands()
 
-      expect(withTimeout).toContain("'timeout': option(z.coerce.number().optional()")
-      expect(withoutTimeout).not.toContain("'timeout': option(z.coerce.number().optional()")
+      expect(withTimeout).toContain("'timeout': defineOption(z.coerce.number().optional()")
+      expect(withoutTimeout).not.toContain("'timeout': defineOption(z.coerce.number().optional()")
     })
 
     test('includeOutputOption() controls --output flag', () => {
       const withOutput = Commands.from(sampleTools).commands()
       const withoutOutput = Commands.from(sampleTools).includeOutputOption(false).commands()
 
-      expect(withOutput).toContain("'output': option(z.enum(['text', 'json', 'raw'])")
-      expect(withoutOutput).not.toContain("'output': option(z.enum(['text', 'json', 'raw'])")
+      expect(withOutput).toContain("'output': defineOption(z.enum(['text', 'json', 'raw'])")
+      expect(withoutOutput).not.toContain("'output': defineOption(z.enum(['text', 'json', 'raw'])")
     })
 
     test('methods can be chained', () => {
@@ -107,8 +107,8 @@ describe('CommandBuilder', () => {
     test('generates option definitions', () => {
       const commands = Commands.from(sampleTools).commands()
 
-      expect(commands).toContain("'query': option(z.string()")
-      expect(commands).toContain("'num-results': option(z.coerce.number().int()")
+      expect(commands).toContain("'query': defineOption(z.string()")
+      expect(commands).toContain("'num-results': defineOption(z.coerce.number().int()")
     })
 
     test('generates handler with callTool', () => {

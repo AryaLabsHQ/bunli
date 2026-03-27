@@ -30,7 +30,7 @@ This is a monorepo for the Bunli CLI framework, organized into apps, packages, a
 ## Key Entry Points
 
 - **[packages/core/src/index.ts](mdc:packages/core/src/index.ts)** - Core framework exports (defineCommand, createCLI, option)
-- **[packages/core/src/plugin/index.ts](mdc:packages/core/src/plugin/index.ts)** - Plugin system exports (createPlugin, BunliPlugin)
+- **[packages/core/src/plugin/index.ts](mdc:packages/core/src/plugin/index.ts)** - Plugin system exports (definePlugin, BunliPlugin)
 - **[packages/cli/src/index.ts](mdc:packages/cli/src/index.ts)** - CLI application entry
 - **[packages/core/src/cli.ts](mdc:packages/core/src/cli.ts)** - Main CLI creation function with plugin support
 
@@ -46,13 +46,13 @@ This is a monorepo for the Bunli CLI framework, organized into apps, packages, a
 Plugins are created using the type-safe plugin system in [packages/core/src/plugin/](mdc:packages/core/src/plugin):
 
 ```typescript
-import { createPlugin } from '@bunli/core/plugin'
+import { definePlugin } from '@bunli/core/plugin'
 
 interface MyStore {
   data: string[]
 }
 
-export const myPlugin = createPlugin<MyStore>({
+export const myPlugin = definePlugin<MyStore>({
   name: 'my-plugin',
   store: { data: [] },
   beforeCommand({ store }) {

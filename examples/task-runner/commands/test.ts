@@ -1,4 +1,4 @@
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { z } from 'zod'
 
 export default defineCommand({
@@ -6,7 +6,7 @@ export default defineCommand({
   description: 'Run tests with complex validation patterns',
   options: {
     // Test pattern with regex validation
-    pattern: option(
+    pattern: defineOption(
       z.string()
         .min(1, 'Pattern cannot be empty')
         .default('**/*.test.ts'),
@@ -17,7 +17,7 @@ export default defineCommand({
     ),
     
     // Coverage threshold with range validation
-    coverage: option(
+    coverage: defineOption(
       z.coerce.number()
         .min(0, 'Coverage must be at least 0%')
         .max(100, 'Coverage cannot exceed 100%')
@@ -29,7 +29,7 @@ export default defineCommand({
     ),
     
     // Timeout with custom validation
-    timeout: option(
+    timeout: defineOption(
       z.coerce.number()
         .int('Timeout must be a whole number')
         .min(1000, 'Timeout must be at least 1000ms')
@@ -42,7 +42,7 @@ export default defineCommand({
     ),
     
     // Environment variables with validation
-    env: option(
+    env: defineOption(
       z.string()
         .refine((val) => {
           const vars = val.split(',')
@@ -66,7 +66,7 @@ export default defineCommand({
     ),
     
     // Retry count with custom validation
-    retries: option(
+    retries: defineOption(
       z.coerce.number()
         .int('Retries must be a whole number')
         .min(0, 'Retries cannot be negative')
@@ -79,7 +79,7 @@ export default defineCommand({
     ),
     
     // Watch mode
-    watch: option(
+    watch: defineOption(
       z.coerce.boolean().default(false),
       { 
         short: 'w', 
@@ -88,7 +88,7 @@ export default defineCommand({
     ),
     
     // Verbose output
-    verbose: option(
+    verbose: defineOption(
       z.coerce.boolean().default(false),
       { 
         short: 'v', 

@@ -88,14 +88,14 @@ Bunli is built specifically for the Bun runtime, taking advantage of:
 Strong typing without manual annotations:
 
 ```typescript
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { z } from 'zod'
 
 // Bunli infers everything
 export default defineCommand({
   name: 'deploy',
   options: {
-    env: option(
+    env: defineOption(
       z.enum(['dev', 'staging', 'prod']),
       { description: 'Target environment' }
     )
@@ -116,15 +116,15 @@ export default defineCommand({
 Use any validation library you prefer:
 
 ```typescript
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { z } from 'zod'
 
 export default defineCommand({
   name: 'serve',
   description: 'Example command',
   options: {
-    email: option(z.string().email(), { description: 'Email address' }),
-    port: option(z.coerce.number().int().min(1).max(65535), { description: 'Port' })
+    email: defineOption(z.string().email(), { description: 'Email address' }),
+    port: defineOption(z.coerce.number().int().min(1).max(65535), { description: 'Port' })
   },
   handler: async ({ flags }) => {
     // flags.email is string

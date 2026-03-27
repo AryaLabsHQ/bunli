@@ -1,4 +1,4 @@
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { z } from 'zod'
 import { hasMetricsStore } from './store-guards.js'
 
@@ -19,28 +19,28 @@ const logsCommand = defineCommand({
   name: 'logs',
   description: 'View server logs',
   options: {
-    follow: option(
+    follow: defineOption(
       z.boolean().default(false),
       { 
         description: 'Follow log output in real-time',
         short: 'f'
       }
     ),
-    lines: option(
+    lines: defineOption(
       z.coerce.number().min(1).max(1000).default(50),
       { 
         description: 'Number of lines to show',
         short: 'n'
       }
     ),
-    level: option(
+    level: defineOption(
       z.enum(['error', 'warn', 'info', 'debug']).default('info'),
       { 
         description: 'Minimum log level',
         short: 'l'
       }
     ),
-    service: option(
+    service: defineOption(
       z.string().optional(),
       { 
         description: 'Filter by service name',

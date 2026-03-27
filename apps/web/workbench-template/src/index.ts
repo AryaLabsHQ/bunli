@@ -1,12 +1,12 @@
-import { createCLI, defineCommand, option } from "@bunli/core";
+import { createCLI, defineCommand, defineOption } from "@bunli/core";
 import { z } from "zod";
 
 const hello = defineCommand({
   name: "hello",
   description: "Say hello",
   options: {
-    name: option(z.string().default("bunli"), { short: "n" }),
-    excited: option(z.boolean().default(false), { short: "e" }),
+    name: defineOption(z.string().default("bunli"), { short: "n" }),
+    excited: defineOption(z.boolean().default(false), { short: "e" }),
   },
   handler: async ({ flags, colors }) => {
     const suffix = flags.excited ? "!" : ".";

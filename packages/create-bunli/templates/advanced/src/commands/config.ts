@@ -1,4 +1,4 @@
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { Result, TaggedError } from 'better-result'
 import { z } from 'zod'
 import { loadConfig, saveConfig, getConfigPath } from '../utils/config.js'
@@ -149,7 +149,7 @@ const configCommand = defineCommand({
       name: 'reset',
       description: 'Reset config to defaults',
       options: {
-        force: option(
+        force: defineOption(
           z.boolean().default(false),
           {
             short: 'f',

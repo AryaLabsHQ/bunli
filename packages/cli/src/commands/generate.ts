@@ -1,4 +1,4 @@
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { Result, TaggedError } from 'better-result'
 import { Generator } from '@bunli/generator'
 import { z } from 'zod'
@@ -24,18 +24,18 @@ export default defineCommand({
   description: 'Generate command type definitions',
   alias: 'gen',
   options: {
-    entry: option(z.string().optional(), {
+    entry: defineOption(z.string().optional(), {
       short: 'e',
       description: 'CLI entry file used for command discovery'
     }),
-    directory: option(z.string().optional(), {
+    directory: defineOption(z.string().optional(), {
       description: 'Optional command source directory fallback'
     }),
-    output: option(z.string().default('./.bunli/commands.gen.ts'), {
+    output: defineOption(z.string().default('./.bunli/commands.gen.ts'), {
       short: 'o',
       description: 'Output file'
     }),
-    watch: option(z.boolean().default(false), {
+    watch: defineOption(z.boolean().default(false), {
       short: 'w',
       description: 'Watch for changes',
       argumentKind: 'flag'

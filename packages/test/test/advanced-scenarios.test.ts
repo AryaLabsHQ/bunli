@@ -1,5 +1,5 @@
 import { test, expect } from 'bun:test'
-import { defineCommand, option, SchemaError } from '@bunli/core'
+import { defineCommand, defineOption, SchemaError } from '@bunli/core'
 import { z } from 'zod'
 import { testCommand, expectCommand, mockPromptResponses, mockShellCommands, mockInteractive, mockValidationAttempts, mergeTestOptions } from '../src/index.js'
 
@@ -14,7 +14,7 @@ test('complex validation scenario with Standard Schema', async () => {
     name: 'register',
     description: 'Register a new user',
     options: {
-      user: option(userSchema)
+      user: defineOption(userSchema)
     },
     handler: async ({ flags }) => {
       // In real usage, the transformation would happen during parsing
@@ -38,7 +38,7 @@ test('validation error handling with Standard Schema', async () => {
   const command = defineCommand({
     name: 'validate',
     options: {
-      port: option(z.number().int().min(1).max(65535), { description: 'Port number' })
+      port: defineOption(z.number().int().min(1).max(65535), { description: 'Port number' })
     },
     handler: async ({ flags }) => {
       console.log(`Using port: ${flags.port}`)

@@ -185,18 +185,18 @@ ${options}
       const shortPart = opt.short ? `short: '${opt.short}'` : ''
       const optionParts = [descPart, shortPart].filter(Boolean).join(', ')
 
-      lines.push(`    '${flagName}': option(${zodSchema}, { ${optionParts} }),`)
+      lines.push(`    '${flagName}': defineOption(${zodSchema}, { ${optionParts} }),`)
     }
 
     // Global options
     if (this.opts.includeRaw) {
-      lines.push(`    'raw': option(z.string().optional(), { description: 'Raw JSON arguments' }),`)
+      lines.push(`    'raw': defineOption(z.string().optional(), { description: 'Raw JSON arguments' }),`)
     }
     if (this.opts.includeTimeout) {
-      lines.push(`    'timeout': option(z.coerce.number().optional(), { description: 'Timeout in ms', short: 't' }),`)
+      lines.push(`    'timeout': defineOption(z.coerce.number().optional(), { description: 'Timeout in ms', short: 't' }),`)
     }
     if (this.opts.includeOutput) {
-      lines.push(`    'output': option(z.enum(['text', 'json', 'raw']).optional(), { description: 'Output format', short: 'o' }),`)
+      lines.push(`    'output': defineOption(z.enum(['text', 'json', 'raw']).optional(), { description: 'Output format', short: 'o' }),`)
     }
 
     return lines.join('\n')

@@ -1,4 +1,4 @@
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { Result, TaggedError } from 'better-result'
 import { Generator } from '@bunli/generator'
 import { z } from 'zod'
@@ -62,27 +62,27 @@ export default defineCommand({
   description: 'Run your CLI in development mode with hot reload',
   alias: 'd',
   options: {
-    entry: option(
+    entry: defineOption(
       z.string().optional(),
       { short: 'e', description: 'Entry file (defaults to auto-detect)' }
     ),
-    generate: option(
+    generate: defineOption(
       z.boolean().default(true),
       { description: 'Enable codegen', argumentKind: 'flag' }
     ),
-    clearScreen: option(
+    clearScreen: defineOption(
       z.boolean().default(true),
       { description: 'Clear screen on reload', argumentKind: 'flag' }
     ),
-    watch: option(
+    watch: defineOption(
       z.boolean().default(true),
       { short: 'w', description: 'Watch for changes', argumentKind: 'flag' }
     ),
-    inspect: option(
+    inspect: defineOption(
       z.boolean().default(false),
       { short: 'i', description: 'Enable debugger', argumentKind: 'flag' }
     ),
-    port: option(
+    port: defineOption(
       z.coerce.number().int().min(1).max(65535).optional(),
       { short: 'p', description: 'Debugger port' }
     )

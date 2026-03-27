@@ -38,7 +38,7 @@ Create a new CLI instance with configuration:
 
 ```typescript
 import { createCLI } from '@bunli/core'
-import { createPlugin } from '@bunli/core/plugin'
+import { definePlugin } from '@bunli/core/plugin'
 
 const basicCli = await createCLI({
   name: 'my-cli',
@@ -58,7 +58,7 @@ const configuredCli = await createCLI({
 })
 
 // With plugins for extended functionality
-const myPlugin = createPlugin({
+const myPlugin = definePlugin({
   name: 'my-plugin'
 })
 
@@ -92,7 +92,7 @@ await cli.run()
 Define commands with full type inference:
 
 ```typescript
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { z } from 'zod'
 
 export default defineCommand({
@@ -100,11 +100,11 @@ export default defineCommand({
   description: 'Deploy the application',
   alias: ['d', 'ship'], // Can be string or array
   options: {
-    env: option(
+    env: defineOption(
       z.enum(['dev', 'staging', 'prod']),
       { description: 'Target environment' }
     ),
-    dry: option(
+    dry: defineOption(
       z.coerce.boolean().default(false),
       { short: 'd', description: 'Perform a dry run' }
     )
@@ -127,11 +127,11 @@ export default defineCommand({
 Create typed options with validation:
 
 ```typescript
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { z } from 'zod'
 
 // Options always require a schema
-const portOption = option(
+const portOption = defineOption(
   z.coerce.number().int().min(1).max(65535).default(3000),
   {
     description: 'Port number',
@@ -145,7 +145,7 @@ defineCommand({
   description: 'Start the server',
   options: {
     port: portOption,
-    host: option(
+    host: defineOption(
       z.string().min(1).default('localhost'),
       { description: 'Host to bind to', short: 'h' }
     )
@@ -315,7 +315,7 @@ cli.command({
       name: 'seed',
       description: 'Seed database',
       options: {
-        force: option(
+        force: defineOption(
           z.coerce.boolean().default(false),
           { description: 'Force seed in production' }
         )
@@ -432,15 +432,15 @@ Bunli provides complete type safety throughout:
 ```typescript
 const command = defineCommand({
   options: {
-    port: option(
+    port: defineOption(
       z.coerce.number().int().positive().default(3000),
       { description: 'Server port' }
     ),
-    host: option(
+    host: defineOption(
       z.string().default('localhost'),
       { description: 'Server host' }
     ),
-    secure: option(
+    secure: defineOption(
       z.coerce.boolean().optional(),
       { description: 'Use HTTPS' }
     )
@@ -498,7 +498,7 @@ Leverage schema transforms for advanced parsing:
 
 ```typescript
 // Parse JSON input
-const configOption = option(
+const configOption = defineOption(
   z.string().transform(val => JSON.parse(val)).pipe(
     z.object({
       name: z.string(),
@@ -509,7 +509,7 @@ const configOption = option(
 )
 
 // Parse key-value pairs
-const envOption = option(
+const envOption = defineOption(
   z.string().transform(val => {
     const pairs = val.split(',')
     return Object.fromEntries(
@@ -520,7 +520,7 @@ const envOption = option(
 )
 
 // Parse file size
-const sizeOption = option(
+const sizeOption = defineOption(
   z.string().regex(/^\d+[kmg]b?$/i).transform(val => {
     const match = val.match(/^(\d+)([kmg])b?$/i)
     const [, num, unit] = match!
@@ -538,9 +538,9 @@ Bunli supports any validation library that implements Standard Schema v1:
 ```typescript
 // Using Valibot instead of Zod
 import * as v from 'valibot'
-import { option } from '@bunli/core'
+import { defineOption } from '@bunli/core'
 
-const portOption = option(
+const portOption = defineOption(
   v.pipe(
     v.string(),
     v.transform((val) => parseInt(val, 10)),
@@ -558,10 +558,10 @@ Bunli includes a powerful plugin system for extending functionality:
 
 ```typescript
 import { createCLI, defineCommand } from '@bunli/core'
-import { createPlugin } from '@bunli/core/plugin'
+import { definePlugin } from '@bunli/core/plugin'
 
 // Create a simple plugin
-const myPlugin = createPlugin<{ requestCount: number }>({
+const myPlugin = definePlugin<{ requestCount: number }>({
   name: 'my-plugin',
   store: {
     requestCount: 0

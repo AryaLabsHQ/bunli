@@ -1,16 +1,16 @@
 import { expectTypeOf, test } from 'vitest'
 import { z } from 'zod'
-import { defineCommand, option } from '../src/types.js'
+import { defineCommand, defineOption } from '../src/types.js'
 import type { CLIOption, Command, RunnableCommand, Group } from '../src/types.js'
 
-test('option() preserves schema type in CLIOption', () => {
-  const opt = option(z.string(), { short: 'n', description: 'Name' })
+test('defineOption() preserves schema type in CLIOption', () => {
+  const opt = defineOption(z.string(), { short: 'n', description: 'Name' })
   expectTypeOf(opt).toMatchTypeOf<CLIOption>()
   expectTypeOf(opt.schema).toMatchTypeOf<z.ZodString>()
 })
 
-test('option() with default preserves output type', () => {
-  const opt = option(z.number().default(42))
+test('defineOption() with default preserves output type', () => {
+  const opt = defineOption(z.number().default(42))
   expectTypeOf(opt.schema).toMatchTypeOf<z.ZodDefault<z.ZodNumber>>()
 })
 
@@ -19,9 +19,9 @@ test('defineCommand infers handler flags from options', () => {
     name: 'test',
     description: 'Test command',
     options: {
-      name: option(z.string()),
-      verbose: option(z.boolean().default(false), { argumentKind: 'flag' }),
-      count: option(z.number().optional()),
+      name: defineOption(z.string()),
+      verbose: defineOption(z.boolean().default(false), { argumentKind: 'flag' }),
+      count: defineOption(z.number().optional()),
     },
     handler({ flags }) {
       expectTypeOf(flags.name).toEqualTypeOf<string>()

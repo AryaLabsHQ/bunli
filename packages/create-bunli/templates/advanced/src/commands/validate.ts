@@ -1,4 +1,4 @@
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { z } from 'zod'
 import { loadConfig } from '../utils/config.js'
 import { validateFiles } from '../utils/validator.js'
@@ -8,14 +8,14 @@ const validateCommand = defineCommand({
   name: 'validate',
   description: 'Validate files against defined rules',
   options: {
-    config: option(
+    config: defineOption(
       z.string().optional(),
       {
         short: 'c',
         description: 'Path to config file'
       }
     ),
-    fix: option(
+    fix: defineOption(
       z.boolean().default(false),
       {
         short: 'f',
@@ -23,7 +23,7 @@ const validateCommand = defineCommand({
         argumentKind: 'flag'
       }
     ),
-    cache: option(
+    cache: defineOption(
       z.boolean().default(true),
       {
         description: 'Enable caching',

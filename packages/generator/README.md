@@ -89,7 +89,7 @@ export function listCommands(): Array<{...}>
 The generator discovers command modules from your CLI entry (`commands.entry` / `build.entry`) and parses default-exported `defineCommand` / `defineGroup` calls:
 
 ```typescript
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { z } from 'zod'
 
 export default defineCommand({
@@ -97,11 +97,11 @@ export default defineCommand({
   description: 'Deploy your application',
   alias: 'd',
   options: {
-    env: option(z.string(), { 
+    env: defineOption(z.string(), { 
       description: 'Environment to deploy to',
       short: 'e'
     }),
-    force: option(z.boolean().default(false), {
+    force: defineOption(z.boolean().default(false), {
       description: 'Force deployment'
     })
   },

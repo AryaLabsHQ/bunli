@@ -13,7 +13,7 @@ Commands follow a consistent pattern using the core framework:
 
 ```typescript
 // In any command file (e.g., packages/cli/src/commands/build.ts)
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { z } from 'zod'
 
 export const buildCommand = defineCommand({
@@ -21,11 +21,11 @@ export const buildCommand = defineCommand({
   description: 'Build the project',
   options: {
     // Define options with Zod validation
-    output: option(
+    output: defineOption(
       z.string().default('dist'),
       { description: 'Output directory', short: 'o' }
     ),
-    compress: option(
+    compress: defineOption(
       z.boolean().default(false),
       { description: 'Compress output' }
     )
@@ -78,17 +78,17 @@ export const buildCommand = defineCommand({
 
 - Use the plugin system from [packages/core/src/plugin/](mdc:packages/core/src/plugin)
 - Plugins provide type-safe stores accessible in command handlers
-- Create plugins with `createPlugin` helper:
+- Create plugins with `definePlugin` helper:
 
 ```typescript
-import { createPlugin } from '@bunli/core/plugin'
+import { definePlugin } from '@bunli/core/plugin'
 
 interface MyStore {
   count: number
   messages: string[]
 }
 
-const myPlugin = createPlugin<MyStore>({
+const myPlugin = definePlugin<MyStore>({
   name: 'my-plugin',
   store: {
     count: 0,

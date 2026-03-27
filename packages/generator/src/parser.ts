@@ -575,7 +575,7 @@ function isOptionCallExpression(node: any): boolean {
     node &&
     node.type === 'CallExpression' &&
     node.callee?.type === 'Identifier' &&
-    node.callee.name === 'option'
+    (node.callee.name === 'defineOption' || node.callee.name === 'option')
   )
 }
 

@@ -32,6 +32,7 @@ import { format as formatOutput } from './output/formatter.js'
 import { serializeCliError } from './output/serialize.js'
 import type { OutputFormat } from './output/types.js'
 import {
+  AggregateValidationError,
   BunliValidationError,
   CommandExecutionError,
   CommandNotFoundError,
@@ -621,6 +622,7 @@ export async function createCLI<
 
   type RunCommandError =
     | SchemaError
+    | AggregateValidationError
     | BunliValidationError
     | PromptCancelledError
     | OptionValidationError
@@ -892,6 +894,7 @@ export async function createCLI<
 
       if (
         error instanceof SchemaError ||
+        error instanceof AggregateValidationError ||
         error instanceof BunliValidationError ||
         error instanceof OptionValidationError
       ) {
@@ -936,6 +939,16 @@ export async function createCLI<
 
     if (error instanceof SchemaError) {
       await renderValidationError(error)
+      return
+    }
+
+    if (AggregateValidationError.is(error)) {
+      console.error(colors.red(`Validation failed for command '${error.command}':`))
+      for (const issue of error.issues) {
+        console.error(colors.red(`  --${issue.option}: ${issue.message}`))
+        if (issue.hint) console.error(colors.dim(`    Hint: ${issue.hint}`))
+        if (issue.suggestion) console.error(colors.dim(`    Did you mean: --${issue.suggestion}?`))
+      }
       return
     }
 
@@ -985,7 +998,8 @@ export async function createCLI<
         globalParsed = await parseArgs(
           commandArgs,
           getGlobalFlagsForCommand(command),
-          '__global__'
+          '__global__',
+          { strict: false }
         )
       } catch (error) {
         await printRunCommandError(

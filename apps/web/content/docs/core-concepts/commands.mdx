@@ -26,25 +26,25 @@ export default defineCommand({
 
 ## Command Options
 
-Add typed options to your commands using the `option()` helper with Zod schemas:
+Add typed options to your commands using the `defineOption()` helper with Zod schemas:
 
 ```typescript
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { z } from 'zod'
 
 export default defineCommand({
   name: 'greet',
   description: 'Greet someone',
   options: {
-    name: option(
+    name: defineOption(
       z.string().min(1),
       { description: 'Name to greet', short: 'n' }
     ),
-    times: option(
+    times: defineOption(
       z.coerce.number().int().positive().default(1),
       { description: 'Number of times to greet', short: 't' }
     ),
-    loud: option(
+    loud: defineOption(
       z.coerce.boolean().default(false),
       { description: 'Shout the greeting', short: 'l' }
     )
@@ -210,7 +210,7 @@ export default defineCommand({
       name: 'migrate',
       description: 'Run migrations',
       options: {
-        direction: option(
+        direction: defineOption(
           z.enum(['up', 'down']).default('up'),
           { description: 'Migration direction', short: 'd' }
         )
@@ -223,7 +223,7 @@ export default defineCommand({
       name: 'seed',
       description: 'Seed database',
       options: {
-        force: option(
+        force: defineOption(
           z.coerce.boolean().default(false),
           { description: 'Force seed in production', short: 'f' }
         )

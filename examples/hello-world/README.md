@@ -32,15 +32,15 @@ const greetCommand = defineCommand({
   name: 'greet' as const,
   description: 'A minimal greeting CLI',
   options: {
-    name: option(z.string().default('world'), {
+    name: defineOption(z.string().default('world'), {
       short: 'n',
       description: 'Who to greet'
     }),
-    loud: option(z.coerce.boolean().default(false), { 
+    loud: defineOption(z.coerce.boolean().default(false), { 
       short: 'l', 
       description: 'Shout the greeting' 
     }),
-    times: option(z.coerce.number().int().positive().default(1), { 
+    times: defineOption(z.coerce.number().int().positive().default(1), { 
       short: 't', 
       description: 'Number of times to greet' 
     })
@@ -66,7 +66,7 @@ const greetCommand = defineCommand({
 ## Key Concepts
 
 1. **`defineCommand`** - Creates a command with options and handler
-2. **`option()`** - Wraps Zod schemas with CLI metadata (short flags, descriptions)
+2. **`defineOption()`** - Wraps Zod schemas with CLI metadata (short flags, descriptions)
 3. **Type coercion** - `z.coerce.boolean()` converts strings to booleans
 4. **Command composition** - commands can provide both `render` and `handler`
 5. **Handler context** - Access to `flags`, `colors`, `spinner`, etc.

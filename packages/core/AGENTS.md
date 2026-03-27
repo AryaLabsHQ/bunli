@@ -4,7 +4,7 @@
 
 ## OVERVIEW
 
-Core package providing `defineCommand`, `option()`, and `createPlugin<T>()` for building type-safe CLI tools.
+Core package providing `defineCommand`, `defineOption()`, and `definePlugin<T>()` for building type-safe CLI tools.
 
 ## WHERE TO LOOK
 
@@ -19,7 +19,7 @@ Core package providing `defineCommand`, `option()`, and `createPlugin<T>()` for 
 
 ## CONVENTIONS
 
-- Plugin store must be typed via generics: `createPlugin<StoreType>()`
+- Plugin store must be typed via generics: `definePlugin<StoreType>()`
 - Use context-bound store access, never global
 - Export types explicitly for tree-shaking
 - Never modify store directly - use setter methods

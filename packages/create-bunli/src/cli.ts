@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-import { createCLI, defineCommand, option } from '@bunli/core'
+import { createCLI, defineCommand, defineOption } from '@bunli/core'
 import { z } from 'zod'
 import { create, UserCancelledError } from './create.js'
 import { Result } from 'better-result'
@@ -23,24 +23,24 @@ async function run(): Promise<void> {
     name: 'create',
     description: 'Create a new Bunli CLI project',
     options: {
-      name: option(z.string().optional(), { description: 'Project name' }),
-      template: option(
+      name: defineOption(z.string().optional(), { description: 'Project name' }),
+      template: defineOption(
         z.string().default('basic'),
         { short: 't', description: 'Project template (basic, advanced, monorepo, or github:user/repo)' }
       ),
-      dir: option(
+      dir: defineOption(
         z.string().optional(),
         { short: 'd', description: 'Directory to create project in' }
       ),
-      git: option(
+      git: defineOption(
         z.boolean().default(true),
         { short: 'g', description: 'Initialize git repository', argumentKind: 'flag' }
       ),
-      install: option(
+      install: defineOption(
         z.boolean().default(true),
         { short: 'i', description: 'Install dependencies', argumentKind: 'flag' }
       ),
-      offline: option(
+      offline: defineOption(
         z.boolean().default(false),
         { description: 'Use cached templates when available', argumentKind: 'flag' }
       )

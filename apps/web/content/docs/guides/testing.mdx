@@ -24,13 +24,13 @@ Bunli includes `@bunli/test` for testing CLI commands:
 
 ```typescript
 // src/commands/greet.ts
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { z } from 'zod'
 
 export default defineCommand({
   name: 'greet',
   options: {
-    name: option(z.string().default('World'))
+    name: defineOption(z.string().default('World'))
   },
   handler: async ({ flags, colors }) => {
     console.log(colors.green(`Hello, ${flags.name}!`))
@@ -101,17 +101,17 @@ test('greet with arguments via execute', async () => {
 
 ```typescript
 // src/commands/serve.ts
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { z } from 'zod'
 
 export default defineCommand({
   name: 'serve',
   options: {
-    port: option(
+    port: defineOption(
       z.coerce.number().int().min(1).max(65535),
       { description: 'Port number' }
     ),
-    host: option(
+    host: defineOption(
       z.string().default('localhost')
     )
   },
@@ -486,10 +486,10 @@ This generates a coverage report showing:
 ```typescript
 import { test, expect } from 'bun:test'
 import { testCommand } from '@bunli/test'
-import { createPlugin } from '@bunli/core/plugin'
+import { definePlugin } from '@bunli/core/plugin'
 import type { BunliPlugin } from '@bunli/core/plugin'
 
-const analyticsPlugin = createPlugin({
+const analyticsPlugin = definePlugin({
   name: 'analytics',
   store: {
     commandCount: 0,
@@ -522,7 +522,7 @@ test('analytics plugin tracks commands', async () => {
 test('plugin lifecycle hooks', async () => {
   const events: string[] = []
 
-  const testPlugin = createPlugin({
+  const testPlugin = definePlugin({
     name: 'test-plugin',
     setup() {
       events.push('setup')
@@ -561,7 +561,7 @@ interface TimerStore {
   endTime: number | null
 }
 
-const timerPlugin = createPlugin({
+const timerPlugin = definePlugin({
   name: 'timer',
   store: {
     startTime: null,
@@ -593,12 +593,12 @@ test('plugin store type safety', async () => {
 
 ```typescript
 test('multiple plugins interaction', async () => {
-  const pluginA = createPlugin({
+  const pluginA = definePlugin({
     name: 'plugin-a',
     store: { valueA: 'A' }
   })
 
-  const pluginB = createPlugin({
+  const pluginB = definePlugin({
     name: 'plugin-b',
     store: { valueB: 'B' }
   })

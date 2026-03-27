@@ -181,18 +181,18 @@ interface EnvironmentInfo {
 
 ## Functions
 
-### createPlugin
+### definePlugin
 
 Helper function for creating plugins with proper typing.
 
 ```typescript
 // Direct plugin overload
-function createPlugin<TStore = {}>(
+function definePlugin<TStore = {}>(
   plugin: BunliPlugin<TStore>
 ): BunliPlugin<TStore>
 
 // Factory overload
-function createPlugin<TOptions, TStore = {}>(
+function definePlugin<TOptions, TStore = {}>(
   factory: (options: TOptions) => BunliPlugin<TStore>
 ): (options: TOptions) => BunliPlugin<TStore>
 ```
@@ -206,7 +206,7 @@ interface MyStore {
   message: string
 }
 
-const myPlugin = createPlugin<MyStore>({
+const myPlugin = definePlugin<MyStore>({
   name: 'my-plugin',
   store: { count: 0, message: '' }
 })
@@ -220,7 +220,7 @@ interface MyStore {
   count: number
 }
 
-const myPlugin = createPlugin<Options, MyStore>((options) => ({
+const myPlugin = definePlugin<Options, MyStore>((options) => ({
   name: 'my-plugin',
   store: { count: 0 },
   beforeCommand(context) {
@@ -369,7 +369,7 @@ declare module '@bunli/core' {
 ## Complete Example
 
 ```typescript
-import { createPlugin, type BunliPlugin } from '@bunli/core/plugin'
+import { definePlugin, type BunliPlugin } from '@bunli/core/plugin'
 import { defineCommand } from '@bunli/core'
 
 interface MetricsStore {
@@ -378,7 +378,7 @@ interface MetricsStore {
   averageDuration: number
 }
 
-export const metricsPlugin = createPlugin<{ detailed?: boolean }, MetricsStore>(
+export const metricsPlugin = definePlugin<{ detailed?: boolean }, MetricsStore>(
   (options = {}) => ({
     name: '@company/metrics-plugin',
     version: '1.0.0',

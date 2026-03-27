@@ -11,18 +11,18 @@ bun add @bunli/core
 ## Quick Start
 
 ```typescript
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { z } from 'zod'
 
 export default defineCommand({
   name: 'greet',
   description: 'A friendly greeting',
   options: {
-    name: option(
+    name: defineOption(
       z.string().min(1),
       { description: 'Name to greet', short: 'n' }
     ),
-    excited: option(
+    excited: defineOption(
       z.coerce.boolean().default(false),
       { description: 'Add excitement', short: 'e' }
     )
@@ -66,18 +66,18 @@ export default defineCommand({
 Use the `option` helper with Standard Schema validation:
 
 ```typescript
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { z } from 'zod'
 
 export default defineCommand({
   name: 'deploy',
   description: 'Deploy the application',
   options: {
-    env: option(
+    env: defineOption(
       z.enum(['dev', 'staging', 'prod']),
       { description: 'Target environment' }
     ),
-    force: option(
+    force: defineOption(
       z.coerce.boolean().default(false),
       { description: 'Force deployment', short: 'f' }
     )
@@ -154,7 +154,7 @@ Default policy:
 
 Creates a command definition with full type inference.
 
-### `option(schema, config)`
+### `defineOption(schema, config)`
 
 Creates a typed option with schema validation.
 
@@ -218,10 +218,10 @@ const myPlugin: BunliPlugin<MyPluginStore> = {
 
 ### Plugin Factory
 
-Use `createPlugin` for better ergonomics:
+Use `definePlugin` for better ergonomics:
 
 ```typescript
-import { createPlugin } from '@bunli/core/plugin'
+import { definePlugin } from '@bunli/core/plugin'
 
 type AuthOptions = {
   provider: 'github' | 'gitlab'
@@ -244,7 +244,7 @@ async function fetchUser(_token: string): Promise<User> {
   return { name: 'octocat' }
 }
 
-export const authPlugin = createPlugin<AuthOptions, AuthStore>((options) => ({
+export const authPlugin = definePlugin<AuthOptions, AuthStore>((options) => ({
   name: `auth-${options.provider}`,
   store: {
     token: '',
@@ -290,14 +290,14 @@ Bunli provides utilities for plugin development and testing:
 
 ```typescript
 import { 
-  createTestPlugin, 
+  defineTestPlugin,
   composePlugins, 
   testPluginHooks,
   assertPluginBehavior 
 } from '@bunli/core/plugin'
 
 // Create a test plugin
-const testPlugin = createTestPlugin(
+const testPlugin = defineTestPlugin(
   { count: 0, message: '' },
   {
     beforeCommand(context) {
@@ -311,7 +311,7 @@ const testPlugin = createTestPlugin(
 // Compose multiple plugins
 const composedPlugin = composePlugins(
   testPlugin,
-  createTestPlugin({ enabled: true }, { name: 'metrics' })
+  defineTestPlugin({ enabled: true }, { name: 'metrics' })
 )
 
 // Test plugin behavior

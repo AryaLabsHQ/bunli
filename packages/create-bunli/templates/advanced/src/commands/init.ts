@@ -1,4 +1,4 @@
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { z } from 'zod'
 import { CONFIG_FILE_NAME, DEFAULT_CONFIG } from '../utils/constants.js'
 
@@ -6,7 +6,7 @@ const initCommand = defineCommand({
   name: 'init',
   description: 'Initialize a new configuration file',
   options: {
-    force: option(
+    force: defineOption(
       z.boolean().default(false),
       { 
         short: 'f',
@@ -14,7 +14,7 @@ const initCommand = defineCommand({
         argumentKind: 'flag'
       }
     ),
-    template: option(
+    template: defineOption(
       z.enum(['minimal', 'default', 'full']).default('default'),
       {
         short: 't',

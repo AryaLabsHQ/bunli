@@ -1,4 +1,4 @@
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { z } from 'zod'
 
 export default defineCommand({
@@ -6,7 +6,7 @@ export default defineCommand({
   description: 'Deploy application with interactive prompts',
   options: {
     // Environment with validation
-    environment: option(
+    environment: defineOption(
       z.enum(['development', 'staging', 'production'])
         .default('staging'),
       { 
@@ -16,7 +16,7 @@ export default defineCommand({
     ),
     
     // Skip steps with validation
-    skip: option(
+    skip: defineOption(
       z.string()
         .transform((val) => val.split(',').map(s => s.trim()))
         .refine((steps) => {
@@ -31,7 +31,7 @@ export default defineCommand({
     ),
     
     // Force deployment
-    force: option(
+    force: defineOption(
       z.coerce.boolean().default(false),
       { 
         short: 'f', 
@@ -40,7 +40,7 @@ export default defineCommand({
     ),
 
     // Spinner variant
-    spinner: option(
+    spinner: defineOption(
       z.enum(['braille', 'dots', 'line']).default('braille'),
       {
         description: 'Spinner style (braille, dots, line)'

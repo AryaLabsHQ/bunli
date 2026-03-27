@@ -31,18 +31,18 @@ if (argv._[0] === 'greet') {
 }`
 
 const bunliCode = `// bunli-cli.ts
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { z } from 'zod'
 
 export default defineCommand({
   name: 'greet',
   description: 'Greet someone',
   options: {
-    name: option(z.string().min(1), {
+    name: defineOption(z.string().min(1), {
       description: 'Name to greet',
       short: 'n',
     }),
-    excited: option(z.coerce.boolean().default(false), {
+    excited: defineOption(z.coerce.boolean().default(false), {
       description: 'Add excitement',
       short: 'e',
     }),

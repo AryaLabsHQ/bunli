@@ -1,4 +1,4 @@
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { z } from 'zod'
 import { loadConfig } from '@bunli/core'
 import { spawn } from 'node:child_process'
@@ -11,27 +11,27 @@ export default defineCommand({
   description: 'Run tests for your CLI',
   alias: 't',
   options: {
-    pattern: option(
+    pattern: defineOption(
       z.string().or(z.array(z.string())).optional(),
       { short: 'p', description: 'Test file patterns' }
     ),
-    watch: option(
+    watch: defineOption(
       z.boolean().default(false),
       { short: 'w', description: 'Watch for changes', argumentKind: 'flag' }
     ),
-    coverage: option(
+    coverage: defineOption(
       z.boolean().default(false),
       { short: 'c', description: 'Generate coverage report', argumentKind: 'flag' }
     ),
-    bail: option(
+    bail: defineOption(
       z.boolean().default(false),
       { short: 'b', description: 'Stop on first failure', argumentKind: 'flag' }
     ),
-    timeout: option(
+    timeout: defineOption(
       z.coerce.number().int().positive().optional(),
       { description: 'Test timeout in milliseconds' }
     ),
-    all: option(
+    all: defineOption(
       z.boolean().default(false),
       { description: 'Run tests in all packages (workspace mode)', argumentKind: 'flag' }
     )

@@ -17,7 +17,7 @@ const examples: Example[] = [
     key: '1',
     label: 'command',
     filename: 'greet.ts',
-    code: `import { defineCommand, option } from '@bunli/core'
+    code: `import { defineCommand, defineOption } from '@bunli/core'
 import { z } from 'zod'
 
 export default defineCommand({
@@ -33,7 +33,7 @@ export default defineCommand({
     },
   ],
   options: [
-    option(z.boolean(), {
+    defineOption(z.boolean(), {
       name: 'excited',
       short: 'e',
       description: 'Add excitement',
@@ -50,10 +50,10 @@ export default defineCommand({
     key: '2',
     label: 'plugins',
     filename: 'config-plugin.ts',
-    code: `import { createPlugin } from '@bunli/core/plugin'
+    code: `import { definePlugin } from '@bunli/core/plugin'
 import { configMergerPlugin } from '@bunli/plugin-config'
 
-const configPlugin = createPlugin({
+const configPlugin = definePlugin({
   name: 'config',
   setup(ctx) {
     ctx.registerCommand(configCommand)
@@ -72,19 +72,19 @@ export default configPlugin`,
     key: '3',
     label: 'tui',
     filename: 'tui-prompt.tsx',
-    code: `import { defineCommand, option } from '@bunli/core'
+    code: `import { defineCommand, defineOption } from '@bunli/core'
 import { z } from 'zod'
 
 export default defineCommand({
   name: 'init',
   description: 'Initialize a new project',
   options: [
-    option(z.string(), {
+    defineOption(z.string(), {
       name: 'name',
       short: 'n',
       description: 'Project name',
     }),
-    option(z.enum(['minimal', 'full']), {
+    defineOption(z.enum(['minimal', 'full']), {
       name: 'template',
       short: 't',
       description: 'Project template',

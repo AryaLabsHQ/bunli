@@ -1,4 +1,4 @@
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { z } from 'zod'
 import { hasConfigStore, hasMetricsStore } from './store-guards.js'
 
@@ -6,28 +6,28 @@ const startCommand = defineCommand({
   name: 'start',
   description: 'Start development server with hot reload',
   options: {
-    port: option(
+    port: defineOption(
       z.coerce.number().min(1000).max(65535).default(3000),
       { 
         description: 'Port to run the server on',
         short: 'p'
       }
     ),
-    host: option(
+    host: defineOption(
       z.string().default('localhost'),
       { 
         description: 'Host to bind the server to',
         short: 'h'
       }
     ),
-    watch: option(
+    watch: defineOption(
       z.boolean().default(true),
       { 
         description: 'Enable file watching and hot reload',
         short: 'w'
       }
     ),
-    open: option(
+    open: defineOption(
       z.boolean().default(false),
       { 
         description: 'Open browser automatically',

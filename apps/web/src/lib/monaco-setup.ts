@@ -1,15 +1,15 @@
 import type * as Monaco from "monaco-editor";
 import { themes } from "./themes.js";
 
-const DEFAULT_EDITOR_SOURCE = `import { createCLI, defineCommand, option } from '@bunli/core'
+const DEFAULT_EDITOR_SOURCE = `import { createCLI, defineCommand, defineOption } from '@bunli/core'
 import { z } from 'zod'
 
 const hello = defineCommand({
   name: 'hello',
   description: 'Say hello',
   options: {
-    name: option(z.string().default('bunli'), { short: 'n' }),
-    excited: option(z.boolean().default(false), { short: 'e' }),
+    name: defineOption(z.string().default('bunli'), { short: 'n' }),
+    excited: defineOption(z.boolean().default(false), { short: 'e' }),
   },
   handler: async ({ flags, colors }) => {
     const suffix = flags.excited ? '!' : '.'
