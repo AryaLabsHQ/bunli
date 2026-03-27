@@ -137,7 +137,7 @@ export default defineCommand({
   },
   handler: async ({ flags, colors, spinner }) => {
     const spin = spinner('Loading tasks...')
-    // Note: spinner('text') auto-starts the spinner — no manual .start() needed
+    spin.start()
 
     // Simulate loading
     await new Promise(resolve => setTimeout(resolve, 500))

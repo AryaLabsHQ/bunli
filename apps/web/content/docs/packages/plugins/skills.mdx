@@ -238,15 +238,16 @@ The package also exports several utilities beyond the main plugin:
 
 ```typescript
 import { builtinAgents, detectAgents } from '@bunli/plugin-skills'
+import type { Agent } from '@bunli/plugin-skills'
 
-// List all supported agent identifiers
+// All known agent definitions (Agent[] — not strings)
 builtinAgents
-// → ['claude-code', 'cursor', 'copilot', 'windsurf', ...] (18+ agents)
+// → [{ name: 'Claude Code', globalSkillsDir: '~/.claude/skills', ... }, ...] (30+ agents)
 
-// Detect which agents are present in the current environment
-const agents = await detectAgents()
+// Detect which agents are installed on the system (synchronous)
+const agents = detectAgents()
 console.log(agents)
-// → [{ id: 'claude-code', name: 'Claude Code', isInstalled: true }, ...]
+// → [{ name: 'Claude Code', globalSkillsDir: '~/.claude/skills', projectSkillsDir: '.claude/skills', universal: false, detect: [Function] }, ...]
 ```
 
 ### Skill File Generation
@@ -254,17 +255,18 @@ console.log(agents)
 ```typescript
 import { generateSkillFile, generateCommandSkill } from '@bunli/plugin-skills'
 
-// Generate a skill file string for a single command
-const skillFile = await generateSkillFile(
-  myCommand,        // a Command object
-  { includeOptions: true }
+// Generate a full SKILL.md string for all commands (synchronous)
+const skillFile = generateSkillFile(
+  'my-cli',          // CLI name
+  commandsMap,       // Map<string, Command>
+  { description: 'My CLI tool' }
 )
 
-// Generate a skill record for a named command
-const skill = await generateCommandSkill(
-  'my-cli',         // CLI name
-  myCommand,        // Command object
-  { includeOptions: true }
+// Generate a SKILL.md string for a single command (synchronous)
+const skill = generateCommandSkill(
+  'my-cli',          // CLI name
+  'deploy',          // command name
+  myCommand          // Command object
 )
 ```
 
@@ -274,15 +276,15 @@ const skill = await generateCommandSkill(
 import { syncSkills } from '@bunli/plugin-skills'
 import type { SyncOptions, SyncResult, AgentInstall } from '@bunli/plugin-skills'
 
-const result = await syncSkills({
-  cliName: 'my-cli',
-  agents: ['claude-code', 'cursor'],
-  global: false  // install globally vs project-local
-})
+const result = await syncSkills(
+  'my-cli',          // CLI name
+  commandsMap,       // Map<string, Command>
+  { global: false }  // SyncOptions — install project-local instead of global
+)
 
-result.installed    // Array of AgentInstall records
-result.skipped      // Agents that were skipped
-result.errors       // Any errors encountered
+result.paths       // Canonical install paths (string[])
+result.agents      // Per-agent install details (AgentInstall[])
+result.updated     // Whether the skill file was written (false if hash matched)
 ```
 
 ## See Also
