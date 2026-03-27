@@ -42,7 +42,7 @@ export async function coerceValue(
     if (!result.issues) {
       return { value: 'value' in result ? result.value : undefined, coerced: false }
     }
-    return { value: undefined, coerced: false }
+    return { value: undefined, coerced: false, issues: result.issues }
   }
 
   // Track the best constraint-violation error from a type-matched coercion
