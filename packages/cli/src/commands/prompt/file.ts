@@ -1,4 +1,4 @@
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { writeStdout } from '@bunli/utils'
 import { z } from 'zod'
 import { readdirSync, statSync } from 'node:fs'
@@ -8,11 +8,11 @@ export default defineCommand({
   name: 'file',
   description: 'Pick a file or directory',
   options: {
-    path: option(z.string().optional().default('.'), { description: 'Starting directory' }),
-    files: option(z.boolean().optional().default(true), { description: 'Show files', argumentKind: 'flag' }),
-    directories: option(z.boolean().optional().default(true), { description: 'Show directories', argumentKind: 'flag' }),
-    hidden: option(z.boolean().optional().default(false), { description: 'Show hidden files', argumentKind: 'flag' }),
-    extensions: option(z.string().optional(), { description: 'Filter by extensions (comma-separated)' }),
+    path: defineOption(z.string().optional().default('.'), { description: 'Starting directory' }),
+    files: defineOption(z.boolean().optional().default(true), { description: 'Show files', argumentKind: 'flag' }),
+    directories: defineOption(z.boolean().optional().default(true), { description: 'Show directories', argumentKind: 'flag' }),
+    hidden: defineOption(z.boolean().optional().default(false), { description: 'Show hidden files', argumentKind: 'flag' }),
+    extensions: defineOption(z.string().optional(), { description: 'Filter by extensions (comma-separated)' }),
   },
   async handler({ flags, prompt }) {
     const dir = resolve(flags.path)

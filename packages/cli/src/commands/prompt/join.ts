@@ -1,4 +1,4 @@
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { readStdinLines, writeStdout } from '@bunli/utils'
 import { z } from 'zod'
 
@@ -43,9 +43,9 @@ export default defineCommand({
   name: 'join',
   description: 'Join text blocks together',
   options: {
-    horizontal: option(z.boolean().optional().default(false), { description: 'Join horizontally', argumentKind: 'flag' }),
-    separator: option(z.string().optional().default(''), { description: 'Separator between blocks' }),
-    align: option(z.string().optional().default('left'), { description: 'Alignment (left, center, right)' }),
+    horizontal: defineOption(z.boolean().optional().default(false), { description: 'Join horizontally', argumentKind: 'flag' }),
+    separator: defineOption(z.string().optional().default(''), { description: 'Separator between blocks' }),
+    align: defineOption(z.string().optional().default('left'), { description: 'Alignment (left, center, right)' }),
   },
   async handler({ flags, positional }) {
     let blocks: string[]

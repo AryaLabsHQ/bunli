@@ -1,4 +1,4 @@
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { readStdinLines, writeStdout, writeStdoutLines } from '@bunli/utils'
 import { z } from 'zod'
 
@@ -6,9 +6,9 @@ export default defineCommand({
   name: 'filter',
   description: 'Fuzzy-filter from a list of options',
   options: {
-    placeholder: option(z.string().optional(), { description: 'Search placeholder text' }),
-    limit: option(z.number().optional(), { description: 'Max selections' }),
-    height: option(z.number().optional().default(10), { description: 'Visible items' }),
+    placeholder: defineOption(z.string().optional(), { description: 'Search placeholder text' }),
+    limit: defineOption(z.number().optional(), { description: 'Max selections' }),
+    height: defineOption(z.number().optional().default(10), { description: 'Visible items' }),
   },
   async handler({ flags, positional, prompt }) {
     let items = positional.length > 0 ? positional : []

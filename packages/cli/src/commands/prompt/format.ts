@@ -1,4 +1,4 @@
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { formatCode, formatEmoji, formatMarkdown } from '@bunli/tui'
 import { readStdinLines, writeStdout } from '@bunli/utils'
 import { z } from 'zod'
@@ -7,10 +7,10 @@ export default defineCommand({
   name: 'format',
   description: 'Format text output',
   options: {
-    type: option(z.enum(['markdown', 'code', 'emoji', 'template']).optional().default('markdown'), {
+    type: defineOption(z.enum(['markdown', 'code', 'emoji', 'template']).optional().default('markdown'), {
       description: 'Format type',
     }),
-    language: option(z.string().optional(), { description: 'Language for code formatting' }),
+    language: defineOption(z.string().optional(), { description: 'Language for code formatting' }),
   },
   async handler({ flags, positional }) {
     let text = positional.length > 0 ? positional.join(' ') : undefined

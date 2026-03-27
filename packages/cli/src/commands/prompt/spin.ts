@@ -1,11 +1,11 @@
-import { defineCommand, option } from '@bunli/core'
+import { defineCommand, defineOption } from '@bunli/core'
 import { z } from 'zod'
 
 export default defineCommand({
   name: 'spin',
   description: 'Run a command with a spinner',
   options: {
-    title: option(z.string().optional().default('Loading...'), { description: 'Spinner title' }),
+    title: defineOption(z.string().optional().default('Loading...'), { description: 'Spinner title' }),
   },
   async handler({ flags, positional, spinner }) {
     if (positional.length === 0) {
