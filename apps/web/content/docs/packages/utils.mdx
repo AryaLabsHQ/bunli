@@ -343,6 +343,37 @@ if (result.error instanceof SchemaError) {
 }
 ```
 
+### getDotPath
+
+Re-exported from `@standard-schema/utils`. Extracts the dot-notation path string from a Standard Schema validation issue:
+
+```typescript
+import { getDotPath } from '@bunli/utils'
+
+// Given a validation issue with path segments
+const issue = { message: 'Invalid email', path: ['user', 'profile', 'email'] }
+getDotPath(issue)  // 'user.profile.email'
+
+// Issue without a path
+const rootIssue = { message: 'Invalid input' }
+getDotPath(rootIssue)  // undefined
+
+// Useful for formatting validation error messages
+const result = await validate(schema, input)
+if (!result.ok) {
+  for (const issue of result.error.issues) {
+    const path = getDotPath(issue)
+    console.error(`${path ?? '(root)'}: ${issue.message}`)
+  }
+}
+```
+
+Also exported from `@standard-schema/utils` directly:
+
+```typescript
+import { getDotPath } from '@standard-schema/utils'
+```
+
 ## Best Practices
 
 1. **Use appropriate log levels**:

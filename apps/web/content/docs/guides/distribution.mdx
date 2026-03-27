@@ -571,18 +571,18 @@ const cli = await createCLI({
 
 ### Update Notifications
 
-Notify users of new versions:
+Notify users of new versions using the npm registry API:
 
 ```typescript
 // src/utils/check-update.ts
-import { getLatestVersion } from '@bunli/utils'
-
-export async function checkForUpdates(currentVersion: string) {
+export async function checkForUpdates(currentVersion: string, packageName: string) {
   try {
-    const latest = await getLatestVersion('my-cli')
-    if (latest > currentVersion) {
+    const res = await fetch(`https://registry.npmjs.org/${packageName}/latest`)
+    const data = await res.json() as { version: string }
+    const latest = data.version
+    if (latest !== currentVersion) {
       console.log(`\n  Update available: ${currentVersion} → ${latest}`)
-      console.log('  Run: npm update -g my-cli\n')
+      console.log(`  Run: npm update -g ${packageName}\n`)
     }
   } catch {
     // Ignore update check failures

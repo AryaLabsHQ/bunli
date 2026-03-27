@@ -168,7 +168,7 @@ Use the `mockPromptResponses` helper with `testCommand`:
 export default defineCommand({
   name: 'init',
   handler: async ({ prompt, colors }) => {
-    const name = await prompt('Project name:', {
+    const name = await prompt.text('Enter project name:', {
       default: 'my-project'
     })
 
@@ -200,7 +200,7 @@ import init from './init'
 test('init command with prompts', async () => {
   const result = await testCommand(init, {
     ...mockPromptResponses({
-      'Project name:': 'awesome-cli',
+      'Enter project name:': 'awesome-cli',
       'Use TypeScript?': 'n',
       'Choose a template:': 'full'
     })
@@ -214,7 +214,7 @@ test('init command with prompts', async () => {
 test('init command with default values', async () => {
   const result = await testCommand(init, {
     ...mockPromptResponses({
-      'Project name:': 'my-project',
+      'Enter project name:': 'my-project',
       'Use TypeScript?': '',
       'Choose a template:': 'basic'
     })

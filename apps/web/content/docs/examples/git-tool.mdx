@@ -46,13 +46,15 @@ Pull request workflow automation:
 ### `sync` - Repository Synchronization
 ```bash
 bun run cli.ts sync --remote origin --branch main
-bun run cli.ts sync --pull --push --rebase
+bun run cli.ts sync --rebase --prune
+# alias: bun run cli.ts pull --remote origin --branch main
 ```
 
 Sync with remote repositories:
 - Pull latest changes
-- Push local commits
+- Push local commits (via interactive prompt)
 - Rebase on upstream
+- Prune stale remote branches
 - Handle merge conflicts
 
 ### `status` - Enhanced Git Status

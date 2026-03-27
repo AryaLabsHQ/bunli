@@ -32,7 +32,10 @@ interface BunliConfig {
     directory?: string
     generateReport?: boolean
   }
-  
+
+  // Plugin configuration
+  plugins?: import('@bunli/core').PluginConfig[]
+
   // Build configuration
   build?: {
     entry?: string | string[]
@@ -57,7 +60,12 @@ interface BunliConfig {
     coverage?: boolean
     watch?: boolean
   }
-  
+
+  // Help configuration
+  help?: {
+    renderer?: unknown  // Custom renderer function; z.unknown() accepts any type
+  }
+
   // Release configuration
   release?: {
     npm?: boolean

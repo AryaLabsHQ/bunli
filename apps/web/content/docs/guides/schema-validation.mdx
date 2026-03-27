@@ -501,7 +501,7 @@ test('validates port number', async () => {
   // Invalid port
   const invalid = await cli.run(['serve', '--port', '70000'])
   expect(invalid.exitCode).toBe(1)
-  expect(invalid.error).toContain('less than or equal to 65535')
+  expect(invalid.stderr).toContain('less than or equal to 65535')
 })
 ```
 
