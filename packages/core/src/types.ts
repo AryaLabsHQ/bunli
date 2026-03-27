@@ -222,12 +222,15 @@ export interface HelpRenderContext<TStore = {}> {
 
 export type HelpRenderer<TStore = {}> = (context: HelpRenderContext<TStore>) => void
 
+export type OptionArgumentKind = 'flag' | 'value'
+
 // CLI option with metadata - generic to preserve schema type
 export interface CLIOption<S extends StandardSchemaV1 = StandardSchemaV1> {
   schema: S
   short?: string
   description?: string
   repeatable?: boolean
+  argumentKind?: OptionArgumentKind
 }
 
 // Options must use the CLIOption wrapper
@@ -306,7 +309,12 @@ export type ResolvedConfig = Required<Omit<BunliConfig, 'build' | 'dev' | 'test'
 // Helper to create a CLI option with metadata
 export function option<S extends StandardSchemaV1>(
   schema: S,
-  metadata?: { short?: string; description?: string; repeatable?: boolean }
+  metadata?: {
+    short?: string
+    description?: string
+    repeatable?: boolean
+    argumentKind?: OptionArgumentKind
+  }
 ): CLIOption<S> {
   return {
     schema,

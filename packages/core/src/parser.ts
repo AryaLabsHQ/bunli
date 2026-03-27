@@ -1,4 +1,4 @@
-import type { Options, StandardSchemaV1, CLIOption } from './types.js'
+import type { Options, StandardSchemaV1 } from './types.js'
 import { BunliValidationError } from './errors.js'
 import { SchemaError } from '@standard-schema/utils'
 
@@ -54,7 +54,7 @@ export async function parseArgs(
       let value: string | undefined = inlineValue
       if (value === undefined && i + 1 < args.length && !args[i + 1]?.startsWith('-')) {
         const next = args[i + 1]!
-        if (isStrictBooleanSchema(options[name]!.schema) && next !== 'true' && next !== 'false') {
+        if (options[name]!.argumentKind === 'flag' && next !== 'true' && next !== 'false') {
           // Boolean flags should not consume the next positional argument
         } else {
           value = args[++i]
@@ -84,7 +84,7 @@ export async function parseArgs(
         let value: string | undefined
         if (i + 1 < args.length && !args[i + 1]?.startsWith('-')) {
           const next = args[i + 1]!
-          if (isStrictBooleanSchema(option.schema) && next !== 'true' && next !== 'false') {
+          if (option.argumentKind === 'flag' && next !== 'true' && next !== 'false') {
             // Boolean flags should not consume the next positional argument
           } else {
             value = args[++i]
@@ -134,6 +134,19 @@ async function validateOption(
     if (!testResult.issues) {
       // Schema accepts boolean, convert the string
       processedValue = value === 'true'
+    }
+  }
+
+  if (Array.isArray(value)) {
+    const coercedArray = value.map(item => {
+      if (item === 'true') return true
+      if (item === 'false') return false
+      return item
+    })
+
+    const coercedArrayResult = await schema['~standard'].validate(coercedArray)
+    if (!coercedArrayResult.issues) {
+      processedValue = coercedArray
     }
   }
   
@@ -199,32 +212,4 @@ function generateHint(schema: StandardSchemaV1, value: unknown): string {
     return 'Choose from the available options'
   }
   return ''
-}
-
-function isStrictBooleanSchema(schema: StandardSchemaV1): boolean {
-  const unwrapped = unwrapSchema(schema)
-  return 'type' in unwrapped && unwrapped.type === 'boolean'
-}
-
-function unwrapSchema(schema: StandardSchemaV1): StandardSchemaV1 {
-  let current: StandardSchemaV1 = schema
-
-  while (
-    'type' in current &&
-    (
-      current.type === 'default' ||
-      current.type === 'prefault' ||
-      current.type === 'catch' ||
-      current.type === 'optional' ||
-      current.type === 'nullable' ||
-      current.type === 'nonoptional' ||
-      current.type === 'readonly'
-    ) &&
-    'innerType' in current &&
-    current.innerType
-  ) {
-    current = current.innerType as StandardSchemaV1
-  }
-
-  return current
 }

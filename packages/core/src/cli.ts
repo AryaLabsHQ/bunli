@@ -351,35 +351,7 @@ export async function createCLI<
   }
 
   function isBooleanGlobalFlag(flag: CLIOption<any>): boolean {
-    return isStrictBooleanSchema(flag.schema)
-  }
-
-  function isStrictBooleanSchema(schema: StandardSchemaV1): boolean {
-    const unwrapped = unwrapSchema(schema)
-    return 'type' in unwrapped && unwrapped.type === 'boolean'
-  }
-
-  function unwrapSchema(schema: StandardSchemaV1): StandardSchemaV1 {
-    let current: StandardSchemaV1 = schema
-
-    while (
-      'type' in current &&
-      (
-        current.type === 'default' ||
-        current.type === 'prefault' ||
-        current.type === 'catch' ||
-        current.type === 'optional' ||
-        current.type === 'nullable' ||
-        current.type === 'nonoptional' ||
-        current.type === 'readonly'
-      ) &&
-      'innerType' in current &&
-      current.innerType
-    ) {
-      current = current.innerType as StandardSchemaV1
-    }
-
-    return current
+    return flag.argumentKind === 'flag'
   }
 
   function stripRecognizedGlobalFlags(args: string[]): { args: string[]; originalIndexes: number[] } {
@@ -1059,9 +1031,10 @@ export async function createCLI<
         if (cmdArgs.length === 0) {
           printHelpOutput(outputContext, terminalInfo)
         } else {
-          const { command } = findCommand(cmdArgs)
+          const { command, remainingArgs: helpRemainingArgs } = findCommand(cmdArgs)
           if (command) {
-            printHelpOutput(outputContext, terminalInfo, command, cmdArgs.slice(0, -1))
+            const matchedPath = cmdArgs.slice(0, cmdArgs.length - helpRemainingArgs.length)
+            printHelpOutput(outputContext, terminalInfo, command, matchedPath.slice(0, -1))
           } else {
             const unknownCommandError = new CommandNotFoundError({
               message: `Command '${cmdArgs.join(' ')}' not found`,

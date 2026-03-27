@@ -8,12 +8,14 @@ export const GLOBAL_FLAGS = {
   help: {
     schema: z.boolean().default(false),
     short: 'h',
-    description: 'Show help'
+    description: 'Show help',
+    argumentKind: 'flag'
   },
   version: {
     schema: z.boolean().default(false),
     short: 'v',
-    description: 'Show version'
+    description: 'Show version',
+    argumentKind: 'flag'
   },
   'image-mode': {
     schema: z.enum(['off', 'auto', 'on']).optional(),
@@ -25,11 +27,13 @@ export const GLOBAL_FLAGS = {
   },
   llms: {
     schema: z.boolean().default(false),
-    description: 'Print compact command manifest (Markdown)'
+    description: 'Print compact command manifest (Markdown)',
+    argumentKind: 'flag'
   },
   'llms-full': {
     schema: z.boolean().default(false),
-    description: 'Print full command manifest (Markdown)'
+    description: 'Print full command manifest (Markdown)',
+    argumentKind: 'flag'
   }
 } satisfies Record<string, CLIOption>
 
