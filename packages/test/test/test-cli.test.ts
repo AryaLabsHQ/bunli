@@ -165,3 +165,22 @@ test('createTestCLI honors explicit --format when global parsing fails', async (
   expect(result.stderr).toContain('kind: validation')
   expect(result.stderr).toContain('name: BunliValidationError')
 })
+
+test('createTestCLI strips explicit boolean global values before command resolution', async () => {
+  const buildCommand = defineCommand({
+    name: 'build',
+    description: 'Build the project',
+    async handler() {
+      console.log('building')
+    }
+  })
+
+  const testCli = await createTestCLI({
+    commands: [buildCommand]
+  })
+
+  const result = await testCli.run(['--help', 'false', 'build'])
+
+  expect(result.exitCode).toBe(0)
+  expect(result.stdout).toContain('building')
+})

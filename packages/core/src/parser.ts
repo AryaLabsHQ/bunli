@@ -54,11 +54,7 @@ export async function parseArgs(
       let value: string | undefined = inlineValue
       if (value === undefined && i + 1 < args.length && !args[i + 1]?.startsWith('-')) {
         const next = args[i + 1]!
-        if (
-          next !== 'true' &&
-          next !== 'false' &&
-          await shouldSkipNextValueForBooleanFlag(options[name]!.schema, next)
-        ) {
+        if (isStrictBooleanSchema(options[name]!.schema) && next !== 'true' && next !== 'false') {
           // Boolean flags should not consume the next positional argument
         } else {
           value = args[++i]
@@ -88,11 +84,7 @@ export async function parseArgs(
         let value: string | undefined
         if (i + 1 < args.length && !args[i + 1]?.startsWith('-')) {
           const next = args[i + 1]!
-          if (
-            next !== 'true' &&
-            next !== 'false' &&
-            await shouldSkipNextValueForBooleanFlag(option.schema, next)
-          ) {
+          if (isStrictBooleanSchema(option.schema) && next !== 'true' && next !== 'false') {
             // Boolean flags should not consume the next positional argument
           } else {
             value = args[++i]
@@ -209,20 +201,30 @@ function generateHint(schema: StandardSchemaV1, value: unknown): string {
   return ''
 }
 
-async function shouldSkipNextValueForBooleanFlag(
-  schema: StandardSchemaV1,
-  nextValue: string
-): Promise<boolean> {
-  const [acceptsTrue, acceptsFalse, acceptsNumber, acceptsNextValue] = await Promise.all([
-    schema['~standard'].validate(true),
-    schema['~standard'].validate(false),
-    schema['~standard'].validate(42),
-    schema['~standard'].validate(nextValue),
-  ])
-  return (
-    !acceptsTrue.issues &&
-    !acceptsFalse.issues &&
-    !!acceptsNumber.issues &&
-    !!acceptsNextValue.issues
-  )
+function isStrictBooleanSchema(schema: StandardSchemaV1): boolean {
+  const unwrapped = unwrapSchema(schema)
+  return 'type' in unwrapped && unwrapped.type === 'boolean'
+}
+
+function unwrapSchema(schema: StandardSchemaV1): StandardSchemaV1 {
+  let current: StandardSchemaV1 = schema
+
+  while (
+    'type' in current &&
+    (
+      current.type === 'default' ||
+      current.type === 'prefault' ||
+      current.type === 'catch' ||
+      current.type === 'optional' ||
+      current.type === 'nullable' ||
+      current.type === 'nonoptional' ||
+      current.type === 'readonly'
+    ) &&
+    'innerType' in current &&
+    current.innerType
+  ) {
+    current = current.innerType as StandardSchemaV1
+  }
+
+  return current
 }

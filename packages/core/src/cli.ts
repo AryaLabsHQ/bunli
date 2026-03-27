@@ -351,11 +351,35 @@ export async function createCLI<
   }
 
   function isBooleanGlobalFlag(flag: CLIOption<any>): boolean {
-    const acceptsTrue = flag.schema['~standard'].validate(true)
-    const acceptsFalse = flag.schema['~standard'].validate(false)
-    const acceptsNumber = flag.schema['~standard'].validate(42)
-    if (acceptsTrue instanceof Promise || acceptsFalse instanceof Promise || acceptsNumber instanceof Promise) return false
-    return !acceptsTrue.issues && !acceptsFalse.issues && !!acceptsNumber.issues
+    return isStrictBooleanSchema(flag.schema)
+  }
+
+  function isStrictBooleanSchema(schema: StandardSchemaV1): boolean {
+    const unwrapped = unwrapSchema(schema)
+    return 'type' in unwrapped && unwrapped.type === 'boolean'
+  }
+
+  function unwrapSchema(schema: StandardSchemaV1): StandardSchemaV1 {
+    let current: StandardSchemaV1 = schema
+
+    while (
+      'type' in current &&
+      (
+        current.type === 'default' ||
+        current.type === 'prefault' ||
+        current.type === 'catch' ||
+        current.type === 'optional' ||
+        current.type === 'nullable' ||
+        current.type === 'nonoptional' ||
+        current.type === 'readonly'
+      ) &&
+      'innerType' in current &&
+      current.innerType
+    ) {
+      current = current.innerType as StandardSchemaV1
+    }
+
+    return current
   }
 
   function stripRecognizedGlobalFlags(args: string[]): { args: string[]; originalIndexes: number[] } {
@@ -385,7 +409,16 @@ export async function createCLI<
         const name = eqIndex > 0 ? arg.slice(2, eqIndex) : arg.slice(2)
         const flag = name ? getGlobalFlag(name) : undefined
         if (flag) {
-          if (eqIndex < 0 && i + 1 < args.length && !args[i + 1]?.startsWith('-') && !isBooleanGlobalFlag(flag)) {
+          if (
+            eqIndex < 0 &&
+            i + 1 < args.length &&
+            !args[i + 1]?.startsWith('-') &&
+            (
+              !isBooleanGlobalFlag(flag) ||
+              args[i + 1] === 'true' ||
+              args[i + 1] === 'false'
+            )
+          ) {
             i += 1
           }
           continue
@@ -395,7 +428,15 @@ export async function createCLI<
         const name = shortToName.get(short)
         const flag = name ? getGlobalFlag(name) : undefined
         if (flag) {
-          if (i + 1 < args.length && !args[i + 1]?.startsWith('-') && !isBooleanGlobalFlag(flag)) {
+          if (
+            i + 1 < args.length &&
+            !args[i + 1]?.startsWith('-') &&
+            (
+              !isBooleanGlobalFlag(flag) ||
+              args[i + 1] === 'true' ||
+              args[i + 1] === 'false'
+            )
+          ) {
             i += 1
           }
           continue

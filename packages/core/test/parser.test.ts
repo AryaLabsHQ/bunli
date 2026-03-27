@@ -85,6 +85,18 @@ describe('parseArgs repeatable options', () => {
     expect(parsed.positional).toEqual([])
   })
 
+  test('treats invalid mixed boolean option values as option errors', async () => {
+    await expect(async () => {
+      await parseArgs(
+        ['--mode', 'invalid'],
+        {
+          mode: option(z.union([z.boolean(), z.literal('auto')]).default(false)),
+        },
+        'deploy'
+      )
+    }).toThrow(/Invalid option 'mode'/)
+  })
+
   test('does not skip invalid values for coercible non-boolean schemas', async () => {
     await expect(async () => {
       await parseArgs(
