@@ -46,6 +46,8 @@ jobs:
           ANTHROPIC_DEFAULT_HAIKU_MODEL: MiniMax-M2.7
           API_TIMEOUT_MS: "3000000"
           CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1"
+          CLAUDE_CODE_ATTRIBUTION_HEADER: "0"
+          CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS: "1"
 
   docs-sync:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
@@ -75,3 +77,5 @@ jobs:
           ANTHROPIC_DEFAULT_HAIKU_MODEL: MiniMax-M2.7
           API_TIMEOUT_MS: "3000000"
           CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1"
+          CLAUDE_CODE_ATTRIBUTION_HEADER: "0"
+          CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS: "1"
