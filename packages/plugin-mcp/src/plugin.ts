@@ -106,7 +106,7 @@ export function mcpPlugin<TStore = Record<string, unknown>>(
       }
 
       // Update store
-      context.store.set('@bunli/plugin-mcp:commands', registeredCommands)
+      context.store.commands = registeredCommands
 
       // Optional type generation
       if (options.sync && toolGroups.length > 0) {
