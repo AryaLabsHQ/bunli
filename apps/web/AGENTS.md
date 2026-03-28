@@ -45,8 +45,8 @@ TanStack Start (SSR/UI routes) + Vite + Cloudflare Workers. Hono API under `/api
 
 ```bash
 cd apps/web
-bun run dev      # portless run --name bunli vite dev
-bun run build    # Production build
+bun run dev      # playground assets + portless run --name bunli vite dev
+bun run build    # playground assets + vite build (dev mode)
 bun run deploy   # bun run build:production && wrangler deploy
 ```
 

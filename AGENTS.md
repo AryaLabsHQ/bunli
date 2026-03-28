@@ -109,6 +109,9 @@ bun run release
 | `packages/plugin-ai-detect/` | AI detection plugin |
 | `packages/plugin-config/` | Config merging plugin |
 | `packages/plugin-completions/` | Shell completions |
+| `packages/plugin-mcp/` | MCP tool→command conversion |
+| `packages/plugin-skills/` | AI agent skill sync |
+| `packages/store/` | Persistent typed store |
 | `packages/generator/` | Type generation |
 | `packages/test/` | Testing utilities |
 | `packages/runtime/` | OpenTUI runtime patterns |

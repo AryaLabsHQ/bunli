@@ -11,8 +11,15 @@ Common exports from `@bunli/tui` include:
 - Form: `Form`, `SchemaForm`, `FormField`, `SelectField`, `MultiSelectField`, `NumberField`, `PasswordField`, `TextareaField`, `CheckboxField`
 - Layout: `Container`, `Stack`, `Grid`, `Panel`, `Card`, `Divider`, `SectionHeader`
 - Feedback and data: `Alert`, `Badge`, `Toast`, `ProgressBar`, `EmptyState`, `KeyValueList`, `Stat`, `DataTable`
-- Navigation and overlays: `Tabs`, `Menu`, `CommandPalette`, `Modal`, `OverlayHostProvider`, `OverlayPortal`, `DialogProvider`, `useDialogManager`
-- Theming and focus: `ThemeProvider`, `useTuiTheme`, `FocusScopeProvider`, `useFocusScope`, `useScopedKeyboard`
+- Navigation and overlays: `Tabs`, `Menu`, `CommandPalette`, `Modal`
+- Theming: `ThemeProvider`, `useTuiTheme`
+
+The following are **not** exported from `@bunli/tui` — import them from `@bunli/runtime/app` instead:
+- Focus management: `FocusScopeProvider`, `useFocusScope`, `useScopedKeyboard`
+- Overlay system: `OverlayHostProvider`, `OverlayPortal`
+- Dialog system: `DialogProvider`, `useDialogManager`
+
+Note: `ThemeProvider` and `useTuiTheme` are available from both `@bunli/tui` and `@bunli/runtime/app`.
 
 ## Form
 
