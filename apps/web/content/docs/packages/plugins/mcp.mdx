@@ -263,11 +263,11 @@ const schemaMeta = extractSchemaMetadata(jsonSchema)
 import { generateMCPTypes } from '@bunli/plugin-mcp'
 
 // Generate TypeScript type definitions from MCP tools
-const types = generateMCPTypes(tools, {
-  namespace: 'linear',
-  includeDescriptions: true
+const result = await generateMCPTypes({
+  tools: [{ namespace: 'linear', tools: linearTools }],
+  outputDir: '.bunli'
 })
-// → "export interface LinearIssuesList { ... }"
+// Writes .bunli/mcp-linear.gen.ts with Zod schemas and type definitions
 ```
 
 ### String Utilities
