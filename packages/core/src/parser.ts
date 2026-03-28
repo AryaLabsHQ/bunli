@@ -87,6 +87,7 @@ export async function parseArgs(
       const name = shortToName.get(short)
 
       if (!name || !options[name]) {
+        if (short) unknownFlags.push(short)
         continue
       }
 
@@ -156,7 +157,7 @@ export async function parseArgs(
         hint: generateHint(option.schema, values)
       })
     } else {
-      flags[name] = values
+      flags[name] = result.value
     }
   }
 

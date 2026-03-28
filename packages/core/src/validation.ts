@@ -25,6 +25,24 @@ export async function validateValue(
     if (coerced.coerced) {
       return coerced.value
     }
+    // Coercion failed — use constraint errors from the coercion pipeline
+    // (e.g. "Number must be <= 65535") rather than falling through to raw
+    // validation which would produce misleading type-mismatch errors
+    if (coerced.issues && coerced.issues.length > 0) {
+      const issue = coerced.issues[0]
+      const expectedType = extractSchemaType(schema)
+      const hint = generateHint(schema, value)
+      throw new BunliValidationError(
+        `Invalid option '${context.option}': ${issue!.message}`,
+        {
+          option: context.option,
+          value,
+          command: context.command,
+          expectedType,
+          hint
+        }
+      )
+    }
   }
 
   try {
