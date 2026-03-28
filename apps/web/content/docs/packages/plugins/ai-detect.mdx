@@ -28,12 +28,13 @@ const cli = await createCLI({
   name: 'my-cli',
   plugins: [
     aiAgentPlugin()
-  ]
+  ] as const
 })
 
 // In your commands:
 cli.command(defineCommand({
   name: 'info',
+  description: 'Show information about the environment',
   handler: async ({ context }) => {
     if (context?.env.isAIAgent) {
       console.log('Running in AI agent environment!')
@@ -238,11 +239,11 @@ try {
 ### 2. Skip Interactive Prompts
 
 ```typescript
-import { prompt } from '@bunli/runtime/prompt'
-
-const name = context?.env.isAIAgent
-  ? flags.name || 'default-name'  // Use defaults for AI
-  : await prompt.text('Enter project name:')  // Interactive for humans
+handler: async ({ prompt, context, flags }) => {
+  const name = context?.env.isAIAgent
+    ? flags.name || 'default-name'
+    : await prompt('Enter project name:')
+}
 ```
 
 ### 3. Enhanced Logging

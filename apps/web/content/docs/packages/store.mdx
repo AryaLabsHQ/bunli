@@ -154,13 +154,13 @@ interface StoreInstance<TConfig> {
   read(): Promise<TConfig>
 
   /** Overwrite entire config */
-  write(config: TConfig): Promise<void>
+  write(config: NoInfer<TConfig>): Promise<void>
 
   /** Update via a transformation function */
-  update(updater: (current: TConfig) => TConfig): Promise<void>
+  update(updater: (current: TConfig) => NoInfer<TConfig>): Promise<void>
 
   /** Shallow merge partial config */
-  patch(partial: Partial<TConfig>): Promise<void>
+  patch(partial: Partial<NoInfer<TConfig>>): Promise<void>
 
   /** Delete config file (resets to defaults) */
   reset(): Promise<void>

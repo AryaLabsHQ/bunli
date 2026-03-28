@@ -28,7 +28,7 @@ const cli = await createCLI({
   name: 'my-cli',
   plugins: [
     configMergerPlugin()
-  ]
+  ] as const
 })
 ```
 
@@ -50,7 +50,7 @@ interface ConfigPluginOptions {
   /**
    * Config file sources to load
    * Supports template variables: {{name}} for app name
-   * Default: ['~/.config/{{name}}/config.json', '.{{name}}rc', '.{{name}}rc.json']
+   * Default: ['~/.config/{{name}}/config.json', '.{{name}}rc', '.{{name}}rc.json', '.config/{{name}}.json']
    */
   sources?: string[]
   
@@ -269,10 +269,12 @@ const cli = await createCLI({
 // Config values can override CLI properties
 cli.command(defineCommand({
   name: 'info',
-  handler: async ({ cli }) => {
-    console.log(`Name: ${cli.name}`)
-    console.log(`Version: ${cli.version}`)
-    // These might be overridden by config files
+  description: 'Show CLI information',
+  handler: async ({ context, runtime }) => {
+    // Access config via plugin store
+    if (context?.store.config) {
+      console.log('Config loaded:', context.store.config)
+    }
   }
 }))
 ```

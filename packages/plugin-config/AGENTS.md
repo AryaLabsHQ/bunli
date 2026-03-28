@@ -30,3 +30,4 @@ Template: `{{name}}` replaced with CLI name
 - `~/.config/{{name}}/config.json`
 - `.{{name}}rc`
 - `.{{name}}rc.json`
+- `.config/{{name}}.json`

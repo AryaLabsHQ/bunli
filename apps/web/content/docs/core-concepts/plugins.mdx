@@ -37,8 +37,7 @@ const myPlugin = createPlugin({
   },
   
   beforeCommand(context) {
-    const count = context.getStoreValue('count')
-    context.setStoreValue('count', count + 1)
+    context.store.count++
   }
 })
 ```
@@ -68,9 +67,8 @@ const myPlugin = createPlugin<MyPluginOptions, MyPluginStore>((options) => ({
   
   beforeCommand(context) {
     const message = `${options.prefix}: Command starting`
-    const messages = context.getStoreValue('messages')
-    context.setStoreValue('messages', [...messages, message])
-    
+    context.store.messages = [...context.store.messages, message]
+
     if (options.verbose) {
       console.log(message)
     }
@@ -194,13 +192,13 @@ const timingPlugin = createPlugin<TimingStore>({
   },
   
   beforeCommand(context) {
-    context.setStoreValue('startTime', Date.now())
+    context.store.startTime = Date.now()
   },
-  
+
   afterCommand(context) {
-    const startTime = context.getStoreValue('startTime')
+    const startTime = context.store.startTime
     if (startTime != null) {
-      context.setStoreValue('duration', Date.now() - startTime)
+      context.store.duration = Date.now() - startTime
     }
   }
 })
@@ -220,7 +218,7 @@ cli.command(defineCommand({
   handler: async ({ context }) => {
     // TypeScript knows about startTime and duration!
     if (context) {
-      const startTime = context.getStoreValue('startTime')
+      const startTime = context.store.startTime
       if (startTime != null) {
         console.log(`Started at: ${new Date(startTime)}`)
       }
@@ -314,8 +312,8 @@ cli.command(defineCommand({
   name: 'info',
   description: 'Show AI agent detection info',
   handler: async ({ context }) => {
-    if (context && context.getStoreValue('isAIAgent')) {
-      console.log(`AI agents: ${context.getStoreValue('aiAgents').join(', ')}`)
+    if (context && context.store.isAIAgent) {
+      console.log(`AI agents: ${context.store.aiAgents.join(', ')}`)
     }
   }
 }))
@@ -391,7 +389,7 @@ setup(context) {
   // Access paths
   console.log(`Config dir: ${context.paths.config}`)
   
-  // Share data between plugins
+  // Share data between plugins (setup store is a Map, unlike command-phase typed store)
   context.store.set('shared-key', 'value')
 }
 ```
@@ -465,17 +463,13 @@ const analyticsPlugin = createPlugin<AnalyticsStore>({
   },
   
   beforeCommand(context) {
-    const commandCount = context.getStoreValue('commandCount')
-    context.setStoreValue('commandCount', commandCount + 1)
-
-    const commandHistory = context.getStoreValue('commandHistory')
-    context.setStoreValue('commandHistory', [...commandHistory, context.command])
+    context.store.commandCount++
+    context.store.commandHistory = [...context.store.commandHistory, context.command]
   },
-  
+
   afterCommand(context) {
-    const commandCount = context.getStoreValue('commandCount')
-    if (commandCount % 10 === 0) {
-      console.log(`You've run ${commandCount} commands!`)
+    if (context.store.commandCount % 10 === 0) {
+      console.log(`You've run ${context.store.commandCount} commands!`)
     }
   }
 })
@@ -515,7 +509,7 @@ When using type generation, plugin context is included in the generated types:
 
 ```typescript
 // Generated in .bunli/commands.gen.ts
-import { getCommandApi, listCommands } from './commands.gen'
+import { cli } from './.bunli/commands.gen'
 
 // Generated types include plugin context
 interface CommandContext<TStore> {
@@ -523,9 +517,9 @@ interface CommandContext<TStore> {
   // Plugin-specific context is included
 }
 
-// Access plugin store in commands
-const infoApi = getCommandApi('info')
-console.log(infoApi.plugins) // Available plugin data
+// Access generated CLI API
+const commands = cli.list()
+const deploy = cli.findByName('deploy')
 
 // Type-safe plugin store access
 function usePluginData(context: CommandContext<any>) {

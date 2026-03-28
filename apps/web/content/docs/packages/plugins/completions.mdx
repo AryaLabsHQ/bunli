@@ -47,7 +47,7 @@ import { completionsPlugin } from '@bunli/plugin-completions'
 
 export default defineConfig({
   name: 'my-cli',
-  plugins: [completionsPlugin()]
+  plugins: [completionsPlugin()] as const
 })
 ```
 
@@ -57,27 +57,11 @@ The plugin adds a `completions` command to your CLI:
 
 ```bash
 # Output to stdout with installation instructions
-my-cli completions --shell bash
-my-cli completions --shell zsh
-my-cli completions --shell fish
-my-cli completions --shell powershell
-
-# Save to file
-my-cli completions --shell bash --output completions.sh
-my-cli completions -s zsh -o _my-cli
-my-cli completions -s fish -o my-cli.fish
+my-cli completions bash
+my-cli completions zsh
+my-cli completions fish
+my-cli completions powershell
 ```
-
-## Command Options
-
-### Required Options
-
-- `--shell, -s <shell>`: Target shell for completion generation
-  - Values: `bash`, `zsh`, `fish`, `powershell`
-
-### Optional Options
-
-- `--output, -o <path>`: Output file path (default: stdout)
 
 ## Installation Methods
 
@@ -85,21 +69,21 @@ my-cli completions -s fish -o my-cli.fish
 
 **Option 1 - Current session:**
 ```bash
-source <(my-cli completions --shell bash)
+source <(my-cli completions bash)
 ```
 
 **Option 2 - Save to completion directory:**
 ```bash
 # Linux
-my-cli completions --shell bash > /etc/bash_completion.d/my-cli
+my-cli completions bash > /etc/bash_completion.d/my-cli
 
 # macOS with Homebrew
-my-cli completions --shell bash > $(brew --prefix)/etc/bash_completion.d/my-cli
+my-cli completions bash > $(brew --prefix)/etc/bash_completion.d/my-cli
 ```
 
 **Option 3 - Add to ~/.bashrc:**
 ```bash
-echo 'source <(my-cli completions --shell bash)' >> ~/.bashrc
+echo 'source <(my-cli completions bash)' >> ~/.bashrc
 source ~/.bashrc
 ```
 
@@ -107,13 +91,13 @@ source ~/.bashrc
 
 **Option 1 - Current session:**
 ```bash
-source <(my-cli completions --shell zsh)
+source <(my-cli completions zsh)
 ```
 
 **Option 2 - User completion directory:**
 ```bash
 mkdir -p ~/.zsh/completions
-my-cli completions --shell zsh > ~/.zsh/completions/_my-cli
+my-cli completions zsh > ~/.zsh/completions/_my-cli
 
 # Add to ~/.zshrc if not already present:
 echo 'fpath=(~/.zsh/completions $fpath)' >> ~/.zshrc
@@ -123,7 +107,7 @@ source ~/.zshrc
 
 **Option 3 - System-wide:**
 ```bash
-sudo my-cli completions --shell zsh > /usr/local/share/zsh/site-functions/_my-cli
+sudo my-cli completions zsh > /usr/local/share/zsh/site-functions/_my-cli
 # Restart your shell
 ```
 
@@ -131,13 +115,13 @@ sudo my-cli completions --shell zsh > /usr/local/share/zsh/site-functions/_my-cl
 
 **User completions:**
 ```bash
-my-cli completions --shell fish > ~/.config/fish/completions/my-cli.fish
+my-cli completions fish > ~/.config/fish/completions/my-cli.fish
 # Completions will be available in new fish sessions
 ```
 
 **System-wide:**
 ```bash
-sudo my-cli completions --shell fish > /usr/share/fish/vendor_completions.d/my-cli.fish
+sudo my-cli completions fish > /usr/share/fish/vendor_completions.d/my-cli.fish
 ```
 
 ## How It Works
@@ -331,14 +315,14 @@ The plugin supports four shells:
 
 **User profile:**
 ```bash
-my-cli completions --shell powershell >> $PROFILE
+my-cli completions powershell >> $PROFILE
 # Reload profile:
 . $PROFILE
 ```
 
 **Or save to a file:**
 ```bash
-my-cli completions --shell powershell > ~/Documents/PowerShell/my-cli_completions.ps1
+my-cli completions powershell > ~/Documents/PowerShell/my-cli_completions.ps1
 # Add to $PROFILE:
 . ~/Documents/PowerShell/my-cli_completions.ps1
 ```
@@ -393,7 +377,7 @@ Always regenerate completions when you add or modify commands:
 bun run generate
 
 # Update installed completions
-my-cli completions --shell bash > ~/.bash_completion.d/my-cli
+my-cli completions bash > ~/.bash_completion.d/my-cli
 ```
 
 ## Distribution
@@ -430,7 +414,7 @@ const shell = process.env.SHELL?.includes('zsh') ? 'zsh'
            : 'bash'
 
 console.log(`\n🐚 Shell completions are available for ${shell}`)
-console.log(`Run: my-cli completions --shell ${shell}\n`)
+console.log(`Run: my-cli completions ${shell}\n`)
 ```
 
 ### Documentation for Users
@@ -444,13 +428,13 @@ Enable tab completion for your shell:
 
 ### Bash
 ```bash
-my-cli completions --shell bash > ~/.bash_completion.d/my-cli
+my-cli completions bash > ~/.bash_completion.d/my-cli
 source ~/.bashrc
 ```
 
 ### Zsh
 ```bash
-my-cli completions --shell zsh > ~/.zsh/completions/_my-cli
+my-cli completions zsh > ~/.zsh/completions/_my-cli
 # Add to ~/.zshrc:
 fpath=(~/.zsh/completions $fpath)
 autoload -U compinit && compinit
@@ -458,7 +442,7 @@ autoload -U compinit && compinit
 
 ### Fish
 ```bash
-my-cli completions --shell fish > ~/.config/fish/completions/my-cli.fish
+my-cli completions fish > ~/.config/fish/completions/my-cli.fish
 ```
 ````
 

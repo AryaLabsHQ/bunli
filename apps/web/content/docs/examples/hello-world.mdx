@@ -176,7 +176,8 @@ A command can provide both `render:` (for TUI mode) and `handler:` (for non-inte
 
 ```typescript
 const greetCommand = defineCommand({
-  name: 'greet',
+  name: 'greet' as const,
+  description: 'A minimal greeting CLI',
   render: ({ flags }) => <TuiView flags={flags} />,
   handler: async ({ flags, colors }) => {
     // Non-interactive fallback

@@ -425,8 +425,8 @@ function testCommand(
 - `args` - Positional arguments
 - `env` - Environment variables to merge with process.env
 - `cwd` - Working directory (defaults to process.cwd())
-- `stdin` - Input lines for non-prompt stdin (string or array)
-- `mockPrompts` - Map of prompt messages to responses (string or array for retries)
+- `stdin` - Input lines for non-prompt stdin (string or array) - **Note: only supported by `testCommand`, not `createTestCLI`**
+- `mockPrompts` - Map of prompt messages to responses (string or array for retries) - **Note: only supported by `testCommand`, not `createTestCLI`**
 - `mockShellCommands` - Map of shell commands to their output
 - `exitCode` - Expected exit code (for testing error scenarios)
 
@@ -605,7 +605,7 @@ When using type generation, you can test the generated types themselves and CLI 
 ```typescript
 // test/generated-types.test.ts
 import { test, expect } from 'bun:test'
-import { getCommandApi, listCommands, hasCommand } from '../commands.gen'
+import { getCommandApi, listCommands } from '../commands.gen'
 
 test('generated types are valid', () => {
   const commands = listCommands()
@@ -620,10 +620,8 @@ test('generated types are valid', () => {
 test('command discovery works', () => {
   const commands = listCommands()
   const commandNames = commands.map(c => c.name)
-  
+
   expect(commandNames).toContain('greet')
-  expect(hasCommand('greet')).toBe(true)
-  expect(hasCommand('nonexistent')).toBe(false)
 })
 
 test('command options are properly typed', () => {
@@ -705,12 +703,16 @@ test('deploy via programmatic execute', async () => {
     commands: [deployCommand]
   })
 
-  const result = await cli.execute('deploy', { env: 'prod' })
+  const result = await cli.execute('deploy', ['--env', 'prod'])
 
   expect(result.exitCode).toBe(0)
   expect(result.stdout).toContain('Deploying to prod')
 })
 ```
+
+<Callout type="info">
+  **Limitation**: `createTestCLI` does NOT support `stdin` or `mockPrompts` options. For testing interactive prompts, use `testCommand` instead.
+</Callout>
 
 ### Configuration
 
@@ -746,5 +748,6 @@ interface TestCLIRunResult {
 | Scope | Single command | Full CLI with plugin lifecycle |
 | Commands | Passed per-test | Registered once at setup |
 | Plugins | Not supported | Supported |
+| `stdin`/`mockPrompts` | ✅ Supported | ❌ Not supported |
 | `cli.run(argv)` | — | Run with argv like CLI invocation |
 | `cli.execute(name, args?)` | — | Execute a named command programmatically |

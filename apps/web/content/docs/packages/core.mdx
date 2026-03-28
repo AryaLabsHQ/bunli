@@ -188,10 +188,7 @@ interface HandlerArgs<T> {
   colors: typeof import('@bunli/utils').colors
   
   // Plugin context (when using plugins)
-  context?: CommandContext<TStore>
-  
-  // CLI instance
-  cli: CLI
+  context?: CommandContext<Record<string, unknown>>
 }
 ```
 
@@ -567,11 +564,10 @@ const myPlugin = createPlugin<{ requestCount: number }>({
     requestCount: 0
   },
   beforeCommand(context) {
-    const requestCount = context.getStoreValue('requestCount')
-    context.setStoreValue('requestCount', requestCount + 1)
+    context.store.requestCount = context.store.requestCount + 1
   },
   afterCommand(context) {
-    console.log(`Total requests: ${context.getStoreValue('requestCount')}`)
+    console.log(`Total requests: ${context.store.requestCount}`)
   }
 })
 
@@ -587,7 +583,7 @@ cli.command(defineCommand({
   name: 'info',
   description: 'Show request count',
   handler: async ({ context }) => {
-    console.log(`Requests: ${context?.getStoreValue('requestCount') ?? 0}`)
+    console.log(`Requests: ${context?.store.requestCount ?? 0}`)
   }
 }))
 
@@ -603,7 +599,7 @@ Bunli exports advanced TypeScript type utilities for complex type manipulation, 
 ```typescript
 import type {
   UnionToIntersection, 
-  MergeAll, 
+  MergeAllObjects, 
   Expand,
   DeepPartial,
   Constrain,
@@ -619,9 +615,9 @@ type Example = UnionToIntersection<{ a: string } | { b: number }>
 // Result: { a: string } & { b: number }
 ```
 
-**MergeAll** - Merge multiple object types:
+**MergeAllObjects** - Merge multiple object types:
 ```typescript
-type Example = MergeAll<[{ a: string }, { b: number }, { c: boolean }]>
+type Example = MergeAllObjects<[{ a: string }, { b: number }, { c: boolean }]>
 // Result: { a: string; b: number; c: boolean }
 ```
 
@@ -649,7 +645,7 @@ These utilities work particularly well with generated command types:
 
 ```typescript
 import { getCommandApi, listCommands } from './commands.gen'
-import { UnionToIntersection, MergeAll } from '@bunli/core'
+import { UnionToIntersection, MergeAllObjects } from '@bunli/core'
 
 // Get all command options as a union
 type AllCommandOptions = UnionToIntersection<
@@ -657,7 +653,7 @@ type AllCommandOptions = UnionToIntersection<
 >
 
 // Merge all command metadata
-type AllCommands = MergeAll<
+type AllCommands = MergeAllObjects<
   Array<{ name: string; description: string }>
 >
 ```

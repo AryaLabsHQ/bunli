@@ -10,11 +10,11 @@ Core package providing `defineCommand`, `option()`, and `createPlugin<T>()` for 
 
 | Task | Location |
 |------|----------|
-| Command definition | `src/command/define-command.ts` |
-| Option schemas | `src/option/` |
+| Command definition | `src/types.ts` |
+| Option schemas | `src/types.ts` |
 | Plugin factory | `src/plugin/index.ts` |
 | Plugin types | `src/plugin/types.ts` |
-| Handler context | `src/context.ts` |
+| Handler context | `src/plugin/context.ts` |
 | Error classes | `src/plugin/errors.ts` |
 
 ## CONVENTIONS
@@ -22,7 +22,7 @@ Core package providing `defineCommand`, `option()`, and `createPlugin<T>()` for 
 - Plugin store must be typed via generics: `createPlugin<StoreType>()`
 - Use context-bound store access, never global
 - Export types explicitly for tree-shaking
-- Never modify store directly - use setter methods
+- Prefer direct store property access (`context.store.foo = bar`) over accessor methods — `store` is typed as `TStore` so TypeScript enforces correctness
 
 ## ERROR HANDLING
 

@@ -31,7 +31,7 @@ bun add @bunli/plugin-completions
 
 ### [@bunli/plugin-mcp](/docs/packages/plugins/mcp)
 
-Exposes your CLI commands as MCP (Model Context Protocol) tools for AI integration.
+Converts MCP (Model Context Protocol) tool schemas into CLI commands for AI integration.
 
 ```bash
 bun add @bunli/plugin-mcp
@@ -39,7 +39,7 @@ bun add @bunli/plugin-mcp
 
 ### [@bunli/plugin-skills](/docs/packages/plugins/skills)
 
-Syncs your CLI commands as skill files for AI coding agents (Claude Code, Cursor, Cline, and 30+ others).
+Syncs your CLI commands as skill files for AI coding agents (Claude Code, Cursor, Cline, and 40+ others).
 
 ```bash
 bun add @bunli/plugin-skills
@@ -57,7 +57,7 @@ const cli = await createCLI({
   plugins: [
     configMergerPlugin(),
     aiAgentPlugin({ verbose: true })
-  ]
+  ] as const
 })
 ```
 

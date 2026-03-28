@@ -99,7 +99,7 @@ interface MetricsStore {
 }
 
 export const metricsPlugin = createPlugin<MetricsStore>({
-  name: 'metrics',
+  name: 'metrics' as const,
   store: {
     metrics: {
       events: [],
@@ -275,23 +275,23 @@ bun run cli.ts logs --follow
 ### 1. Plugin Lifecycle Hooks
 ```typescript
 export const myPlugin = createPlugin({
-  name: 'my-plugin',
+  name: 'my-plugin' as const,
   store: { count: 0 },
   
   // Called before any command runs
-  beforeCommand({ store, flags }) {
+  beforeCommand({ store, command }) {
     store.count++
-    console.log(`Command ${flags._[0]} starting...`)
+    console.log(`Command ${command} starting...`)
   },
   
   // Called after command completes successfully
-  afterCommand({ store, flags }) {
-    console.log(`Command ${flags._[0]} completed`)
+  afterCommand({ store, command }) {
+    console.log(`Command ${command} completed`)
   },
   
   // Called when command throws an error
-  onError({ store, error, flags }) {
-    console.error(`Command ${flags._[0]} failed:`, error.message)
+  onError({ store, error, command }) {
+    console.error(`Command ${command} failed:`, error.message)
   }
 })
 ```
@@ -308,7 +308,7 @@ interface MyStore {
 }
 
 export const myPlugin = createPlugin<MyStore>({
-  name: 'my-plugin',
+  name: 'my-plugin' as const,
   store: {
     data: {
       users: [],
@@ -325,22 +325,22 @@ export const myPlugin = createPlugin<MyStore>({
 ```
 
 ### 3. Plugin Configuration
+
+Plugin options are passed at creation time via the factory pattern. Wrap `createPlugin` in a factory function to accept configuration:
+
 ```typescript
-// Plugin with configuration
-export const configurablePlugin = createPlugin({
-  name: 'configurable',
-  store: { enabled: false },
-  
-  // Plugin can accept configuration
-  configure(config: { enabled: boolean }) {
-    this.store.enabled = config.enabled
-  }
-})
+// Plugin factory accepting options at creation time
+export function configurablePlugin(options: { enabled: boolean }) {
+  return createPlugin({
+    name: 'configurable' as const,
+    store: { enabled: options.enabled },
+  })
+}
 
 // Use with configuration
 const cli = await createCLI({
   plugins: [
-    configurablePlugin.configure({ enabled: true })
+    configurablePlugin({ enabled: true })
   ]
 })
 ```

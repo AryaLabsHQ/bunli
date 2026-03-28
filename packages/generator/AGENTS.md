@@ -11,7 +11,6 @@ Creates `commands.gen.ts` with full type inference from command definitions in `
 | Task | Location |
 |------|----------|
 | Generator logic | `src/generator.ts` |
-| Type templates | `src/templates/` |
 | Command parsing | `src/parser.ts` |
 
 ## PATTERNS
@@ -19,11 +18,9 @@ Creates `commands.gen.ts` with full type inference from command definitions in `
 - Scans `commands/` directory for `*.ts` files
 - Extracts Zod option schemas
 - Generates `commands.gen.ts` in `.bunli/` directory
-- Uses Prettier for formatting
 
 ## DEPENDENCIES
 
-- `typescript` - Compiler API
 - `zod` - Schema parsing
-- `prettier` - Code formatting
-- `pathe` - Path utilities
+- `@babel/parser` - AST parsing
+- `@babel/traverse` - AST traversal

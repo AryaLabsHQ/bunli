@@ -48,6 +48,7 @@ const schema = z.object({
 function UserForm({ onSubmit }) {
   return (
     <Form
+      title="User Registration"
       schema={schema}
       onSubmit={(values) => onSubmit(values)}
     >
@@ -292,7 +293,7 @@ function FormFieldExample() {
 Customize colors and appearance:
 
 ```tsx
-import { ThemeProvider, createTheme, darkThemeTokens, lightThemeTokens } from '@bunli/tui'
+import { ThemeProvider, createTheme, darkThemeTokens, lightThemeTokens } from '@bunli/runtime/app'
 
 // Dark theme (default)
 const dark = createTheme({ preset: 'dark' })

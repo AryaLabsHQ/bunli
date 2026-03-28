@@ -3,6 +3,8 @@ title: '@bunli/runtime'
 description: Runtime renderer and prompt primitives for Bunli TUI applications
 ---
 
+import { Callout } from 'fumadocs-ui/components/callout'
+
 ## Overview
 
 `@bunli/runtime` provides terminal UI rendering capabilities and interactive prompt primitives for Bunli CLI applications. It is primarily used internally by `@bunli/tui` but also exports types and utilities used by command handlers.
@@ -25,8 +27,8 @@ The package has 8 subpath exports:
 |--------|---------|
 | `@bunli/runtime` | Root - type re-exports only |
 | `@bunli/runtime/app` | React context providers (RuntimeProvider, RouteStore, CommandRegistry) |
-| `@bunli/runtime/renderer` | Prompt primitives (text, select, confirm, etc.) |
-| `@bunli/runtime/prompt` | Re-exports from renderer |
+| `@bunli/runtime/renderer` | TUI renderer (runTuiRender for full-screen TUI apps) |
+| `@bunli/runtime/prompt` | Prompt primitives (text, select, confirm, etc.) |
 | `@bunli/runtime/options` | TuiRenderOptions and OpenTuiRendererOptions |
 | `@bunli/runtime/events` | Runtime event schemas |
 | `@bunli/runtime/transport` | RuntimeTransport interface |
@@ -67,13 +69,11 @@ type RuntimeEvent =
 
 ```typescript
 interface TuiRenderOptions {
+  exitOnCtrlC?: boolean
+  targetFps?: number
+  enableMouseMovement?: boolean
+  useMouse?: boolean
   bufferMode?: 'alternate' | 'standard'
-  image?: {
-    mode?: 'off' | 'auto' | 'on'
-    protocol?: 'auto' | 'kitty'
-    width?: number
-    height?: number
-  }
 }
 ```
 
@@ -86,11 +86,11 @@ import { detectImageCapability, renderImage } from '@bunli/runtime/image'
 
 // Detect what image protocols the terminal supports
 const capability = detectImageCapability()
-// { supports: true, protocol: 'kitty' }
+// { supported: true, protocol: 'kitty' }
 
 // Render an image
 const result = await renderImage(imageData, {
-  protocol: 'auto',
+  protocol: 'kitty',
   width: 800
 })
 ```
