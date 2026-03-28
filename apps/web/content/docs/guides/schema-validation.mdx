@@ -28,7 +28,8 @@ import { option } from '@bunli/core'
 
 // Use Zod schemas with the option helper
 const portOption = option(
-  z.coerce.number().min(1).max(65535)
+  z.coerce.number().min(1).max(65535),
+  { description: 'Server port number' }
 )
 ```
 
@@ -44,7 +45,8 @@ import { option } from '@bunli/core'
 
 // Valibot schemas work too
 const emailOption = option(
-  v.string([v.email()])
+  v.string([v.email()]),
+  { description: 'Email address' }
 )
 ```
 
@@ -63,7 +65,8 @@ const configOption = option(
   Type.Object({
     host: Type.String(),
     port: Type.Number()
-  })
+  }),
+  { description: 'Server configuration object' }
 )
 ```
 
@@ -75,7 +78,7 @@ const configOption = option(
 export default defineCommand({
   options: {
     // Basic string
-    name: option(z.string()),
+    name: option(z.string(), { description: 'User name' }),
     
     // With constraints
     username: option(
@@ -108,20 +111,22 @@ export default defineCommand({
 export default defineCommand({
   options: {
     // Basic number with coercion
-    port: option(z.coerce.number()),
+    port: option(z.coerce.number(), { description: 'Port number' }),
     
     // With constraints
     age: option(
       z.coerce.number()
         .int('Age must be a whole number')
         .min(0, 'Age cannot be negative')
-        .max(150, 'Age seems unrealistic')
+        .max(150, 'Age seems unrealistic'),
+      { description: 'Age in years' }
     ),
     
     // Float with precision
     price: option(
       z.coerce.number()
-        .multipleOf(0.01, 'Price must have at most 2 decimal places')
+        .multipleOf(0.01, 'Price must have at most 2 decimal places'),
+      { description: 'Price value' }
     ),
     
     // Port number validation
@@ -130,7 +135,8 @@ export default defineCommand({
         .int()
         .min(1)
         .max(65535)
-        .default(3000)
+        .default(3000),
+      { description: 'Server port number' }
     )
   }
 })
@@ -142,13 +148,13 @@ export default defineCommand({
 export default defineCommand({
   options: {
     // Boolean with coercion
-    verbose: option(z.coerce.boolean()),
+    verbose: option(z.coerce.boolean(), { description: 'Enable verbose logging' }),
     
     // Optional boolean
-    debug: option(z.coerce.boolean().optional()),
+    debug: option(z.coerce.boolean().optional(), { description: 'Enable debug mode' }),
     
     // Boolean with default
-    production: option(z.coerce.boolean().default(false))
+    production: option(z.coerce.boolean().default(false), { description: 'Run in production mode' })
   }
 })
 
@@ -165,19 +171,20 @@ export default defineCommand({
 export default defineCommand({
   options: {
     // Date with coercion
-    since: option(z.coerce.date()),
+    since: option(z.coerce.date(), { description: 'Start date for filtering' }),
     
     // Date with constraints
     deadline: option(
       z.coerce.date().refine(
         (date) => date > new Date(),
         'Deadline must be in the future'
-      )
+      ),
+      { description: 'Task deadline' }
     ),
     
     // Date range
-    startDate: option(z.coerce.date()),
-    endDate: option(z.coerce.date())
+    startDate: option(z.coerce.date(), { description: 'Start date' }),
+    endDate: option(z.coerce.date(), { description: 'End date' })
   },
   handler: async ({ flags }) => {
     // Validate date range
@@ -212,7 +219,8 @@ export default defineCommand({
     // Multiple choice with default
     environment: option(
       z.enum(['development', 'staging', 'production'])
-        .default('development')
+        .default('development'),
+      { description: 'Deployment environment' }
     ),
     
     // Union of literals
@@ -221,7 +229,8 @@ export default defineCommand({
         z.literal('json'),
         z.literal('yaml'),
         z.literal('table')
-      ])
+      ]),
+      { description: 'Output format' }
     )
   }
 })
@@ -242,7 +251,8 @@ export default defineCommand({
     features: option(
       z.string().transform(val => 
         val.split(',').map(s => s.trim())
-      )
+      ),
+      { description: 'Comma-separated feature list' }
     ),
     
     // Array with validation
@@ -317,7 +327,7 @@ const deploySchema = z.object({
 
 export default defineCommand({
   options: {
-    deploy: option(deploySchema)
+    deploy: option(deploySchema, { description: 'Deployment configuration' })
   }
 })
 ```
@@ -349,7 +359,7 @@ export default defineCommand({
 ```typescript
 export default defineCommand({
   options: {
-    config: option(z.string())
+    config: option(z.string(), { description: 'JSON configuration string' })
   },
   handler: async ({ flags }) => {
     try {
@@ -406,7 +416,8 @@ export default defineCommand({
       z.string().refine(
         (path) => existsSync(path),
         'Input file does not exist'
-      )
+      ),
+      { description: 'Input file path' }
     ),
     
     output: option(
@@ -416,15 +427,18 @@ export default defineCommand({
           return existsSync(dir)
         },
         'Output directory does not exist'
-      )
+      ),
+      { description: 'Output file path' }
     ),
     
     format: option(
-      z.enum(['csv', 'json', 'xml']).transform(fmt => fmt.toLowerCase())
+      z.enum(['csv', 'json', 'xml']).transform(fmt => fmt.toLowerCase()),
+      { description: 'Output file format' }
     ),
     
     encoding: option(
-      z.enum(['utf8', 'utf16', 'ascii']).default('utf8')
+      z.enum(['utf8', 'utf16', 'ascii']).default('utf8'),
+      { description: 'File encoding' }
     )
   }
 })
@@ -488,16 +502,16 @@ This enables:
 ## Testing Validation
 
 ```typescript
-import { test, expect } from '@bunli/test'
+import { test, expect } from 'bun:test'
 import { createTestCLI } from '@bunli/test'
 
 test('validates port number', async () => {
-  const cli = createTestCLI()
-  
+  const cli = await createTestCLI({ commands: [serveCommand] })
+
   // Valid port
   const valid = await cli.run(['serve', '--port', '3000'])
   expect(valid.exitCode).toBe(0)
-  
+
   // Invalid port
   const invalid = await cli.run(['serve', '--port', '70000'])
   expect(invalid.exitCode).toBe(1)

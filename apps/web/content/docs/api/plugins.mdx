@@ -132,7 +132,7 @@ Result of command execution.
 ```typescript
 interface CommandResult {
   /** Command return value */
-  result?: any
+  result?: unknown
   
   /** Error if command failed */
   error?: unknown
@@ -270,7 +270,7 @@ type PluginConfig =
   | string                    // Path to plugin
   | BunliPlugin              // Plugin object
   | PluginFactory            // Plugin factory function
-  | [PluginFactory, any]     // Plugin with options
+  | [PluginFactory, unknown]  // Plugin with options
 ```
 
 **Examples:**

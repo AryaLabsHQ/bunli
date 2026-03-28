@@ -7,7 +7,7 @@ description: Git workflow helper with command organization and external tool int
 
 This example demonstrates advanced CLI patterns:
 
-- **Nested command structure** with clear organization
+- **Flat command structure** with options-based organization
 - **Command aliases** for common operations
 - **External tool integration** with git commands
 - **Shell command execution** with proper error handling
@@ -18,30 +18,30 @@ This example demonstrates advanced CLI patterns:
 
 ### `branch` - Branch Management
 ```bash
-bun run cli.ts branch create --name feature/new-feature
-bun run cli.ts branch switch main
-bun run cli.ts branch list
-bun run cli.ts branch delete --name feature/old-feature
+bun run cli.ts branch --name feature/new-feature
+bun run cli.ts branch --name feature/new-feature --switch
+bun run cli.ts branch --name feature/old-feature --delete
 ```
 
 Branch management with git integration:
-- Create new branches with validation
-- Switch between branches safely
-- List branches with status
-- Delete branches with confirmation
+- Create new branches with `--name` flag
+- Switch between branches with `--switch` flag
+- Delete branches with `--delete` flag
+- Force operations with `--force` flag
 
 ### `pr` - Pull Request Management
 ```bash
-bun run cli.ts pr create --title "Add new feature" --draft
-bun run cli.ts pr list --status open
-bun run cli.ts pr merge 123 --squash
+bun run cli.ts pr --title "Add new feature" --draft
+bun run cli.ts pr --title "Fix bug" --base develop --head feature-branch
+bun run cli.ts pr --title "Update docs" --reviewers "alice,bob"
 ```
 
 Pull request workflow automation:
-- Create PRs with templates
-- List PRs with filtering
-- Merge PRs with options
-- Integration with GitHub/GitLab
+- Create PRs with `--title` and optional `--description`
+- Specify `--base` and `--head` branches
+- Create draft PRs with `--draft`
+- Add `--reviewers` and `--labels`
+- Interactive prompts for uncommitted changes
 
 ### `sync` - Repository Synchronization
 ```bash
@@ -59,59 +59,83 @@ Sync with remote repositories:
 
 ### `status` - Enhanced Git Status
 ```bash
-bun run cli.ts status --porcelain
-bun run cli.ts status --staged --unstaged
+bun run cli.ts status --detailed
+bun run cli.ts status --branches --remote
+bun run cli.ts status --history 10
 ```
 
 Enhanced git status with additional information:
-- Staged and unstaged changes
-- Branch information
-- Remote tracking status
-- Commit statistics
+- Detailed status with `--detailed`
+- Branch information with `--branches`
+- Remote tracking with `--remote`
+- Commit history with `--history <count>`
 
 ## Key Features Demonstrated
 
-### 1. Nested Command Structure
+### 1. Flat Command Structure with Options
+
+The git-tool uses flat commands with options instead of nested subcommands:
+
 ```typescript
-import { defineCommand } from '@bunli/core'
+import { defineCommand, option } from '@bunli/core'
+import { z } from 'zod'
 
 export const branchCommand = defineCommand({
-  name: 'branch',
-  description: 'Manage git branches',
-  commands: [
-    defineCommand({
-      name: 'create',
-      description: 'Create a new branch',
-      handler: async ({ positional, shell, colors }) => {
-        const branchName = positional[0]
-        if (!branchName) {
-          console.error(colors.red('Branch name required'))
-          process.exit(1)
-        }
-
-        await shell`git checkout -b ${branchName}`
-        console.log(colors.green(`Created branch: ${branchName}`))
+  name: 'branch' as const,
+  description: 'Create, switch, or manage branches',
+  alias: 'br',
+  options: {
+    name: option(
+      z.string()
+        .min(1, 'Branch name cannot be empty')
+        .regex(/^[a-zA-Z0-9._/-]+$/, 'Invalid branch name format'),
+      { short: 'n', description: 'Branch name' }
+    ),
+    base: option(
+      z.string().default('main'),
+      { short: 'b', description: 'Base branch to create from' }
+    ),
+    switch: option(
+      z.coerce.boolean().default(false),
+      { short: 's', description: 'Switch to the branch after creating' }
+    ),
+    delete: option(
+      z.coerce.boolean().default(false),
+      { short: 'd', description: 'Delete the branch' }
+    ),
+    force: option(
+      z.coerce.boolean().default(false),
+      { short: 'f', description: 'Force the operation' }
+    )
+  },
+  handler: async ({ flags, colors, spinner, shell }) => {
+    const spin = spinner('Working with branches...')
+    
+    try {
+      if (flags.delete) {
+        spin.update(`Deleting branch '${flags.name}'...`)
+        await shell`git branch ${flags.force ? '-D' : '-d'} ${flags.name}`
+        spin.succeed(`Deleted branch '${flags.name}'`)
+      } else {
+        spin.update(`Creating branch '${flags.name}' from '${flags.base}'...`)
+        await shell`git checkout -b ${flags.name} ${flags.base}`
+        spin.succeed(`Created branch '${flags.name}'`)
       }
-    }),
-    defineCommand({
-      name: 'switch',
-      description: 'Switch to a branch',
-      handler: async ({ positional, shell, colors }) => {
-        const branchName = positional[0]
-        await shell`git checkout ${branchName}`
-        console.log(colors.green(`Switched to: ${branchName}`))
-      }
-    })
-  ]
+    } catch (error) {
+      spin.fail('Branch operation failed')
+      console.error(colors.red(String(error)))
+    }
+  }
 })
 ```
 
 ### 2. External Tool Integration
-```typescript
-import { shell } from '@bunli/core'
 
+The `shell` utility is provided via handler arguments, not imported:
+
+```typescript
 handler: async ({ shell, colors, spinner }) => {
-  spinner.start('Fetching latest changes...')
+  const spin = spinner('Fetching latest changes...')
 
   try {
     // Pull latest changes
@@ -120,9 +144,9 @@ handler: async ({ shell, colors, spinner }) => {
     // Push local commits
     await shell`git push origin main`
 
-    spinner.succeed('Repository synchronized')
+    spin.succeed('Repository synchronized')
   } catch (error) {
-    spinner.fail('Sync failed')
+    spin.fail('Sync failed')
     console.error(colors.red(String(error)))
     process.exit(1)
   }
@@ -132,24 +156,36 @@ handler: async ({ shell, colors, spinner }) => {
 ### 3. Command Aliases
 ```typescript
 export const prCommand = defineCommand({
-  name: 'pr',
+  name: 'pr' as const,
   alias: 'pull-request',
-  description: 'Manage pull requests',
-  commands: [
-    defineCommand({
-      name: 'create',
-      alias: 'new',
-      description: 'Create a new pull request',
-      // ... implementation
-    })
-  ]
+  description: 'Create and manage pull requests',
+  options: {
+    title: option(
+      z.string().min(1).max(100),
+      { short: 't', description: 'Pull request title' }
+    ),
+    description: option(
+      z.string().optional(),
+      { short: 'd', description: 'Pull request description' }
+    ),
+    base: option(
+      z.string().default('main'),
+      { short: 'b', description: 'Base branch to merge into' }
+    ),
+    draft: option(
+      z.coerce.boolean().default(false),
+      { description: 'Create as draft pull request' }
+    )
+  },
+  handler: async ({ flags, colors, spinner, shell, prompt }) => {
+    // ... implementation
+  }
 })
 ```
 
 ### 4. Colored Output and Status
 ```typescript
-import { colors } from '@bunli/core'
-
+// colors is provided via handler args, not imported
 handler: async ({ shell, colors }) => {
   // Get git status
   const statusOutput = await shell`git status --porcelain`
@@ -205,42 +241,60 @@ bun run dev
 
 # Try the commands
 bun run cli.ts branch --help
-bun run cli.ts branch create feature/test
-bun run cli.ts status
-bun run cli.ts sync --pull --push
+bun run cli.ts branch --name feature/test
+bun run cli.ts status --detailed
+bun run cli.ts sync
 ```
 
 ## Command Organization Patterns
 
-### 1. Hierarchical Commands
+### 1. Flat Commands with Options
+
+Instead of nested subcommands, use flat commands with boolean and string options:
+
 ```typescript
-// Main command with subcommands
+// Single command with options for different operations
 export const branchCommand = defineCommand({
-  name: 'branch',
-  description: 'Manage git branches',
-  commands: [
-    createBranchCommand,
-    switchBranchCommand,
-    listBranchesCommand,
-    deleteBranchCommand
-  ]
+  name: 'branch' as const,
+  description: 'Create, switch, or manage branches',
+  options: {
+    name: option(z.string(), { short: 'n', description: 'Branch name' }),
+    switch: option(z.boolean().default(false), { short: 's', description: 'Switch to branch' }),
+    delete: option(z.boolean().default(false), { short: 'd', description: 'Delete branch' }),
+    force: option(z.boolean().default(false), { short: 'f', description: 'Force operation' })
+  },
+  handler: async ({ flags, shell, colors, spinner }) => {
+    const spin = spinner('Working with branches...')
+    
+    if (flags.delete) {
+      await shell`git branch ${flags.force ? '-D' : '-d'} ${flags.name}`
+      spin.succeed(`Deleted branch '${flags.name}'`)
+    } else {
+      await shell`git checkout -b ${flags.name}`
+      if (flags.switch) {
+        await shell`git checkout ${flags.name}`
+      }
+      spin.succeed(`Created branch '${flags.name}'`)
+    }
+  }
 })
 ```
 
-### 2. Shared Utilities
-```typescript
-// utils/git.ts
-export async function getCurrentBranch(): Promise<string> {
-  const branch = await shell`git branch --show-current`
-  return branch.trim()
-}
+### 2. Inlined Shell Calls
 
-export async function isGitRepository(): Promise<boolean> {
+Shell calls are inlined directly in command handlers rather than extracted to a shared utility file. This keeps each command self-contained:
+
+```typescript
+handler: async ({ shell, colors, spinner }) => {
+  const spin = spinner('Checking repository...')
+
+  // Inline git calls — no separate utils file needed
   try {
     await shell`git rev-parse --git-dir`
-    return true
   } catch {
-    return false
+    spin.fail('Not a git repository')
+    console.error(colors.red('Not in a git repository'))
+    process.exit(1)
   }
 }
 ```
@@ -248,12 +302,17 @@ export async function isGitRepository(): Promise<boolean> {
 ### 3. Error Handling
 ```typescript
 handler: async ({ shell, colors, spinner }) => {
+  const spin = spinner('Creating branch...')
+  
   try {
-    spinner.start('Creating branch...')
-    await shell`git checkout -b ${branchName}`
-    spinner.succeed(`Created branch: ${branchName}`)
+    // Validate git repository first
+    await shell`git rev-parse --git-dir`
+    
+    // Proceed with operation
+    await shell`git checkout -b feature-branch`
+    spin.succeed('Created branch: feature-branch')
   } catch (error) {
-    spinner.fail('Failed to create branch')
+    spin.fail('Failed to create branch')
 
     const msg = error instanceof Error ? error.message : String(error)
     if (msg.includes('already exists')) {
@@ -270,24 +329,28 @@ handler: async ({ shell, colors, spinner }) => {
 ## External Tool Integration
 
 ### 1. Shell Command Execution
+
+The `shell` utility is provided via handler arguments:
+
 ```typescript
-import { shell } from '@bunli/core'
+// shell comes from handler args, not imported
+handler: async ({ shell }) => {
+  // Simple command execution — returns stdout
+  const { stdout } = await shell`git status`
+  console.log(stdout.toString())
 
-// Simple command execution — tagged template literal returns stdout as string
-const statusOutput = await shell`git status`
-console.log(statusOutput)
+  // Command with options
+  const { stdout: logOutput } = await shell`git log --oneline -10`
+  const commits = logOutput.toString().trim().split('\n').filter(Boolean)
 
-// Command with options
-const logOutput = await shell`git log --oneline -10`
-const commits = logOutput.split('\n').filter(Boolean)
-
-// Error handling
-try {
-  await shell`git push origin main`
-} catch (error) {
-  const msg = error instanceof Error ? error.message : String(error)
-  if (msg.includes('rejected')) {
-    console.error('Push rejected - need to pull first')
+  // Error handling
+  try {
+    await shell`git push origin main`
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error)
+    if (msg.includes('rejected')) {
+      console.error('Push rejected - need to pull first')
+    }
   }
 }
 ```
@@ -317,7 +380,7 @@ handler: async ({ shell, colors }) => {
 
 ## Key Takeaways
 
-1. **Command Organization**: Hierarchical structure for complex CLIs
+1. **Command Organization**: Flat command structure with options for complex CLIs
 2. **External Integration**: Working with existing tools and commands
 3. **Error Handling**: Graceful handling of external command failures
 4. **User Experience**: Colored output and clear feedback

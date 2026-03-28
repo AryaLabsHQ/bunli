@@ -16,7 +16,7 @@ The simplest command requires just a name and handler:
 import { defineCommand } from '@bunli/core'
 
 export default defineCommand({
-  name: 'hello',
+  name: 'hello' as const,
   description: 'Say hello',
   handler: async () => {
     console.log('Hello, World!')
@@ -33,7 +33,7 @@ import { defineCommand, option } from '@bunli/core'
 import { z } from 'zod'
 
 export default defineCommand({
-  name: 'greet',
+  name: 'greet' as const,
   description: 'Greet someone',
   options: {
     name: option(
@@ -119,7 +119,7 @@ handler: async ({
 
 ```typescript
 export default defineCommand({
-  name: 'copy',
+  name: 'copy' as const,
   description: 'Copy files',
   handler: async ({ positional, shell }) => {
     const [source, dest] = positional
@@ -203,11 +203,11 @@ Organize related commands hierarchically:
 
 ```typescript
 export default defineCommand({
-  name: 'db',
+  name: 'db' as const,
   description: 'Database operations',
   commands: [
     defineCommand({
-      name: 'migrate',
+      name: 'migrate' as const,
       description: 'Run migrations',
       options: {
         direction: option(
@@ -220,7 +220,7 @@ export default defineCommand({
       }
     }),
     defineCommand({
-      name: 'seed',
+      name: 'seed' as const,
       description: 'Seed database',
       options: {
         force: option(
@@ -236,7 +236,7 @@ export default defineCommand({
       }
     }),
     defineCommand({
-      name: 'reset',
+      name: 'reset' as const,
       description: 'Reset database',
       handler: async ({ prompt, shell }) => {
         const confirm = await prompt.confirm('Reset database? All data will be lost!')
@@ -265,14 +265,14 @@ export default defineCommand({
 	      description: 'My CLI'
 	    })
 	    
-	    cli.command({
-	      name: 'serve',
+    cli.command({
+      name: 'serve' as const,
 	      description: 'Start the server',
 	      handler: async () => { /* ... */ }
 	    })
 	    
-	    cli.command({
-	      name: 'build',
+    cli.command({
+      name: 'build' as const,
 	      description: 'Build the project',
 	      handler: async () => { /* ... */ }
 	    })
@@ -288,8 +288,8 @@ export default defineCommand({
 	    // src/commands/serve.ts
 	    import { defineCommand } from '@bunli/core'
 	    
-	    export default defineCommand({
-	      name: 'serve',
+    export default defineCommand({
+      name: 'serve' as const,
 	      description: 'Start the server',
 	      handler: async () => { /* ... */ }
 	    })
@@ -297,8 +297,8 @@ export default defineCommand({
 	    // src/commands/build.ts
 	    import { defineCommand } from '@bunli/core'
 	    
-	    export default defineCommand({
-	      name: 'build',
+    export default defineCommand({
+      name: 'build' as const,
 	      description: 'Build the project',
 	      handler: async () => { /* ... */ }
 	    })
@@ -308,7 +308,7 @@ export default defineCommand({
 	    import serve from './commands/serve.js'
 	    import build from './commands/build.js'
 	    
-	    const cli = await createCLI({ name: 'my-cli', description: 'My CLI' })
+	    const cli = await createCLI({ name: 'my-cli', version: '1.0.0', description: 'My CLI' })
 	    cli.command(serve)
 	    cli.command(build)
 	    await cli.run()
@@ -321,16 +321,16 @@ export default defineCommand({
 	    ```typescript
 	    // src/commands/db/migrate.ts
 	    import { defineCommand } from '@bunli/core'
-	    export default defineCommand({
-	      name: 'migrate',
+    export default defineCommand({
+      name: 'migrate' as const,
 	      description: 'Run migrations',
 	      handler: async () => { /* ... */ }
 	    })
 
 	    // src/commands/db/seed.ts
 	    import { defineCommand } from '@bunli/core'
-	    export default defineCommand({
-	      name: 'seed',
+    export default defineCommand({
+      name: 'seed' as const,
 	      description: 'Seed data',
 	      handler: async () => { /* ... */ }
 	    })
@@ -339,8 +339,8 @@ export default defineCommand({
 	    import { defineGroup } from '@bunli/core'
 	    import migrate from './db/migrate.js'
 	    import seed from './db/seed.js'
-	    export default defineGroup({
-	      name: 'db',
+    export default defineGroup({
+      name: 'db' as const,
 	      description: 'Database commands',
 	      commands: [migrate, seed]
 	    })
@@ -349,7 +349,7 @@ export default defineCommand({
 	    import { createCLI } from '@bunli/core'
 	    import db from './commands/db.js'
 	    
-	    const cli = await createCLI({ name: 'my-cli', description: 'My CLI' })
+	    const cli = await createCLI({ name: 'my-cli', version: '1.0.0', description: 'My CLI' })
 	    cli.command(db)
 	    await cli.run()
 	    ```
@@ -362,7 +362,7 @@ Add shortcuts for frequently used commands:
 
 ```typescript
 export default defineCommand({
-  name: 'development',
+  name: 'development' as const,
   alias: ['dev', 'd'], // Can be string or array
   description: 'Start development server',
   handler: async () => {
@@ -375,11 +375,11 @@ export default defineCommand({
 
 // Aliases work with nested commands too
 export default defineCommand({
-  name: 'database',
+  name: 'database' as const,
   alias: 'db',
   commands: [
     defineCommand({
-      name: 'migrate',
+      name: 'migrate' as const,
       alias: 'm',
       handler: async () => {
         // Can be called as:
@@ -430,16 +430,15 @@ Commands can control when structured output is displayed using `outputPolicy`:
 export default defineCommand({
   name: 'config-get',
   description: 'Print a config value',
-  outputPolicy: 'always', // 'always' | 'never' | 'auto' (default)
+  outputPolicy: 'all', // 'all' | 'agent-only'
   handler: async ({ output, flags }) => {
     output({ key: flags.key, value: getConfigValue(flags.key) })
   }
 })
 ```
 
-- **`'auto'`** — Only show output when not a TTY (default)
-- **`'always'`** — Always show structured output
-- **`'never'`** — Suppress structured output entirely
+- **`'all'`** — Display output to both humans (TTY) and agents (piped)
+- **`'agent-only'`** — Suppress output in TTY mode; only emit for piped/agent consumers
 
 
 

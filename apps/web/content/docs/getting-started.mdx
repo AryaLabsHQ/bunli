@@ -50,12 +50,13 @@ Your new CLI project includes:
 
 ```
 my-cli/
-├── cli.ts             # CLI entry point
-├── commands/          # Command definitions
-│   └── greet.ts       # Individual command files
-├── .bunli/            # Generated files (auto-created)
-│   └── commands.gen.ts # Generated TypeScript types
-├── bunli.config.ts    # Configuration
+├── src/
+│   ├── index.ts           # CLI entry point
+│   └── commands/          # Command definitions
+│       └── hello.ts       # Individual command files
+├── .bunli/                # Generated files (auto-created)
+│   └── commands.gen.ts    # Generated TypeScript types
+├── bunli.config.ts        # Configuration
 ├── package.json
 ├── tsconfig.json
 └── README.md
@@ -79,14 +80,14 @@ bunli dev -- --verbose
 
 ### Add your first command
 
-Create a new command in `commands/greet.ts`:
+Create a new command in `src/commands/greet.ts`:
 
 ```typescript
 import { defineCommand, option } from '@bunli/core'
 import { z } from 'zod'
 
 export default defineCommand({
-  name: 'greet',
+  name: 'greet' as const,
   description: 'Greet someone',
   options: {
     name: option(
@@ -214,7 +215,8 @@ If you prefer to set up manually:
 ### Install Bunli
 
 ```bash
-bun add bunli @bunli/core
+bun add @bunli/core
+bun add -d bunli
 ```
 
 ### Create your CLI entry point
@@ -230,7 +232,7 @@ const cli = await createCLI({
 })
 
 cli.command({
-  name: 'hello',
+  name: 'hello' as const,
   description: 'Say hello',
   handler: async () => {
     console.log('Hello from Bunli!')

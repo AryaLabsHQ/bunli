@@ -16,10 +16,10 @@ export default defineCommand({
   handler: async ({ prompt }) => {
     // Text input
     const name = await prompt('What is your name?')
-    
+
     // Confirmation
     const confirmed = await prompt.confirm('Continue?')
-    
+
     // Selection
     const choice = await prompt.select('Choose an option', {
       options: [
@@ -27,7 +27,7 @@ export default defineCommand({
         { label: 'Option B', value: 'b' }
       ]
     })
-    
+
     // Password input
     const password = await prompt.password('Enter password:')
   }
@@ -142,7 +142,7 @@ export default defineCommand({
         return true
       }
     })
-    
+
     console.log(colors.green('✓'), `Creating project: ${projectName}`)
   }
 })
@@ -159,7 +159,7 @@ export default defineCommand({
     const content = await prompt('Enter your note (Ctrl+D to finish):', {
       multiline: true
     })
-    
+
     console.log('Note saved with', content.split('\n').length, 'lines')
   }
 })
@@ -180,7 +180,7 @@ export default defineCommand({
         return true
       }
     })
-    
+
     const ageStr = await prompt('Age:', {
       validate: (value) => {
         const num = parseInt(value, 10)
@@ -190,7 +190,7 @@ export default defineCommand({
         return true
       }
     })
-    
+
     const age = parseInt(ageStr, 10)
     console.log(`Registered: ${email}, age ${age}`)
   }
@@ -206,12 +206,12 @@ export default defineCommand({
   name: 'delete',
   handler: async ({ prompt, colors, positional }) => {
     const [file] = positional
-    
+
     const confirmed = await prompt.confirm(
       `Are you sure you want to delete ${file}?`,
       { default: false }
     )
-    
+
     if (confirmed) {
       console.log(colors.red('✗'), `Deleted ${file}`)
     } else {
@@ -232,29 +232,29 @@ export default defineCommand({
   handler: async ({ flags, prompt, colors }) => {
     if (flags.env === 'production') {
       console.log(colors.yellow('⚠ WARNING: Deploying to production!'))
-      
+
       const confirmed = await prompt.confirm(
         'This will affect live users. Continue?',
         { default: false }
       )
-      
+
       if (!confirmed) {
         console.log('Deployment cancelled')
         process.exit(0)
       }
-      
+
       // Double confirmation for critical operations
       const reallyConfirmed = await prompt.confirm(
         'Are you REALLY sure?',
         { default: false }
       )
-      
+
       if (!reallyConfirmed) {
         console.log('Deployment cancelled')
         process.exit(0)
       }
     }
-    
+
     console.log(`Deploying to ${flags.env}...`)
   }
 })
@@ -276,7 +276,7 @@ export default defineCommand({
         { value: 'lib', label: 'Library' }
       ]
     })
-    
+
     const framework = await prompt.select('Choose a framework:', {
       options: projectType === 'web' ? [
         { value: 'next', label: 'Next.js' },
@@ -288,7 +288,7 @@ export default defineCommand({
         { value: 'express', label: 'Express' }
       ]
     })
-    
+
     console.log(colors.green('✓'), `Creating ${projectType} with ${framework}`)
   }
 })
@@ -313,15 +313,15 @@ export default defineCommand({
       min: 1,
       max: 4
     })
-    
+
     const spin = spinner('Installing features...')
     spin.start()
-    
+
     for (const feature of features) {
       spin.update(`Installing ${feature}...`)
       await new Promise(resolve => setTimeout(resolve, 1000))
     }
-    
+
     spin.succeed(`Installed ${features.length} features`)
   }
 })
@@ -334,7 +334,7 @@ export default defineCommand({
   name: 'login',
   handler: async ({ prompt, colors }) => {
     const username = await prompt('Username:')
-    
+
     const password = await prompt.password('Password:', {
       validate: (value) => {
         if (value.length < 8) {
@@ -343,15 +343,15 @@ export default defineCommand({
         return true
       }
     })
-    
+
     // For sensitive operations, confirm password
     const confirmPassword = await prompt.password('Confirm password:')
-    
+
     if (password !== confirmPassword) {
       console.log(colors.red('✗'), 'Passwords do not match')
       process.exit(1)
     }
-    
+
     console.log(colors.green('✓'), 'Login successful')
   }
 })
@@ -366,21 +366,21 @@ export default defineCommand({
   name: 'setup',
   handler: async ({ prompt, colors, spinner }) => {
     console.log(colors.blue('Welcome to the setup wizard!\n'))
-    
+
     // Step 1: Basic Info
     const projectName = await prompt('Project name:', {
       default: 'my-app'
     })
-    
+
     const description = await prompt('Project description:', {
       default: 'A Bunli CLI application'
     })
-    
+
     // Step 2: Configuration
     const useTypeScript = await prompt.confirm('Use TypeScript?', {
       default: true
     })
-    
+
     const features = await prompt.multiselect('Select features:', {
       options: [
         { value: 'tests', label: 'Testing framework' },
@@ -391,7 +391,7 @@ export default defineCommand({
       ],
       initialValues: ['tests', 'lint', 'format', 'git']
     })
-    
+
     // Step 3: Advanced Options
     let database = null
     if (await prompt.confirm('Configure database?')) {
@@ -404,7 +404,7 @@ export default defineCommand({
         ]
       })
     }
-    
+
     // Step 4: Confirmation
     console.log('\n' + colors.blue('Configuration Summary:'))
     console.log(`  Name: ${projectName}`)
@@ -414,20 +414,20 @@ export default defineCommand({
     if (database) {
       console.log(`  Database: ${database}`)
     }
-    
+
     const proceed = await prompt.confirm('\nProceed with setup?', {
       default: true
     })
-    
+
     if (!proceed) {
       console.log(colors.yellow('Setup cancelled'))
       process.exit(0)
     }
-    
+
     // Step 5: Execute Setup
     const spin = spinner('Setting up project...')
     spin.start()
-    
+
     // Simulate setup steps
     const steps = [
       'Creating project structure',
@@ -435,12 +435,12 @@ export default defineCommand({
       'Configuring tools',
       'Initializing git repository'
     ]
-    
+
     for (const step of steps) {
       spin.update(step + '...')
       await new Promise(resolve => setTimeout(resolve, 1000))
     }
-    
+
     spin.succeed('Project setup complete!')
     console.log(colors.green('\n✓'), `cd ${projectName} && bunli dev`)
   }
@@ -460,7 +460,7 @@ export default defineCommand({
         { value: 'reset', label: 'Reset to defaults' }
       ]
     })
-    
+
     if (action === 'edit') {
       const section = await prompt.select('Which section to edit?', {
         options: [
@@ -469,7 +469,7 @@ export default defineCommand({
           { value: 'advanced', label: 'Advanced Options' }
         ]
       })
-      
+
       switch (section) {
         case 'general':
           const theme = await prompt.select('Color theme:', {
@@ -479,12 +479,12 @@ export default defineCommand({
               { value: 'dark', label: 'Dark' }
             ]
           })
-          
+
           const verbose = await prompt.confirm('Enable verbose logging?')
-          
+
           console.log(colors.green('✓'), 'Settings updated')
           break
-          
+
         case 'api':
           const endpoint = await prompt('API endpoint:', {
             default: 'https://api.example.com',
@@ -497,7 +497,7 @@ export default defineCommand({
               }
             }
           })
-          
+
           const timeout = await prompt('Request timeout (seconds):', {
             default: '30',
             validate: (value) => {
@@ -508,7 +508,7 @@ export default defineCommand({
               return true
             }
           })
-          
+
           console.log(colors.green('✓'), 'API configuration updated')
           break
       }
@@ -525,18 +525,24 @@ export default defineCommand({
 interface PromptOptions {
   // Default value
   default?: string
-  
+
   // Validation function
   validate?: (value: string) => boolean | string
-  
-  // Transform the value after validation
-  transform?: (value: string) => any
-  
-  // Custom error message
-  error?: string
-  
-  // Allow empty input
-  required?: boolean
+
+  // Zod/Standard Schema validation
+  schema?: StandardSchemaV1
+
+  // Placeholder text
+  placeholder?: string
+
+  // Multi-line input
+  multiline?: boolean
+
+  // Character limit
+  charLimit?: number
+
+  // Display height
+  height?: number
 }
 ```
 
@@ -550,12 +556,9 @@ interface SelectOptions<T> {
     label: string
     hint?: string
   }>
-  
+
   // Default selected value
   default?: T
-  
-  // Maximum items to display
-  maxVisible?: number
 }
 ```
 
@@ -606,7 +609,7 @@ const projectTypes = Object.keys(setupApi.options.type?.options || {})
 // Type-safe interactive command execution
 async function runInteractiveCommand(commandName: string, options: any) {
   const command = getCommandApi(commandName as any)
-  
+
   // Validate options against command schema
   for (const [key, value] of Object.entries(options)) {
     if (command.options[key]) {
@@ -631,18 +634,16 @@ This enables:
 
 ```typescript
 import { test, expect } from 'bun:test'
-import { createTestCLI } from '@bunli/test'
+import { testCommand } from '@bunli/test'
 
 test('interactive setup', async () => {
-  const cli = createTestCLI({ commands: [setupCommand] })
-
-  // Mock prompt responses using stdin array
-  const result = await cli.run(['setup'], {
+  const result = await testCommand(setupCommand, {
+    args: ['setup'],
     stdin: [
-      'my-project',     // Project name
-      'y',              // Use TypeScript
-      'tests,git',      // Features (comma-separated)
-      'y'               // Confirm
+      'my-project',
+      'y',
+      'tests,git',
+      'y'
     ]
   })
 
@@ -655,14 +656,12 @@ For more control over prompt mocking, use the `mockPromptResponses` helper:
 
 ```typescript
 import { test, expect } from 'bun:test'
-import { createTestCLI, mockPromptResponses } from '@bunli/test'
+import { testCommand, mockPromptResponses } from '@bunli/test'
 
 test('interactive setup with mockPromptResponses', async () => {
-  const cli = createTestCLI({ commands: [setupCommand] })
-
-  // Map prompt messages to responses
-  const result = await cli.run(['setup'], {
-    stdin: mockPromptResponses({
+  const result = await testCommand(setupCommand, {
+    args: ['setup'],
+    ...mockPromptResponses({
       'Project name:': 'my-project',
       'Use TypeScript?': true,
       'Select features:': ['tests', 'git'],

@@ -57,7 +57,7 @@ import { defineCommand, option } from '@bunli/core'
 import { z } from 'zod'
 
 const command = defineCommand({
-  name: 'serve',
+  name: 'serve' as const,
   description: 'Start server',
   options: {
     port: option(z.coerce.number().default(3000)),
@@ -77,7 +77,7 @@ const command = defineCommand({
 
 ```typescript
 export default defineCommand({
-  name: 'hello',
+  name: 'hello' as const,
   description: 'Say hello',
   handler: async ({ colors }) => {
     console.log(colors.green('Hello, World!'))
@@ -89,7 +89,7 @@ export default defineCommand({
 
 ```typescript
 export default defineCommand({
-  name: 'deploy',
+  name: 'deploy' as const,
   description: 'Deploy application',
   options: {
     env: option(
@@ -125,7 +125,7 @@ Commands can use `render:` instead of (or alongside) `handler:` for interactive 
 
 ```typescript
 export default defineCommand({
-  name: 'greet',
+  name: 'greet' as const,
   description: 'Interactive greeting',
   options: {
     name: option(z.string().default('World'), { short: 'n' }),
@@ -148,7 +148,7 @@ export default defineCommand({
 
 ```typescript
 export default defineCommand({
-  name: 'development',
+  name: 'development' as const,
   alias: ['dev', 'd'],
   description: 'Start development server',
   handler: async ({ shell }) => {
@@ -161,11 +161,11 @@ export default defineCommand({
 
 ```typescript
 export default defineGroup({
-  name: 'db',
+  name: 'db' as const,
   description: 'Database operations',
   commands: [
     defineCommand({
-      name: 'migrate',
+      name: 'migrate' as const,
       alias: 'm',
       description: 'Run migrations',
       options: {
@@ -179,7 +179,7 @@ export default defineGroup({
       }
     }),
     defineCommand({
-      name: 'seed',
+      name: 'seed' as const,
       description: 'Seed database',
       handler: async ({ shell }) => {
         await shell`bun run db:seed`
@@ -276,7 +276,7 @@ interface HandlerArgs<TFlags = Record<string, unknown>, TStore = {}, TCommandNam
   output: (data: unknown) => void
 
   // Plugin context (when using plugins)
-  context?: CommandContext<TStore>
+  context?: CommandContext<Record<string, unknown>>
 }
 ```
 
@@ -353,14 +353,14 @@ Commands with `render:` can specify TUI options:
 
 ```typescript
 export default defineCommand({
-  name: 'interactive',
+  name: 'interactive' as const,
   description: 'Interactive TUI command',
   tui: {
     renderer: {
       bufferMode: 'alternate'  // Use alternate screen buffer
     }
   },
-  outputPolicy: 'always',  // Always use TUI even in CI
+  outputPolicy: 'all',  // Always use TUI even in CI
   defaultFormat: 'toon',   // Default to toon format
   render: ({ flags }) => <InteractiveView flags={flags} />
 })
@@ -393,7 +393,7 @@ Options are validated automatically before the handler runs:
 ```typescript
 // This command requires a valid port number
 export default defineCommand({
-  name: 'serve',
+  name: 'serve' as const,
   options: {
     port: option(
       z.coerce.number()
@@ -421,7 +421,7 @@ Commands can be defined without handlers when they only contain subcommands:
 
 ```typescript
 export default defineGroup({
-  name: 'tools',
+  name: 'tools' as const,
   description: 'Development tools',
   commands: [
     // Subcommands here
@@ -445,7 +445,7 @@ const cli = await createCLI({
 
 // In your command:
 export default defineCommand({
-  name: 'build',
+  name: 'build' as const,
   description: 'Build the project',
   handler: async ({ flags, context, colors }) => {
     // Access plugin store with full type safety

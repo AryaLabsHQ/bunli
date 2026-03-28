@@ -242,7 +242,7 @@ A template is any directory with files that will be copied and processed. Add a 
   "description": "My custom Bunli template",
   "variables": [
     {
-      "name": "projectName",
+      "name": "name",
       "message": "Project name",
       "type": "string",
       "default": "my-project"
@@ -274,10 +274,10 @@ Templates support multiple variable formats:
 
 | Format | Example | Usage |
 |--------|---------|-------|
-| Handlebars | `{{projectName}}` | Most common |
-| EJS | `<%= projectName %>` | Alternative |
-| Shell | `$projectName` | Scripts |
-| Python | `__projectName__` | File names |
+| Handlebars | `{{name}}` | Most common |
+| EJS | `<%= name %>` | Alternative |
+| Shell | `$name` | Scripts |
+| Python | `__name__` | File names |
 
 **Available Variables:**
 

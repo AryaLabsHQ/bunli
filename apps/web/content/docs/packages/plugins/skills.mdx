@@ -15,7 +15,7 @@ bun add @bunli/plugin-skills
 
 ## Features
 
-- **Multi-agent support** - Syncs to 18+ AI coding agents
+- **Multi-agent support** - Syncs to 40+ AI coding agents
 - **Universal agents** - Uses `.agents/skills` directory (Clau, Cline, Codex, Cursor, etc.)
 - **Non-universal agents** - Creates symlinks from agent-specific dirs to canonical skills dir
 - **Project-local or global** - Install skills per-project or system-wide
@@ -24,7 +24,7 @@ bun add @bunli/plugin-skills
 ## Basic Usage
 
 ```typescript
-import { createCLI } from '@bunli/core'
+import { createCLI, defineCommand } from '@bunli/core'
 import { skillsPlugin } from '@bunli/plugin-skills'
 
 const cli = await createCLI({
@@ -32,11 +32,11 @@ const cli = await createCLI({
   plugins: [skillsPlugin()]
 })
 
-cli.command({
-  name: 'build',
+cli.command(defineCommand({
+  name: 'build' as const,
   description: 'Build the project',
   handler: async ({ flags }) => { /* ... */ }
-})
+}))
 
 await cli.run()
 ```

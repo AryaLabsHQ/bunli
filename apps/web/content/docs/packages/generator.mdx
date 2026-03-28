@@ -255,23 +255,23 @@ bunli generate --watch
 
 ```typescript
 class Generator {
-  constructor(options: GeneratorOptions)
+  constructor(options: GeneratorConfig)
 
   // Generate types
-  run(options?: RunOptions): Promise<void>
+  run(options?: GeneratorEvent): Promise<Result<void, GeneratorRunError>>
 
   // Get current configuration
-  getConfig(): GeneratorOptions
+  getConfig(): GeneratorConfig
 
   // Update configuration
-  updateConfig(options: Partial<GeneratorOptions>): void
+  updateConfig(options: Partial<GeneratorConfig>): void
 }
 ```
 
-### GeneratorOptions
+### GeneratorConfig
 
 ```typescript
-interface GeneratorOptions {
+interface GeneratorConfig {
   entry: string
   directory?: string
   outputFile: string
@@ -280,12 +280,12 @@ interface GeneratorOptions {
 }
 ```
 
-### RunOptions
+### GeneratorEvent
 
 ```typescript
-interface RunOptions {
-  type?: 'update' | 'delete'
-  path?: string
+interface GeneratorEvent {
+  type: 'create' | 'update' | 'delete'
+  path: string
 }
 ```
 

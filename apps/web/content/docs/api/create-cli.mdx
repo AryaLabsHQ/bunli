@@ -60,7 +60,6 @@ interface BunliConfigInput {
   help?: {
     renderer?: HelpRenderer
   }
-  generated?: string | boolean
 }
 ```
 
@@ -73,7 +72,7 @@ interface BunliConfigInput {
 A `CLI` instance with the following methods:
 
 ```typescript
-interface CLI<TStore = unknown> {
+interface CLI<TStore = any> {
   // Register a command
   command<TCommandStore = unknown>(cmd: Command<any, TCommandStore>): void
 

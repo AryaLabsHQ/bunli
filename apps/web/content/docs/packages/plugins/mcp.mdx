@@ -90,7 +90,7 @@ interface MCPTool {
 interface McpPluginOptions<TStore = Record<string, unknown>> {
   /** Function to fetch tools from MCP client(s) */
   toolsProvider: (
-    context: PluginContext
+    context: IPluginContext
   ) => Promise<MCPToolGroup[]>
 
   /** Factory to create handlers for each tool */

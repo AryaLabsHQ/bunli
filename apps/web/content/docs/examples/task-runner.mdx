@@ -28,7 +28,7 @@ Builds the project with validation and transformation:
 
 ### `test` - Run Tests
 ```bash
-bun run cli.ts test --pattern "**/*.test.ts" --coverage --watch
+bun run cli.ts test --pattern "**/*.test.ts" --coverage 80 --watch
 ```
 
 Runs tests with filtering and coverage:
@@ -67,24 +67,50 @@ import { defineCommand, option } from '@bunli/core'
 import { z } from 'zod'
 
 export const buildCommand = defineCommand({
-  name: 'build',
+  name: 'build' as const,
   options: {
-    target: option(
-      z.enum(['development', 'production']).default('production'),
-      { description: 'Build target' }
+    env: option(
+      z.enum(['development', 'staging', 'production']).default('development'),
+      { short: 'e', description: 'Build environment' }
     ),
-    minify: option(
-      z.boolean().default(true),
-      { description: 'Minify output', short: 'm' }
+    outdir: option(
+      z.string().min(1).default('dist'),
+      { short: 'o', description: 'Output directory' }
     ),
-    sourcemap: option(
-      z.boolean().default(false),
-      { description: 'Generate source maps', short: 's' }
+    config: option(
+      z.string().transform((val) => JSON.parse(val)).optional(),
+      { short: 'c', description: 'JSON configuration object' }
+    ),
+    memory: option(
+      z.string().regex(/^\d+[kmg]?$/i).optional()
+        .transform((val) => {
+          const raw = val ?? '512m'
+          const num = parseInt(raw)
+          const unit = raw.slice(-1).toLowerCase()
+          const multipliers = { k: 1024, m: 1024 * 1024, g: 1024 * 1024 * 1024 }
+          return num * (multipliers[unit as keyof typeof multipliers] || 1)
+        }),
+      { short: 'm', description: 'Memory limit (e.g., 512m, 2g)' }
+    ),
+    variables: option(
+      z.string().transform((val) => {
+        const vars: Record<string, string> = {}
+        val.split(',').forEach(pair => {
+          const [key, value] = pair.split('=')
+          if (key && value) vars[key.trim()] = value.trim()
+        })
+        return vars
+      }).optional(),
+      { short: 'v', description: 'Environment variables (key1=value1,key2=value2)' }
+    ),
+    watch: option(
+      z.coerce.boolean().default(false),
+      { short: 'w', description: 'Watch for changes' }
     )
   },
   handler: async ({ flags, spinner, colors }) => {
     // Type-safe access to validated options
-    const { target, minify, sourcemap } = flags
+    const { env, outdir, memory, variables, watch } = flags
     // ... implementation
   }
 })
@@ -98,12 +124,11 @@ export const buildCommand = defineCommand({
 const name = await prompt.text('Project name?')
 
 // Selection
-const framework = await prompt.select('Framework?', {
+const framework = await prompt.select('Runtime framework?', {
   options: [
-    { label: 'React', value: 'react' },
-    { label: 'Vue', value: 'vue' },
-    { label: 'Svelte', value: 'svelte' },
-    { label: 'Solid', value: 'solid' }
+    { label: 'Bun', value: 'bun' },
+    { label: 'Node.js', value: 'node' },
+    { label: 'Deno', value: 'deno' }
   ]
 })
 
@@ -138,7 +163,7 @@ spin.succeed('Build completed!')
 ### 4. Conditional Flows
 ```typescript
 handler: async ({ flags, prompt, colors }) => {
-  if (flags.env === 'production') {
+  if (flags.environment === 'production') {
     const confirmed = await prompt.confirm(
       colors.red('⚠️  Deploy to production? This cannot be undone!')
     )
@@ -182,8 +207,8 @@ bun run dev
 
 # Try the commands
 bun run cli.ts build --help
-bun run cli.ts test --filter unit --coverage
-bun run cli.ts deploy --env staging
+bun run cli.ts test --pattern "**/*.test.ts" --coverage 80
+bun run cli.ts deploy --environment staging
 bun run cli.ts setup
 ```
 
@@ -192,17 +217,17 @@ bun run cli.ts setup
 ### Complex Option Validation
 ```typescript
 options: {
-  filter: option(
-    z.enum(['unit', 'integration', 'e2e']).array().optional(),
-    { description: 'Test types to run' }
+  pattern: option(
+    z.string().min(1).default('**/*.test.ts'),
+    { short: 'p', description: 'Test file pattern' }
   ),
   coverage: option(
-    z.coerce.boolean().default(false),
-    { description: 'Generate coverage report' }
-  ),
-  threshold: option(
     z.coerce.number().min(0).max(100).default(80),
-    { description: 'Coverage threshold percentage' }
+    { short: 'c', description: 'Minimum coverage percentage' }
+  ),
+  watch: option(
+    z.coerce.boolean().default(false),
+    { short: 'w', description: 'Watch for changes' }
   )
 }
 ```
@@ -216,9 +241,9 @@ handler: async ({ flags, colors }) => {
     console.error(colors.red('No test files found'))
     process.exit(1)
   }
-  
+
   // Validate coverage threshold
-  if (flags.coverage && flags.threshold < 50) {
+  if (flags.coverage < 50) {
     console.warn(colors.yellow('Low coverage threshold'))
   }
 }
@@ -228,20 +253,19 @@ handler: async ({ flags, colors }) => {
 
 ### Multi-step Setup
 ```typescript
-handler: async ({ prompt, colors }) => {
+handler: async ({ prompt, colors, spinner }) => {
   console.log(colors.cyan('Welcome to the setup wizard!'))
   
   // Step 1: Project details
   const name = await prompt.text('Project name?')
   const description = await prompt.text('Description?')
   
-  // Step 2: Framework selection
-  const framework = await prompt.select('Framework?', {
+  // Step 2: Runtime selection
+  const framework = await prompt.select('Runtime framework?', {
     options: [
-      { label: 'React', value: 'react' },
-      { label: 'Vue', value: 'vue' },
-      { label: 'Svelte', value: 'svelte' },
-      { label: 'Solid', value: 'solid' }
+      { label: 'Bun', value: 'bun' },
+      { label: 'Node.js', value: 'node' },
+      { label: 'Deno', value: 'deno' }
     ]
   })
   
@@ -264,7 +288,8 @@ handler: async ({ prompt, colors }) => {
   const confirmed = await prompt.confirm('Create project?')
   if (confirmed) {
     // Create project files
-    spinner.succeed('Project created successfully!')
+    const spin = spinner('Creating project...')
+    spin.succeed('Project created successfully!')
   }
 }
 ```
