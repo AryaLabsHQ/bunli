@@ -4,7 +4,7 @@
 
 ## OVERVIEW
 
-Generates shell completion scripts for bash, zsh, and fish.
+Generates shell completion scripts for bash, zsh, fish, and powershell.
 
 ## WHERE TO LOOK
 
@@ -19,7 +19,7 @@ Generates shell completion scripts for bash, zsh, and fish.
 ```typescript
 import { completionsPlugin } from '@bunli/plugin-completions'
 
-plugins: [completionsPlugin({ shell: 'zsh' })]
+plugins: [completionsPlugin()]
 ```
 
 ## SHELL TYPES
@@ -27,3 +27,4 @@ plugins: [completionsPlugin({ shell: 'zsh' })]
 - `bash` - Bash completions
 - `zsh` - Zsh completions
 - `fish` - Fish completions
+- `powershell` - PowerShell completions

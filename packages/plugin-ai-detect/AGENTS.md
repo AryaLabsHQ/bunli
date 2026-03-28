@@ -27,7 +27,7 @@ plugins: [aiAgentPlugin({ verbose: true })]
 |-------|----------------------|
 | claude | `CLAUDECODE`, `CLAUDE_CODE` |
 | cursor | `CURSOR_AGENT` |
-| codex | `CODEX_CI`, `CODEX_THREAD_ID` |
-| amp | `AMP_CURRENT_THREAD_ID` |
+| codex | `CODEX_CI`, `CODEX_THREAD_ID`, `CODEX_SANDBOX` |
+| amp | `AMP_CURRENT_THREAD_ID`, `AGENT` |
 | gemini | `GEMINI_CLI` |
 | opencode | `OPENCODE=1` |

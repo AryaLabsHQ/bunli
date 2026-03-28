@@ -12,7 +12,7 @@ Provides testing helpers for CLI commands and full CLI testing.
 |------|----------|
 | Main exports | `src/index.ts` |
 | Command testing | `src/test-command.ts` |
-| CLI testing | `src/test-cli.ts` |
+| CLI testing | `src/test-cli.ts` (createTestCLI), `src/test-command.ts` (testCommand, testCLI) |
 
 ## PATTERNS
 
