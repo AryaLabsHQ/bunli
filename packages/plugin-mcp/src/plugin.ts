@@ -105,9 +105,6 @@ export function mcpPlugin<TStore = Record<string, unknown>>(
         )
       }
 
-      // Update store
-      context.store.commands = registeredCommands
-
       // Optional type generation
       if (options.sync && toolGroups.length > 0) {
         const outputDir = typeof options.sync === 'object'
