@@ -271,7 +271,7 @@
     },
     "packages/plugin-mcp": {
       "name": "@bunli/plugin-mcp",
-      "version": "0.2.4",
+      "version": "0.2.5",
       "dependencies": {
         "@bunli/core": "workspace:^",
         "better-result": "catalog:",
