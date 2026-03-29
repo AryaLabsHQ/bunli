@@ -28,7 +28,7 @@ interface BunliConfig {
   
   // Command configuration
   commands?: {
-    entry?: string
+    entry?: string | string[]
     directory?: string
     generateReport?: boolean
   }
@@ -81,7 +81,7 @@ interface BunliConfig {
   // Workspace configuration
   workspace?: {
     packages?: string[]
-    shared?: any
+    shared?: unknown
     versionStrategy?: 'fixed' | 'independent'
   }
 
