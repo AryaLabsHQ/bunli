@@ -5,7 +5,7 @@
       "npm": "@ai-sdk/anthropic",
       "options": {
         "baseURL": "https://api.minimax.io/anthropic/v1",
-        "apiKey": "${MINIMAX_API_KEY}"
+        "apiKey": "{env:MINIMAX_API_KEY}"
       },
       "models": {
         "MiniMax-M2.7": {
@@ -15,7 +15,7 @@
     },
     "fireworks-ai": {
       "options": {
-        "apiKey": "${FIREWORKS_API_KEY}"
+        "apiKey": "{env:FIREWORKS_API_KEY}"
       },
       "models": {
         "accounts/fireworks/routers/kimi-k2p5-turbo": {
