@@ -1,0 +1,34 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "minimax": {
+      "npm": "@ai-sdk/anthropic",
+      "options": {
+        "baseURL": "https://api.minimax.io/anthropic/v1",
+        "apiKey": "${MINIMAX_API_KEY}"
+      },
+      "models": {
+        "MiniMax-M2.7": {
+          "name": "MiniMax-M2.7"
+        }
+      }
+    },
+    "fireworks-ai": {
+      "options": {
+        "apiKey": "${FIREWORKS_API_KEY}"
+      },
+      "models": {
+        "accounts/fireworks/routers/kimi-k2p5-turbo": {
+          "name": "Kimi K2.5 Turbo"
+        }
+      }
+    }
+  },
+  "permission": {
+    "bash": "allow",
+    "edit": "allow",
+    "write": "allow",
+    "agent": "allow"
+  },
+  "default_agent": "documentation"
+}
