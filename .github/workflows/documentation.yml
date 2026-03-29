@@ -43,6 +43,7 @@ jobs:
           use_github_token: "true"
           prompt: "Audit docs affected by this PR's code changes. Implementation is the source of truth — update documentation to match code, never modify implementation. Commit doc fixes directly to this PR branch."
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MINIMAX_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
           FIREWORKS_API_KEY: ${{ secrets.FIREWORKS_API_KEY }}
           OPENCODE_CONFIG: .github/opencode.jsonc
@@ -67,6 +68,7 @@ jobs:
             If you find issues, create a new branch and open a PR with the fixes.
             Title the PR using conventional commit format (e.g., "docs: update plugin lifecycle hooks" or "docs(api): add missing handler context properties"). Be specific about what changed.
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MINIMAX_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
           FIREWORKS_API_KEY: ${{ secrets.FIREWORKS_API_KEY }}
           OPENCODE_CONFIG: .github/opencode.jsonc
@@ -97,6 +99,7 @@ jobs:
           use_github_token: "true"
           mentions: "/oc,/opencode,/docs"
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MINIMAX_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
           FIREWORKS_API_KEY: ${{ secrets.FIREWORKS_API_KEY }}
           OPENCODE_CONFIG: .github/opencode.jsonc
