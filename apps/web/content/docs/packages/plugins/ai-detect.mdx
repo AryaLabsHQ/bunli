@@ -51,8 +51,15 @@ interface AIDetectPluginOptions {
   /**
    * Additional custom AI agents to detect
    */
-  customAgents?: AIAgentInfo[]
-  
+  customAgents?: {
+    /** Agent identifier */
+    name: string
+    /** Environment variables to check */
+    envVars: string[]
+    /** Detection function */
+    detect: (env: Record<string, string | undefined>) => boolean
+  }[]
+   
   /**
    * Whether to log detection results
    * Default: false

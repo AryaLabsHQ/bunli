@@ -34,7 +34,7 @@ Your new project has this structure:
 todo-cli/
 ├── cli.ts                # CLI entry point
 ├── commands/             # Command definitions
-│   └── hello.ts          # Example command
+│   └── greet.tsx         # Example command
 ├── .bunli/              # Generated files (auto-created)
 │   └── commands.gen.ts   # Generated TypeScript types
 ├── package.json
@@ -45,10 +45,10 @@ todo-cli/
 
 ## Your First Command
 
-Let's create a simple todo list CLI. Replace the hello command with a new `add` command:
+Let's create a simple todo list CLI. Replace the greet command with a new `add` command:
 
 ```typescript
-// src/commands/add.ts
+// commands/add.ts
 import { defineCommand, option } from '@bunli/core'
 import { z } from 'zod'
 
@@ -84,7 +84,7 @@ export default defineCommand({
 Update your main CLI file:
 
 ```typescript
-// src/index.ts
+// cli.ts
 import { createCLI } from '@bunli/core'
 import add from './commands/add.js'
 
@@ -109,7 +109,7 @@ bunli dev
 Now test your command:
 
 ```bash
-./src/index.ts add --task "Write documentation" --priority high
+bun cli.ts add --task "Write documentation" --priority high
 ```
 
 ## Adding More Commands
@@ -117,7 +117,7 @@ Now test your command:
 Let's add a `list` command:
 
 ```typescript
-// src/commands/list.ts
+// commands/list.ts
 import { defineCommand, option } from '@bunli/core'
 import { z } from 'zod'
 
@@ -210,7 +210,7 @@ export default defineCommand({
 Create a group of database commands:
 
 ```typescript
-// src/commands/db.ts
+// commands/db.ts
 import { defineCommand } from '@bunli/core'
 
 export default defineCommand({
@@ -258,7 +258,7 @@ bunli build --targets native
 Create a test for your command:
 
 ```typescript
-// src/commands/add.test.ts
+// commands/add.test.ts
 import { test, expect } from 'bun:test'
 import { testCommand, createTestCLI } from '@bunli/test'
 import add from './add'
@@ -284,7 +284,7 @@ bunli test
 Enhance your CLI with plugins. Let's add configuration loading and AI detection:
 
 ```typescript
-// src/index.ts
+// cli.ts
 import { createCLI } from '@bunli/core'
 import { configMergerPlugin } from '@bunli/plugin-config'
 import { aiAgentPlugin } from '@bunli/plugin-ai-detect'
@@ -308,7 +308,7 @@ await cli.run()
 Now your commands can use plugin features:
 
 ```typescript
-// src/commands/list.ts
+// commands/list.ts
 handler: async ({ flags, colors, agent }) => {
   // Provide structured output for AI agents
   if (agent) {
@@ -332,13 +332,8 @@ import { defineConfig } from '@bunli/core'
 
 export default defineConfig({
   name: 'todo',
-  commands: {
-    directory: './src/commands'
-  },
-  
-  
   build: {
-    entry: './src/index.ts',
+    entry: './cli.ts',
     outdir: './dist',
     targets: ['darwin-arm64', 'linux-x64', 'windows-x64']
   }
@@ -418,4 +413,4 @@ You've built a functional CLI! Here's what to explore next:
 
 ## Complete Example
 
-Find the complete todo CLI example in the [Bunli repository](https://github.com/AryaLabsHQ/bunli/tree/main/examples/todo-cli).
+Find the complete hello-world CLI example in the [Bunli repository](https://github.com/AryaLabsHQ/bunli/tree/main/examples/hello-world).
