@@ -108,6 +108,8 @@ handler: async ({
   // agent - Whether running in an AI agent context
   // output - Write formatted output
   // context - Plugin context (only present when plugins are loaded)
+  // Note: context.store contains plugin state, but result/error/exitCode
+  // are NOT available in handlers — they are only passed to postRun/afterCommand hooks
 }
 ```
 

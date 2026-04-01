@@ -210,12 +210,30 @@ export default defineConfig({
 
 ### Help Configuration
 
+Customize help output with a custom renderer:
+
 ```typescript
 export default defineConfig({
   help: {
-    renderer: myCustomRenderer  // Custom HelpRenderer function (any type accepted)
+    renderer: myCustomRenderer  // Custom HelpRenderer function
   }
 })
+```
+
+**HelpRenderer type:**
+
+```typescript
+type HelpRenderer<TStore = {}> = (context: HelpRenderContext<TStore>) => void
+
+interface HelpRenderContext<TStore = {}> {
+  cliName: string
+  version: string
+  description?: string
+  command?: Command<any, TStore>  // Current command being documented
+  path: string[]                   // Command path (e.g., ['git', 'push'])
+  commands: Command<any, TStore>[] // Available commands
+  terminal: TerminalInfo
+}
 ```
 
 ### Type Generation

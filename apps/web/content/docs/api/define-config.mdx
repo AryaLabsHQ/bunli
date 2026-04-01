@@ -28,7 +28,7 @@ interface BunliConfig {
   
   // Command configuration
   commands?: {
-    entry?: string
+    entry?: string  // Note: only single entry file supported (not array)
     directory?: string
     generateReport?: boolean
   }
@@ -49,8 +49,8 @@ interface BunliConfig {
   
   // Development configuration
   dev?: {
-    watch?: boolean
-    inspect?: boolean
+    watch?: boolean      // default: true
+    inspect?: boolean    // default: false
     port?: number
   }
   
@@ -73,8 +73,8 @@ interface BunliConfig {
     tagFormat?: string
     conventionalCommits?: boolean
     binary?: {
-      packageNameFormat?: string
-      shimPath?: string
+      packageNameFormat?: string   // default: '{{name}}-{{platform}}'
+      shimPath?: string            // default: 'bin/run.mjs'
     }
   }
 

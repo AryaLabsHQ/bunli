@@ -29,7 +29,7 @@ interface BunliPlugin<TStore = {}> {
   configResolved?(config: ResolvedConfig): void | Promise<void>
 
   /** Before command hook - Called before command execution */
-  beforeCommand?(context: CommandContext<TStore>): void | Promise<void>
+  beforeCommand?(context: CommandContext<any>): void | Promise<void>
 
   /**
    * Pre-run hook - Called immediately before the command handler executes.
@@ -37,7 +37,7 @@ interface BunliPlugin<TStore = {}> {
    * Lifecycle: setup → configResolved → beforeCommand → preRun → [handler] → postRun → afterCommand
    */
   preRun?(
-    context: CommandContext<TStore>,
+    context: CommandContext<any>,
     state: ExecutionState
   ): void | Promise<void>
 
@@ -223,13 +223,62 @@ interface MyStore {
   count: number
 }
 
-const myPlugin = createPlugin<Options, MyStore>((options) => ({
+  const myPlugin = createPlugin<Options, MyStore>((options) => ({
   name: 'my-plugin',
   store: { count: 0 },
   beforeCommand(context) {
     console.log(`${options.prefix}: ${context.store.count}`)
   }
 }))
+```
+
+### composePlugins
+
+Combine multiple plugins into a single plugin with merged store types.
+
+```typescript
+function composePlugins<P1 extends BunliPlugin, P2 extends BunliPlugin>(
+  plugin1: P1,
+  plugin2: P2
+): BunliPlugin<MergeStores<[P1, P2]>>
+
+// Compose multiple plugins
+const combined = composePlugins(pluginA, composePlugins(pluginB, pluginC))
+```
+
+### createTestPlugin
+
+Create a plugin for testing purposes with optional mocked behavior.
+
+```typescript
+function createTestPlugin<TStore = {}>(
+  plugin?: Partial<BunliPlugin<TStore>>
+): BunliPlugin<TStore>
+```
+
+### ExecutionState
+
+A key-value store for sharing data between plugins during a single command execution. Available in `preRun` and `postRun` hooks.
+
+```typescript
+class ExecutionState {
+  get<T = unknown>(key: string): T | undefined
+  set<T = unknown>(key: string, value: T): void
+  has(key: string): boolean
+  delete(key: string): boolean
+}
+
+// Example: sharing data between preRun and postRun
+const timingPlugin = {
+  name: 'timing',
+  preRun(context, state) {
+    state.set('startTime', Date.now())
+  },
+  postRun(context, state) {
+    const startTime = state.get<number>('startTime')
+    console.log(`Duration: ${Date.now() - startTime}ms`)
+  }
+}
 ```
 
 ## Type Utilities
