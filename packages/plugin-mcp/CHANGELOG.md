@@ -1,5 +1,11 @@
 # @bunli/plugin-mcp
 
+## 0.2.5
+
+### Patch Changes
+
+- c4d7d5d: Fix the MCP plugin build by removing an invalid setup-store write. The plugin no longer tries to assign `context.store.commands` during setup, which matches the current core setup context API and restores successful builds.
+
 ## 0.2.4
 
 ### Patch Changes
