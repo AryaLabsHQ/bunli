@@ -90,14 +90,14 @@ function createOpenTuiRendererSessionWithDependencies(deps: OpenTuiSessionDepend
 
     initializePromise = (async () => {
       renderer = await deps.createRenderer({
-        useAlternateScreen: false,
-        useConsole: false,
+        screenMode: 'main-screen',
+        consoleMode: 'disabled',
+        externalOutputMode: 'passthrough',
         exitOnCtrlC: false,
         targetFps: 30,
         useMouse: false
       })
       const activeRenderer = renderer
-      activeRenderer.disableStdoutInterception()
 
       activeRenderer.prependInputHandler((sequence) => {
         if (shouldLogRawSequence(sequence)) {

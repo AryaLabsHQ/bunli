@@ -6,7 +6,6 @@ type KeypressHandler = (event: unknown) => void
 
 type StubRenderer = {
   isDestroyed: boolean
-  disableStdoutInterceptionCalls: number
   prependInputHandlers: Array<(sequence: string) => boolean>
   onCalls: Array<{ event: string; handler: DestroyHandler }>
   offCalls: Array<{ event: string; handler: DestroyHandler }>
@@ -19,7 +18,6 @@ type StubRenderer = {
   requestRenderCalls: number
   idleCalls: number
   destroyCalls: number
-  disableStdoutInterception(): void
   prependInputHandler(handler: (sequence: string) => boolean): void
   on(event: string, handler: DestroyHandler): void
   off(event: string, handler: DestroyHandler): void
@@ -49,13 +47,13 @@ function createStubRoot(): StubRoot {
   }
 }
 
-function createStubRenderer(destroyEvent: string): StubRenderer {
+function createStubRenderer(
+  destroyEvent: string
+): StubRenderer {
   const destroyHandlers = new Set<DestroyHandler>()
   const keypressHandlers = new Set<KeypressHandler>()
-
-  return {
+  const renderer: StubRenderer = {
     isDestroyed: false,
-    disableStdoutInterceptionCalls: 0,
     prependInputHandlers: [],
     onCalls: [],
     offCalls: [],
@@ -80,9 +78,6 @@ function createStubRenderer(destroyEvent: string): StubRenderer {
     requestRenderCalls: 0,
     idleCalls: 0,
     destroyCalls: 0,
-    disableStdoutInterception() {
-      this.disableStdoutInterceptionCalls += 1
-    },
     prependInputHandler(handler) {
       this.prependInputHandlers.push(handler)
     },
@@ -115,6 +110,8 @@ function createStubRenderer(destroyEvent: string): StubRenderer {
       this.emitDestroy()
     }
   }
+
+  return renderer
 }
 
 describe('OpenTUI prompt session runtime', () => {
@@ -171,6 +168,35 @@ describe('OpenTUI prompt session runtime', () => {
 
     expect(createRendererCalls).toBe(2)
     expect(renderer2.prependInputHandlers.length).toBe(1)
+
+    await session.dispose()
+  })
+
+  test('uses the latest OpenTUI prompt renderer configuration', async () => {
+    const destroyEvent = 'destroy'
+    const renderer = createStubRenderer(destroyEvent)
+    const root = createStubRoot()
+    let rendererConfig: Record<string, unknown> | undefined
+
+    const session = __openTuiSessionInternalsForTests.createOpenTuiRendererSessionWithDependencies({
+      createRenderer: (async (config) => {
+        rendererConfig = config as Record<string, unknown>
+        return renderer as never
+      }) as never,
+      createReactRoot: (() => root as never) as never,
+      destroyEvent
+    })
+
+    await session.initialize()
+
+    expect(rendererConfig).toMatchObject({
+      screenMode: 'main-screen',
+      consoleMode: 'disabled',
+      externalOutputMode: 'passthrough',
+      exitOnCtrlC: false,
+      targetFps: 30,
+      useMouse: false
+    })
 
     await session.dispose()
   })
