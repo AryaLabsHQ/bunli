@@ -38,3 +38,5 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 .claude/settings.local.json
 
 .bunli/
+
+.tmp*
