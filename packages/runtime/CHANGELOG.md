@@ -1,5 +1,11 @@
 # @bunli/runtime
 
+## 0.3.1
+
+### Patch Changes
+
+- 7055527: fix(runtime): align open-tui session options with 0.1.97
+
 ## 0.3.0
 
 ### Minor Changes
