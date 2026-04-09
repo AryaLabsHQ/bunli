@@ -1,13 +1,13 @@
 {
   "name": "@{{name}}/cli",
   "version": "0.1.0",
-  "type": "module",
   "description": "CLI for {{name}}",
-  "author": "{{author}}",
   "license": "MIT",
+  "author": "{{author}}",
   "bin": {
     "{{name}}": "./dist/index.js"
   },
+  "type": "module",
   "scripts": {
     "postinstall": "bunli generate",
     "dev": "bun run src/index.ts",
@@ -22,8 +22,8 @@
     "@{{name}}/utils": "workspace:^"
   },
   "devDependencies": {
-    "@tsconfig/bun": "catalog:",
     "@bunli/test": "latest",
+    "@tsconfig/bun": "catalog:",
     "@types/bun": "latest",
     "bunli": "latest",
     "typescript": "^5.0.0"
@@ -31,6 +31,10 @@
   "bunli": {
     "entry": "./src/index.ts",
     "outDir": "./dist",
-    "external": ["@bunli/core", "@{{name}}/core", "@{{name}}/utils"]
+    "external": [
+      "@bunli/core",
+      "@{{name}}/core",
+      "@{{name}}/utils"
+    ]
   }
 }

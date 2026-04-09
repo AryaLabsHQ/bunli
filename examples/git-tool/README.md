@@ -29,6 +29,7 @@ bun cli.ts status --detailed
 ## Commands
 
 ### `branch` - Branch Management
+
 Create, switch, and delete branches with safety checks:
 
 ```bash
@@ -46,6 +47,7 @@ bun cli.ts branch -n old-feature -d --force
 ```
 
 **Features:**
+
 - Branch name validation
 - Safety checks (can't delete current branch)
 - Automatic branch switching
@@ -53,6 +55,7 @@ bun cli.ts branch -n old-feature -d --force
 - Branch status display
 
 ### `pr` - Pull Request Management
+
 Create pull requests with comprehensive options:
 
 ```bash
@@ -70,6 +73,7 @@ bun cli.ts pr -t "Feature" --base develop
 ```
 
 **Features:**
+
 - Automatic commit detection and stashing
 - Branch pushing with confirmation
 - PR description generation from commits
@@ -78,6 +82,7 @@ bun cli.ts pr -t "Feature" --base develop
 - Browser opening integration
 
 ### `sync` - Repository Synchronization
+
 Sync with remote repository with conflict handling:
 
 ```bash
@@ -95,6 +100,7 @@ bun cli.ts sync --prune
 ```
 
 **Features:**
+
 - Automatic change stashing
 - Rebase vs merge options
 - Conflict detection and reporting
@@ -103,6 +109,7 @@ bun cli.ts sync --prune
 - Stash restoration
 
 ### `status` - Enhanced Status
+
 Comprehensive repository status with detailed information:
 
 ```bash
@@ -123,6 +130,7 @@ bun cli.ts status --history 10
 ```
 
 **Features:**
+
 - Working directory status with icons
 - Branch tracking information
 - Ahead/behind commit counts
@@ -136,12 +144,12 @@ bun cli.ts status --history 10
 
 ```typescript
 // Execute Git commands safely
-const { stdout: currentBranch } = await shell`git branch --show-current`
-const { stdout: status } = await shell`git status --porcelain`
+const { stdout: currentBranch } = await shell`git branch --show-current`;
+const { stdout: status } = await shell`git status --porcelain`;
 
 // Handle command errors
 try {
-  await shell`git branch -D ${branchName}`
+  await shell`git branch -D ${branchName}`;
 } catch (error) {
   // Handle Git errors gracefully
 }
@@ -151,40 +159,40 @@ try {
 
 ```typescript
 export default defineCommand({
-  name: 'branch' as const,
-  alias: 'br',  // Short alias
+  name: "branch" as const,
+  alias: "br", // Short alias
   // ...
-})
+});
 
 export default defineCommand({
-  name: 'pr' as const,
-  alias: 'pull-request',  // Long alias
+  name: "pr" as const,
+  alias: "pull-request", // Long alias
   // ...
-})
+});
 ```
 
 ### Interactive Decision Making
 
 ```typescript
 // Ask for user confirmation
-const confirmed = await prompt.confirm('Continue with operation?', {
-  default: false
-})
+const confirmed = await prompt.confirm("Continue with operation?", {
+  default: false,
+});
 
 // Get user input
-const commitMessage = await prompt.text('Commit message:', {
-  default: 'WIP: prepare for PR'
-})
+const commitMessage = await prompt.text("Commit message:", {
+  default: "WIP: prepare for PR",
+});
 ```
 
 ### Colored Output
 
 ```typescript
 // Use colors for better UX
-console.log(colors.green('✅ Operation successful'))
-console.log(colors.red('❌ Operation failed'))
-console.log(colors.yellow('⚠️  Warning message'))
-console.log(colors.cyan('📋 Information'))
+console.log(colors.green("✅ Operation successful"));
+console.log(colors.red("❌ Operation failed"));
+console.log(colors.yellow("⚠️  Warning message"));
+console.log(colors.cyan("📋 Information"));
 ```
 
 ## Development
@@ -215,6 +223,7 @@ This example demonstrates patterns you'd use in actual Git automation tools:
 ## Next Steps
 
 Ready for advanced patterns? Try the **[dev-server](../dev-server/README.md)** example to learn about:
+
 - Plugin system and lifecycle hooks
 - Configuration management
 - Long-running processes

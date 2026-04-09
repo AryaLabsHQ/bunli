@@ -2,15 +2,15 @@
 
 ## Available commands
 
-| Command | Alias | Description |
-|---------|-------|-------------|
-| `dev` | `d` | Run CLI in development mode with hot reload |
-| `build` | `b` | Build CLI for production |
-| `generate` | `gen` | Generate TypeScript command types |
-| `test` | `t` | Run tests with Bun |
-| `release` | `r` | Create releases |
-| `init` | `i` | Initialize a new project |
-| `doctor` | - | Run diagnostics (`doctor completions`) |
+| Command    | Alias | Description                                 |
+| ---------- | ----- | ------------------------------------------- |
+| `dev`      | `d`   | Run CLI in development mode with hot reload |
+| `build`    | `b`   | Build CLI for production                    |
+| `generate` | `gen` | Generate TypeScript command types           |
+| `test`     | `t`   | Run tests with Bun                          |
+| `release`  | `r`   | Create releases                             |
+| `init`     | `i`   | Initialize a new project                    |
+| `doctor`   | -     | Run diagnostics (`doctor completions`)      |
 
 ## bunli dev
 
@@ -20,6 +20,7 @@ bunli dev --entry ./cli.ts --watch --inspect --port 3001
 ```
 
 Options:
+
 - `--entry` entry file
 - `--generate` enable codegen (default `true`)
 - `--clearScreen` accepted flag (currently not applied in runtime behavior)
@@ -28,6 +29,7 @@ Options:
 - `--port` debugger port
 
 Behavior note:
+
 - parser defaults populate `watch`/`inspect` flags, so config fallback for these is effectively shadowed unless flags are explicitly provided.
 
 ## bunli build
@@ -38,6 +40,7 @@ bunli build --targets darwin-arm64,linux-x64 --bytecode
 ```
 
 Options:
+
 - `--entry` entry file
 - `--outdir` output directory
 - `--outfile` output filename (single executable)
@@ -49,6 +52,7 @@ Options:
 - `--bytecode`
 
 Compile caveat:
+
 - when `--targets` is set (compiled mode), multi-entry `build.entry` arrays are not supported.
 
 ## bunli generate
@@ -60,6 +64,7 @@ bunli generate --watch
 ```
 
 Options:
+
 - `--entry` CLI entry file used for command discovery
 - `--directory` optional command source directory fallback
 - `--output` output path (default `./.bunli/commands.gen.ts`)
@@ -74,6 +79,7 @@ bunli test --all --bail --timeout 30000
 ```
 
 Options:
+
 - `--pattern` test pattern(s)
 - `--watch`
 - `--coverage`
@@ -98,6 +104,7 @@ bunli release --dry
 ```
 
 Options:
+
 - `--version` (`patch` | `minor` | `major` | explicit version)
 - `--tag` custom git tag format
 - `--npm` publish to npm
@@ -107,6 +114,7 @@ Options:
 - `--all` workspace release (currently not implemented)
 
 Behavior notes:
+
 - defaults resolve from config: `npm=true`, `github=false`, `tagFormat="v{{version}}"` unless overridden.
 - failed non-dry releases create `.bunli/release-state.json` and subsequent runs resume from it.
 - `--no-npm`, `--no-github`, and `--no-resume` are treated as unsupported; use `--npm=false` / `--github=false` / `--resume=false` instead.
@@ -119,6 +127,7 @@ bunli init --name my-cli --template advanced --dir ./apps/my-cli
 ```
 
 Options:
+
 - `--name` project name
 - `--template` (`basic` | `advanced` | `monorepo`)
 - `--dir` target directory
@@ -132,7 +141,7 @@ If you need reliable disable behavior today, call `create-bunli` directly:
 ## bunli.config.ts
 
 ```typescript
-import { defineConfig } from "@bunli/core"
+import { defineConfig } from "@bunli/core";
 
 export default defineConfig({
   name: "mycli",
@@ -140,7 +149,7 @@ export default defineConfig({
 
   commands: {
     entry: "./cli.ts",
-    directory: "./commands"
+    directory: "./commands",
   },
 
   build: {
@@ -150,24 +159,24 @@ export default defineConfig({
     compress: false,
     external: ["fsevents"],
     minify: true,
-    sourcemap: true
+    sourcemap: true,
   },
 
   dev: {
     watch: true,
-    inspect: false
+    inspect: false,
   },
 
   test: {
     pattern: ["**/*.test.ts", "**/*.spec.ts"],
     coverage: false,
-    watch: false
+    watch: false,
   },
 
   release: {
     npm: true,
     github: false,
-    tagFormat: "v{{version}}"
-  }
-})
+    tagFormat: "v{{version}}",
+  },
+});
 ```

@@ -1,21 +1,16 @@
-import { ShellCompDirective } from './t.js'
+import { ShellCompDirective } from "./t.js";
 
 export function generate(name: string, exec: string): string {
   // Replace '-' and ':' with '_' for variable names
-  const nameForVar = name.replace(/[-:]/g, '_')
+  const nameForVar = name.replace(/[-:]/g, "_");
 
   // Shell completion directives
-  const ShellCompDirectiveError = ShellCompDirective.ShellCompDirectiveError
-  const ShellCompDirectiveNoSpace =
-    ShellCompDirective.ShellCompDirectiveNoSpace
-  const ShellCompDirectiveNoFileComp =
-    ShellCompDirective.ShellCompDirectiveNoFileComp
-  const ShellCompDirectiveFilterFileExt =
-    ShellCompDirective.ShellCompDirectiveFilterFileExt
-  const ShellCompDirectiveFilterDirs =
-    ShellCompDirective.ShellCompDirectiveFilterDirs
-  const ShellCompDirectiveKeepOrder =
-    ShellCompDirective.ShellCompDirectiveKeepOrder
+  const ShellCompDirectiveError = ShellCompDirective.ShellCompDirectiveError;
+  const ShellCompDirectiveNoSpace = ShellCompDirective.ShellCompDirectiveNoSpace;
+  const ShellCompDirectiveNoFileComp = ShellCompDirective.ShellCompDirectiveNoFileComp;
+  const ShellCompDirectiveFilterFileExt = ShellCompDirective.ShellCompDirectiveFilterFileExt;
+  const ShellCompDirectiveFilterDirs = ShellCompDirective.ShellCompDirectiveFilterDirs;
+  const ShellCompDirectiveKeepOrder = ShellCompDirective.ShellCompDirectiveKeepOrder;
 
   return `# bash completion for ${name}
 
@@ -118,5 +113,5 @@ __${nameForVar}_complete() {
 
 # Register completion function
 complete -F __${nameForVar}_complete ${name}
-`
+`;
 }

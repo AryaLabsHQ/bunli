@@ -1,17 +1,19 @@
-import { describe, expect, test } from 'bun:test'
-import type { KeyEvent } from '@opentui/core'
-import { createKeyMatcher, eventToBinding, matchesKeyBinding } from '../src/components/keymap.js'
+import { describe, expect, test } from "bun:test";
+
+import type { KeyEvent } from "@opentui/core";
+
+import { createKeyMatcher, eventToBinding, matchesKeyBinding } from "../src/components/keymap.js";
 
 function createKey(params: {
-  name: string
-  sequence?: string
-  ctrl?: boolean
-  shift?: boolean
-  meta?: boolean
-  option?: boolean
+  name: string;
+  sequence?: string;
+  ctrl?: boolean;
+  shift?: boolean;
+  meta?: boolean;
+  option?: boolean;
 }) {
-  let defaultPrevented = false
-  let propagationStopped = false
+  let defaultPrevented = false;
+  let propagationStopped = false;
 
   return {
     name: params.name,
@@ -22,37 +24,37 @@ function createKey(params: {
     option: params.option ?? false,
     number: false,
     raw: params.sequence ?? params.name,
-    eventType: 'press',
-    source: 'raw',
+    eventType: "press",
+    source: "raw",
     get defaultPrevented() {
-      return defaultPrevented
+      return defaultPrevented;
     },
     get propagationStopped() {
-      return propagationStopped
+      return propagationStopped;
     },
     preventDefault() {
-      defaultPrevented = true
+      defaultPrevented = true;
     },
     stopPropagation() {
-      propagationStopped = true
-    }
-  } as KeyEvent
+      propagationStopped = true;
+    },
+  } as KeyEvent;
 }
 
-describe('@bunli/runtime keymap', () => {
-  test('normalizes aliases and modifiers', () => {
-    const key = createKey({ name: 'return', ctrl: true })
-    expect(eventToBinding(key)).toBe('ctrl+enter')
-    expect(matchesKeyBinding(key, 'ctrl+enter')).toBe(true)
-  })
+describe("@bunli/runtime keymap", () => {
+  test("normalizes aliases and modifiers", () => {
+    const key = createKey({ name: "return", ctrl: true });
+    expect(eventToBinding(key)).toBe("ctrl+enter");
+    expect(matchesKeyBinding(key, "ctrl+enter")).toBe(true);
+  });
 
-  test('matches shift+tab and vim aliases in one action', () => {
+  test("matches shift+tab and vim aliases in one action", () => {
     const matcher = createKeyMatcher({
-      previous: ['shift+tab', 'k']
-    })
+      previous: ["shift+tab", "k"],
+    });
 
-    expect(matcher.match('previous', createKey({ name: 'tab', shift: true }))).toBe(true)
-    expect(matcher.match('previous', createKey({ name: 'k' }))).toBe(true)
-    expect(matcher.match('previous', createKey({ name: 'j' }))).toBe(false)
-  })
-})
+    expect(matcher.match("previous", createKey({ name: "tab", shift: true }))).toBe(true);
+    expect(matcher.match("previous", createKey({ name: "k" }))).toBe(true);
+    expect(matcher.match("previous", createKey({ name: "j" }))).toBe(false);
+  });
+});

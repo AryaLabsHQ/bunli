@@ -3,9 +3,9 @@ title: Getting Started
 description: Create your first CLI with Bunli in under 5 minutes
 ---
 
-import { Steps } from 'fumadocs-ui/components/steps';
-import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
-import { Callout } from 'fumadocs-ui/components/callout';
+import { Steps } from "fumadocs-ui/components/steps";
+import { Tab, Tabs } from "fumadocs-ui/components/tabs";
+import { Callout } from "fumadocs-ui/components/callout";
 
 Get up and running with Bunli in just a few minutes. This guide will walk you through creating your first CLI application.
 
@@ -34,11 +34,13 @@ cd my-cli
 ```
 
 You'll be prompted for:
+
 - **Project name**: Validated to contain only lowercase letters, numbers, and hyphens
 - **Template**: Choose from `basic` (default), `advanced`, or `monorepo`
 - **Package manager**: Select your preferred package manager (bun, npm, yarn, pnpm)
 
 The tool will automatically:
+
 - ✅ Create the project structure
 - ✅ Initialize a git repository
 - ✅ Install dependencies
@@ -83,27 +85,24 @@ bunli dev -- --verbose
 Create a new command in `src/commands/greet.ts`:
 
 ```typescript
-import { defineCommand, option } from '@bunli/core'
-import { z } from 'zod'
+import { defineCommand, option } from "@bunli/core";
+import { z } from "zod";
 
 export default defineCommand({
-  name: 'greet' as const,
-  description: 'Greet someone',
+  name: "greet" as const,
+  description: "Greet someone",
   options: {
-    name: option(
-      z.string().min(1),
-      { description: 'Name to greet', short: 'n' }
-    ),
-    excited: option(
-      z.coerce.boolean().default(false),
-      { description: 'Add excitement', short: 'e' }
-    )
+    name: option(z.string().min(1), { description: "Name to greet", short: "n" }),
+    excited: option(z.coerce.boolean().default(false), {
+      description: "Add excitement",
+      short: "e",
+    }),
   },
   handler: async ({ flags }) => {
-    const greeting = `Hello, ${flags.name}${flags.excited ? '!' : '.'}`
-    console.log(greeting)
-  }
-})
+    const greeting = `Hello, ${flags.name}${flags.excited ? "!" : "."}`;
+    console.log(greeting);
+  },
+});
 ```
 
 ### Test your command
@@ -137,57 +136,23 @@ Create-bunli offers several templates to match your needs:
 
 <Tabs groupId="template" defaultValue="basic">
   <Tab value="basic" label="Basic">
-    Simple single-command CLI:
-    ```bash
-    bunx create-bunli my-cli --template basic
-    ```
-    
-    **Perfect for:**
-    - Learning Bunli
-    - Simple scripts
-    - Single-purpose tools
-    
-    **Includes:**
-    - TypeScript setup
-    - Example command with tests
-    - Build configuration
+    Simple single-command CLI: ```bash bunx create-bunli my-cli --template basic ``` **Perfect
+    for:** - Learning Bunli - Simple scripts - Single-purpose tools **Includes:** - TypeScript setup
+    - Example command with tests - Build configuration
   </Tab>
-  
+
   <Tab value="advanced" label="Advanced">
-    Multi-command CLI with all features:
-    ```bash
-    bunx create-bunli my-cli --template advanced
-    ```
-    
-    **Includes:**
-    - Multiple commands (init, validate, serve, config)
-    - Configuration management
-    - File validation system
-    - Development server
-    - Interactive license selection
-    
-    **Perfect for:**
-    - Production CLIs
-    - Developer tools
-    - Complex applications
+    Multi-command CLI with all features: ```bash bunx create-bunli my-cli --template advanced ```
+    **Includes:** - Multiple commands (init, validate, serve, config) - Configuration management -
+    File validation system - Development server - Interactive license selection **Perfect for:** -
+    Production CLIs - Developer tools - Complex applications
   </Tab>
-  
+
   <Tab value="monorepo" label="Monorepo">
-    Workspace setup for larger projects:
-    ```bash
-    bunx create-bunli my-cli --template monorepo
-    ```
-    
-    **Features:**
-    - Turborepo configuration
-    - Multiple packages (cli, core, utils)
-    - Changeset support
-    - Parallel builds
-    
-    **Perfect for:**
-    - Large teams
-    - Multi-package CLIs
-    - Scalable architectures
+    Workspace setup for larger projects: ```bash bunx create-bunli my-cli --template monorepo ```
+    **Features:** - Turborepo configuration - Multiple packages (cli, core, utils) - Changeset
+    support - Parallel builds **Perfect for:** - Large teams - Multi-package CLIs - Scalable
+    architectures
   </Tab>
 </Tabs>
 
@@ -223,23 +188,23 @@ bun add -d bunli
 
 ```typescript
 // src/cli.ts
-import { createCLI } from '@bunli/core'
+import { createCLI } from "@bunli/core";
 
 const cli = await createCLI({
-  name: 'my-cli',
-  version: '1.0.0',
-  description: 'My awesome CLI'
-})
+  name: "my-cli",
+  version: "1.0.0",
+  description: "My awesome CLI",
+});
 
 cli.command({
-  name: 'hello' as const,
-  description: 'Say hello',
+  name: "hello" as const,
+  description: "Say hello",
   handler: async () => {
-    console.log('Hello from Bunli!')
-  }
-})
+    console.log("Hello from Bunli!");
+  },
+});
 
-await cli.run()
+await cli.run();
 ```
 
 ### Add to package.json
@@ -261,15 +226,15 @@ await cli.run()
 ### Create bunli.config.ts
 
 ```typescript
-import { defineConfig } from '@bunli/core'
+import { defineConfig } from "@bunli/core";
 
 export default defineConfig({
-  name: 'my-cli',
-  version: '1.0.0',
+  name: "my-cli",
+  version: "1.0.0",
   commands: {
-    directory: './src/commands'
-  }
-})
+    directory: "./src/commands",
+  },
+});
 ```
 
 </Steps>
@@ -286,5 +251,6 @@ Now that you have a working CLI:
 - [Build & Distribute](/docs/guides/distribution) - Share your CLI with the world
 
 <Callout type="tip">
-  Join our community on [GitHub Discussions](https://github.com/AryaLabsHQ/bunli/discussions) for help and to share what you're building!
+  Join our community on [GitHub Discussions](https://github.com/AryaLabsHQ/bunli/discussions) for
+  help and to share what you're building!
 </Callout>

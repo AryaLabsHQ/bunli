@@ -1,18 +1,22 @@
 {
   "name": "@bunli/plugin-skills",
   "version": "0.1.0",
-  "type": "module",
   "description": "Agent skill generation plugin for Bunli - generates SKILL.md files for AI agents",
   "keywords": [
+    "agents",
+    "ai",
     "bunli",
     "cli",
     "plugin",
-    "skills",
-    "agents",
-    "ai"
+    "skills"
   ],
-  "author": "Arya Labs, Inc.",
   "license": "MIT",
+  "author": "Arya Labs, Inc.",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "type": "module",
   "main": "./src/index.ts",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -21,10 +25,6 @@
       "default": "./src/index.ts"
     }
   },
-  "files": [
-    "dist",
-    "src"
-  ],
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",

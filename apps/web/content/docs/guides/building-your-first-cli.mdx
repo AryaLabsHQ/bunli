@@ -21,6 +21,7 @@ cd todo-cli
 ```
 
 This creates a new project with:
+
 - TypeScript configuration
 - Bunli dependencies
 - Example command structure
@@ -49,34 +50,28 @@ Let's create a simple todo list CLI. Replace the hello command with a new `add` 
 
 ```typescript
 // src/commands/add.ts
-import { defineCommand, option } from '@bunli/core'
-import { z } from 'zod'
+import { defineCommand, option } from "@bunli/core";
+import { z } from "zod";
 
 export default defineCommand({
-  name: 'add' as const,
-  description: 'Add a new todo item',
+  name: "add" as const,
+  description: "Add a new todo item",
   options: {
-    task: option(
-      z.string().min(1),
-      { description: 'Task description' }
-    ),
-    priority: option(
-      z.enum(['low', 'medium', 'high']).default('medium'),
-      { short: 'p', description: 'Task priority' }
-    ),
-    due: option(
-      z.string().optional(),
-      { short: 'd', description: 'Due date' }
-    )
+    task: option(z.string().min(1), { description: "Task description" }),
+    priority: option(z.enum(["low", "medium", "high"]).default("medium"), {
+      short: "p",
+      description: "Task priority",
+    }),
+    due: option(z.string().optional(), { short: "d", description: "Due date" }),
   },
   handler: async ({ flags, colors }) => {
-    console.log(colors.green('✓'), 'Added task:', flags.task)
-    console.log(colors.dim(`Priority: ${flags.priority}`))
+    console.log(colors.green("✓"), "Added task:", flags.task);
+    console.log(colors.dim(`Priority: ${flags.priority}`));
     if (flags.due) {
-      console.log(colors.dim(`Due: ${flags.due}`))
+      console.log(colors.dim(`Due: ${flags.due}`));
     }
-  }
-})
+  },
+});
 ```
 
 ## Setting Up the CLI
@@ -85,17 +80,17 @@ Update your main CLI file:
 
 ```typescript
 // src/index.ts
-import { createCLI } from '@bunli/core'
-import add from './commands/add.js'
+import { createCLI } from "@bunli/core";
+import add from "./commands/add.js";
 
 const cli = await createCLI({
-  name: 'todo',
-  version: '1.0.0',
-  description: 'Simple todo list manager'
-})
+  name: "todo",
+  version: "1.0.0",
+  description: "Simple todo list manager",
+});
 
-cli.command(add)
-await cli.run()
+cli.command(add);
+await cli.run();
 ```
 
 ## Running in Development
@@ -118,54 +113,52 @@ Let's add a `list` command:
 
 ```typescript
 // src/commands/list.ts
-import { defineCommand, option } from '@bunli/core'
-import { z } from 'zod'
+import { defineCommand, option } from "@bunli/core";
+import { z } from "zod";
 
 export default defineCommand({
-  name: 'list' as const,
-  description: 'List all todos',
-  alias: 'ls',
+  name: "list" as const,
+  description: "List all todos",
+  alias: "ls",
   options: {
-    filter: option(
-      z.enum(['all', 'pending', 'completed']).default('all'),
-      { short: 'f', description: 'Filter tasks' }
-    ),
-    sort: option(
-      z.enum(['priority', 'due', 'created']).default('created'),
-      { short: 's', description: 'Sort order' }
-    )
+    filter: option(z.enum(["all", "pending", "completed"]).default("all"), {
+      short: "f",
+      description: "Filter tasks",
+    }),
+    sort: option(z.enum(["priority", "due", "created"]).default("created"), {
+      short: "s",
+      description: "Sort order",
+    }),
   },
   handler: async ({ flags, colors, spinner }) => {
-    const spin = spinner('Loading tasks...')
-    spin.start()
-    
+    const spin = spinner("Loading tasks...");
+    spin.start();
+
     // Simulate loading
-    await new Promise(resolve => setTimeout(resolve, 500))
-    
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
     const tasks = [
-      { id: 1, task: 'Write documentation', priority: 'high', completed: false },
-      { id: 2, task: 'Add tests', priority: 'medium', completed: false },
-      { id: 3, task: 'Review PR', priority: 'low', completed: true }
-    ]
-    
-    spin.succeed('Tasks loaded')
-    
-    const filtered = tasks.filter(task => {
-      if (flags.filter === 'pending') return !task.completed
-      if (flags.filter === 'completed') return task.completed
-      return true
-    })
-    
-    console.log('\nYour tasks:\n')
-    filtered.forEach(task => {
-      const status = task.completed 
-        ? colors.green('✓') 
-        : colors.yellow('○')
-      const priority = colors.dim(`[${task.priority}]`)
-      console.log(`${status} ${task.task} ${priority}`)
-    })
-  }
-})
+      { id: 1, task: "Write documentation", priority: "high", completed: false },
+      { id: 2, task: "Add tests", priority: "medium", completed: false },
+      { id: 3, task: "Review PR", priority: "low", completed: true },
+    ];
+
+    spin.succeed("Tasks loaded");
+
+    const filtered = tasks.filter((task) => {
+      if (flags.filter === "pending") return !task.completed;
+      if (flags.filter === "completed") return task.completed;
+      return true;
+    });
+
+    console.log("\nYour tasks:\n");
+    filtered.forEach((task) => {
+      const status = task.completed ? colors.green("✓") : colors.yellow("○");
+      const priority = colors.dim(`[${task.priority}]`);
+      console.log(`${status} ${task.task} ${priority}`);
+    });
+  },
+});
 ```
 
 ## Interactive Commands
@@ -174,35 +167,35 @@ Add an interactive `complete` command:
 
 ```typescript
 // src/commands/complete.ts
-import { defineCommand } from '@bunli/core'
+import { defineCommand } from "@bunli/core";
 
 export default defineCommand({
-  name: 'complete' as const,
-  description: 'Mark a task as completed',
+  name: "complete" as const,
+  description: "Mark a task as completed",
   handler: async ({ prompt, colors }) => {
     const tasks = [
-      { id: 1, task: 'Write documentation', completed: false },
-      { id: 2, task: 'Add tests', completed: false },
-      { id: 3, task: 'Review PR', completed: false }
-    ]
-    
-    const pendingTasks = tasks.filter(t => !t.completed)
-    
+      { id: 1, task: "Write documentation", completed: false },
+      { id: 2, task: "Add tests", completed: false },
+      { id: 3, task: "Review PR", completed: false },
+    ];
+
+    const pendingTasks = tasks.filter((t) => !t.completed);
+
     if (pendingTasks.length === 0) {
-      console.log(colors.yellow('No pending tasks!'))
-      return
+      console.log(colors.yellow("No pending tasks!"));
+      return;
     }
-    
-    const selected = await prompt.select('Which task did you complete?', {
-      options: pendingTasks.map(task => ({
+
+    const selected = await prompt.select("Which task did you complete?", {
+      options: pendingTasks.map((task) => ({
         value: task.id,
-        label: task.task
-      }))
-    })
-    
-    console.log(colors.green('✓'), 'Marked as complete!')
-  }
-})
+        label: task.task,
+      })),
+    });
+
+    console.log(colors.green("✓"), "Marked as complete!");
+  },
+});
 ```
 
 ## Nested Commands
@@ -211,31 +204,31 @@ Create a group of database commands:
 
 ```typescript
 // src/commands/db.ts
-import { defineCommand } from '@bunli/core'
+import { defineCommand } from "@bunli/core";
 
 export default defineCommand({
-  name: 'db' as const,
-  description: 'Database operations',
+  name: "db" as const,
+  description: "Database operations",
   commands: [
     defineCommand({
-      name: 'init' as const,
-      description: 'Initialize database',
+      name: "init" as const,
+      description: "Initialize database",
       handler: async ({ colors }) => {
-        console.log(colors.green('✓'), 'Database initialized')
-      }
+        console.log(colors.green("✓"), "Database initialized");
+      },
     }),
     defineCommand({
-      name: 'backup' as const,
-      description: 'Backup database',
+      name: "backup" as const,
+      description: "Backup database",
       handler: async ({ spinner }) => {
-        const spin = spinner('Creating backup...')
-        spin.start()
-        await new Promise(resolve => setTimeout(resolve, 2000))
-        spin.succeed('Backup created: backup-2024-01-15.db')
-      }
-    })
-  ]
-})
+        const spin = spinner("Creating backup...");
+        spin.start();
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        spin.succeed("Backup created: backup-2024-01-15.db");
+      },
+    }),
+  ],
+});
 ```
 
 ## Building for Production
@@ -259,18 +252,18 @@ Create a test for your command:
 
 ```typescript
 // src/commands/add.test.ts
-import { test, expect } from 'bun:test'
-import { testCommand, createTestCLI } from '@bunli/test'
-import add from './add'
+import { test, expect } from "bun:test";
+import { testCommand, createTestCLI } from "@bunli/test";
+import add from "./add";
 
-test('add command creates a task', async () => {
-  const cli = await createTestCLI({ commands: [add] })
+test("add command creates a task", async () => {
+  const cli = await createTestCLI({ commands: [add] });
 
-  const result = await cli.run(['add', '--task', 'Test task'])
+  const result = await cli.run(["add", "--task", "Test task"]);
 
-  expect(result.exitCode).toBe(0)
-  expect(result.stdout).toContain('Added task: Test task')
-})
+  expect(result.exitCode).toBe(0);
+  expect(result.stdout).toContain("Added task: Test task");
+});
 ```
 
 Run tests:
@@ -285,24 +278,24 @@ Enhance your CLI with plugins. Let's add configuration loading and AI detection:
 
 ```typescript
 // src/index.ts
-import { createCLI } from '@bunli/core'
-import { configMergerPlugin } from '@bunli/plugin-config'
-import { aiAgentPlugin } from '@bunli/plugin-ai-detect'
+import { createCLI } from "@bunli/core";
+import { configMergerPlugin } from "@bunli/plugin-config";
+import { aiAgentPlugin } from "@bunli/plugin-ai-detect";
 
 const cli = await createCLI({
-  name: 'todo',
-  version: '1.0.0',
-  description: 'Simple todo list manager',
+  name: "todo",
+  version: "1.0.0",
+  description: "Simple todo list manager",
   plugins: [
     // Load config from .todorc.json or ~/.config/todo/config.json
     configMergerPlugin(),
-    
-    // Detect if running in AI assistant
-    aiAgentPlugin({ verbose: true })
-  ]
-})
 
-await cli.run()
+    // Detect if running in AI assistant
+    aiAgentPlugin({ verbose: true }),
+  ],
+});
+
+await cli.run();
 ```
 
 Now your commands can use plugin features:
@@ -312,14 +305,14 @@ Now your commands can use plugin features:
 handler: async ({ flags, colors, agent }) => {
   // Provide structured output for AI agents
   if (agent) {
-    console.log(JSON.stringify({ tasks }, null, 2))
+    console.log(JSON.stringify({ tasks }, null, 2));
   } else {
     // Human-friendly output
-    tasks.forEach(task => {
-      console.log(`${colors.green('✓')} ${task.name}`)
-    })
+    tasks.forEach((task) => {
+      console.log(`${colors.green("✓")} ${task.name}`);
+    });
   }
-}
+};
 ```
 
 ## Type Generation
@@ -328,40 +321,40 @@ Enable type generation for enhanced developer experience:
 
 ```typescript
 // bunli.config.ts
-import { defineConfig } from '@bunli/core'
+import { defineConfig } from "@bunli/core";
 
 export default defineConfig({
-  name: 'todo',
+  name: "todo",
   commands: {
-    directory: './src/commands'
+    directory: "./src/commands",
   },
-  
-  
+
   build: {
-    entry: './src/index.ts',
-    outdir: './dist',
-    targets: ['darwin-arm64', 'linux-x64', 'windows-x64']
-  }
-})
+    entry: "./src/index.ts",
+    outdir: "./dist",
+    targets: ["darwin-arm64", "linux-x64", "windows-x64"],
+  },
+});
 ```
 
 Now you can use generated types for advanced patterns:
 
 ```typescript
 // Use generated types
-import { getCommandApi, listCommands } from './.bunli/commands.gen'
+import { getCommandApi, listCommands } from "./.bunli/commands.gen";
 
 // Get command metadata
-const commands = listCommands()
-console.log(commands) // [{ name: 'add', description: 'Add a new todo item' }]
+const commands = listCommands();
+console.log(commands); // [{ name: 'add', description: 'Add a new todo item' }]
 
 // Type-safe command access
-const addApi = getCommandApi('add')
-console.log(addApi.options) // { task: {...}, priority: {...}, due: {...} }
+const addApi = getCommandApi("add");
+console.log(addApi.options); // { task: {...}, priority: {...}, due: {...} }
 ```
 
 <Callout type="tip">
-  Type generation provides autocomplete, type safety, and enables advanced patterns like CLI wrappers and documentation generation.
+  Type generation provides autocomplete, type safety, and enables advanced patterns like CLI
+  wrappers and documentation generation.
 </Callout>
 
 ## Configuration
@@ -369,22 +362,21 @@ console.log(addApi.options) // { task: {...}, priority: {...}, due: {...} }
 Customize your CLI behavior with `bunli.config.ts`:
 
 ```typescript
-import { defineConfig } from '@bunli/core'
+import { defineConfig } from "@bunli/core";
 
 export default defineConfig({
-  name: 'todo',
-  version: '1.0.0',
+  name: "todo",
+  version: "1.0.0",
   commands: {
-    directory: './src/commands'
+    directory: "./src/commands",
   },
-  
-  
+
   build: {
-    entry: './src/index.ts',
-    outdir: './dist',
-    targets: ['darwin-arm64', 'linux-x64', 'windows-x64']
-  }
-})
+    entry: "./src/index.ts",
+    outdir: "./dist",
+    targets: ["darwin-arm64", "linux-x64", "windows-x64"],
+  },
+});
 ```
 
 ## Distribution
@@ -392,11 +384,13 @@ export default defineConfig({
 When you're ready to share your CLI:
 
 1. **Build for all platforms:**
+
    ```bash
    bunli build --targets all
    ```
 
 2. **Create a release:**
+
    ```bash
    bunli release
    ```

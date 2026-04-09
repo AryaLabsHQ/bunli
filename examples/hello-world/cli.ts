@@ -1,8 +1,9 @@
 #!/usr/bin/env bun
-import { createCLI } from '@bunli/core'
-import greetCommand from './commands/greet.js'
+import { createCLI } from "@bunli/core";
 
-const cli = await createCLI()
+import greetCommand from "./commands/greet.js";
 
-cli.command(greetCommand)
-await cli.run()
+const cli = await createCLI();
+
+cli.command(greetCommand);
+await cli.run();

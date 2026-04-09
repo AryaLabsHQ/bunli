@@ -1,56 +1,52 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { StandardSchemaV1 } from '@standard-schema/spec'
-import { FormContext, type FormFieldRegistration } from './form-context.js'
-import { useScopedKeyboard } from '@bunli/runtime/app'
-import { validateFormValues, type FormErrors } from './form-engine.js'
-import { createKeyMatcher } from '@bunli/runtime/app'
-import { useTuiTheme } from '@bunli/runtime/app'
+import { useScopedKeyboard } from "@bunli/runtime/app";
+import { createKeyMatcher } from "@bunli/runtime/app";
+import { useTuiTheme } from "@bunli/runtime/app";
+import type { StandardSchemaV1 } from "@standard-schema/spec";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
+import { FormContext, type FormFieldRegistration } from "./form-context.js";
+import { validateFormValues, type FormErrors } from "./form-engine.js";
 
 export interface FormProps<TSchema extends StandardSchemaV1 = StandardSchemaV1> {
-  title: string
-  schema: TSchema
-  onSubmit: (values: StandardSchemaV1.InferOutput<TSchema>) => void | Promise<void>
-  onCancel?: () => void
-  onReset?: () => void
-  onValidationError?: (errors: FormErrors) => void
-  onDirtyChange?: (isDirty: boolean, dirtyFields: string[]) => void
-  onSubmitStateChange?: (state: { isSubmitting: boolean; isValidating: boolean }) => void
-  initialValues?: Partial<StandardSchemaV1.InferOutput<TSchema>>
-  validateOnChange?: boolean
-  submitHint?: string
-  resetHint?: string
-  scopeId?: string
-  children: React.ReactNode
+  title: string;
+  schema: TSchema;
+  onSubmit: (values: StandardSchemaV1.InferOutput<TSchema>) => void | Promise<void>;
+  onCancel?: () => void;
+  onReset?: () => void;
+  onValidationError?: (errors: FormErrors) => void;
+  onDirtyChange?: (isDirty: boolean, dirtyFields: string[]) => void;
+  onSubmitStateChange?: (state: { isSubmitting: boolean; isValidating: boolean }) => void;
+  initialValues?: Partial<StandardSchemaV1.InferOutput<TSchema>>;
+  validateOnChange?: boolean;
+  submitHint?: string;
+  resetHint?: string;
+  scopeId?: string;
+  children: React.ReactNode;
 }
 
 const formKeymap = createKeyMatcher({
-  cancel: ['escape'],
-  nextField: ['tab'],
-  previousField: ['shift+tab'],
-  submitShortcut: ['ctrl+s'],
-  resetShortcut: ['ctrl+r'],
-  nextError: ['f8'],
-  previousError: ['shift+f8'],
-  submit: ['enter']
-})
+  cancel: ["escape"],
+  nextField: ["tab"],
+  previousField: ["shift+tab"],
+  submitShortcut: ["ctrl+s"],
+  resetShortcut: ["ctrl+r"],
+  nextError: ["f8"],
+  previousError: ["shift+f8"],
+  submit: ["enter"],
+});
 
 function areValuesEqual(left: unknown, right: unknown): boolean {
-  if (Object.is(left, right)) return true
+  if (Object.is(left, right)) return true;
 
-  if (
-    typeof left === 'object' &&
-    left !== null &&
-    typeof right === 'object' &&
-    right !== null
-  ) {
+  if (typeof left === "object" && left !== null && typeof right === "object" && right !== null) {
     try {
-      return JSON.stringify(left) === JSON.stringify(right)
+      return JSON.stringify(left) === JSON.stringify(right);
     } catch {
-      return false
+      return false;
     }
   }
 
-  return false
+  return false;
 }
 
 export function Form<TSchema extends StandardSchemaV1>({
@@ -67,310 +63,307 @@ export function Form<TSchema extends StandardSchemaV1>({
   submitHint,
   resetHint,
   scopeId,
-  children
+  children,
 }: FormProps<TSchema>) {
-  const { tokens } = useTuiTheme()
-  const keyboardScopeId = scopeId ?? `form:${title}`
+  const { tokens } = useTuiTheme();
+  const keyboardScopeId = scopeId ?? `form:${title}`;
   const initialValuesRef = useRef<Record<string, unknown>>({
-    ...(initialValues as Record<string, unknown> | undefined)
-  })
+    ...(initialValues as Record<string, unknown> | undefined),
+  });
 
-  const [values, setValues] = useState<Record<string, unknown>>(
-    () => ({ ...initialValuesRef.current })
-  )
-  const valuesRef = useRef(values)
-  const [errors, setErrors] = useState<FormErrors>({})
-  const [touched, setTouched] = useState<Record<string, boolean>>({})
-  const [fieldDefaults, setFieldDefaults] = useState<Record<string, unknown>>({})
-  const [fieldOrder, setFieldOrder] = useState<string[]>([])
-  const [fieldMeta, setFieldMeta] = useState<Record<string, FormFieldRegistration>>({})
-  const [focusIndex, setFocusIndex] = useState(0)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isValidating, setIsValidating] = useState(false)
+  const [values, setValues] = useState<Record<string, unknown>>(() => ({
+    ...initialValuesRef.current,
+  }));
+  const valuesRef = useRef(values);
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [fieldDefaults, setFieldDefaults] = useState<Record<string, unknown>>({});
+  const [fieldOrder, setFieldOrder] = useState<string[]>([]);
+  const [fieldMeta, setFieldMeta] = useState<Record<string, FormFieldRegistration>>({});
+  const [focusIndex, setFocusIndex] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isValidating, setIsValidating] = useState(false);
 
-  const activeFieldName = fieldOrder[focusIndex] ?? null
+  const activeFieldName = fieldOrder[focusIndex] ?? null;
 
   useEffect(() => {
     setFocusIndex((prev) => {
-      if (fieldOrder.length === 0) return 0
-      return Math.min(prev, fieldOrder.length - 1)
-    })
-  }, [fieldOrder])
+      if (fieldOrder.length === 0) return 0;
+      return Math.min(prev, fieldOrder.length - 1);
+    });
+  }, [fieldOrder]);
 
   useEffect(() => {
-    valuesRef.current = values
-  }, [values])
+    valuesRef.current = values;
+  }, [values]);
 
   const baselineValues = useMemo(
     () => ({ ...fieldDefaults, ...initialValuesRef.current }),
-    [fieldDefaults]
-  )
+    [fieldDefaults],
+  );
 
   const dirtyFields = useMemo(() => {
-    const keys = new Set<string>([
-      ...Object.keys(baselineValues),
-      ...Object.keys(values)
-    ])
+    const keys = new Set<string>([...Object.keys(baselineValues), ...Object.keys(values)]);
 
-    const next: Record<string, boolean> = {}
+    const next: Record<string, boolean> = {};
     for (const key of keys) {
-      next[key] = !areValuesEqual(values[key], baselineValues[key])
+      next[key] = !areValuesEqual(values[key], baselineValues[key]);
     }
-    return next
-  }, [baselineValues, values])
+    return next;
+  }, [baselineValues, values]);
 
-  const isDirty = useMemo(
-    () => Object.values(dirtyFields).some(Boolean),
-    [dirtyFields]
-  )
+  const isDirty = useMemo(() => Object.values(dirtyFields).some(Boolean), [dirtyFields]);
 
   useEffect(() => {
     onDirtyChange?.(
       isDirty,
       Object.entries(dirtyFields)
         .filter(([, dirty]) => dirty)
-        .map(([name]) => name)
-    )
-  }, [dirtyFields, isDirty, onDirtyChange])
+        .map(([name]) => name),
+    );
+  }, [dirtyFields, isDirty, onDirtyChange]);
 
   useEffect(() => {
-    onSubmitStateChange?.({ isSubmitting, isValidating })
-  }, [isSubmitting, isValidating, onSubmitStateChange])
+    onSubmitStateChange?.({ isSubmitting, isValidating });
+  }, [isSubmitting, isValidating, onSubmitStateChange]);
 
   const registerField = useCallback((field: FormFieldRegistration) => {
     setFieldMeta((prev) => {
-      if (prev[field.name]) return prev
-      return { ...prev, [field.name]: field }
-    })
+      if (prev[field.name]) return prev;
+      return { ...prev, [field.name]: field };
+    });
 
     setFieldOrder((prev) => {
-      if (prev.includes(field.name)) return prev
-      return [...prev, field.name]
-    })
+      if (prev.includes(field.name)) return prev;
+      return [...prev, field.name];
+    });
 
     if (field.defaultValue !== undefined) {
       setFieldDefaults((prev) => {
-        if (prev[field.name] !== undefined) return prev
-        return { ...prev, [field.name]: field.defaultValue }
-      })
+        if (prev[field.name] !== undefined) return prev;
+        return { ...prev, [field.name]: field.defaultValue };
+      });
 
       setValues((prev) => {
-        if (prev[field.name] !== undefined) return prev
-        return { ...prev, [field.name]: field.defaultValue }
-      })
+        if (prev[field.name] !== undefined) return prev;
+        return { ...prev, [field.name]: field.defaultValue };
+      });
     }
-  }, [])
+  }, []);
 
   const unregisterField = useCallback((name: string) => {
     setFieldMeta((prev) => {
-      if (!prev[name]) return prev
-      const next = { ...prev }
-      delete next[name]
-      return next
-    })
+      if (!prev[name]) return prev;
+      const next = { ...prev };
+      delete next[name];
+      return next;
+    });
 
-    setFieldOrder((prev) => prev.filter((fieldName) => fieldName !== name))
+    setFieldOrder((prev) => prev.filter((fieldName) => fieldName !== name));
     setTouched((prev) => {
-      if (!prev[name]) return prev
-      const next = { ...prev }
-      delete next[name]
-      return next
-    })
+      if (!prev[name]) return prev;
+      const next = { ...prev };
+      delete next[name];
+      return next;
+    });
     setErrors((prev) => {
-      if (!prev[name]) return prev
-      const next = { ...prev }
-      delete next[name]
-      return next
-    })
-  }, [])
+      if (!prev[name]) return prev;
+      const next = { ...prev };
+      delete next[name];
+      return next;
+    });
+  }, []);
 
   const runValidation = useCallback(
     async (nextValues: Record<string, unknown>, notify: boolean) => {
-      setIsValidating(true)
+      setIsValidating(true);
       try {
-        const result = await validateFormValues(schema, nextValues)
+        const result = await validateFormValues(schema, nextValues);
         if (result.ok) {
-          setErrors({})
-          return result
+          setErrors({});
+          return result;
         }
 
-        setErrors(result.errors)
+        setErrors(result.errors);
         if (notify) {
-          onValidationError?.(result.errors)
+          onValidationError?.(result.errors);
         }
-        return result
+        return result;
       } finally {
-        setIsValidating(false)
+        setIsValidating(false);
       }
     },
-    [schema, onValidationError]
-  )
+    [schema, onValidationError],
+  );
 
   const setFieldValue = useCallback(
     (name: string, value: unknown) => {
-      const nextValues = { ...valuesRef.current, [name]: value }
-      valuesRef.current = nextValues
-      setValues(nextValues)
-      setTouched((prev) => ({ ...prev, [name]: true }))
+      const nextValues = { ...valuesRef.current, [name]: value };
+      valuesRef.current = nextValues;
+      setValues(nextValues);
+      setTouched((prev) => ({ ...prev, [name]: true }));
       if (validateOnChange) {
-        void runValidation(nextValues, false)
+        void runValidation(nextValues, false);
       }
     },
-    [runValidation, validateOnChange]
-  )
+    [runValidation, validateOnChange],
+  );
 
   const markTouched = useCallback((name: string) => {
-    setTouched((prev) => ({ ...prev, [name]: true }))
-  }, [])
+    setTouched((prev) => ({ ...prev, [name]: true }));
+  }, []);
 
-  const focusField = useCallback((name: string) => {
-    const idx = fieldOrder.indexOf(name)
-    if (idx >= 0) {
-      setFocusIndex(idx)
-    }
-  }, [fieldOrder])
+  const focusField = useCallback(
+    (name: string) => {
+      const idx = fieldOrder.indexOf(name);
+      if (idx >= 0) {
+        setFocusIndex(idx);
+      }
+    },
+    [fieldOrder],
+  );
 
   const getErrorFields = useCallback((): string[] => {
-    return fieldOrder.filter((name) => Boolean(errors[name]))
-  }, [errors, fieldOrder])
+    return fieldOrder.filter((name) => Boolean(errors[name]));
+  }, [errors, fieldOrder]);
 
   const focusFirstErrorField = useCallback(
     (nextErrors: FormErrors) => {
-      const firstInOrder = fieldOrder.find((name) => Boolean(nextErrors[name]))
+      const firstInOrder = fieldOrder.find((name) => Boolean(nextErrors[name]));
       if (firstInOrder) {
-        focusField(firstInOrder)
-        return
+        focusField(firstInOrder);
+        return;
       }
 
-      const fallback = Object.keys(nextErrors).find((name) => name !== '_form')
+      const fallback = Object.keys(nextErrors).find((name) => name !== "_form");
       if (fallback) {
-        focusField(fallback)
+        focusField(fallback);
       }
     },
-    [fieldOrder, focusField]
-  )
+    [fieldOrder, focusField],
+  );
 
   const submit = useCallback(() => {
     void (async () => {
-      const result = await runValidation(values, true)
+      const result = await runValidation(values, true);
       if (!result.ok) {
-        focusFirstErrorField(result.errors)
-        return
+        focusFirstErrorField(result.errors);
+        return;
       }
 
-      setIsSubmitting(true)
+      setIsSubmitting(true);
       try {
-        await onSubmit(result.value as StandardSchemaV1.InferOutput<TSchema>)
+        await onSubmit(result.value as StandardSchemaV1.InferOutput<TSchema>);
       } finally {
-        setIsSubmitting(false)
+        setIsSubmitting(false);
       }
-    })()
-  }, [focusFirstErrorField, onSubmit, runValidation, values])
+    })();
+  }, [focusFirstErrorField, onSubmit, runValidation, values]);
 
   const reset = useCallback(() => {
-    const nextValues = { ...baselineValues }
-    setValues(nextValues)
-    setTouched({})
-    setErrors({})
-    setFocusIndex(0)
-    onReset?.()
-  }, [baselineValues, onReset])
+    const nextValues = { ...baselineValues };
+    setValues(nextValues);
+    setTouched({});
+    setErrors({});
+    setFocusIndex(0);
+    onReset?.();
+  }, [baselineValues, onReset]);
 
   const jumpToNextError = useCallback(() => {
-    const errorFields = getErrorFields()
-    if (errorFields.length === 0) return
+    const errorFields = getErrorFields();
+    if (errorFields.length === 0) return;
 
     if (!activeFieldName) {
-      focusField(errorFields[0] ?? '')
-      return
+      focusField(errorFields[0] ?? "");
+      return;
     }
 
-    const currentIndex = errorFields.indexOf(activeFieldName)
-    const next = errorFields[(currentIndex + 1 + errorFields.length) % errorFields.length]
+    const currentIndex = errorFields.indexOf(activeFieldName);
+    const next = errorFields[(currentIndex + 1 + errorFields.length) % errorFields.length];
     if (next) {
-      focusField(next)
+      focusField(next);
     }
-  }, [activeFieldName, focusField, getErrorFields])
+  }, [activeFieldName, focusField, getErrorFields]);
 
   const jumpToPreviousError = useCallback(() => {
-    const errorFields = getErrorFields()
-    if (errorFields.length === 0) return
+    const errorFields = getErrorFields();
+    if (errorFields.length === 0) return;
 
     if (!activeFieldName) {
-      focusField(errorFields[errorFields.length - 1] ?? '')
-      return
+      focusField(errorFields[errorFields.length - 1] ?? "");
+      return;
     }
 
-    const currentIndex = errorFields.indexOf(activeFieldName)
-    const prev = errorFields[(currentIndex - 1 + errorFields.length) % errorFields.length]
+    const currentIndex = errorFields.indexOf(activeFieldName);
+    const prev = errorFields[(currentIndex - 1 + errorFields.length) % errorFields.length];
     if (prev) {
-      focusField(prev)
+      focusField(prev);
     }
-  }, [activeFieldName, focusField, getErrorFields])
+  }, [activeFieldName, focusField, getErrorFields]);
 
   const isActiveScope = useScopedKeyboard(
     keyboardScopeId,
     (key) => {
-      if (formKeymap.match('cancel', key)) {
-        onCancel?.()
-        return true
+      if (formKeymap.match("cancel", key)) {
+        onCancel?.();
+        return true;
       }
 
-      if (formKeymap.match('nextField', key) || formKeymap.match('previousField', key)) {
-        if (fieldOrder.length === 0) return
+      if (formKeymap.match("nextField", key) || formKeymap.match("previousField", key)) {
+        if (fieldOrder.length === 0) return;
         setFocusIndex((prev) => {
-          const delta = formKeymap.match('previousField', key) ? -1 : 1
-          const next = prev + delta
-          if (next < 0) return fieldOrder.length - 1
-          if (next >= fieldOrder.length) return 0
-          return next
-        })
-        return true
+          const delta = formKeymap.match("previousField", key) ? -1 : 1;
+          const next = prev + delta;
+          if (next < 0) return fieldOrder.length - 1;
+          if (next >= fieldOrder.length) return 0;
+          return next;
+        });
+        return true;
       }
 
-      if (formKeymap.match('submitShortcut', key)) {
-        submit()
-        return true
+      if (formKeymap.match("submitShortcut", key)) {
+        submit();
+        return true;
       }
 
-      if (formKeymap.match('resetShortcut', key)) {
-        reset()
-        return true
+      if (formKeymap.match("resetShortcut", key)) {
+        reset();
+        return true;
       }
 
-      if (formKeymap.match('previousError', key)) {
-        jumpToPreviousError()
-        return true
+      if (formKeymap.match("previousError", key)) {
+        jumpToPreviousError();
+        return true;
       }
 
-      if (formKeymap.match('nextError', key)) {
-        jumpToNextError()
-        return true
+      if (formKeymap.match("nextError", key)) {
+        jumpToNextError();
+        return true;
       }
 
-      if (formKeymap.match('submit', key)) {
+      if (formKeymap.match("submit", key)) {
         if (activeFieldName) {
-          const activeField = fieldMeta[activeFieldName]
-          if (activeField?.submitOnEnter === false) return false
+          const activeField = fieldMeta[activeFieldName];
+          if (activeField?.submitOnEnter === false) return false;
         }
-        submit()
-        return true
+        submit();
+        return true;
       }
 
-      return false
+      return false;
     },
-    { active: true, priority: 10 }
-  )
+    { active: true, priority: 10 },
+  );
 
   const footerMessage = useMemo(() => {
-    if (isSubmitting) return 'Submitting...'
-    if (isValidating) return 'Validating...'
-    if (errors._form) return `Validation error: ${errors._form}`
-    if (submitHint) return submitHint
+    if (isSubmitting) return "Submitting...";
+    if (isValidating) return "Validating...";
+    if (errors._form) return `Validation error: ${errors._form}`;
+    if (submitHint) return submitHint;
 
-    const dirtyLabel = isDirty ? 'dirty' : 'clean'
-    return `Tab: next field | Enter: submit | Esc: cancel | Ctrl+S: submit | Ctrl+R: reset (${dirtyLabel}) | F8: next error`
-  }, [errors._form, isDirty, isSubmitting, isValidating, submitHint])
+    const dirtyLabel = isDirty ? "dirty" : "clean";
+    return `Tab: next field | Enter: submit | Esc: cancel | Ctrl+S: submit | Ctrl+R: reset (${dirtyLabel}) | F8: next error`;
+  }, [errors._form, isDirty, isSubmitting, isValidating, submitHint]);
 
   const contextValue = useMemo(
     () => ({
@@ -392,7 +385,7 @@ export function Form<TSchema extends StandardSchemaV1>({
       reset,
       getErrorFields,
       jumpToNextError,
-      jumpToPreviousError
+      jumpToPreviousError,
     }),
     [
       activeFieldName,
@@ -413,9 +406,9 @@ export function Form<TSchema extends StandardSchemaV1>({
       submit,
       touched,
       unregisterField,
-      values
-    ]
-  )
+      values,
+    ],
+  );
 
   return (
     <FormContext.Provider value={contextValue}>
@@ -424,13 +417,13 @@ export function Form<TSchema extends StandardSchemaV1>({
         border
         padding={2}
         style={{
-          flexDirection: 'column',
+          flexDirection: "column",
           borderColor: isActiveScope ? tokens.accent : tokens.border,
-          backgroundColor: tokens.background
+          backgroundColor: tokens.background,
         }}
       >
         {children}
-        <box style={{ flexDirection: 'row', gap: 2, marginTop: 2 }}>
+        <box style={{ flexDirection: "row", gap: 2, marginTop: 2 }}>
           <text
             content={footerMessage}
             fg={errors._form ? tokens.textDanger : isDirty ? tokens.accent : tokens.textMuted}
@@ -439,5 +432,5 @@ export function Form<TSchema extends StandardSchemaV1>({
         </box>
       </box>
     </FormContext.Provider>
-  )
+  );
 }

@@ -1,18 +1,18 @@
-import { useMemo } from 'react'
-import { useTuiTheme } from '@bunli/runtime/app'
-import { displayWidth, formatFixedWidth, type TextOverflowMode } from '@bunli/runtime/app'
+import { useTuiTheme } from "@bunli/runtime/app";
+import { displayWidth, formatFixedWidth, type TextOverflowMode } from "@bunli/runtime/app";
+import { useMemo } from "react";
 
 export interface KeyValueItem {
-  key: string
-  value: string | number | boolean | null | undefined
+  key: string;
+  value: string | number | boolean | null | undefined;
 }
 
 export interface KeyValueListProps {
-  items: KeyValueItem[]
-  minKeyWidth?: number
-  maxLineWidth?: number
-  fillWidth?: boolean
-  overflow?: TextOverflowMode
+  items: KeyValueItem[];
+  minKeyWidth?: number;
+  maxLineWidth?: number;
+  fillWidth?: boolean;
+  overflow?: TextOverflowMode;
 }
 
 export function KeyValueList({
@@ -20,43 +20,46 @@ export function KeyValueList({
   minKeyWidth = 12,
   maxLineWidth,
   fillWidth = false,
-  overflow = 'ellipsis'
+  overflow = "ellipsis",
 }: KeyValueListProps) {
-  const { tokens } = useTuiTheme()
+  const { tokens } = useTuiTheme();
 
   const keyWidth = useMemo(
     () => Math.max(minKeyWidth, ...items.map((item) => displayWidth(item.key)), 0),
-    [items, minKeyWidth]
-  )
+    [items, minKeyWidth],
+  );
   const lineWidth = useMemo(() => {
     const contentLineWidth = Math.max(
       keyWidth + 3,
-      ...items.map((item) => displayWidth(`${formatFixedWidth(item.key, keyWidth)} : ${String(item.value ?? '')}`))
-    )
-    const boundedLineWidth = typeof maxLineWidth === 'number'
-      ? Math.max(keyWidth + 3, Math.min(maxLineWidth, contentLineWidth))
-      : contentLineWidth
+      ...items.map((item) =>
+        displayWidth(`${formatFixedWidth(item.key, keyWidth)} : ${String(item.value ?? "")}`),
+      ),
+    );
+    const boundedLineWidth =
+      typeof maxLineWidth === "number"
+        ? Math.max(keyWidth + 3, Math.min(maxLineWidth, contentLineWidth))
+        : contentLineWidth;
 
-    if (!fillWidth || typeof maxLineWidth !== 'number') {
-      return boundedLineWidth
+    if (!fillWidth || typeof maxLineWidth !== "number") {
+      return boundedLineWidth;
     }
 
-    return Math.max(boundedLineWidth, maxLineWidth)
-  }, [fillWidth, items, keyWidth, maxLineWidth])
+    return Math.max(boundedLineWidth, maxLineWidth);
+  }, [fillWidth, items, keyWidth, maxLineWidth]);
 
   return (
-    <box style={{ flexDirection: 'column', gap: 1 }}>
+    <box style={{ flexDirection: "column", gap: 1 }}>
       {items.map((item, index) => (
         <text
           key={`kv-${index}-${item.key}`}
           content={formatFixedWidth(
-            `${formatFixedWidth(item.key, keyWidth)} : ${String(item.value ?? '')}`,
+            `${formatFixedWidth(item.key, keyWidth)} : ${String(item.value ?? "")}`,
             lineWidth,
-            { overflow }
+            { overflow },
           )}
           fg={tokens.textPrimary}
         />
       ))}
     </box>
-  )
+  );
 }

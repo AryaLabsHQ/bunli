@@ -23,14 +23,13 @@ bun add zod
 ```
 
 ```typescript
-import { z } from 'zod'
-import { option } from '@bunli/core'
+import { z } from "zod";
+import { option } from "@bunli/core";
 
 // Use Zod schemas with the option helper
-const portOption = option(
-  z.coerce.number().min(1).max(65535),
-  { description: 'Server port number' }
-)
+const portOption = option(z.coerce.number().min(1).max(65535), {
+  description: "Server port number",
+});
 ```
 
 ### Valibot
@@ -40,14 +39,11 @@ bun add valibot
 ```
 
 ```typescript
-import * as v from 'valibot'
-import { option } from '@bunli/core'
+import * as v from "valibot";
+import { option } from "@bunli/core";
 
 // Valibot schemas work too
-const emailOption = option(
-  v.string([v.email()]),
-  { description: 'Email address' }
-)
+const emailOption = option(v.string([v.email()]), { description: "Email address" });
 ```
 
 ### TypeBox
@@ -57,17 +53,17 @@ bun add @sinclair/typebox
 ```
 
 ```typescript
-import { Type } from '@sinclair/typebox'
-import { option } from '@bunli/core'
+import { Type } from "@sinclair/typebox";
+import { option } from "@bunli/core";
 
 // TypeBox for JSON Schema compatibility
 const configOption = option(
   Type.Object({
     host: Type.String(),
-    port: Type.Number()
+    port: Type.Number(),
   }),
-  { description: 'Server configuration object' }
-)
+  { description: "Server configuration object" },
+);
 ```
 
 ## Basic Validation Patterns
@@ -78,31 +74,34 @@ const configOption = option(
 export default defineCommand({
   options: {
     // Basic string
-    name: option(z.string(), { description: 'User name' }),
-    
+    name: option(z.string(), { description: "User name" }),
+
     // With constraints
     username: option(
-      z.string()
-        .min(3, 'Username must be at least 3 characters')
-        .max(20, 'Username must be at most 20 characters')
-        .regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores')
+      z
+        .string()
+        .min(3, "Username must be at least 3 characters")
+        .max(20, "Username must be at most 20 characters")
+        .regex(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers, and underscores"),
     ),
-    
+
     // Email validation
-    email: option(z.string().email('Invalid email address')),
-    
+    email: option(z.string().email("Invalid email address")),
+
     // URL validation
-    webhook: option(z.string().url('Invalid URL')),
-    
+    webhook: option(z.string().url("Invalid URL")),
+
     // Custom validation
     password: option(
-      z.string().refine(
-        (val) => /[A-Z]/.test(val) && /[0-9]/.test(val),
-        'Password must contain at least one uppercase letter and one number'
-      )
-    )
-  }
-})
+      z
+        .string()
+        .refine(
+          (val) => /[A-Z]/.test(val) && /[0-9]/.test(val),
+          "Password must contain at least one uppercase letter and one number",
+        ),
+    ),
+  },
+});
 ```
 
 ### Number Validation
@@ -111,35 +110,29 @@ export default defineCommand({
 export default defineCommand({
   options: {
     // Basic number with coercion
-    port: option(z.coerce.number(), { description: 'Port number' }),
-    
+    port: option(z.coerce.number(), { description: "Port number" }),
+
     // With constraints
     age: option(
-      z.coerce.number()
-        .int('Age must be a whole number')
-        .min(0, 'Age cannot be negative')
-        .max(150, 'Age seems unrealistic'),
-      { description: 'Age in years' }
+      z.coerce
+        .number()
+        .int("Age must be a whole number")
+        .min(0, "Age cannot be negative")
+        .max(150, "Age seems unrealistic"),
+      { description: "Age in years" },
     ),
-    
+
     // Float with precision
-    price: option(
-      z.coerce.number()
-        .multipleOf(0.01, 'Price must have at most 2 decimal places'),
-      { description: 'Price value' }
-    ),
-    
+    price: option(z.coerce.number().multipleOf(0.01, "Price must have at most 2 decimal places"), {
+      description: "Price value",
+    }),
+
     // Port number validation
-    serverPort: option(
-      z.coerce.number()
-        .int()
-        .min(1)
-        .max(65535)
-        .default(3000),
-      { description: 'Server port number' }
-    )
-  }
-})
+    serverPort: option(z.coerce.number().int().min(1).max(65535).default(3000), {
+      description: "Server port number",
+    }),
+  },
+});
 ```
 
 ### Boolean Validation
@@ -148,15 +141,17 @@ export default defineCommand({
 export default defineCommand({
   options: {
     // Boolean with coercion
-    verbose: option(z.coerce.boolean(), { description: 'Enable verbose logging' }),
-    
+    verbose: option(z.coerce.boolean(), { description: "Enable verbose logging" }),
+
     // Optional boolean
-    debug: option(z.coerce.boolean().optional(), { description: 'Enable debug mode' }),
-    
+    debug: option(z.coerce.boolean().optional(), { description: "Enable debug mode" }),
+
     // Boolean with default
-    production: option(z.coerce.boolean().default(false), { description: 'Run in production mode' })
-  }
-})
+    production: option(z.coerce.boolean().default(false), {
+      description: "Run in production mode",
+    }),
+  },
+});
 
 // CLI usage:
 // --verbose        → true
@@ -171,28 +166,25 @@ export default defineCommand({
 export default defineCommand({
   options: {
     // Date with coercion
-    since: option(z.coerce.date(), { description: 'Start date for filtering' }),
-    
+    since: option(z.coerce.date(), { description: "Start date for filtering" }),
+
     // Date with constraints
     deadline: option(
-      z.coerce.date().refine(
-        (date) => date > new Date(),
-        'Deadline must be in the future'
-      ),
-      { description: 'Task deadline' }
+      z.coerce.date().refine((date) => date > new Date(), "Deadline must be in the future"),
+      { description: "Task deadline" },
     ),
-    
+
     // Date range
-    startDate: option(z.coerce.date(), { description: 'Start date' }),
-    endDate: option(z.coerce.date(), { description: 'End date' })
+    startDate: option(z.coerce.date(), { description: "Start date" }),
+    endDate: option(z.coerce.date(), { description: "End date" }),
   },
   handler: async ({ flags }) => {
     // Validate date range
     if (flags.endDate < flags.startDate) {
-      throw new Error('End date must be after start date')
+      throw new Error("End date must be after start date");
     }
-  }
-})
+  },
+});
 
 // CLI usage:
 // --since 2024-01-01
@@ -208,32 +200,22 @@ export default defineCommand({
 export default defineCommand({
   options: {
     // Enum validation
-    logLevel: option(
-      z.enum(['debug', 'info', 'warn', 'error']),
-      { 
-        description: 'Logging level',
-        short: 'l' 
-      }
-    ),
-    
+    logLevel: option(z.enum(["debug", "info", "warn", "error"]), {
+      description: "Logging level",
+      short: "l",
+    }),
+
     // Multiple choice with default
-    environment: option(
-      z.enum(['development', 'staging', 'production'])
-        .default('development'),
-      { description: 'Deployment environment' }
-    ),
-    
+    environment: option(z.enum(["development", "staging", "production"]).default("development"), {
+      description: "Deployment environment",
+    }),
+
     // Union of literals
-    output: option(
-      z.union([
-        z.literal('json'),
-        z.literal('yaml'),
-        z.literal('table')
-      ]),
-      { description: 'Output format' }
-    )
-  }
-})
+    output: option(z.union([z.literal("json"), z.literal("yaml"), z.literal("table")]), {
+      description: "Output format",
+    }),
+  },
+});
 ```
 
 ### Array and Multiple Values
@@ -242,27 +224,20 @@ export default defineCommand({
 export default defineCommand({
   options: {
     // Array of strings
-    tags: option(
-      z.array(z.string()),
-      { description: 'Tags (can be specified multiple times)' }
-    ),
-    
+    tags: option(z.array(z.string()), { description: "Tags (can be specified multiple times)" }),
+
     // Comma-separated values
     features: option(
-      z.string().transform(val => 
-        val.split(',').map(s => s.trim())
-      ),
-      { description: 'Comma-separated feature list' }
+      z.string().transform((val) => val.split(",").map((s) => s.trim())),
+      { description: "Comma-separated feature list" },
     ),
-    
+
     // Array with validation
     ports: option(
-      z.array(
-        z.coerce.number().min(1).max(65535)
-      ).min(1, 'At least one port required')
-    )
-  }
-})
+      z.array(z.coerce.number().min(1).max(65535)).min(1, "At least one port required"),
+    ),
+  },
+});
 
 // CLI usage:
 // --tags ui --tags backend --tags api
@@ -277,29 +252,34 @@ export default defineCommand({
   options: {
     // JSON string to object
     config: option(
-      z.string()
-        .transform(str => JSON.parse(str))
-        .pipe(z.object({
-          host: z.string(),
-          port: z.number(),
-          ssl: z.boolean().optional()
-        }))
+      z
+        .string()
+        .transform((str) => JSON.parse(str))
+        .pipe(
+          z.object({
+            host: z.string(),
+            port: z.number(),
+            ssl: z.boolean().optional(),
+          }),
+        ),
     ),
-    
+
     // Nested object validation
     database: option(
       z.object({
         host: z.string(),
         port: z.number().default(5432),
         name: z.string(),
-        credentials: z.object({
-          user: z.string(),
-          password: z.string()
-        }).optional()
-      })
-    )
-  }
-})
+        credentials: z
+          .object({
+            user: z.string(),
+            password: z.string(),
+          })
+          .optional(),
+      }),
+    ),
+  },
+});
 
 // CLI usage:
 // --config '{"host":"localhost","port":3000}'
@@ -308,28 +288,30 @@ export default defineCommand({
 ### Conditional Validation
 
 ```typescript
-const deploySchema = z.object({
-  environment: z.enum(['dev', 'staging', 'prod']),
-  skipTests: z.boolean().optional(),
-  apiKey: z.string().optional()
-}).refine(
-  (data) => {
-    // API key required for production
-    if (data.environment === 'prod' && !data.apiKey) {
-      return false
-    }
-    return true
-  },
-  {
-    message: 'API key is required for production deployments'
-  }
-)
+const deploySchema = z
+  .object({
+    environment: z.enum(["dev", "staging", "prod"]),
+    skipTests: z.boolean().optional(),
+    apiKey: z.string().optional(),
+  })
+  .refine(
+    (data) => {
+      // API key required for production
+      if (data.environment === "prod" && !data.apiKey) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: "API key is required for production deployments",
+    },
+  );
 
 export default defineCommand({
   options: {
-    deploy: option(deploySchema, { description: 'Deployment configuration' })
-  }
-})
+    deploy: option(deploySchema, { description: "Deployment configuration" }),
+  },
+});
 ```
 
 ## Error Handling
@@ -341,17 +323,17 @@ export default defineCommand({
   options: {
     email: option(
       z.string().email({
-        message: 'Please provide a valid email address (e.g., user@example.com)'
-      })
+        message: "Please provide a valid email address (e.g., user@example.com)",
+      }),
     ),
-    
+
     age: option(
       z.coerce.number().int().min(18, {
-        message: 'You must be at least 18 years old'
-      })
-    )
-  }
-})
+        message: "You must be at least 18 years old",
+      }),
+    ),
+  },
+});
 ```
 
 ### Handling Validation Errors
@@ -359,26 +341,26 @@ export default defineCommand({
 ```typescript
 export default defineCommand({
   options: {
-    config: option(z.string(), { description: 'JSON configuration string' })
+    config: option(z.string(), { description: "JSON configuration string" }),
   },
   handler: async ({ flags }) => {
     try {
-      const parsed = JSON.parse(flags.config)
+      const parsed = JSON.parse(flags.config);
       // Additional validation
-      const validated = configSchema.parse(parsed)
+      const validated = configSchema.parse(parsed);
       // Use validated config
     } catch (error) {
       if (error instanceof z.ZodError) {
-        console.error('Configuration validation failed:')
-        error.errors.forEach(err => {
-          console.error(`  - ${err.path.join('.')}: ${err.message}`)
-        })
-        process.exit(1)
+        console.error("Configuration validation failed:");
+        error.errors.forEach((err) => {
+          console.error(`  - ${err.path.join(".")}: ${err.message}`);
+        });
+        process.exit(1);
       }
-      throw error
+      throw error;
     }
-  }
-})
+  },
+});
 ```
 
 ## Real-World Examples
@@ -391,57 +373,52 @@ const apiConfigSchema = z.object({
   timeout: z.number().min(0).default(30000),
   retries: z.number().int().min(0).max(5).default(3),
   headers: z.record(z.string()).optional(),
-  auth: z.union([
-    z.object({ type: z.literal('basic'), username: z.string(), password: z.string() }),
-    z.object({ type: z.literal('bearer'), token: z.string() }),
-    z.object({ type: z.literal('apikey'), key: z.string() })
-  ]).optional()
-})
+  auth: z
+    .union([
+      z.object({ type: z.literal("basic"), username: z.string(), password: z.string() }),
+      z.object({ type: z.literal("bearer"), token: z.string() }),
+      z.object({ type: z.literal("apikey"), key: z.string() }),
+    ])
+    .optional(),
+});
 
 export default defineCommand({
-  name: 'api-call',
+  name: "api-call",
   options: {
-    config: option(apiConfigSchema)
-  }
-})
+    config: option(apiConfigSchema),
+  },
+});
 ```
 
 ### File Processing Options
 
 ```typescript
 export default defineCommand({
-  name: 'process',
+  name: "process",
   options: {
     input: option(
-      z.string().refine(
-        (path) => existsSync(path),
-        'Input file does not exist'
-      ),
-      { description: 'Input file path' }
+      z.string().refine((path) => existsSync(path), "Input file does not exist"),
+      { description: "Input file path" },
     ),
-    
+
     output: option(
-      z.string().refine(
-        (path) => {
-          const dir = dirname(path)
-          return existsSync(dir)
-        },
-        'Output directory does not exist'
-      ),
-      { description: 'Output file path' }
+      z.string().refine((path) => {
+        const dir = dirname(path);
+        return existsSync(dir);
+      }, "Output directory does not exist"),
+      { description: "Output file path" },
     ),
-    
+
     format: option(
-      z.enum(['csv', 'json', 'xml']).transform(fmt => fmt.toLowerCase()),
-      { description: 'Output file format' }
+      z.enum(["csv", "json", "xml"]).transform((fmt) => fmt.toLowerCase()),
+      { description: "Output file format" },
     ),
-    
-    encoding: option(
-      z.enum(['utf8', 'utf16', 'ascii']).default('utf8'),
-      { description: 'File encoding' }
-    )
-  }
-})
+
+    encoding: option(z.enum(["utf8", "utf16", "ascii"]).default("utf8"), {
+      description: "File encoding",
+    }),
+  },
+});
 ```
 
 ## Generated Types and Schema Validation
@@ -450,11 +427,11 @@ When using type generation, your schema validation information is preserved in t
 
 ```typescript
 // Generated in .bunli/commands.gen.ts
-import { getCommandApi, listCommands } from './commands.gen'
+import { getCommandApi, listCommands } from "./commands.gen";
 
 // Get command with full schema information
-const userApi = getCommandApi('create-user')
-console.log(userApi.options)
+const userApi = getCommandApi("create-user");
+console.log(userApi.options);
 // {
 //   username: {
 //     type: 'string',
@@ -481,13 +458,15 @@ console.log(userApi.options)
 ```
 
 This enables:
+
 - **Schema extraction** for documentation generation
 - **Validation rule discovery** for dynamic validation
 - **Type-safe option access** with full metadata
 - **Runtime validation** using generated schema information
 
 <Callout type="tip">
-  Generated types preserve all schema validation information, making it available for documentation generation and dynamic validation systems.
+  Generated types preserve all schema validation information, making it available for documentation
+  generation and dynamic validation systems.
 </Callout>
 
 ## Best Practices
@@ -502,21 +481,21 @@ This enables:
 ## Testing Validation
 
 ```typescript
-import { test, expect } from 'bun:test'
-import { createTestCLI } from '@bunli/test'
+import { test, expect } from "bun:test";
+import { createTestCLI } from "@bunli/test";
 
-test('validates port number', async () => {
-  const cli = await createTestCLI({ commands: [serveCommand] })
+test("validates port number", async () => {
+  const cli = await createTestCLI({ commands: [serveCommand] });
 
   // Valid port
-  const valid = await cli.run(['serve', '--port', '3000'])
-  expect(valid.exitCode).toBe(0)
+  const valid = await cli.run(["serve", "--port", "3000"]);
+  expect(valid.exitCode).toBe(0);
 
   // Invalid port
-  const invalid = await cli.run(['serve', '--port', '70000'])
-  expect(invalid.exitCode).toBe(1)
-  expect(invalid.stderr).toContain('less than or equal to 65535')
-})
+  const invalid = await cli.run(["serve", "--port", "70000"]);
+  expect(invalid.exitCode).toBe(1);
+  expect(invalid.stderr).toContain("less than or equal to 65535");
+});
 ```
 
 ## Next Steps

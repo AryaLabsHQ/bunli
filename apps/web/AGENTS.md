@@ -8,30 +8,30 @@ TanStack Start (SSR/UI routes) + Vite + Cloudflare Workers. Hono API under `/api
 
 ## WHERE TO LOOK
 
-| Task | Location |
-|------|----------|
-| Routes | `src/routes/` |
-| Landing page | `src/routes/index.tsx` |
-| Docs route | `src/routes/docs.$.tsx` |
-| API catch-all | `src/routes/api.$.ts` |
-| Hono API | `src/api/app.ts` |
-| Components | `components/` |
-| Landing components | `components/landing/` |
-| Content | `content/` |
-| Docs MDX | `content/docs/` |
-| Fumadocs config | `source.config.ts` |
-| Vite config | `vite.config.ts` |
-| Worker config | `wrangler.jsonc` |
+| Task               | Location                |
+| ------------------ | ----------------------- |
+| Routes             | `src/routes/`           |
+| Landing page       | `src/routes/index.tsx`  |
+| Docs route         | `src/routes/docs.$.tsx` |
+| API catch-all      | `src/routes/api.$.ts`   |
+| Hono API           | `src/api/app.ts`        |
+| Components         | `components/`           |
+| Landing components | `components/landing/`   |
+| Content            | `content/`              |
+| Docs MDX           | `content/docs/`         |
+| Fumadocs config    | `source.config.ts`      |
+| Vite config        | `vite.config.ts`        |
+| Worker config      | `wrangler.jsonc`        |
 
 ## LANDING PAGE COMPONENTS
 
-| Component | File |
-|-----------|------|
-| Hero | `components/landing/hero.tsx` |
-| Features grid | `components/landing/features-grid.tsx` |
-| Code comparison | `components/landing/code-comparison.tsx` |
+| Component         | File                                       |
+| ----------------- | ------------------------------------------ |
+| Hero              | `components/landing/hero.tsx`              |
+| Features grid     | `components/landing/features-grid.tsx`     |
+| Code comparison   | `components/landing/code-comparison.tsx`   |
 | Examples showcase | `components/landing/examples-showcase.tsx` |
-| CTA | `components/landing/cta-section.tsx` |
+| CTA               | `components/landing/cta-section.tsx`       |
 
 ## CONTENT MANAGEMENT
 

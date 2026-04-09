@@ -1,41 +1,42 @@
-import type { ReactNode } from 'react'
-import { useTuiTheme } from '@bunli/runtime/app'
+import { useTuiTheme } from "@bunli/runtime/app";
+import type { ReactNode } from "react";
+
 import {
   resolveVariantStyle,
   toneToPrefix,
   type ComponentEmphasis,
   type ComponentSize,
-  type ComponentTone
-} from './variant.js'
+  type ComponentTone,
+} from "./variant.js";
 
-export type AlertTone = Extract<ComponentTone, 'info' | 'success' | 'warning' | 'danger'>
+export type AlertTone = Extract<ComponentTone, "info" | "success" | "warning" | "danger">;
 
 export interface AlertProps {
-  tone?: AlertTone
-  size?: ComponentSize
-  emphasis?: ComponentEmphasis
-  title?: string
-  message: string
-  children?: ReactNode
-  fg?: string
-  bg?: string
-  borderColor?: string
-  padding?: number
+  tone?: AlertTone;
+  size?: ComponentSize;
+  emphasis?: ComponentEmphasis;
+  title?: string;
+  message: string;
+  children?: ReactNode;
+  fg?: string;
+  bg?: string;
+  borderColor?: string;
+  padding?: number;
 }
 
 export function Alert({
-  tone = 'info',
-  size = 'md',
-  emphasis = 'subtle',
+  tone = "info",
+  size = "md",
+  emphasis = "subtle",
   title,
   message,
   children,
   fg,
   bg,
   borderColor,
-  padding
+  padding,
 }: AlertProps) {
-  const theme = useTuiTheme()
+  const theme = useTuiTheme();
   const style = resolveVariantStyle(theme.tokens, {
     tone,
     size,
@@ -43,25 +44,25 @@ export function Alert({
     fg,
     bg,
     border: borderColor,
-    padding
-  })
+    padding,
+  });
 
-  const prefix = toneToPrefix(tone)
+  const prefix = toneToPrefix(tone);
 
   return (
     <box
       border
       padding={style.padding}
       style={{
-        flexDirection: 'column',
+        flexDirection: "column",
         gap: 1,
         borderColor: style.border,
-        backgroundColor: style.bg
+        backgroundColor: style.bg,
       }}
     >
-      <text content={`${prefix}${title ? `: ${title}` : ''}`} fg={style.fg} />
+      <text content={`${prefix}${title ? `: ${title}` : ""}`} fg={style.fg} />
       <text content={message} fg={theme.tokens.textPrimary} />
       {children ? <box style={{ marginTop: 1 }}>{children}</box> : null}
     </box>
-  )
+  );
 }

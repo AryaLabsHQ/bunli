@@ -1,8 +1,9 @@
 #!/usr/bin/env bun
-import { createCLI } from '@bunli/core'
-import galleryCommand from './commands/gallery.js'
+import { createCLI } from "@bunli/core";
 
-const cli = await createCLI()
+import galleryCommand from "./commands/gallery.js";
 
-cli.command(galleryCommand)
-await cli.run()
+const cli = await createCLI();
+
+cli.command(galleryCommand);
+await cli.run();

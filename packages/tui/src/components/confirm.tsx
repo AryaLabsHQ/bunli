@@ -1,83 +1,89 @@
-import { useId, useState } from 'react'
-import type { KeyEvent } from '@opentui/core'
-import { useScopedKeyboard, createKeyMatcher, useTuiTheme } from '@bunli/runtime/app'
+import { useScopedKeyboard, createKeyMatcher, useTuiTheme } from "@bunli/runtime/app";
+import type { KeyEvent } from "@opentui/core";
+import { useId, useState } from "react";
 
 export interface ConfirmProps {
-  message: string
-  defaultValue?: boolean
-  affirmativeLabel?: string
-  negativeLabel?: string
-  onConfirm?: (value: boolean) => void
-  onAbort?: () => void
-  scopeId?: string
-  keyboardEnabled?: boolean
+  message: string;
+  defaultValue?: boolean;
+  affirmativeLabel?: string;
+  negativeLabel?: string;
+  onConfirm?: (value: boolean) => void;
+  onAbort?: () => void;
+  scopeId?: string;
+  keyboardEnabled?: boolean;
 }
 
 const confirmKeymap = createKeyMatcher({
-  toggle: ['left', 'right', 'h', 'l', 'tab'],
-  affirm: ['y'],
-  negate: ['n', 'q'],
-  submit: ['enter'],
-  abort: ['escape']
-})
+  toggle: ["left", "right", "h", "l", "tab"],
+  affirm: ["y"],
+  negate: ["n", "q"],
+  submit: ["enter"],
+  abort: ["escape"],
+});
 
 export function Confirm({
   message,
   defaultValue = false,
-  affirmativeLabel = 'Yes',
-  negativeLabel = 'No',
+  affirmativeLabel = "Yes",
+  negativeLabel = "No",
   onConfirm,
   onAbort,
   scopeId,
-  keyboardEnabled = true
+  keyboardEnabled = true,
 }: ConfirmProps) {
-  const { tokens } = useTuiTheme()
-  const reactScopeId = useId()
-  const keyboardScopeId = scopeId ?? `confirm:${reactScopeId}`
-  const [selected, setSelected] = useState(defaultValue)
+  const { tokens } = useTuiTheme();
+  const reactScopeId = useId();
+  const keyboardScopeId = scopeId ?? `confirm:${reactScopeId}`;
+  const [selected, setSelected] = useState(defaultValue);
 
   useScopedKeyboard(
     keyboardScopeId,
     (key: KeyEvent) => {
-      if (confirmKeymap.match('toggle', key)) {
-        setSelected((prev) => !prev)
-        return true
+      if (confirmKeymap.match("toggle", key)) {
+        setSelected((prev) => !prev);
+        return true;
       }
 
-      if (confirmKeymap.match('affirm', key)) {
-        setSelected(true)
-        return true
+      if (confirmKeymap.match("affirm", key)) {
+        setSelected(true);
+        return true;
       }
 
-      if (confirmKeymap.match('negate', key)) {
-        setSelected(false)
-        return true
+      if (confirmKeymap.match("negate", key)) {
+        setSelected(false);
+        return true;
       }
 
-      if (confirmKeymap.match('submit', key)) {
+      if (confirmKeymap.match("submit", key)) {
         setSelected((current) => {
-          onConfirm?.(current)
-          return current
-        })
-        return true
+          onConfirm?.(current);
+          return current;
+        });
+        return true;
       }
 
-      if (confirmKeymap.match('abort', key)) {
-        onAbort?.()
-        return true
+      if (confirmKeymap.match("abort", key)) {
+        onAbort?.();
+        return true;
       }
 
-      return false
+      return false;
     },
-    { active: keyboardEnabled }
-  )
+    { active: keyboardEnabled },
+  );
 
   return (
-    <box style={{ flexDirection: 'row', gap: 1 }}>
+    <box style={{ flexDirection: "row", gap: 1 }}>
       <text content={message} fg={tokens.textPrimary} />
-      <text content={selected ? `[${affirmativeLabel}]` : ` ${affirmativeLabel} `} fg={selected ? tokens.accent : tokens.textMuted} />
+      <text
+        content={selected ? `[${affirmativeLabel}]` : ` ${affirmativeLabel} `}
+        fg={selected ? tokens.accent : tokens.textMuted}
+      />
       <text content="/" fg={tokens.textMuted} />
-      <text content={!selected ? `[${negativeLabel}]` : ` ${negativeLabel} `} fg={!selected ? tokens.accent : tokens.textMuted} />
+      <text
+        content={!selected ? `[${negativeLabel}]` : ` ${negativeLabel} `}
+        fg={!selected ? tokens.accent : tokens.textMuted}
+      />
     </box>
-  )
+  );
 }

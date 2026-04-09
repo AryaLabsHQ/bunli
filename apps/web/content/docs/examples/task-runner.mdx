@@ -16,44 +16,52 @@ This example consolidates validation and interactive patterns into a cohesive ta
 ## Commands
 
 ### `build` - Build Project
+
 ```bash
 bun run cli.ts build --env production
 ```
 
 Builds the project with validation and transformation:
+
 - Environment selection (development/production)
 - Output directory configuration
 - Progress tracking with spinners
 - Validation of build configuration
 
 ### `test` - Run Tests
+
 ```bash
 bun run cli.ts test --pattern "**/*.test.ts" --coverage 80 --watch
 ```
 
 Runs tests with filtering and coverage:
+
 - Test file pattern specification
 - Coverage reporting
 - Watch mode for development
 - Complex validation patterns
 
 ### `deploy` - Deploy Application
+
 ```bash
 bun run cli.ts deploy --environment production
 ```
 
 Deploys with interactive confirmation:
+
 - Environment selection
 - Interactive confirmation prompts
 - Deployment validation
 - Rollback options
 
 ### `setup` - Interactive Setup
+
 ```bash
 bun run cli.ts setup
 ```
 
 Interactive setup wizard:
+
 - Multi-step configuration
 - Dynamic prompts based on previous answers
 - Validation of user input
@@ -62,120 +70,133 @@ Interactive setup wizard:
 ## Key Features Demonstrated
 
 ### 1. Schema Validation
+
 ```typescript
-import { defineCommand, option } from '@bunli/core'
-import { z } from 'zod'
+import { defineCommand, option } from "@bunli/core";
+import { z } from "zod";
 
 export const buildCommand = defineCommand({
-  name: 'build' as const,
+  name: "build" as const,
   options: {
-    env: option(
-      z.enum(['development', 'staging', 'production']).default('development'),
-      { short: 'e', description: 'Build environment' }
-    ),
-    outdir: option(
-      z.string().min(1).default('dist'),
-      { short: 'o', description: 'Output directory' }
-    ),
+    env: option(z.enum(["development", "staging", "production"]).default("development"), {
+      short: "e",
+      description: "Build environment",
+    }),
+    outdir: option(z.string().min(1).default("dist"), {
+      short: "o",
+      description: "Output directory",
+    }),
     config: option(
-      z.string().transform((val) => JSON.parse(val)).optional(),
-      { short: 'c', description: 'JSON configuration object' }
+      z
+        .string()
+        .transform((val) => JSON.parse(val))
+        .optional(),
+      { short: "c", description: "JSON configuration object" },
     ),
     memory: option(
-      z.string().regex(/^\d+[kmg]?$/i).optional()
+      z
+        .string()
+        .regex(/^\d+[kmg]?$/i)
+        .optional()
         .transform((val) => {
-          const raw = val ?? '512m'
-          const num = parseInt(raw)
-          const unit = raw.slice(-1).toLowerCase()
-          const multipliers = { k: 1024, m: 1024 * 1024, g: 1024 * 1024 * 1024 }
-          return num * (multipliers[unit as keyof typeof multipliers] || 1)
+          const raw = val ?? "512m";
+          const num = parseInt(raw);
+          const unit = raw.slice(-1).toLowerCase();
+          const multipliers = { k: 1024, m: 1024 * 1024, g: 1024 * 1024 * 1024 };
+          return num * (multipliers[unit as keyof typeof multipliers] || 1);
         }),
-      { short: 'm', description: 'Memory limit (e.g., 512m, 2g)' }
+      { short: "m", description: "Memory limit (e.g., 512m, 2g)" },
     ),
     variables: option(
-      z.string().transform((val) => {
-        const vars: Record<string, string> = {}
-        val.split(',').forEach(pair => {
-          const [key, value] = pair.split('=')
-          if (key && value) vars[key.trim()] = value.trim()
+      z
+        .string()
+        .transform((val) => {
+          const vars: Record<string, string> = {};
+          val.split(",").forEach((pair) => {
+            const [key, value] = pair.split("=");
+            if (key && value) vars[key.trim()] = value.trim();
+          });
+          return vars;
         })
-        return vars
-      }).optional(),
-      { short: 'v', description: 'Environment variables (key1=value1,key2=value2)' }
+        .optional(),
+      { short: "v", description: "Environment variables (key1=value1,key2=value2)" },
     ),
-    watch: option(
-      z.coerce.boolean().default(false),
-      { short: 'w', description: 'Watch for changes' }
-    )
+    watch: option(z.coerce.boolean().default(false), {
+      short: "w",
+      description: "Watch for changes",
+    }),
   },
   handler: async ({ flags, spinner, colors }) => {
     // Type-safe access to validated options
-    const { env, outdir, memory, variables, watch } = flags
+    const { env, outdir, memory, variables, watch } = flags;
     // ... implementation
-  }
-})
+  },
+});
 ```
 
 ### 2. Interactive Prompts
+
 ```typescript
 // prompt is provided via handler args by Bunli
 
 // Text input
-const name = await prompt.text('Project name?')
+const name = await prompt.text("Project name?");
 
 // Selection
-const framework = await prompt.select('Runtime framework?', {
+const framework = await prompt.select("Runtime framework?", {
   options: [
-    { label: 'Bun', value: 'bun' },
-    { label: 'Node.js', value: 'node' },
-    { label: 'Deno', value: 'deno' }
-  ]
-})
+    { label: "Bun", value: "bun" },
+    { label: "Node.js", value: "node" },
+    { label: "Deno", value: "deno" },
+  ],
+});
 
 // Confirmation
-const confirmed = await prompt.confirm('Deploy to production?')
+const confirmed = await prompt.confirm("Deploy to production?");
 
 // Multi-select
-const features = await prompt.multiselect('Features?', {
+const features = await prompt.multiselect("Features?", {
   options: [
-    { label: 'TypeScript', value: 'typescript' },
-    { label: 'ESLint', value: 'eslint' },
-    { label: 'Prettier', value: 'prettier' },
-    { label: 'Testing', value: 'testing' }
-  ]
-})
+    { label: "TypeScript", value: "typescript" },
+    { label: "ESLint", value: "eslint" },
+    { label: "Prettier", value: "prettier" },
+    { label: "Testing", value: "testing" },
+  ],
+});
 ```
 
 ### 3. Progress Indicators
+
 ```typescript
-const spin = spinner('Building project...')
+const spin = spinner("Building project...");
 
 // Simulate build steps
-const steps = ['Compiling', 'Bundling', 'Optimizing', 'Writing']
+const steps = ["Compiling", "Bundling", "Optimizing", "Writing"];
 for (const step of steps) {
-  spin.update(step)
-  await new Promise(resolve => setTimeout(resolve, 500))
+  spin.update(step);
+  await new Promise((resolve) => setTimeout(resolve, 500));
 }
 
-spin.succeed('Build completed!')
+spin.succeed("Build completed!");
 ```
 
 ### 4. Conditional Flows
+
 ```typescript
 handler: async ({ flags, prompt, colors }) => {
-  if (flags.environment === 'production') {
+  if (flags.environment === "production") {
     const confirmed = await prompt.confirm(
-      colors.red('⚠️  Deploy to production? This cannot be undone!')
-    )
-    
+      colors.red("⚠️  Deploy to production? This cannot be undone!"),
+    );
+
     if (!confirmed) {
-      console.log(colors.yellow('Deployment cancelled'))
-      return
+      console.log(colors.yellow("Deployment cancelled"));
+      return;
     }
   }
-  
+
   // Continue with deployment
-}
+};
 ```
 
 ## Project Structure
@@ -215,6 +236,7 @@ bun run cli.ts setup
 ## Validation Patterns
 
 ### Complex Option Validation
+
 ```typescript
 options: {
   pattern: option(
@@ -233,65 +255,67 @@ options: {
 ```
 
 ### Runtime Validation
+
 ```typescript
 handler: async ({ flags, colors }) => {
   // Validate test files exist
-  const testFiles = await glob('**/*.test.ts')
+  const testFiles = await glob("**/*.test.ts");
   if (testFiles.length === 0) {
-    console.error(colors.red('No test files found'))
-    process.exit(1)
+    console.error(colors.red("No test files found"));
+    process.exit(1);
   }
 
   // Validate coverage threshold
   if (flags.coverage < 50) {
-    console.warn(colors.yellow('Low coverage threshold'))
+    console.warn(colors.yellow("Low coverage threshold"));
   }
-}
+};
 ```
 
 ## Interactive Patterns
 
 ### Multi-step Setup
+
 ```typescript
 handler: async ({ prompt, colors, spinner }) => {
-  console.log(colors.cyan('Welcome to the setup wizard!'))
-  
+  console.log(colors.cyan("Welcome to the setup wizard!"));
+
   // Step 1: Project details
-  const name = await prompt.text('Project name?')
-  const description = await prompt.text('Description?')
-  
+  const name = await prompt.text("Project name?");
+  const description = await prompt.text("Description?");
+
   // Step 2: Runtime selection
-  const framework = await prompt.select('Runtime framework?', {
+  const framework = await prompt.select("Runtime framework?", {
     options: [
-      { label: 'Bun', value: 'bun' },
-      { label: 'Node.js', value: 'node' },
-      { label: 'Deno', value: 'deno' }
-    ]
-  })
-  
+      { label: "Bun", value: "bun" },
+      { label: "Node.js", value: "node" },
+      { label: "Deno", value: "deno" },
+    ],
+  });
+
   // Step 3: Features
-  const features = await prompt.multiselect('Features?', {
+  const features = await prompt.multiselect("Features?", {
     options: [
-      { label: 'TypeScript', value: 'typescript' },
-      { label: 'ESLint', value: 'eslint' },
-      { label: 'Prettier', value: 'prettier' },
-      { label: 'Testing', value: 'testing' }
-    ]
-  })
-  
+      { label: "TypeScript", value: "typescript" },
+      { label: "ESLint", value: "eslint" },
+      { label: "Prettier", value: "prettier" },
+      { label: "Testing", value: "testing" },
+    ],
+  });
+
   // Step 4: Confirmation
-  console.log(colors.cyan('\nConfiguration:'))
-  console.log(`Name: ${name}`)
-  console.log(`Framework: ${framework}`)
-  console.log(`Features: ${features.join(', ')}`)
-  
-  const confirmed = await prompt.confirm('Create project?')
+  console.log(colors.cyan("\nConfiguration:"));
+  console.log(`Name: ${name}`);
+  console.log(`Framework: ${framework}`);
+  console.log(`Features: ${features.join(", ")}`);
+
+  const confirmed = await prompt.confirm("Create project?");
   if (confirmed) {
     // Create project files
-    const spin = spinner('Creating project...')
-    spin.succeed('Project created successfully!')
+    const spin = spinner("Creating project...");
+    spin.succeed("Project created successfully!");
   }
-}
+};
 ```
 
 ## Key Takeaways

@@ -2,6 +2,28 @@
   "name": "@bunli/utils",
   "version": "0.6.0",
   "description": "Built-in utilities for Bunli CLI framework - colors and validation",
+  "keywords": [
+    "bunli",
+    "cli",
+    "colors",
+    "terminal",
+    "utilities",
+    "validation"
+  ],
+  "homepage": "https://github.com/AryaLabsHQ/bunli#readme",
+  "bugs": {
+    "url": "https://github.com/AryaLabsHQ/bunli/issues"
+  },
+  "license": "MIT",
+  "author": "Arya Labs, Inc.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AryaLabsHQ/bunli.git",
+    "directory": "packages/utils"
+  },
+  "files": [
+    "dist"
+  ],
   "type": "module",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -11,37 +33,15 @@
       "import": "./dist/index.js"
     }
   },
-  "files": [
-    "dist"
-  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "bun scripts/build.ts && bun run tsgo",
     "test": "bun test",
     "typecheck": "tsgo --noEmit",
     "prepublishOnly": "bun run build"
   },
-  "keywords": [
-    "bunli",
-    "cli",
-    "utilities",
-    "colors",
-    "validation",
-    "terminal"
-  ],
-  "author": "Arya Labs, Inc.",
-  "license": "MIT",
-  "publishConfig": {
-    "access": "public"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/AryaLabsHQ/bunli.git",
-    "directory": "packages/utils"
-  },
-  "bugs": {
-    "url": "https://github.com/AryaLabsHQ/bunli/issues"
-  },
-  "homepage": "https://github.com/AryaLabsHQ/bunli#readme",
   "dependencies": {
     "@standard-schema/spec": "catalog:",
     "@standard-schema/utils": "catalog:",

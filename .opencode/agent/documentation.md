@@ -43,6 +43,7 @@ Spawn **parallel Explore subagents**, one per doc section in scope. Each explore
 4. Report back with a structured list of findings
 
 **Explorer assignments** (full audit):
+
 - **Explorer 1 — API Reference**: `apps/web/content/docs/api/*.mdx` vs `packages/core/src/` (cli.ts, types.ts, config.ts, plugin/, option/)
 - **Explorer 2 — Core Concepts**: `apps/web/content/docs/core-concepts/*.mdx` vs actual patterns in `packages/core/src/`
 - **Explorer 3 — Packages**: `apps/web/content/docs/packages/*.mdx` and `packages/plugins/*.mdx` vs `packages/*/` (check for undocumented packages)
@@ -51,6 +52,7 @@ Spawn **parallel Explore subagents**, one per doc section in scope. Each explore
 For targeted audits, spawn only the relevant explorer(s).
 
 Each explorer prompt should include:
+
 - The specific doc files to read
 - The specific source files to compare against
 - Instruction to report: what's documented, what's implemented, what's missing/stale
@@ -60,12 +62,12 @@ Each explorer prompt should include:
 
 Collect all explorer findings. Deduplicate, cross-reference, and categorize:
 
-| Severity | Meaning |
-|----------|---------|
+| Severity     | Meaning                                                          |
+| ------------ | ---------------------------------------------------------------- |
 | **critical** | Docs describe APIs/behavior that don't exist or work differently |
-| **high** | Entire features/packages undocumented |
-| **medium** | Partially stale content, missing properties, incomplete examples |
-| **low** | Minor wording improvements, better examples possible |
+| **high**     | Entire features/packages undocumented                            |
+| **medium**   | Partially stale content, missing properties, incomplete examples |
+| **low**      | Minor wording improvements, better examples possible             |
 
 ### Phase 4: Report & Plan
 
@@ -73,6 +75,7 @@ Write a structured report to `.scratchpad/docs-audit/report.md` with:
 
 ```markdown
 # Documentation Audit Report
+
 **Date**: YYYY-MM-DD
 **Scope**: [what was audited]
 **Summary**: X critical, Y high, Z medium, W low
@@ -80,6 +83,7 @@ Write a structured report to `.scratchpad/docs-audit/report.md` with:
 ## Findings
 
 ### [severity] [title]
+
 - **Doc**: path/to/doc.mdx
 - **Source**: path/to/source.ts
 - **Issue**: what's wrong
@@ -90,6 +94,7 @@ Write a structured report to `.scratchpad/docs-audit/report.md` with:
 ### Phase 5: Fix (if requested or obvious)
 
 After presenting the report, fix the documentation issues directly:
+
 - Edit existing MDX files to match implementation
 - Create new doc files for undocumented packages/features
 - Update `meta.json` navigation when adding new pages
@@ -110,6 +115,7 @@ When fixing, work through findings by severity (critical first). Show the user w
 ## Memory
 
 After completing an audit, save key findings to your project memory:
+
 - Which packages/features lack docs
 - The doc↔implementation mapping you discovered
 - Any recurring patterns (e.g., "new plugins always miss docs")

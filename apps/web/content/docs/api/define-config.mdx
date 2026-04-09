@@ -3,14 +3,14 @@ title: defineConfig
 description: Define configuration for Bunli CLI projects
 ---
 
-import { Callout } from 'fumadocs-ui/components/callout';
+import { Callout } from "fumadocs-ui/components/callout";
 
 Defines configuration for Bunli CLI projects. Used in `bunli.config.ts` files.
 
 ## Syntax
 
 ```typescript
-function defineConfig(config: BunliConfigInput): BunliConfig
+function defineConfig(config: BunliConfigInput): BunliConfig;
 ```
 
 ## Parameters
@@ -22,81 +22,81 @@ The configuration object for your CLI project.
 ```typescript
 interface BunliConfig {
   // Basic metadata
-  name?: string
-  version?: string
-  description?: string
-  
+  name?: string;
+  version?: string;
+  description?: string;
+
   // Command configuration
   commands?: {
-    entry?: string
-    directory?: string
-    generateReport?: boolean
-  }
+    entry?: string;
+    directory?: string;
+    generateReport?: boolean;
+  };
 
   // Plugin configuration
-  plugins?: import('@bunli/core').PluginConfig[]
+  plugins?: import("@bunli/core").PluginConfig[];
 
   // Build configuration
   build?: {
-    entry?: string | string[]
-    outdir?: string
-    targets?: string[]
-    compress?: boolean
-    external?: string[]
-    minify?: boolean
-    sourcemap?: boolean
-  }
-  
+    entry?: string | string[];
+    outdir?: string;
+    targets?: string[];
+    compress?: boolean;
+    external?: string[];
+    minify?: boolean;
+    sourcemap?: boolean;
+  };
+
   // Development configuration
   dev?: {
-    watch?: boolean
-    inspect?: boolean
-    port?: number
-  }
-  
+    watch?: boolean;
+    inspect?: boolean;
+    port?: number;
+  };
+
   // Test configuration
   test?: {
-    pattern?: string | string[]
-    coverage?: boolean
-    watch?: boolean
-  }
+    pattern?: string | string[];
+    coverage?: boolean;
+    watch?: boolean;
+  };
 
   // Help configuration
   help?: {
-    renderer?: unknown  // Custom renderer function; z.unknown() accepts any type
-  }
+    renderer?: unknown; // Custom renderer function; z.unknown() accepts any type
+  };
 
   // Release configuration
   release?: {
-    npm?: boolean
-    github?: boolean
-    tagFormat?: string
-    conventionalCommits?: boolean
+    npm?: boolean;
+    github?: boolean;
+    tagFormat?: string;
+    conventionalCommits?: boolean;
     binary?: {
-      packageNameFormat?: string
-      shimPath?: string
-    }
-  }
+      packageNameFormat?: string;
+      shimPath?: string;
+    };
+  };
 
   // Workspace configuration
   workspace?: {
-    packages?: string[]
-    shared?: any
-    versionStrategy?: 'fixed' | 'independent'
-  }
+    packages?: string[];
+    shared?: any;
+    versionStrategy?: "fixed" | "independent";
+  };
 
   // TUI configuration (for commands using the render() path)
   tui?: {
     renderer?: {
-      bufferMode?: 'alternate' | 'standard'
-    }
+      bufferMode?: "alternate" | "standard";
+    };
     image?: {
-      mode?: 'off' | 'auto' | 'on'
-      protocol?: 'auto' | 'kitty'
-      width?: number
-      height?: number
-    }
-  }
+      mode?: "off" | "auto" | "on";
+      protocol?: "auto" | "kitty";
+      width?: number;
+      height?: number;
+    };
+  };
 }
 ```
 
@@ -106,92 +106,92 @@ interface BunliConfig {
 
 ```typescript
 // bunli.config.ts
-import { defineConfig } from '@bunli/core'
+import { defineConfig } from "@bunli/core";
 
 export default defineConfig({
-  name: 'my-cli',
-  version: '1.0.0',
-  description: 'My awesome CLI tool'
-})
+  name: "my-cli",
+  version: "1.0.0",
+  description: "My awesome CLI tool",
+});
 ```
 
 ### With Build Settings
 
 ```typescript
 export default defineConfig({
-  name: 'my-cli',
-  version: '1.0.0',
+  name: "my-cli",
+  version: "1.0.0",
   build: {
-    entry: './src/cli.ts',
-    outdir: './dist',
+    entry: "./src/cli.ts",
+    outdir: "./dist",
     minify: true,
     compress: true,
-    targets: ['darwin-arm64', 'linux-x64', 'windows-x64']
-  }
-})
+    targets: ["darwin-arm64", "linux-x64", "windows-x64"],
+  },
+});
 ```
 
 ### With Command Discovery
 
 ```typescript
 export default defineConfig({
-  name: 'my-cli',
-  version: '1.0.0',
+  name: "my-cli",
+  version: "1.0.0",
   commands: {
-    entry: './cli.ts',
-    directory: './src/commands'
-  }
-})
+    entry: "./cli.ts",
+    directory: "./src/commands",
+  },
+});
 ```
 
 ### Development Configuration
 
 ```typescript
 export default defineConfig({
-  name: 'my-cli',
-  version: '1.0.0',
+  name: "my-cli",
+  version: "1.0.0",
   dev: {
     watch: true,
     inspect: true,
-    port: 9229
+    port: 9229,
   },
   test: {
-    pattern: ['**/*.test.ts', '**/*.spec.ts'],
-    coverage: true
-  }
-})
+    pattern: ["**/*.test.ts", "**/*.spec.ts"],
+    coverage: true,
+  },
+});
 ```
 
 ### With Code Generation
 
 ```typescript
 export default defineConfig({
-  name: 'my-cli',
-  version: '1.0.0',
+  name: "my-cli",
+  version: "1.0.0",
   build: {
-    entry: './src/cli.ts',
-    outdir: './dist'
-  }
-})
+    entry: "./src/cli.ts",
+    outdir: "./dist",
+  },
+});
 ```
 
 ### Workspace Configuration
 
 ```typescript
 export default defineConfig({
-  name: 'my-monorepo',
+  name: "my-monorepo",
   workspace: {
-    packages: ['packages/*'],
-    versionStrategy: 'independent',
+    packages: ["packages/*"],
+    versionStrategy: "independent",
     shared: {
       // Shared config for all packages
       build: {
         minify: true,
-        sourcemap: false
-      }
-    }
-  }
-})
+        sourcemap: false,
+      },
+    },
+  },
+});
 ```
 
 ## Configuration Options
@@ -199,7 +199,7 @@ export default defineConfig({
 ### Basic Metadata
 
 - `name` - CLI name (defaults to package.json name)
-- `version` - CLI version (defaults to package.json version)  
+- `version` - CLI version (defaults to package.json version)
 - `description` - CLI description
 
 ### commands
@@ -301,17 +301,19 @@ The `bunli` CLI looks for config files in this order:
 You can also load config programmatically:
 
 ```typescript
-import { loadConfig } from '@bunli/core'
+import { loadConfig } from "@bunli/core";
 
-const config = await loadConfig()
+const config = await loadConfig();
 ```
 
 <Callout type="tip">
-  **Automatic Loading**: In most cases, you don't need to manually load config. `createCLI()` automatically loads from `bunli.config.ts` when called without arguments.
+  **Automatic Loading**: In most cases, you don't need to manually load config. `createCLI()`
+  automatically loads from `bunli.config.ts` when called without arguments.
 </Callout>
 
 <Callout type="tip">
-  Use `defineConfig` for better TypeScript support. It provides type checking and autocompletion for all configuration options.
+  Use `defineConfig` for better TypeScript support. It provides type checking and autocompletion for
+  all configuration options.
 </Callout>
 
 ## Best Practices

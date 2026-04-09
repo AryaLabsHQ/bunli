@@ -36,13 +36,13 @@ const greetCommand = defineCommand({
       short: 'n',
       description: 'Who to greet'
     }),
-    loud: option(z.coerce.boolean().default(false), { 
-      short: 'l', 
-      description: 'Shout the greeting' 
+    loud: option(z.coerce.boolean().default(false), {
+      short: 'l',
+      description: 'Shout the greeting'
     }),
-    times: option(z.coerce.number().int().positive().default(1), { 
-      short: 't', 
-      description: 'Number of times to greet' 
+    times: option(z.coerce.number().int().positive().default(1), {
+      short: 't',
+      description: 'Number of times to greet'
     })
   },
   render: ({ flags }) => (
@@ -55,7 +55,7 @@ const greetCommand = defineCommand({
   handler: async ({ flags, colors }) => {
     const greeting = `Hello, ${flags.name}!`
     const message = flags.loud ? greeting.toUpperCase() : greeting
-    
+
     for (let i = 0; i < flags.times; i++) {
       console.log(colors.cyan(message))
     }
@@ -78,7 +78,7 @@ This example configures:
 ```typescript
 tui: {
   renderer: {
-    bufferMode: 'alternate'
+    bufferMode: "alternate";
   }
 }
 ```
@@ -119,6 +119,7 @@ To add a new command:
 ## Next Steps
 
 Ready for more? Try the **[task-runner](../task-runner/README.md)** example to learn about:
+
 - Complex validation patterns
 - Interactive prompts and wizards
 - Progress indicators and spinners

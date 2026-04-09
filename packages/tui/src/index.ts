@@ -1,28 +1,22 @@
-export * from './components/index.js'
-export { createSyncBatcher, type SyncBatcher, type SyncBatcherOptions } from './utils/sync-batcher.js'
+export * from "./components/index.js";
+export {
+  createSyncBatcher,
+  type SyncBatcher,
+  type SyncBatcherOptions,
+} from "./utils/sync-batcher.js";
 
-export * as inline from './inline/index.js'
-export * as interactive from './interactive/index.js'
-export * as charts from './charts/index.js'
+export * as inline from "./inline/index.js";
+export * as interactive from "./interactive/index.js";
+export * as charts from "./charts/index.js";
 
 export {
   useKeyboard,
   useRenderer,
   useTerminalDimensions,
   useTimeline,
-  useOnResize
-} from '@opentui/react'
+  useOnResize,
+} from "@opentui/react";
 
-export type {
-  SelectOption,
-  KeyEvent,
-  CliRendererConfig
-} from '@opentui/core'
+export type { SelectOption, KeyEvent, CliRendererConfig } from "@opentui/core";
 
-export {
-  bold,
-  fg,
-  italic,
-  t,
-  TextAttributes
-} from '@opentui/core'
+export { bold, fg, italic, t, TextAttributes } from "@opentui/core";

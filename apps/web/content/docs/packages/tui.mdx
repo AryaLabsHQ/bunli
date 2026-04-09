@@ -1,5 +1,5 @@
 ---
-title: '@bunli/tui'
+title: "@bunli/tui"
 description: React-based Terminal UI component library for Bunli
 ---
 
@@ -23,69 +23,65 @@ bun add @bunli/tui @bunli/runtime
 
 ## Package Structure
 
-| Export | Description |
-|--------|-------------|
-| `@bunli/tui` | Main - components, hooks, theme utilities |
-| `@bunli/tui/inline` | Inline-mode components (List, Table, Markdown, Diff) |
-| `@bunli/tui/interactive` | Interactive components with theme providers |
-| `@bunli/tui/charts` | Chart primitives (BarChart, LineChart, Sparkline) |
-| `@bunli/tui/utils/sync-batcher` | Action batching utility |
+| Export                          | Description                                          |
+| ------------------------------- | ---------------------------------------------------- |
+| `@bunli/tui`                    | Main - components, hooks, theme utilities            |
+| `@bunli/tui/inline`             | Inline-mode components (List, Table, Markdown, Diff) |
+| `@bunli/tui/interactive`        | Interactive components with theme providers          |
+| `@bunli/tui/charts`             | Chart primitives (BarChart, LineChart, Sparkline)    |
+| `@bunli/tui/utils/sync-batcher` | Action batching utility                              |
 
 ## Form Components
 
 Build interactive forms with validation:
 
 ```tsx
-import { Form, TextField, SelectField, NumberField } from '@bunli/tui'
-import { z } from 'zod'
+import { Form, TextField, SelectField, NumberField } from "@bunli/tui";
+import { z } from "zod";
 
 const schema = z.object({
   name: z.string().min(1),
   age: z.number().int().positive(),
-  role: z.enum(['admin', 'user', 'guest'])
-})
+  role: z.enum(["admin", "user", "guest"]),
+});
 
 function UserForm({ onSubmit }) {
   return (
-    <Form
-      title="User Registration"
-      schema={schema}
-      onSubmit={(values) => onSubmit(values)}
-    >
+    <Form title="User Registration" schema={schema} onSubmit={(values) => onSubmit(values)}>
       <TextField name="name" label="Name" />
       <NumberField name="age" label="Age" />
       <SelectField
         name="role"
         label="Role"
         options={[
-          { label: 'Admin', value: 'admin' },
-          { label: 'User', value: 'user' },
-          { label: 'Guest', value: 'guest' }
+          { label: "Admin", value: "admin" },
+          { label: "User", value: "user" },
+          { label: "Guest", value: "guest" },
         ]}
       />
     </Form>
-  )
+  );
 }
 ```
 
 ### Available Form Fields
 
-| Component | Description |
-|-----------|-------------|
-| `TextField` | Single-line text input |
-| `NumberField` | Numeric input with validation |
-| `PasswordField` | Hidden text input with reveal |
-| `TextareaField` | Multi-line text input |
-| `SelectField` | Single selection dropdown |
-| `MultiSelectField` | Multiple selection |
-| `CheckboxField` | Boolean toggle |
+| Component          | Description                   |
+| ------------------ | ----------------------------- |
+| `TextField`        | Single-line text input        |
+| `NumberField`      | Numeric input with validation |
+| `PasswordField`    | Hidden text input with reveal |
+| `TextareaField`    | Multi-line text input         |
+| `SelectField`      | Single selection dropdown     |
+| `MultiSelectField` | Multiple selection            |
+| `CheckboxField`    | Boolean toggle                |
 
 ## Layout Components
 
 Structure your TUI application:
 
 ```tsx
-import { Container, Stack, Grid, Panel, Card } from '@bunli/tui'
+import { Container, Stack, Grid, Panel, Card } from "@bunli/tui";
 
 function Dashboard() {
   return (
@@ -99,22 +95,22 @@ function Dashboard() {
         <Panel title="Details" footer="Footer" />
       </Stack>
     </Container>
-  )
+  );
 }
 ```
 
 ### Layout Components
 
-| Component | Description |
-|-----------|-------------|
-| `Container` | Outer container with optional border |
-| `Stack` | Flexbox-like column/row layout |
-| `Grid` | Multi-column grid layout |
-| `Panel` | Titled panel with header/footer |
-| `Card` | Simplified panel variant |
-| `ScrollPanel` | Scrollable panel with sticky header/footer |
-| `Divider` | Horizontal/vertical divider |
-| `SectionHeader` | Section title with subtitle |
+| Component       | Description                                   |
+| --------------- | --------------------------------------------- |
+| `Container`     | Outer container with optional border          |
+| `Stack`         | Flexbox-like column/row layout                |
+| `Grid`          | Multi-column grid layout                      |
+| `Panel`         | Titled panel with header/footer               |
+| `Card`          | Simplified panel variant                      |
+| `ScrollPanel`   | Scrollable panel with sticky header/footer    |
+| `Divider`       | Horizontal/vertical divider                   |
+| `SectionHeader` | Section title with subtitle                   |
 | `SidebarLayout` | Three-pane layout (sidebar/content/inspector) |
 
 ## Navigation Components
@@ -122,56 +118,56 @@ function Dashboard() {
 Interactive navigation and selection:
 
 ```tsx
-import { Tabs, Menu, NavList, CommandPalette } from '@bunli/tui'
+import { Tabs, Menu, NavList, CommandPalette } from "@bunli/tui";
 
 // Tabbed navigation
 function TabExample() {
   return (
     <Tabs
       tabs={[
-        { key: 'overview', label: 'Overview', content: <div>...</div> },
-        { key: 'settings', label: 'Settings', content: <div>...</div> }
+        { key: "overview", label: "Overview", content: <div>...</div> },
+        { key: "settings", label: "Settings", content: <div>...</div> },
       ]}
     />
-  )
+  );
 }
 
 // Command palette
 function CommandExample({ commands }) {
   return (
     <CommandPalette
-      items={commands.map(cmd => ({
+      items={commands.map((cmd) => ({
         key: cmd.id,
         label: cmd.title,
-        hint: cmd.hint
+        hint: cmd.hint,
       }))}
       onSelect={(key) => runCommand(key)}
     />
-  )
+  );
 }
 ```
 
 ### Navigation Components
 
-| Component | Description |
-|-----------|-------------|
-| `Tabs` | Tabbed interface |
-| `Menu` | Keyboard-navigable menu |
-| `NavList` | Enhanced navigation list with sections |
-| `CommandPalette` | Fuzzy-searchable command list |
-| `Modal` | Modal dialog overlay |
-| `Confirm` | Yes/No confirmation dialog |
-| `Choose` | Single/multiple selection list |
-| `Filter` | Fuzzy-filtered selection |
-| `Pager` | Scrollable content viewer |
-| `FilePicker` | Directory browser |
+| Component        | Description                            |
+| ---------------- | -------------------------------------- |
+| `Tabs`           | Tabbed interface                       |
+| `Menu`           | Keyboard-navigable menu                |
+| `NavList`        | Enhanced navigation list with sections |
+| `CommandPalette` | Fuzzy-searchable command list          |
+| `Modal`          | Modal dialog overlay                   |
+| `Confirm`        | Yes/No confirmation dialog             |
+| `Choose`         | Single/multiple selection list         |
+| `Filter`         | Fuzzy-filtered selection               |
+| `Pager`          | Scrollable content viewer              |
+| `FilePicker`     | Directory browser                      |
 
 ## Feedback Components
 
 Display status and information:
 
 ```tsx
-import { Alert, Badge, ProgressBar, Spinner, Toast, EmptyState } from '@bunli/tui'
+import { Alert, Badge, ProgressBar, Spinner, Toast, EmptyState } from "@bunli/tui";
 
 // Status display
 function StatusPanel() {
@@ -182,146 +178,141 @@ function StatusPanel() {
       <Spinner variant="dots" title="Loading..." />
       <Badge label="Active" tone="success" />
     </Stack>
-  )
+  );
 }
 ```
 
 ### Feedback Components
 
-| Component | Description |
-|-----------|-------------|
-| `Alert` | Informational alert with tones |
-| `Badge` | Status badge/tag |
-| `Toast` | Transient notification |
-| `ProgressBar` | Progress indicator |
-| `Spinner` | Loading spinner (12 variants) |
-| `EmptyState` | Empty state with icon |
-| `KeyValueList` | Key-value pair display |
-| `Stat` | Statistic display |
-| `DataTable` | Tabular data display |
+| Component      | Description                    |
+| -------------- | ------------------------------ |
+| `Alert`        | Informational alert with tones |
+| `Badge`        | Status badge/tag               |
+| `Toast`        | Transient notification         |
+| `ProgressBar`  | Progress indicator             |
+| `Spinner`      | Loading spinner (12 variants)  |
+| `EmptyState`   | Empty state with icon          |
+| `KeyValueList` | Key-value pair display         |
+| `Stat`         | Statistic display              |
+| `DataTable`    | Tabular data display           |
 
 ## Chart Components
 
 ASCII charts for data visualization:
 
 ```tsx
-import { BarChart, LineChart, Sparkline } from '@bunli/tui/charts'
+import { BarChart, LineChart, Sparkline } from "@bunli/tui/charts";
 
 // Bar chart
 function Metrics() {
   return (
     <BarChart
       series={{
-        name: 'Revenue',
+        name: "Revenue",
         points: [
-          { label: 'Jan', value: 100 },
-          { label: 'Feb', value: 150 },
-          { label: 'Mar', value: 120 }
-        ]
+          { label: "Jan", value: 100 },
+          { label: "Feb", value: 150 },
+          { label: "Mar", value: 120 },
+        ],
       }}
       width={40}
     />
-  )
+  );
 }
 
 // Inline sparkline
 function Trend({ values }) {
-  return <Sparkline values={values} width={20} />
+  return <Sparkline values={values} width={20} />;
 }
 ```
 
 ### Chart Components
 
-| Component | Description |
-|-----------|-------------|
-| `BarChart` | ASCII bar chart with series |
+| Component   | Description                     |
+| ----------- | ------------------------------- |
+| `BarChart`  | ASCII bar chart with series     |
 | `LineChart` | Line chart with multiple series |
-| `Sparkline` | Compact inline sparkline |
+| `Sparkline` | Compact inline sparkline        |
 
 ## Hooks
 
 React hooks for terminal UI:
 
 ```tsx
-import { useKeyboard, useTerminalDimensions, useTimeline } from '@opentui/react'
-import { useTuiTheme } from '@bunli/runtime/app'
-import { useFormField } from '@bunli/tui'
+import { useKeyboard, useTerminalDimensions, useTimeline } from "@opentui/react";
+import { useTuiTheme } from "@bunli/runtime/app";
+import { useFormField } from "@bunli/tui";
 
 function KeyboardExample() {
   useKeyboard({
-    'Ctrl+C': () => exit(),
-    'Ctrl+S': () => save(),
-    'g h': () => goHome(),
-    'g g': () => goTop()
-  })
+    "Ctrl+C": () => exit(),
+    "Ctrl+S": () => save(),
+    "g h": () => goHome(),
+    "g g": () => goTop(),
+  });
 
-  const { width, height } = useTerminalDimensions()
-  console.log(`Terminal: ${width}x${height}`)
+  const { width, height } = useTerminalDimensions();
+  console.log(`Terminal: ${width}x${height}`);
 }
 
 function FormFieldExample() {
-  const field = useFormField('name')
+  const field = useFormField("name");
   return (
-    <TextField
-      label="Name"
-      value={field.value}
-      onChange={field.setValue}
-      error={field.error}
-    />
-  )
+    <TextField label="Name" value={field.value} onChange={field.setValue} error={field.error} />
+  );
 }
 ```
 
 ### Available Hooks
 
-| Hook | Package | Description |
-|------|---------|-------------|
-| `useKeyboard` | @opentui/react | Global keyboard handler |
-| `useTerminalDimensions` | @opentui/react | Terminal size |
-| `useTimeline` | @opentui/react | Animation timeline |
-| `useOnResize` | @opentui/react | Resize handler |
-| `useTuiTheme` | @bunli/runtime/app | Theme tokens |
-| `useFormField` | @bunli/tui | Form field binding |
-| `useScopedKeyboard` | @bunli/runtime/app | Scoped keyboard handler |
-| `useRuntime` | @bunli/runtime/app | Runtime exit function |
-| `useRouteStore` | @bunli/runtime/app | Navigation state |
-| `useCommandRegistry` | @bunli/runtime/app | Command registry |
-| `useDialogManager` | @bunli/runtime/app | Dialog controls |
+| Hook                    | Package            | Description             |
+| ----------------------- | ------------------ | ----------------------- |
+| `useKeyboard`           | @opentui/react     | Global keyboard handler |
+| `useTerminalDimensions` | @opentui/react     | Terminal size           |
+| `useTimeline`           | @opentui/react     | Animation timeline      |
+| `useOnResize`           | @opentui/react     | Resize handler          |
+| `useTuiTheme`           | @bunli/runtime/app | Theme tokens            |
+| `useFormField`          | @bunli/tui         | Form field binding      |
+| `useScopedKeyboard`     | @bunli/runtime/app | Scoped keyboard handler |
+| `useRuntime`            | @bunli/runtime/app | Runtime exit function   |
+| `useRouteStore`         | @bunli/runtime/app | Navigation state        |
+| `useCommandRegistry`    | @bunli/runtime/app | Command registry        |
+| `useDialogManager`      | @bunli/runtime/app | Dialog controls         |
 
 ## Theme System
 
 Customize colors and appearance:
 
 ```tsx
-import { ThemeProvider, createTheme, darkThemeTokens, lightThemeTokens } from '@bunli/runtime/app'
+import { ThemeProvider, createTheme, darkThemeTokens, lightThemeTokens } from "@bunli/runtime/app";
 
 // Dark theme (default)
-const dark = createTheme({ preset: 'dark' })
+const dark = createTheme({ preset: "dark" });
 
 // Light theme
 const light = createTheme({
-  preset: 'light',
+  preset: "light",
   tokens: {
     ...lightThemeTokens,
-    accent: '#0066cc'
-  }
-})
+    accent: "#0066cc",
+  },
+});
 
 // Custom theme
 const custom = createTheme({
   tokens: {
-    bg: '#1a1a2e',
-    fg: '#eaeaea',
-    accent: '#00d4aa'
-  }
-})
+    bg: "#1a1a2e",
+    fg: "#eaeaea",
+    accent: "#00d4aa",
+  },
+});
 
 function App() {
   return (
     <ThemeProvider theme={custom}>
       <YourUI />
     </ThemeProvider>
-  )
+  );
 }
 ```
 
@@ -329,15 +320,15 @@ function App() {
 
 Most interactive components support keyboard navigation:
 
-| Component | Keys |
-|-----------|------|
-| `Menu` | Up/k, Down/j, Enter |
-| `NavList` | Up/k, Down/j, Enter |
-| `Tabs` | Left/h, Right/l |
-| `Confirm` | Left/h, Right/l, y/n |
-| `Choose` | Up/k, Down/j, Space, Enter |
-| `Filter` | Up, Down, Tab, Ctrl+A |
-| `Pager` | j/k, d/u, /, n/N, g/G, q |
+| Component   | Keys                          |
+| ----------- | ----------------------------- |
+| `Menu`      | Up/k, Down/j, Enter           |
+| `NavList`   | Up/k, Down/j, Enter           |
+| `Tabs`      | Left/h, Right/l               |
+| `Confirm`   | Left/h, Right/l, y/n          |
+| `Choose`    | Up/k, Down/j, Space, Enter    |
+| `Filter`    | Up, Down, Tab, Ctrl+A         |
+| `Pager`     | j/k, d/u, /, n/N, g/G, q      |
 | `DataTable` | Up/k, Down/j, Left/h, Right/l |
 
 ## See Also

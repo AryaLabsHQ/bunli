@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import type { FitAddon, Terminal } from "ghostty-web";
+import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
+
 import { getThemeById, DEFAULT_THEME_ID } from "../../lib/themes.js";
 
 interface TerminalDimensions {
@@ -62,9 +63,13 @@ export function useGhosttyTerminal(themeId: string = DEFAULT_THEME_ID): UseGhost
       // Prevent clicks on the terminal from scrolling the page
       const terminalEl = terminal.element;
       if (terminalEl) {
-        terminalEl.addEventListener("focus", () => {
-          window.scrollTo({ top: window.scrollY, behavior: "instant" });
-        }, true);
+        terminalEl.addEventListener(
+          "focus",
+          () => {
+            window.scrollTo({ top: window.scrollY, behavior: "instant" });
+          },
+          true,
+        );
         terminalEl.addEventListener("mousedown", (e) => {
           const sy = window.scrollY;
           requestAnimationFrame(() => {
@@ -159,14 +164,17 @@ export function useGhosttyTerminal(themeId: string = DEFAULT_THEME_ID): UseGhost
     fitAddonRef.current?.fit();
   }, []);
 
-  return useMemo(() => ({
-    containerRef,
-    ready,
-    write,
-    clear,
-    focus,
-    onData,
-    getDimensions,
-    fit,
-  }), [containerRef, ready, write, clear, focus, onData, getDimensions, fit]);
+  return useMemo(
+    () => ({
+      containerRef,
+      ready,
+      write,
+      clear,
+      focus,
+      onData,
+      getDimensions,
+      fit,
+    }),
+    [containerRef, ready, write, clear, focus, onData, getDimensions, fit],
+  );
 }

@@ -3,7 +3,7 @@ title: createCLI
 description: Create a new CLI instance with configuration
 ---
 
-import { Callout } from 'fumadocs-ui/components/callout';
+import { Callout } from "fumadocs-ui/components/callout";
 
 Creates a new CLI instance with automatic configuration loading from `bunli.config.ts`.
 
@@ -12,11 +12,11 @@ Creates a new CLI instance with automatic configuration loading from `bunli.conf
 ```typescript
 function createCLI<TPlugins extends readonly BunliPlugin[] = []>(
   configOverride?: BunliConfigInput & {
-    plugins?: TPlugins
-    generated?: string | boolean
+    plugins?: TPlugins;
+    generated?: string | boolean;
   },
-  runtimeDeps?: CreateCLIRuntimeDeps
-): Promise<CLI<MergeStores<TPlugins>>>
+  runtimeDeps?: CreateCLIRuntimeDeps,
+): Promise<CLI<MergeStores<TPlugins>>>;
 ```
 
 ## Type Parameters
@@ -33,38 +33,39 @@ Override specific configuration values or provide configuration inline.
 
 ```typescript
 interface BunliConfigInput {
-  name?: string
-  version?: string
-  description?: string
+  name?: string;
+  version?: string;
+  description?: string;
   commands?: {
-    entry?: string | string[]
-    directory?: string
-    generateReport?: boolean
-  }
-  plugins?: PluginConfig[]
-  build?: BuildConfig
-  dev?: DevConfig
-  test?: TestConfig
-  release?: ReleaseConfig
+    entry?: string | string[];
+    directory?: string;
+    generateReport?: boolean;
+  };
+  plugins?: PluginConfig[];
+  build?: BuildConfig;
+  dev?: DevConfig;
+  test?: TestConfig;
+  release?: ReleaseConfig;
   tui?: {
     renderer?: {
-      bufferMode?: 'alternate' | 'standard'
-    }
+      bufferMode?: "alternate" | "standard";
+    };
     image?: {
-      mode?: 'off' | 'auto' | 'on'
-      protocol?: 'auto' | 'kitty'
-      width?: number
-      height?: number
-    }
-  }
+      mode?: "off" | "auto" | "on";
+      protocol?: "auto" | "kitty";
+      width?: number;
+      height?: number;
+    };
+  };
   help?: {
-    renderer?: HelpRenderer
-  }
+    renderer?: HelpRenderer;
+  };
 }
 ```
 
 <Callout type="tip">
-  **New in Bunli 0.4.0**: Configuration is automatically loaded from `bunli.config.ts`. You only need to provide overrides for runtime-specific settings like plugins with custom options.
+  **New in Bunli 0.4.0**: Configuration is automatically loaded from `bunli.config.ts`. You only
+  need to provide overrides for runtime-specific settings like plugins with custom options.
 </Callout>
 
 ## Returns
@@ -74,25 +75,25 @@ A `CLI` instance with the following methods:
 ```typescript
 interface CLI<TStore = any> {
   // Register a command
-  command<TCommandStore = unknown>(cmd: Command<any, TCommandStore>): void
+  command<TCommandStore = unknown>(cmd: Command<any, TCommandStore>): void;
 
   // Initialize the CLI (no-op, kept for lifecycle symmetry)
-  init(): Promise<void>
+  init(): Promise<void>;
 
   // Run the CLI with arguments
-  run(argv?: string[]): Promise<void>
+  run(argv?: string[]): Promise<void>;
 
   // Execute a named command programmatically
-  execute(commandName: string, args?: string[]): Promise<void>
+  execute(commandName: string, args?: string[]): Promise<void>;
   execute<T extends keyof RegisteredCommands>(
     commandName: T,
-    options: CommandOptions<T>
-  ): Promise<void>
+    options: CommandOptions<T>,
+  ): Promise<void>;
   execute<T extends keyof RegisteredCommands>(
     commandName: T,
     args: string[],
-    options: CommandOptions<T>
-  ): Promise<void>
+    options: CommandOptions<T>,
+  ): Promise<void>;
 }
 ```
 
@@ -104,25 +105,25 @@ With automatic config loading from `bunli.config.ts`:
 
 ```typescript
 // cli.ts
-import { createCLI } from '@bunli/core'
-import greetCommand from './commands/greet.js'
+import { createCLI } from "@bunli/core";
+import greetCommand from "./commands/greet.js";
 
-const cli = await createCLI()
+const cli = await createCLI();
 
-cli.command(greetCommand)
+cli.command(greetCommand);
 
-await cli.run()
+await cli.run();
 ```
 
 ```typescript
 // bunli.config.ts
-import { defineConfig } from '@bunli/core'
+import { defineConfig } from "@bunli/core";
 
 export default defineConfig({
-  name: 'my-cli',
-  version: '1.0.0',
-  description: 'My awesome CLI tool'
-})
+  name: "my-cli",
+  version: "1.0.0",
+  description: "My awesome CLI tool",
+});
 ```
 
 ### With Typed Plugins
@@ -130,16 +131,13 @@ export default defineConfig({
 When using plugins, pass them as a const tuple to get full type safety:
 
 ```typescript
-import { createCLI } from '@bunli/core'
-import { aiAgentPlugin } from '@bunli/plugin-ai-detect'
-import { configMergerPlugin } from '@bunli/plugin-config'
+import { createCLI } from "@bunli/core";
+import { aiAgentPlugin } from "@bunli/plugin-ai-detect";
+import { configMergerPlugin } from "@bunli/plugin-config";
 
 const cli = await createCLI({
-  plugins: [
-    aiAgentPlugin(),
-    configMergerPlugin({ sources: ['.myrc.json'] })
-  ] as const
-})
+  plugins: [aiAgentPlugin(), configMergerPlugin({ sources: [".myrc.json"] })] as const,
+});
 
 // Handlers now have typed access to plugin stores via context.store
 ```
@@ -148,18 +146,18 @@ const cli = await createCLI({
 
 ```typescript
 // cli.ts
-import { createCLI } from '@bunli/core'
-import build from './commands/build.js'
-import test from './commands/test.js'
-import deploy from './commands/deploy.js'
+import { createCLI } from "@bunli/core";
+import build from "./commands/build.js";
+import test from "./commands/test.js";
+import deploy from "./commands/deploy.js";
 
-const cli = await createCLI()
+const cli = await createCLI();
 
-cli.command(build)
-cli.command(test)
-cli.command(deploy)
+cli.command(build);
+cli.command(test);
+cli.command(deploy);
 
-await cli.run()
+await cli.run();
 ```
 
 ### Programmatic Execution
@@ -168,22 +166,22 @@ Use `execute()` to run commands from code without going through the CLI argv par
 
 ```typescript
 const cli = await createCLI({
-  plugins: [myPlugin] as const
-})
+  plugins: [myPlugin] as const,
+});
 
-cli.command(myCommand)
+cli.command(myCommand);
 
 // Execute with positional args only
-await cli.execute('my-command', ['--flag', 'value'])
+await cli.execute("my-command", ["--flag", "value"]);
 
 // Execute with typed options (requires generated types)
-await cli.execute('deploy', { env: 'production', dryRun: true })
+await cli.execute("deploy", { env: "production", dryRun: true });
 
 // Execute with both args and options
-await cli.execute('deploy', ['--env', 'production'], { dryRun: true })
+await cli.execute("deploy", ["--env", "production"], { dryRun: true });
 
 // Nested commands use slash syntax
-await cli.execute('git/push', { remote: 'origin', branch: 'main' })
+await cli.execute("git/push", { remote: "origin", branch: "main" });
 ```
 
 ## Automatic Features
@@ -231,7 +229,8 @@ Available commands:
 ```
 
 <Callout type="tip">
-  The CLI automatically handles help flags at any level. For example, `my-cli build --help` shows help for the build command specifically.
+  The CLI automatically handles help flags at any level. For example, `my-cli build --help` shows
+  help for the build command specifically.
 </Callout>
 
 ## See Also

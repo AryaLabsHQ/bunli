@@ -1,19 +1,23 @@
 {
   "name": "@bunli/plugin-ai-detect",
   "version": "0.6.4",
-  "type": "module",
   "description": "AI agent detection plugin for Bunli - detects Claude, Cursor, Copilot and other AI coding assistants",
   "keywords": [
-    "bunli",
-    "cli",
-    "plugin",
     "ai",
+    "bunli",
     "claude",
+    "cli",
+    "copilot",
     "cursor",
-    "copilot"
+    "plugin"
   ],
-  "author": "Bunli Team",
   "license": "MIT",
+  "author": "Bunli Team",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "type": "module",
   "main": "./src/index.ts",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -22,10 +26,6 @@
       "default": "./src/index.ts"
     }
   },
-  "files": [
-    "dist",
-    "src"
-  ],
   "scripts": {
     "build": "bun run scripts/build.ts",
     "typecheck": "tsgo --noEmit",

@@ -1,5 +1,5 @@
 // Minimal root surface by design. Import value APIs from explicit subpaths.
-export type { OpenTuiRendererOptions, TuiRenderOptions } from './options.js'
+export type { OpenTuiRendererOptions, TuiRenderOptions } from "./options.js";
 export type {
   RuntimeRendererStartedEvent,
   RuntimeRendererMissingRenderEvent,
@@ -10,6 +10,6 @@ export type {
   RuntimePromptCancelledEvent,
   RuntimeTransportErrorEvent,
   RuntimeEvent,
-  RuntimeEventType
-} from './events.js'
-export type { RuntimeTransport, RuntimeTransportObserver } from './transport.js'
+  RuntimeEventType,
+} from "./events.js";
+export type { RuntimeTransport, RuntimeTransportObserver } from "./transport.js";

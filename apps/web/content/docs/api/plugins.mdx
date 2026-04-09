@@ -14,32 +14,29 @@ The core plugin interface.
 ```typescript
 interface BunliPlugin<TStore = {}> {
   /** Unique plugin name */
-  name: string
+  name: string;
 
   /** Optional plugin version */
-  version?: string
+  version?: string;
 
   /** Plugin store schema/initial state */
-  store?: TStore
+  store?: TStore;
 
   /** Setup hook - Called during CLI initialization */
-  setup?(context: PluginContext): void | Promise<void>
+  setup?(context: PluginContext): void | Promise<void>;
 
   /** Config resolved hook - Called after configuration is finalized */
-  configResolved?(config: ResolvedConfig): void | Promise<void>
+  configResolved?(config: ResolvedConfig): void | Promise<void>;
 
   /** Before command hook - Called before command execution */
-  beforeCommand?(context: CommandContext<TStore>): void | Promise<void>
+  beforeCommand?(context: CommandContext<TStore>): void | Promise<void>;
 
   /**
    * Pre-run hook - Called immediately before the command handler executes.
    * Receives an ExecutionState for sharing per-run data between plugins.
    * Lifecycle: setup → configResolved → beforeCommand → preRun → [handler] → postRun → afterCommand
    */
-  preRun?(
-    context: CommandContext<TStore>,
-    state: ExecutionState
-  ): void | Promise<void>
+  preRun?(context: CommandContext<TStore>, state: ExecutionState): void | Promise<void>;
 
   /**
    * Post-run hook - Called immediately after the command handler completes.
@@ -48,13 +45,11 @@ interface BunliPlugin<TStore = {}> {
    */
   postRun?(
     context: CommandContext<TStore> & CommandResult,
-    state: ExecutionState
-  ): void | Promise<void>
+    state: ExecutionState,
+  ): void | Promise<void>;
 
   /** After command hook - Called after command execution */
-  afterCommand?(
-    context: CommandContext<TStore> & CommandResult
-  ): void | Promise<void>
+  afterCommand?(context: CommandContext<TStore> & CommandResult): void | Promise<void>;
 }
 ```
 
@@ -65,25 +60,25 @@ Context available during the setup phase.
 ```typescript
 interface PluginContext {
   /** Current configuration (readonly snapshot; use updateConfig to accumulate changes) */
-  readonly config: BunliConfigInput
+  readonly config: BunliConfigInput;
 
   /** Accumulate partial configuration changes (config is immutable — changes are merged separately) */
-  updateConfig(partial: Partial<BunliConfigInput>): void
-  
+  updateConfig(partial: Partial<BunliConfigInput>): void;
+
   /** Register a new command */
-  registerCommand(command: CommandDefinition): void
-  
+  registerCommand(command: CommandDefinition): void;
+
   /** Add global middleware */
-  use(middleware: Middleware): void
-  
+  use(middleware: Middleware): void;
+
   /** Shared storage between plugins */
-  readonly store: Map<string, any>
-  
+  readonly store: Map<string, any>;
+
   /** Plugin logger */
-  readonly logger: Logger
-  
+  readonly logger: Logger;
+
   /** System paths */
-  readonly paths: PathInfo
+  readonly paths: PathInfo;
 }
 ```
 
@@ -94,34 +89,34 @@ Context available during command execution.
 ```typescript
 interface CommandContext<TStore = {}> {
   /** Command name being executed */
-  readonly command: string
+  readonly command: string;
 
   /** The Command object being executed */
-  readonly commandDef: Command<any, TStore>
+  readonly commandDef: Command<any, TStore>;
 
   /** Positional arguments */
-  readonly args: string[]
+  readonly args: string[];
 
   /** Parsed flags/options */
-  readonly flags: Record<string, unknown>
+  readonly flags: Record<string, unknown>;
 
   /** Environment information */
-  readonly env: EnvironmentInfo
+  readonly env: EnvironmentInfo;
 
   /** Type-safe context store */
-  readonly store: TStore
+  readonly store: TStore;
 
   /** Type-safe store value access */
-  getStoreValue<K extends keyof TStore>(key: K): TStore[K]
-  getStoreValue(key: string | number | symbol): unknown
+  getStoreValue<K extends keyof TStore>(key: K): TStore[K];
+  getStoreValue(key: string | number | symbol): unknown;
 
   /** Type-safe store value update */
-  setStoreValue<K extends keyof TStore>(key: K, value: TStore[K]): void
-  setStoreValue(key: string | number | symbol, value: unknown): void
+  setStoreValue<K extends keyof TStore>(key: K, value: TStore[K]): void;
+  setStoreValue(key: string | number | symbol, value: unknown): void;
 
   /** Check if a store property exists */
-  hasStoreValue<K extends keyof TStore>(key: K): boolean
-  hasStoreValue(key: string | number | symbol): boolean
+  hasStoreValue<K extends keyof TStore>(key: K): boolean;
+  hasStoreValue(key: string | number | symbol): boolean;
 }
 ```
 
@@ -132,13 +127,13 @@ Result of command execution.
 ```typescript
 interface CommandResult {
   /** Command return value */
-  result?: unknown
-  
+  result?: unknown;
+
   /** Error if command failed */
-  error?: unknown
-  
+  error?: unknown;
+
   /** Exit code */
-  exitCode?: number
+  exitCode?: number;
 }
 ```
 
@@ -149,22 +144,22 @@ System path information.
 ```typescript
 interface PathInfo {
   /** Current working directory */
-  cwd: string
+  cwd: string;
 
   /** User home directory */
-  home: string
+  home: string;
 
   /** Config directory path */
-  config: string
+  config: string;
 
   /** Data directory path */
-  data: string
+  data: string;
 
   /** State directory path */
-  state: string
+  state: string;
 
   /** Cache directory path */
-  cache: string
+  cache: string;
 }
 ```
 
@@ -175,7 +170,7 @@ Environment information available to plugins. The `isCI` field is built-in; plug
 ```typescript
 interface EnvironmentInfo {
   /** Running in CI environment */
-  isCI: boolean
+  isCI: boolean;
 }
 ```
 
@@ -190,14 +185,12 @@ Type-safe plugin factory. Acts as a thin type helper — it returns the plugin a
 
 ```typescript
 // Direct plugin overload
-function createPlugin<TStore = {}>(
-  plugin: BunliPlugin<TStore>
-): BunliPlugin<TStore>
+function createPlugin<TStore = {}>(plugin: BunliPlugin<TStore>): BunliPlugin<TStore>;
 
 // Factory overload
 function createPlugin<TOptions, TStore = {}>(
-  factory: (options: TOptions) => BunliPlugin<TStore>
-): (options: TOptions) => BunliPlugin<TStore>
+  factory: (options: TOptions) => BunliPlugin<TStore>,
+): (options: TOptions) => BunliPlugin<TStore>;
 ```
 
 **Examples:**
@@ -205,31 +198,31 @@ function createPlugin<TOptions, TStore = {}>(
 ```typescript
 // Direct plugin with explicit store type
 interface MyStore {
-  count: number
-  message: string
+  count: number;
+  message: string;
 }
 
 const myPlugin = createPlugin<MyStore>({
-  name: 'my-plugin',
-  store: { count: 0, message: '' }
-})
+  name: "my-plugin",
+  store: { count: 0, message: "" },
+});
 
 // Plugin factory with options and store type
 interface Options {
-  prefix: string
+  prefix: string;
 }
 
 interface MyStore {
-  count: number
+  count: number;
 }
 
 const myPlugin = createPlugin<Options, MyStore>((options) => ({
-  name: 'my-plugin',
+  name: "my-plugin",
   store: { count: 0 },
   beforeCommand(context) {
-    console.log(`${options.prefix}: ${context.store.count}`)
-  }
-}))
+    console.log(`${options.prefix}: ${context.store.count}`);
+  },
+}));
 ```
 
 ## Type Utilities
@@ -239,10 +232,10 @@ const myPlugin = createPlugin<Options, MyStore>((options) => ({
 Extract the store type from a plugin.
 
 ```typescript
-type StoreOf<P> = P extends BunliPlugin<infer S> ? S : {}
+type StoreOf<P> = P extends BunliPlugin<infer S> ? S : {};
 
 // Example
-type MyStore = StoreOf<typeof myPlugin>
+type MyStore = StoreOf<typeof myPlugin>;
 ```
 
 ### MergeStores\<Plugins\>
@@ -266,11 +259,11 @@ type CombinedStore = MergeStores<[
 Type for plugin configuration in createCLI.
 
 ```typescript
-type PluginConfig = 
-  | string                    // Path to plugin
-  | BunliPlugin              // Plugin object
-  | PluginFactory            // Plugin factory function
-  | [PluginFactory, unknown]  // Plugin with options
+type PluginConfig =
+  | string // Path to plugin
+  | BunliPlugin // Plugin object
+  | PluginFactory // Plugin factory function
+  | [PluginFactory, unknown]; // Plugin with options
 ```
 
 **Examples:**
@@ -280,17 +273,17 @@ const cli = await createCLI({
   plugins: [
     // Plugin object
     myPlugin,
-    
+
     // Plugin factory with options
     myPlugin({ verbose: true }),
-    
+
     // Path to plugin file
-    './plugins/custom.js',
-    
+    "./plugins/custom.js",
+
     // Plugin with options as tuple
-    [myPlugin, { verbose: true }]
-  ]
-})
+    [myPlugin, { verbose: true }],
+  ],
+});
 ```
 
 ## Logger API
@@ -300,16 +293,16 @@ The logger available in plugin context.
 ```typescript
 interface Logger {
   /** Log debug message */
-  debug(message: string): void
-  
+  debug(message: string): void;
+
   /** Log info message */
-  info(message: string): void
-  
+  info(message: string): void;
+
   /** Log warning message */
-  warn(message: string): void
-  
+  warn(message: string): void;
+
   /** Log error message */
-  error(message: string): void
+  error(message: string): void;
 }
 ```
 
@@ -318,18 +311,15 @@ interface Logger {
 Middleware function type for global command interception.
 
 ```typescript
-type Middleware = (
-  context: CommandContext,
-  next: () => Promise<unknown>
-) => Promise<unknown>
+type Middleware = (context: CommandContext, next: () => Promise<unknown>) => Promise<unknown>;
 
 // Example
 const loggingMiddleware: Middleware = async (context, next) => {
-  console.log(`Before: ${context.command}`)
-  const result = await next()
-  console.log(`After: ${context.command}`)
-  return result
-}
+  console.log(`Before: ${context.command}`);
+  const result = await next();
+  console.log(`After: ${context.command}`);
+  return result;
+};
 ```
 
 ## Module Augmentation
@@ -337,15 +327,15 @@ const loggingMiddleware: Middleware = async (context, next) => {
 Extend core interfaces in your plugins.
 
 ```typescript
-declare module '@bunli/core' {
+declare module "@bunli/core" {
   interface PluginStore {
     // Extend shared store
-    myPluginData: string
+    myPluginData: string;
   }
 
   interface CommandContext {
     // Extend command context
-    customField: number
+    customField: number;
   }
 }
 ```
@@ -372,63 +362,64 @@ declare module '@bunli/core' {
 ## Complete Example
 
 ```typescript
-import { createPlugin, type BunliPlugin } from '@bunli/core/plugin'
-import { defineCommand } from '@bunli/core'
+import { createPlugin, type BunliPlugin } from "@bunli/core/plugin";
+import { defineCommand } from "@bunli/core";
 
 interface MetricsStore {
-  commandCount: number
-  totalDuration: number
-  averageDuration: number
+  commandCount: number;
+  totalDuration: number;
+  averageDuration: number;
 }
 
-export const metricsPlugin = createPlugin<{ detailed?: boolean }, MetricsStore>(
-  (options = {}) => ({
-    name: '@company/metrics-plugin',
-    version: '1.0.0',
-    
-    store: {
-      commandCount: 0,
-      totalDuration: 0,
-      averageDuration: 0
-    },
-    
-    setup(context) {
-      context.logger.info('Metrics plugin initialized')
-      
-      // Register metrics command
-      context.registerCommand(defineCommand({
-        name: 'metrics',
-        description: 'Show command metrics',
+export const metricsPlugin = createPlugin<{ detailed?: boolean }, MetricsStore>((options = {}) => ({
+  name: "@company/metrics-plugin",
+  version: "1.0.0",
+
+  store: {
+    commandCount: 0,
+    totalDuration: 0,
+    averageDuration: 0,
+  },
+
+  setup(context) {
+    context.logger.info("Metrics plugin initialized");
+
+    // Register metrics command
+    context.registerCommand(
+      defineCommand({
+        name: "metrics",
+        description: "Show command metrics",
         handler: async ({ context }) => {
-          const store = context?.store
-          console.log(`Commands run: ${store.commandCount}`)
-          console.log(`Average duration: ${store.averageDuration}ms`)
-        }
-      }))
-    },
-    
-    configResolved(config) {
-      console.log(`Metrics enabled for ${config.name}`)
-    },
-    
-    beforeCommand(context) {
-      // Store start time in command context
-      ;(context as any)._startTime = Date.now()
-    },
-    
-    afterCommand(context) {
-      const duration = Date.now() - (context as any)._startTime
-      
-      // Update metrics
-      context.store.commandCount++
-      context.store.totalDuration += duration
-      context.store.averageDuration = Math.round(
-        context.store.totalDuration / context.store.commandCount
-      )
-      
-      if (options.detailed) {
-        console.log(`Command duration: ${duration}ms`)
-      }
+          const store = context?.store;
+          console.log(`Commands run: ${store.commandCount}`);
+          console.log(`Average duration: ${store.averageDuration}ms`);
+        },
+      }),
+    );
+  },
+
+  configResolved(config) {
+    console.log(`Metrics enabled for ${config.name}`);
+  },
+
+  beforeCommand(context) {
+    // Store start time in command context
+    (context as any)._startTime = Date.now();
+  },
+
+  afterCommand(context) {
+    const duration = Date.now() - (context as any)._startTime;
+
+    // Update metrics
+    context.store.commandCount++;
+    context.store.totalDuration += duration;
+    context.store.averageDuration = Math.round(
+      context.store.totalDuration / context.store.commandCount,
+    );
+
+    if (options.detailed) {
+      console.log(`Command duration: ${duration}ms`);
     }
-  })
-)
+  },
+}));
+```

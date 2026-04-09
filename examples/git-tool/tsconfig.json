@@ -9,8 +9,5 @@
       "~commands/*": ["./.bunli/commands.gen.ts"]
     }
   },
-  "include": [
-    ".bunli/**/*.ts",
-    "**/*.ts"
-  ]
+  "include": [".bunli/**/*.ts", "**/*.ts"]
 }

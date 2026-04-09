@@ -1,27 +1,33 @@
-import type { ReactNode } from 'react'
+import type { ReactNode } from "react";
 
 export interface StackProps {
-  children: ReactNode
-  direction?: 'row' | 'column'
-  gap?: number
-  align?: 'flex-start' | 'center' | 'flex-end' | 'stretch'
-  justify?: 'flex-start' | 'center' | 'flex-end' | 'space-between' | 'space-around' | 'space-evenly'
-  padding?: number
-  border?: boolean
-  title?: string
-  style?: Record<string, unknown>
+  children: ReactNode;
+  direction?: "row" | "column";
+  gap?: number;
+  align?: "flex-start" | "center" | "flex-end" | "stretch";
+  justify?:
+    | "flex-start"
+    | "center"
+    | "flex-end"
+    | "space-between"
+    | "space-around"
+    | "space-evenly";
+  padding?: number;
+  border?: boolean;
+  title?: string;
+  style?: Record<string, unknown>;
 }
 
 export function Stack({
   children,
-  direction = 'column',
+  direction = "column",
   gap = 1,
   align,
   justify,
   padding,
   border = false,
   title,
-  style = {}
+  style = {},
 }: StackProps) {
   return (
     <box
@@ -33,10 +39,10 @@ export function Stack({
         gap,
         alignItems: align,
         justifyContent: justify,
-        ...style
+        ...style,
       }}
     >
       {children}
     </box>
-  )
+  );
 }

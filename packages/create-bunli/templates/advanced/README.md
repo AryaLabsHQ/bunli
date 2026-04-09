@@ -21,6 +21,7 @@ bunx {{name}} [command]
 ### Commands
 
 #### `init`
+
 Initialize a new configuration file in the current directory.
 
 ```bash
@@ -32,6 +33,7 @@ Options:
 ```
 
 #### `validate`
+
 Validate files against defined rules.
 
 ```bash
@@ -44,6 +46,7 @@ Options:
 ```
 
 #### `serve`
+
 Start a development server.
 
 ```bash
@@ -56,6 +59,7 @@ Options:
 ```
 
 #### `config`
+
 Manage configuration settings.
 
 ```bash
@@ -88,9 +92,9 @@ export default {
   },
   server: {
     port: 3000,
-    host: 'localhost'
-  }
-}
+    host: "localhost",
+  },
+};
 ```
 
 ## Development

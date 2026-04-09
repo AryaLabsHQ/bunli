@@ -1,12 +1,12 @@
 {
   "name": "{{name}}",
   "version": "0.1.0",
-  "type": "module",
   "description": "{{description}}",
   "author": "{{author}}",
   "bin": {
     "{{name}}": "./dist/index.js"
   },
+  "type": "module",
   "scripts": {
     "postinstall": "bunli generate",
     "dev": "bun run src/index.ts",
@@ -18,8 +18,8 @@
     "@bunli/core": "latest"
   },
   "devDependencies": {
-    "@tsconfig/bun": "catalog:",
     "@bunli/test": "latest",
+    "@tsconfig/bun": "catalog:",
     "@types/bun": "latest",
     "bunli": "latest",
     "typescript": "^5.0.0"

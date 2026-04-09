@@ -1,112 +1,108 @@
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
-import { cpSync, existsSync, readFileSync, writeFileSync } from 'node:fs'
-import path from 'node:path'
-import { linkFixturePackages } from './helpers/install-fixture.js'
-import { createTempFixtureDir, removeTempFixtureDir } from './helpers/temp-dir.js'
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { cpSync, existsSync, readFileSync, writeFileSync } from "node:fs";
+import path from "node:path";
 
-const repoRoot = path.resolve(import.meta.dir, '../../..')
-const cliEntrypoint = path.join(repoRoot, 'packages/cli/src/cli.ts')
-const taskRunnerExample = path.join(repoRoot, 'examples/task-runner')
+import { linkFixturePackages } from "./helpers/install-fixture.js";
+import { createTempFixtureDir, removeTempFixtureDir } from "./helpers/temp-dir.js";
+
+const repoRoot = path.resolve(import.meta.dir, "../../..");
+const cliEntrypoint = path.join(repoRoot, "packages/cli/src/cli.ts");
+const taskRunnerExample = path.join(repoRoot, "examples/task-runner");
 
 interface CliRunResult {
-  exitCode: number
-  stdout: string
-  stderr: string
+  exitCode: number;
+  stdout: string;
+  stderr: string;
 }
 
 function forceBundleMode(configPath: string) {
-  const current = readFileSync(configPath, 'utf8')
+  const current = readFileSync(configPath, "utf8");
   if (!current.includes("targets: ['native']")) {
-    throw new Error(`Could not find targets:['native'] in ${configPath}`)
+    throw new Error(`Could not find targets:['native'] in ${configPath}`);
   }
-  const updated = current.replace("targets: ['native']", 'targets: []')
-  writeFileSync(configPath, updated)
+  const updated = current.replace("targets: ['native']", "targets: []");
+  writeFileSync(configPath, updated);
 }
 
 function forceMultiEntryBundleMode(configPath: string) {
-  const current = readFileSync(configPath, 'utf8')
-  const target = "build: {\n    entry: './cli.ts',"
+  const current = readFileSync(configPath, "utf8");
+  const target = "build: {\n    entry: './cli.ts',";
   if (!current.includes(target)) {
-    throw new Error(`Could not find build.entry in ${configPath}`)
+    throw new Error(`Could not find build.entry in ${configPath}`);
   }
   const withMultiEntry = current.replace(
     target,
-    "build: {\n    entry: ['./cli.ts', './secondary.ts'],"
-  )
-  writeFileSync(configPath, withMultiEntry)
+    "build: {\n    entry: ['./cli.ts', './secondary.ts'],",
+  );
+  writeFileSync(configPath, withMultiEntry);
 }
 
 async function initGitRepository(cwd: string) {
-  await Bun.$`git init ${cwd}`.quiet()
-  await Bun.$`git -C ${cwd} config user.email "test@example.com"`.quiet()
-  await Bun.$`git -C ${cwd} config user.name "Test User"`.quiet()
-  await Bun.$`git -C ${cwd} add .`.quiet()
-  await Bun.$`git -C ${cwd} commit -m "init fixture"`.quiet()
+  await Bun.$`git init ${cwd}`.quiet();
+  await Bun.$`git -C ${cwd} config user.email "test@example.com"`.quiet();
+  await Bun.$`git -C ${cwd} config user.name "Test User"`.quiet();
+  await Bun.$`git -C ${cwd} add .`.quiet();
+  await Bun.$`git -C ${cwd} commit -m "init fixture"`.quiet();
 }
 
 async function runCli(cwd: string, args: string[]): Promise<CliRunResult> {
-  const proc = Bun.spawn(['bun', cliEntrypoint, ...args], {
+  const proc = Bun.spawn(["bun", cliEntrypoint, ...args], {
     cwd,
-    stdout: 'pipe',
-    stderr: 'pipe',
-  })
+    stdout: "pipe",
+    stderr: "pipe",
+  });
 
-  const stdout = await new Response(proc.stdout).text()
-  const stderr = await new Response(proc.stderr).text()
-  const exitCode = await proc.exited
+  const stdout = await new Response(proc.stdout).text();
+  const stderr = await new Response(proc.stderr).text();
+  const exitCode = await proc.exited;
 
-  return { exitCode, stdout, stderr }
+  return { exitCode, stdout, stderr };
 }
 
-describe('example e2e: task-runner with build.targets=[]', () => {
-  let fixtureDir = ''
+describe("example e2e: task-runner with build.targets=[]", () => {
+  let fixtureDir = "";
 
   beforeEach(async () => {
-    fixtureDir = createTempFixtureDir('bunli-example-e2e')
+    fixtureDir = createTempFixtureDir("bunli-example-e2e");
     cpSync(taskRunnerExample, fixtureDir, {
       recursive: true,
-      filter: (source) => !source.split(path.sep).includes('node_modules'),
-    })
-    forceBundleMode(path.join(fixtureDir, 'bunli.config.ts'))
-    await initGitRepository(fixtureDir)
-    linkFixturePackages(fixtureDir, repoRoot, [
-      '@bunli/core',
-      '@bunli/plugin-completions',
-      'zod',
-    ])
-  })
+      filter: (source) => !source.split(path.sep).includes("node_modules"),
+    });
+    forceBundleMode(path.join(fixtureDir, "bunli.config.ts"));
+    await initGitRepository(fixtureDir);
+    linkFixturePackages(fixtureDir, repoRoot, ["@bunli/core", "@bunli/plugin-completions", "zod"]);
+  });
 
   afterEach(() => {
     if (fixtureDir) {
-      removeTempFixtureDir(fixtureDir)
+      removeTempFixtureDir(fixtureDir);
     }
-  })
+  });
 
-  test('bunli build succeeds and outputs JS bundle', async () => {
-    const result = await runCli(fixtureDir, ['build'])
-    const combinedOutput = `${result.stdout}\n${result.stderr}`
+  test("bunli build succeeds and outputs JS bundle", async () => {
+    const result = await runCli(fixtureDir, ["build"]);
+    const combinedOutput = `${result.stdout}\n${result.stderr}`;
 
-    expect(result.exitCode).toBe(0)
-    expect(combinedOutput).toContain('Build complete')
+    expect(result.exitCode).toBe(0);
+    expect(combinedOutput).toContain("Build complete");
 
-    const bundlePath = path.join(fixtureDir, 'dist/cli.js')
-    expect(existsSync(bundlePath)).toBe(true)
+    const bundlePath = path.join(fixtureDir, "dist/cli.js");
+    expect(existsSync(bundlePath)).toBe(true);
 
-    const bundle = readFileSync(bundlePath, 'utf8')
-    expect(bundle.startsWith('#!/usr/bin/env bun')).toBe(true)
-  })
+    const bundle = readFileSync(bundlePath, "utf8");
+    expect(bundle.startsWith("#!/usr/bin/env bun")).toBe(true);
+  });
 
-  test('bunli build preserves multi-entry build.entry arrays in bundle mode', async () => {
-    forceMultiEntryBundleMode(path.join(fixtureDir, 'bunli.config.ts'))
-    writeFileSync(path.join(fixtureDir, 'secondary.ts'), "console.log('secondary entry')\n")
+  test("bunli build preserves multi-entry build.entry arrays in bundle mode", async () => {
+    forceMultiEntryBundleMode(path.join(fixtureDir, "bunli.config.ts"));
+    writeFileSync(path.join(fixtureDir, "secondary.ts"), "console.log('secondary entry')\n");
 
-    const result = await runCli(fixtureDir, ['build'])
-    const combinedOutput = `${result.stdout}\n${result.stderr}`
+    const result = await runCli(fixtureDir, ["build"]);
+    const combinedOutput = `${result.stdout}\n${result.stderr}`;
 
-    expect(result.exitCode).toBe(0)
-    expect(combinedOutput).toContain('Build complete')
-    expect(existsSync(path.join(fixtureDir, 'dist/cli.js'))).toBe(true)
-    expect(existsSync(path.join(fixtureDir, 'dist/secondary.js'))).toBe(true)
-  })
-
-})
+    expect(result.exitCode).toBe(0);
+    expect(combinedOutput).toContain("Build complete");
+    expect(existsSync(path.join(fixtureDir, "dist/cli.js"))).toBe(true);
+    expect(existsSync(path.join(fixtureDir, "dist/secondary.js"))).toBe(true);
+  });
+});

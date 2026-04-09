@@ -25,7 +25,7 @@ function quoteForShell(value: string): string {
 function readWorkbenchSetting(
   envValue: string | undefined,
   processValue: string | undefined,
-  fallback: string
+  fallback: string,
 ): string {
   const value = envValue ?? processValue;
   return value?.trim() ? value.trim() : fallback;
@@ -35,17 +35,15 @@ export function getWorkbenchWorkspace(env?: WorkbenchRuntimeEnv): string {
   return readWorkbenchSetting(
     env?.WORKBENCH_WORKSPACE_DIR,
     process.env.WORKBENCH_WORKSPACE_DIR,
-    workbenchConfig.workspace
+    workbenchConfig.workspace,
   );
 }
 
-export function getWorkbenchSandboxNetwork(
-  env?: WorkbenchRuntimeEnv
-): "on" | "off" {
+export function getWorkbenchSandboxNetwork(env?: WorkbenchRuntimeEnv): "on" | "off" {
   return readWorkbenchSetting(
     env?.WORKBENCH_SANDBOX_NETWORK,
     process.env.WORKBENCH_SANDBOX_NETWORK,
-    workbenchConfig.sandboxNetwork
+    workbenchConfig.sandboxNetwork,
   ) === "on"
     ? "on"
     : "off";
@@ -59,10 +57,7 @@ export function getWorkbenchFilePath(env?: WorkbenchRuntimeEnv): string {
   return `${getWorkbenchSrcDir(env)}/index.ts`;
 }
 
-export function getPresetCommand(
-  preset: RunPreset,
-  env?: WorkbenchRuntimeEnv
-): string {
+export function getPresetCommand(preset: RunPreset, env?: WorkbenchRuntimeEnv): string {
   if (preset === "framework") {
     return `bun run ${getWorkbenchFilePath(env)}`;
   }
@@ -74,7 +69,7 @@ export function buildWorkbenchExecCommand(
   preset: RunPreset,
   runId: string,
   completionToken: string,
-  env?: WorkbenchRuntimeEnv
+  env?: WorkbenchRuntimeEnv,
 ): string {
   const command = getPresetCommand(preset, env);
   const framePrefix =
@@ -83,7 +78,7 @@ export function buildWorkbenchExecCommand(
 
   const script = [
     `emit_frame() { printf '%s%s}\\n' ${quoteForShell(framePrefix)} "$1"; }`,
-    'trap \'status=$?; emit_frame "$status"\' EXIT',
+    "trap 'status=$?; emit_frame \"$status\"' EXIT",
     command,
   ].join("\n");
 

@@ -101,12 +101,14 @@ bunx create-bunli my-cli --template pvtnbr/bunli-starter
 Perfect for simple CLI tools with a single command.
 
 **Features:**
+
 - Single command setup
 - TypeScript configuration
 - Test setup with @bunli/test
 - Build script using bunli
 
 **Structure:**
+
 ```
 my-cli/
 ├── src/
@@ -125,6 +127,7 @@ my-cli/
 For complex CLIs with multiple commands and features.
 
 **Features:**
+
 - Multiple commands with subcommands
 - Configuration management
 - File validation system
@@ -132,12 +135,14 @@ For complex CLIs with multiple commands and features.
 - Advanced command examples
 
 **Commands included:**
+
 - `init` - Initialize configuration
 - `validate` - Validate files with rules
 - `serve` - Start development server
 - `config` - Manage configuration
 
 **Structure:**
+
 ```
 my-cli/
 ├── src/
@@ -162,6 +167,7 @@ my-cli/
 For large projects with multiple packages.
 
 **Features:**
+
 - Turborepo configuration
 - Multiple packages setup
 - Shared dependencies
@@ -169,6 +175,7 @@ For large projects with multiple packages.
 - Parallel builds
 
 **Structure:**
+
 ```
 my-cli/
 ├── packages/
@@ -211,6 +218,7 @@ Templates can include a `template.json` manifest:
 All templates include type generation configuration for enhanced developer experience:
 
 This provides:
+
 - **Autocomplete** for command names and options
 - **Type safety** at compile time
 - **IntelliSense** for command metadata
@@ -229,19 +237,20 @@ Use these variables in your template files:
 - `{{year}}` - Current year
 
 Variables can be used in file contents and filenames:
+
 - `__projectName__.config.js` → `my-app.config.js`
 
 ## Programmatic Usage
 
 ```typescript
-import { createProject } from 'create-bunli'
+import { createProject } from "create-bunli";
 
 await createProject({
-  name: 'my-cli',
-  template: 'advanced',
+  name: "my-cli",
+  template: "advanced",
   install: true,
-  git: true
-})
+  git: true,
+});
 ```
 
 ## Development
@@ -269,6 +278,7 @@ bun run build
 ### Template not found
 
 If you get a "template not found" error, ensure:
+
 - The template name is correct
 - For GitHub templates, the repository exists and is public
 - You have internet connection (for external templates)
@@ -276,6 +286,7 @@ If you get a "template not found" error, ensure:
 ### Installation fails
 
 If dependency installation fails:
+
 - Check your internet connection
 - Ensure Bun is installed correctly
 - Try running with `--no-install` and install manually with `bun install`
@@ -283,6 +294,7 @@ If dependency installation fails:
 ### Permission errors
 
 If you get permission errors:
+
 - Ensure you have write access to the target directory
 - Try running in a different directory
 - Check disk space availability

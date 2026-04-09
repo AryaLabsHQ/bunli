@@ -1,6 +1,6 @@
-'use client'
+"use client";
 
-import { ThemeProvider as NextThemesProvider } from 'next-themes'
+import { ThemeProvider as NextThemesProvider } from "next-themes";
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   return (
@@ -8,20 +8,20 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       attribute="data-theme"
       defaultTheme="vesper"
       themes={[
-        'vesper',
-        'monokai',
-        'dracula',
-        'nord',
-        'catppuccin',
-        'tokyonight',
-        'gruvbox',
-        'solarized',
-        'github',
+        "vesper",
+        "monokai",
+        "dracula",
+        "nord",
+        "catppuccin",
+        "tokyonight",
+        "gruvbox",
+        "solarized",
+        "github",
       ]}
       disableTransitionOnChange
       enableSystem={false}
     >
       {children}
     </NextThemesProvider>
-  )
+  );
 }

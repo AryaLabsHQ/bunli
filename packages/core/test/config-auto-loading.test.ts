@@ -1,45 +1,46 @@
-import { describe, test, expect, beforeEach, afterEach } from 'bun:test'
-import { createCLI } from '../src/cli.js'
-import { ConfigNotFoundError, loadConfig } from '../src/config-loader.js'
-import { mkdtemp, writeFile, rm } from 'fs/promises'
-import { join } from 'path'
-import { tmpdir } from 'os'
+import { describe, test, expect, beforeEach, afterEach } from "bun:test";
+import { mkdtemp, writeFile, rm } from "fs/promises";
+import { tmpdir } from "os";
+import { join } from "path";
 
-describe('Config Auto-Loading', () => {
-  const originalCwd = process.cwd()
-  let testDir = ''
-  
+import { createCLI } from "../src/cli.js";
+import { ConfigNotFoundError, loadConfig } from "../src/config-loader.js";
+
+describe("Config Auto-Loading", () => {
+  const originalCwd = process.cwd();
+  let testDir = "";
+
   beforeEach(async () => {
-    testDir = await mkdtemp(join(tmpdir(), 'bunli-config-test-'))
-    process.chdir(testDir)
-  })
-  
-  afterEach(async () => {
-    process.chdir(originalCwd)
-    if (testDir) {
-      await rm(testDir, { recursive: true, force: true })
-      testDir = ''
-    }
-  })
+    testDir = await mkdtemp(join(tmpdir(), "bunli-config-test-"));
+    process.chdir(testDir);
+  });
 
-  test('loadConfig loads from bunli.config.ts', async () => {
+  afterEach(async () => {
+    process.chdir(originalCwd);
+    if (testDir) {
+      await rm(testDir, { recursive: true, force: true });
+      testDir = "";
+    }
+  });
+
+  test("loadConfig loads from bunli.config.ts", async () => {
     const configContent = `
 export default {
   name: 'test-cli',
   version: '1.0.0',
   description: 'Test CLI'
 }
-`
-    await writeFile('bunli.config.ts', configContent)
-    
-    const config = await loadConfig()
-    
-    expect(config.name).toBe('test-cli')
-    expect(config.version).toBe('1.0.0')
-    expect(config.description).toBe('Test CLI')
-  })
+`;
+    await writeFile("bunli.config.ts", configContent);
 
-  test('loadConfig loads from bunli.config.js', async () => {
+    const config = await loadConfig();
+
+    expect(config.name).toBe("test-cli");
+    expect(config.version).toBe("1.0.0");
+    expect(config.description).toBe("Test CLI");
+  });
+
+  test("loadConfig loads from bunli.config.js", async () => {
     const configContent = `
 export default {
   name: 'test-cli-js',
@@ -47,22 +48,22 @@ export default {
   description: 'Test CLI JS',
   plugins: []
 }
-`
-    await writeFile('bunli.config.js', configContent)
+`;
+    await writeFile("bunli.config.js", configContent);
     // Note: .js config is loaded, .ts takes precedence if exists
-    const config = await loadConfig()
-    
+    const config = await loadConfig();
+
     // Both .js and .ts files may exist, .ts takes precedence
-    expect(config.name).toBeDefined()
-  })
+    expect(config.name).toBeDefined();
+  });
 
-  test('loadConfig throws error when no config found', async () => {
+  test("loadConfig throws error when no config found", async () => {
     await expect(async () => {
-      await loadConfig()
-    }).toThrow(/No configuration file found/)
-  })
+      await loadConfig();
+    }).toThrow(/No configuration file found/);
+  });
 
-  test('createCLI auto-loads config when no override provided', async () => {
+  test("createCLI auto-loads config when no override provided", async () => {
     const configContent = `
 export default {
   name: 'auto-test-cli',
@@ -70,18 +71,18 @@ export default {
   description: 'Auto-loaded CLI',
   plugins: []
 }
-`
-    await writeFile('bunli.config.ts', configContent)
-    
-    const cli = await createCLI()
-    
-    // Test that CLI was created successfully
-    expect(cli).toBeDefined()
-    expect(typeof cli.run).toBe('function')
-    expect(typeof cli.command).toBe('function')
-  })
+`;
+    await writeFile("bunli.config.ts", configContent);
 
-  test('createCLI merges override with loaded config', async () => {
+    const cli = await createCLI();
+
+    // Test that CLI was created successfully
+    expect(cli).toBeDefined();
+    expect(typeof cli.run).toBe("function");
+    expect(typeof cli.command).toBe("function");
+  });
+
+  test("createCLI merges override with loaded config", async () => {
     const configContent = `
 export default {
   name: 'merge-test-cli',
@@ -89,66 +90,66 @@ export default {
   description: 'Merge test CLI',
   plugins: []
 }
-`
-    await writeFile('bunli.config.ts', configContent)
-    
+`;
+    await writeFile("bunli.config.ts", configContent);
+
     const cli = await createCLI({
-      description: 'Overridden description'
-    })
-    
+      description: "Overridden description",
+    });
+
     // Test that CLI was created successfully
-    expect(cli).toBeDefined()
-  })
+    expect(cli).toBeDefined();
+  });
 
-  test('createCLI throws helpful error when no config and no override', async () => {
+  test("createCLI throws helpful error when no config and no override", async () => {
     await expect(async () => {
-      await createCLI()
-    }).toThrow(/No configuration file found/)
-  })
+      await createCLI();
+    }).toThrow(/No configuration file found/);
+  });
 
-  test('createCLI throws ConfigNotFoundError when no config and no override', async () => {
-    await expect(createCLI()).rejects.toBeInstanceOf(ConfigNotFoundError)
-  })
+  test("createCLI throws ConfigNotFoundError when no config and no override", async () => {
+    await expect(createCLI()).rejects.toBeInstanceOf(ConfigNotFoundError);
+  });
 
-  test('createCLI works with override when no config file', async () => {
+  test("createCLI works with override when no config file", async () => {
     const cli = await createCLI({
-      name: 'override-cli',
-      version: '5.0.0',
-      description: 'Override CLI',
-      plugins: []
-    })
-    
-    expect(cli).toBeDefined()
-  })
+      name: "override-cli",
+      version: "5.0.0",
+      description: "Override CLI",
+      plugins: [],
+    });
 
-  test('createCLI uses a complete override when on-disk config is broken', async () => {
+    expect(cli).toBeDefined();
+  });
+
+  test("createCLI uses a complete override when on-disk config is broken", async () => {
     const configContent = `
 throw new Error('boom from config')
 export default {}
-`
-    await writeFile('bunli.config.ts', configContent)
+`;
+    await writeFile("bunli.config.ts", configContent);
 
     const cli = await createCLI({
-      name: 'override-cli',
-      version: '6.0.0',
-      description: 'Override wins',
-      plugins: []
-    })
+      name: "override-cli",
+      version: "6.0.0",
+      description: "Override wins",
+      plugins: [],
+    });
 
-    expect(cli).toBeDefined()
-  })
+    expect(cli).toBeDefined();
+  });
 
-  test('createCLI still throws ConfigLoadError when override is incomplete and config is broken', async () => {
+  test("createCLI still throws ConfigLoadError when override is incomplete and config is broken", async () => {
     const configContent = `
 throw new Error('boom from config')
 export default {}
-`
-    await writeFile('bunli.config.ts', configContent)
+`;
+    await writeFile("bunli.config.ts", configContent);
 
     await expect(async () => {
       await createCLI({
-        name: 'partial-override'
-      })
-    }).toThrow(/Failed to load config/)
-  })
-})
+        name: "partial-override",
+      });
+    }).toThrow(/Failed to load config/);
+  });
+});

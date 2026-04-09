@@ -8,6 +8,7 @@ Bunli auto-wires the OpenTUI renderer runtime for `render` commands, and prompt/
 ## Core components
 
 Common exports from `@bunli/tui` include:
+
 - Form: `Form`, `SchemaForm`, `FormField`, `SelectField`, `MultiSelectField`, `NumberField`, `PasswordField`, `TextareaField`, `CheckboxField`
 - Layout: `Container`, `Stack`, `Grid`, `Panel`, `Card`, `Divider`, `SectionHeader`
 - Feedback and data: `Alert`, `Badge`, `Toast`, `ProgressBar`, `EmptyState`, `KeyValueList`, `Stat`, `DataTable`
@@ -15,6 +16,7 @@ Common exports from `@bunli/tui` include:
 - Theming: `ThemeProvider`, `useTuiTheme`
 
 The following are **not** exported from `@bunli/tui` — import them from `@bunli/runtime/app` instead:
+
 - Focus management: `FocusScopeProvider`, `useFocusScope`, `useScopedKeyboard`
 - Overlay system: `OverlayHostProvider`, `OverlayPortal`
 - Dialog system: `DialogProvider`, `useDialogManager`
@@ -57,6 +59,7 @@ const frameworkOptions: SelectOption[] = [
 ```
 
 `Form` props:
+
 - `title: string`
 - `schema: StandardSchemaV1`
 - `onSubmit: (values) => void | Promise<void>`
@@ -76,12 +79,14 @@ Fields are wired through form context and register by `name`.
 ## Field components
 
 `FormField`:
+
 - `label`, `name`
 - `placeholder?`, `required?`, `description?`
 - `defaultValue?`
 - `onChange?`, `onSubmit?`
 
 `SelectField`:
+
 - `label`, `name`, `options`
 - `required?`, `description?`
 - `defaultValue?`
@@ -90,11 +95,13 @@ Fields are wired through form context and register by `name`.
 Use `SchemaForm` for schema-driven forms with explicit field variants.
 
 `SchemaForm` requires:
+
 - `schema`
 - `fields: SchemaField[]` where each field has a `kind` (`text`, `select`, `multiselect`, `number`, `password`, `textarea`, `checkbox`)
 - `onSubmit` and optional form props from `Form`
 
 Advanced schema field helpers:
+
 - `visibleWhen?: (values) => boolean`
 - `deriveDefault?: (values) => unknown`
 
@@ -134,12 +141,19 @@ const schema = z.object({
 ## Hooks
 
 ```typescript
-import { useKeyboard, useRenderer, useTerminalDimensions, useOnResize, useTimeline } from "@bunli/tui"
+import {
+  useKeyboard,
+  useRenderer,
+  useTerminalDimensions,
+  useOnResize,
+  useTimeline,
+} from "@bunli/tui";
 ```
 
 ## Runtime exports
 
 Import runtime providers and hooks from `@bunli/runtime/app`:
+
 - `RuntimeProvider`
 - `RouteStoreProvider`, `useRouteStore`
 - `CommandRegistryProvider`, `useCommandRegistry`, `useCommandRegistryItems`
@@ -151,7 +165,7 @@ Use these when building advanced command navigation/state orchestration on top o
 Global renderer options via `defineConfig`:
 
 ```typescript
-import { defineConfig } from "@bunli/core"
+import { defineConfig } from "@bunli/core";
 
 export default defineConfig({
   tui: {
@@ -160,10 +174,10 @@ export default defineConfig({
       exitOnCtrlC: true,
       targetFps: 30,
       enableMouseMovement: true,
-      useMouse: false
-    }
-  }
-})
+      useMouse: false,
+    },
+  },
+});
 ```
 
 Per-command overrides:
@@ -184,6 +198,7 @@ export const logs = defineCommand({
 ```
 
 Runtime notes:
+
 - Default `bufferMode` is `"standard"`.
 - Use `bufferMode: "alternate"` when you explicitly want fullscreen alternate-buffer rendering.
 - Per-command `tui.renderer.bufferMode` overrides global config.

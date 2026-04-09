@@ -10,13 +10,6 @@
       "./.bunli/commands.gen": ["./.bunli/commands.gen.ts"]
     }
   },
-  "include": [
-    "**/*.ts",
-    "**/*.tsx",
-    ".bunli/commands.gen.ts"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist"
-  ]
+  "include": ["**/*.ts", "**/*.tsx", ".bunli/commands.gen.ts"],
+  "exclude": ["node_modules", "dist"]
 }

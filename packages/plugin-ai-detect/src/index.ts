@@ -3,152 +3,152 @@
  * Detects various AI coding assistants from environment variables
  */
 
-import type { BunliPlugin } from '@bunli/core/plugin'
-import { createPlugin } from '@bunli/core/plugin'
+import type { BunliPlugin } from "@bunli/core/plugin";
+import { createPlugin } from "@bunli/core/plugin";
 
 // Extend core interfaces with AI-specific fields
-declare module '@bunli/core/plugin' {
+declare module "@bunli/core/plugin" {
   interface EnvironmentInfo {
     /** AI agent detected */
-    isAIAgent: boolean
-    
+    isAIAgent: boolean;
+
     /** Detected AI agents */
-    aiAgents: string[]
+    aiAgents: string[];
   }
 }
 
 interface AIAgentInfo {
-  name: string
-  envVars: string[]
-  detect: (env: NodeJS.ProcessEnv) => boolean
+  name: string;
+  envVars: string[];
+  detect: (env: NodeJS.ProcessEnv) => boolean;
 }
 
 // Known AI agents and their detection patterns
 const AI_AGENTS: AIAgentInfo[] = [
   {
-    name: 'claude',
-    envVars: ['CLAUDECODE', 'CLAUDE_CODE'],
-    detect: (env) => !!env.CLAUDECODE || !!env.CLAUDE_CODE
+    name: "claude",
+    envVars: ["CLAUDECODE", "CLAUDE_CODE"],
+    detect: (env) => !!env.CLAUDECODE || !!env.CLAUDE_CODE,
   },
   {
-    name: 'cursor',
-    envVars: ['CURSOR_AGENT'],
-    detect: (env) => !!env.CURSOR_AGENT
+    name: "cursor",
+    envVars: ["CURSOR_AGENT"],
+    detect: (env) => !!env.CURSOR_AGENT,
   },
   {
-    name: 'codex',
-    envVars: ['CODEX_CI', 'CODEX_THREAD_ID', 'CODEX_SANDBOX'],
-    detect: (env) => !!env.CODEX_CI || !!env.CODEX_THREAD_ID || !!env.CODEX_SANDBOX
+    name: "codex",
+    envVars: ["CODEX_CI", "CODEX_THREAD_ID", "CODEX_SANDBOX"],
+    detect: (env) => !!env.CODEX_CI || !!env.CODEX_THREAD_ID || !!env.CODEX_SANDBOX,
   },
   {
-    name: 'amp',
-    envVars: ['AMP_CURRENT_THREAD_ID', 'AGENT'],
-    detect: (env) => !!env.AMP_CURRENT_THREAD_ID || env.AGENT === 'amp'
+    name: "amp",
+    envVars: ["AMP_CURRENT_THREAD_ID", "AGENT"],
+    detect: (env) => !!env.AMP_CURRENT_THREAD_ID || env.AGENT === "amp",
   },
   {
-    name: 'gemini',
-    envVars: ['GEMINI_CLI'],
-    detect: (env) => !!env.GEMINI_CLI
+    name: "gemini",
+    envVars: ["GEMINI_CLI"],
+    detect: (env) => !!env.GEMINI_CLI,
   },
   {
-    name: 'opencode',
-    envVars: ['OPENCODE'],
-    detect: (env) => env.OPENCODE === '1'
+    name: "opencode",
+    envVars: ["OPENCODE"],
+    detect: (env) => env.OPENCODE === "1",
   },
-]
+];
 
 export interface AIDetectPluginOptions {
   /**
    * Additional custom AI agents to detect
    */
-  customAgents?: AIAgentInfo[]
-  
+  customAgents?: AIAgentInfo[];
+
   /**
    * Whether to log detection results
    * Default: false
    */
-  verbose?: boolean
+  verbose?: boolean;
 }
 
 export interface AIDetectStore {
-  isAIAgent: boolean
-  aiAgents: string[]
-  aiAgentEnvVars: string[]
+  isAIAgent: boolean;
+  aiAgents: string[];
+  aiAgentEnvVars: string[];
 }
 
 /**
  * AI agent detection plugin factory
  */
 export const aiAgentPlugin = createPlugin<AIDetectPluginOptions, AIDetectStore>((options = {}) => {
-  const agents = [...AI_AGENTS, ...(options.customAgents || [])]
-  
+  const agents = [...AI_AGENTS, ...(options.customAgents || [])];
+
   return {
-    name: '@bunli/plugin-ai-detect',
-    version: '1.0.0',
-    
+    name: "@bunli/plugin-ai-detect",
+    version: "1.0.0",
+
     // Define initial store state
     store: {
       isAIAgent: false,
       aiAgents: [] as string[],
-      aiAgentEnvVars: [] as string[]
+      aiAgentEnvVars: [] as string[],
     },
-    
+
     beforeCommand(context) {
-      const env = process.env
-      const detectedAgents: string[] = []
-      const allDetectedEnvVars: string[] = []
-      
+      const env = process.env;
+      const detectedAgents: string[] = [];
+      const allDetectedEnvVars: string[] = [];
+
       // Initialize AI fields on the environment info
-      context.env.isAIAgent = false
-      context.env.aiAgents = []
-      
+      context.env.isAIAgent = false;
+      context.env.aiAgents = [];
+
       // Check all known AI agents
       for (const agent of agents) {
         if (agent.detect(env)) {
-          detectedAgents.push(agent.name)
-          
+          detectedAgents.push(agent.name);
+
           // Store detected environment variables for this agent
-          const detectedVars = agent.envVars.filter(v => !!env[v])
-          allDetectedEnvVars.push(...detectedVars)
-          
+          const detectedVars = agent.envVars.filter((v) => !!env[v]);
+          allDetectedEnvVars.push(...detectedVars);
+
           // Log if verbose
           if (options.verbose) {
-            console.log(`🤖 AI agent detected: ${agent.name}`)
-            console.log(`   Environment variables: ${detectedVars.join(', ')}`)
+            console.log(`🤖 AI agent detected: ${agent.name}`);
+            console.log(`   Environment variables: ${detectedVars.join(", ")}`);
           }
         }
       }
-      
+
       // Update context based on detection results
       if (detectedAgents.length > 0) {
-        context.env.isAIAgent = true
-        context.env.aiAgents = detectedAgents
-        
+        context.env.isAIAgent = true;
+        context.env.aiAgents = detectedAgents;
+
         // Use type-safe store - TypeScript knows the exact types!
         if (context.store) {
-          context.store.isAIAgent = true
-          context.store.aiAgents = detectedAgents
-          context.store.aiAgentEnvVars = allDetectedEnvVars
+          context.store.isAIAgent = true;
+          context.store.aiAgents = detectedAgents;
+          context.store.aiAgentEnvVars = allDetectedEnvVars;
         }
-        
+
         if (options.verbose) {
           if (detectedAgents.length === 1) {
-            console.log(`🤖 AI agent detected: ${detectedAgents[0]}`)
+            console.log(`🤖 AI agent detected: ${detectedAgents[0]}`);
           } else {
-            console.log(`🤖 Multiple AI agents detected: ${detectedAgents.join(', ')}`)
+            console.log(`🤖 Multiple AI agents detected: ${detectedAgents.join(", ")}`);
           }
         }
       } else {
         // Ensure fields are initialized even when no AI agent detected
         if (context.store) {
-          context.store.isAIAgent = false
-          context.store.aiAgents = []
-          context.store.aiAgentEnvVars = []
+          context.store.isAIAgent = false;
+          context.store.aiAgents = [];
+          context.store.aiAgentEnvVars = [];
         }
       }
-    }
-  }
-})
+    },
+  };
+});
 
 // Default export for convenience
-export default aiAgentPlugin
+export default aiAgentPlugin;

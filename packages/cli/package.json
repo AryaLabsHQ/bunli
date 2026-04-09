@@ -1,11 +1,34 @@
 {
   "name": "bunli",
   "version": "0.9.0",
-  "type": "module",
   "description": "The Bunli CLI toolchain for developing, building, and distributing CLIs",
+  "keywords": [
+    "build-tool",
+    "bun",
+    "bunli",
+    "cli",
+    "development",
+    "toolchain",
+    "typescript"
+  ],
+  "homepage": "https://github.com/AryaLabsHQ/bunli#readme",
+  "bugs": {
+    "url": "https://github.com/AryaLabsHQ/bunli/issues"
+  },
+  "license": "MIT",
+  "author": "Arya Labs, Inc.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AryaLabsHQ/bunli.git",
+    "directory": "packages/cli"
+  },
   "bin": {
     "bunli": "./dist/cli.js"
   },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -14,29 +37,6 @@
       "types": "./dist/index.d.ts"
     }
   },
-  "files": [
-    "dist"
-  ],
-  "author": "Arya Labs, Inc.",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/AryaLabsHQ/bunli.git",
-    "directory": "packages/cli"
-  },
-  "bugs": {
-    "url": "https://github.com/AryaLabsHQ/bunli/issues"
-  },
-  "homepage": "https://github.com/AryaLabsHQ/bunli#readme",
-  "keywords": [
-    "bunli",
-    "cli",
-    "toolchain",
-    "bun",
-    "typescript",
-    "build-tool",
-    "development"
-  ],
   "scripts": {
     "dev": "bun run src/cli.ts",
     "build": "bun run scripts/build.ts && bun run tsgo",
@@ -56,8 +56,8 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@tsconfig/bun": "catalog:",
     "@bunli/test": "workspace:^",
+    "@tsconfig/bun": "catalog:",
     "@types/bun": "catalog:",
     "typescript": "catalog:"
   }

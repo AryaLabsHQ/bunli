@@ -1,6 +1,7 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { z } from "zod";
+
 import { AuthRequiredError, requireSession, type AuthSession } from "../auth/session";
 import {
   buildWorkbenchExecCommand,
@@ -22,9 +23,7 @@ import {
   type LimiterResponse,
 } from "./limiter";
 import { logWorkbenchEvent } from "./logging";
-import {
-  type WorkbenchSessionResult,
-} from "./sandbox";
+import { type WorkbenchSessionResult } from "./sandbox";
 import type {
   WorkbenchFileSyncResponse,
   WorkbenchPtyDisconnectResponse,
@@ -51,7 +50,7 @@ export interface WorkbenchDeps {
     env: Env,
     userId: string,
     runId: string,
-    completionToken: string
+    completionToken: string,
   ) => Promise<LimiterResponse>;
   abortRun: (env: Env, userId: string, runId: string) => Promise<LimiterResponse>;
   rollbackRun: (env: Env, userId: string, runId: string) => Promise<LimiterResponse>;
@@ -59,7 +58,7 @@ export interface WorkbenchDeps {
     env: Env,
     userId: string,
     runId: string,
-    completionToken?: string
+    completionToken?: string,
   ) => Promise<LimiterResponse>;
   allowPtyConnect: (env: Env, userId: string) => Promise<LimiterResponse>;
   getOrCreateWorkbenchSession: (
@@ -68,11 +67,11 @@ export interface WorkbenchDeps {
     options?: {
       onBeforeCreate?: () => Promise<LimiterResponse>;
       onCreateFailed?: () => Promise<void>;
-    }
+    },
   ) => Promise<WorkbenchSessionResult>;
   deleteWorkbenchSession: (
     env: Env,
-    ids: ReturnType<typeof deriveWorkbenchIds>
+    ids: ReturnType<typeof deriveWorkbenchIds>,
   ) => Promise<boolean>;
   now: () => number;
 }
@@ -131,9 +130,7 @@ function parseDimension(value: string | undefined): number | undefined {
   return parsed;
 }
 
-function isRateLimitedError(
-  error: unknown
-): error is {
+function isRateLimitedError(error: unknown): error is {
   code: "RATE_LIMITED";
   message: string;
   retryAfterMs?: number;
@@ -251,7 +248,7 @@ export function createWorkbenchRouter(deps: WorkbenchDeps = defaultDeps) {
         workbenchError("RATE_LIMITED", "Run limit exceeded", {
           retryAfterMs: runAllowance.retryAfterMs,
         }),
-        429
+        429,
       );
     }
 
@@ -352,10 +349,7 @@ export function createWorkbenchRouter(deps: WorkbenchDeps = defaultDeps) {
 
   app.get("/pty", async (c) => {
     if (c.req.header("upgrade")?.toLowerCase() !== "websocket") {
-      return c.json(
-        workbenchError("METHOD_NOT_ALLOWED", "WebSocket upgrade is required"),
-        426
-      );
+      return c.json(workbenchError("METHOD_NOT_ALLOWED", "WebSocket upgrade is required"), 426);
     }
 
     const authSession = c.get("authSession");
@@ -374,11 +368,8 @@ export function createWorkbenchRouter(deps: WorkbenchDeps = defaultDeps) {
     if (!ptyAllowance.ok) {
       if (ptyAllowance.code === "RUN_NOT_STARTED") {
         return c.json(
-          workbenchError(
-            "RUN_NOT_STARTED",
-            "Start a run before opening a terminal connection."
-          ),
-          409
+          workbenchError("RUN_NOT_STARTED", "Start a run before opening a terminal connection."),
+          409,
         );
       }
 
@@ -386,7 +377,7 @@ export function createWorkbenchRouter(deps: WorkbenchDeps = defaultDeps) {
         workbenchError("RATE_LIMITED", "PTY connection limit exceeded", {
           retryAfterMs: ptyAllowance.retryAfterMs,
         }),
-        429
+        429,
       );
     }
 
@@ -450,7 +441,7 @@ export function createWorkbenchRouter(deps: WorkbenchDeps = defaultDeps) {
         workbenchError("RATE_LIMITED", error.message, {
           retryAfterMs: error.retryAfterMs,
         }),
-        429
+        429,
       );
     }
 
@@ -464,15 +455,15 @@ export function createWorkbenchRouter(deps: WorkbenchDeps = defaultDeps) {
       return c.json(
         workbenchError(
           "SANDBOX_NOT_READY",
-          "Sandbox session could not start with current settings. Retry in a few seconds."
+          "Sandbox session could not start with current settings. Retry in a few seconds.",
         ),
-        503
+        503,
       );
     }
 
     return c.json(
       workbenchError("SANDBOX_FAILED", "Workbench backend failed to process the request"),
-      500
+      500,
     );
   });
 

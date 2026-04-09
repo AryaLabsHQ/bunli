@@ -1,22 +1,22 @@
 #!/usr/bin/env bun
-import { createCLI } from '@bunli/core'
-import { logger } from '@{{name}}/utils'
-import { processCommand, analyzeCommand } from '@{{name}}/core'
+import { createCLI } from "@bunli/core";
+import { processCommand, analyzeCommand } from "@{{name}}/core";
+import { logger } from "@{{name}}/utils";
 
 const cli = await createCLI({
-  name: '{{name}}',
-  version: '0.1.0',
-  description: '{{description}}'
-})
+  name: "{{name}}",
+  version: "0.1.0",
+  description: "{{description}}",
+});
 
 // Add commands
-cli.command(processCommand)
-cli.command(analyzeCommand)
+cli.command(processCommand);
+cli.command(analyzeCommand);
 
 // Run CLI
 try {
-  await cli.run()
+  await cli.run();
 } catch (error) {
-  logger.error('CLI failed:', error)
-  process.exit(1)
+  logger.error("CLI failed:", error);
+  process.exit(1);
 }

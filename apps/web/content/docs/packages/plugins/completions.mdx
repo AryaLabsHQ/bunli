@@ -1,5 +1,5 @@
 ---
-title: '@bunli/plugin-completions'
+title: "@bunli/plugin-completions"
 description: Shell completion generation plugin for Bunli
 ---
 
@@ -22,33 +22,33 @@ bun add @bunli/plugin-completions
 ## Basic Usage
 
 ```typescript
-import { createCLI } from '@bunli/core'
-import { completionsPlugin } from '@bunli/plugin-completions'
-import build from './commands/build.js'
-import deploy from './commands/deploy.js'
+import { createCLI } from "@bunli/core";
+import { completionsPlugin } from "@bunli/plugin-completions";
+import build from "./commands/build.js";
+import deploy from "./commands/deploy.js";
 
 const cli = await createCLI({
-  name: 'my-cli',
-  version: '1.0.0',
-  plugins: [completionsPlugin()] as const
-})
+  name: "my-cli",
+  version: "1.0.0",
+  plugins: [completionsPlugin()] as const,
+});
 
-cli.command(deploy)
-cli.command(build)
+cli.command(deploy);
+cli.command(build);
 
-await cli.run()
+await cli.run();
 ```
 
 Or in your `bunli.config.ts`:
 
 ```typescript
-import { defineConfig } from '@bunli/core'
-import { completionsPlugin } from '@bunli/plugin-completions'
+import { defineConfig } from "@bunli/core";
+import { completionsPlugin } from "@bunli/plugin-completions";
 
 export default defineConfig({
-  name: 'my-cli',
-  plugins: [completionsPlugin()] as const
-})
+  name: "my-cli",
+  plugins: [completionsPlugin()] as const,
+});
 ```
 
 ## Generating Completions
@@ -68,11 +68,13 @@ my-cli completions powershell
 ### Bash Completions
 
 **Option 1 - Current session:**
+
 ```bash
 source <(my-cli completions bash)
 ```
 
 **Option 2 - Save to completion directory:**
+
 ```bash
 # Linux
 my-cli completions bash > /etc/bash_completion.d/my-cli
@@ -82,6 +84,7 @@ my-cli completions bash > $(brew --prefix)/etc/bash_completion.d/my-cli
 ```
 
 **Option 3 - Add to ~/.bashrc:**
+
 ```bash
 echo 'source <(my-cli completions bash)' >> ~/.bashrc
 source ~/.bashrc
@@ -90,11 +93,13 @@ source ~/.bashrc
 ### Zsh Completions
 
 **Option 1 - Current session:**
+
 ```bash
 source <(my-cli completions zsh)
 ```
 
 **Option 2 - User completion directory:**
+
 ```bash
 mkdir -p ~/.zsh/completions
 my-cli completions zsh > ~/.zsh/completions/_my-cli
@@ -106,6 +111,7 @@ source ~/.zshrc
 ```
 
 **Option 3 - System-wide:**
+
 ```bash
 sudo my-cli completions zsh > /usr/local/share/zsh/site-functions/_my-cli
 # Restart your shell
@@ -114,12 +120,14 @@ sudo my-cli completions zsh > /usr/local/share/zsh/site-functions/_my-cli
 ### Fish Completions
 
 **User completions:**
+
 ```bash
 my-cli completions fish > ~/.config/fish/completions/my-cli.fish
 # Completions will be available in new fish sessions
 ```
 
 **System-wide:**
+
 ```bash
 sudo my-cli completions fish > /usr/share/fish/vendor_completions.d/my-cli.fish
 ```
@@ -140,37 +148,32 @@ The plugin leverages Bunli's metadata generation system to create accurate compl
 Given a command with enum options:
 
 ```typescript
-import { defineCommand, option } from '@bunli/core'
-import { z } from 'zod'
+import { defineCommand, option } from "@bunli/core";
+import { z } from "zod";
 
 export default defineCommand({
-  name: 'deploy',
-  description: 'Deploy application',
+  name: "deploy",
+  description: "Deploy application",
   options: {
-    environment: option(
-      z.enum(['development', 'staging', 'production']),
-      {
-        short: 'e',
-        description: 'Target environment'
-      }
-    ),
-    region: option(
-      z.enum(['us-east-1', 'us-west-2', 'eu-west-1']),
-      {
-        short: 'r',
-        description: 'AWS region'
-      }
-    )
+    environment: option(z.enum(["development", "staging", "production"]), {
+      short: "e",
+      description: "Target environment",
+    }),
+    region: option(z.enum(["us-east-1", "us-west-2", "eu-west-1"]), {
+      short: "r",
+      description: "AWS region",
+    }),
   },
   handler: async ({ flags }) => {
-    console.log(`Deploying to ${flags.environment} in ${flags.region}`)
-  }
-})
+    console.log(`Deploying to ${flags.environment} in ${flags.region}`);
+  },
+});
 ```
 
 The completions plugin will generate:
 
 **Bash:**
+
 ```bash
 # Provides enum completions for --environment
 if [[ "$prev" == "--environment" || "$prev" == "-e" ]]; then
@@ -186,12 +189,14 @@ fi
 ```
 
 **Zsh:**
+
 ```zsh
 "(-e --environment)"{-e,--environment}[Target environment]:(development staging production)
 "(-r --region)"{-r,--region}[AWS region]:(us-east-1 us-west-2 eu-west-1)
 ```
 
 **Fish:**
+
 ```fish
 complete -c my-cli -n '__fish_seen_subcommand_from deploy' \
   -l environment -s e -d 'Target environment' -r -a 'development staging production'
@@ -204,33 +209,33 @@ complete -c my-cli -n '__fish_seen_subcommand_from deploy' \
 ```typescript
 // commands/build.ts
 export default defineCommand({
-  name: 'build',
-  description: 'Build the project',
+  name: "build",
+  description: "Build the project",
   options: {
-    mode: option(z.enum(['development', 'production']), {
-      short: 'm',
-      description: 'Build mode'
-    })
+    mode: option(z.enum(["development", "production"]), {
+      short: "m",
+      description: "Build mode",
+    }),
   },
   handler: async ({ flags }) => {
-    console.log(`Building in ${flags.mode} mode`)
-  }
-})
+    console.log(`Building in ${flags.mode} mode`);
+  },
+});
 
 // commands/test.ts
 export default defineCommand({
-  name: 'test',
-  description: 'Run tests',
+  name: "test",
+  description: "Run tests",
   options: {
     coverage: option(z.boolean().optional(), {
-      short: 'c',
-      description: 'Generate coverage report'
-    })
+      short: "c",
+      description: "Generate coverage report",
+    }),
   },
   handler: async ({ flags }) => {
-    console.log('Running tests...')
-  }
-})
+    console.log("Running tests...");
+  },
+});
 ```
 
 Completions will include both commands:
@@ -250,21 +255,21 @@ Boolean flags are automatically detected and don't require values:
 
 ```typescript
 export default defineCommand({
-  name: 'serve',
+  name: "serve",
   options: {
     watch: option(z.boolean().optional(), {
-      short: 'w',
-      description: 'Watch for changes'
+      short: "w",
+      description: "Watch for changes",
     }),
     open: option(z.boolean().optional(), {
-      short: 'o',
-      description: 'Open in browser'
-    })
+      short: "o",
+      description: "Open in browser",
+    }),
   },
   handler: async ({ flags }) => {
     // ...
-  }
-})
+  },
+});
 ```
 
 ```bash
@@ -280,30 +285,30 @@ interface CompletionsPluginOptions {
    * Path to Bunli-generated command metadata.
    * Default: ".bunli/commands.gen.ts" (relative to process.cwd()).
    */
-  generatedPath?: string
+  generatedPath?: string;
 
   /**
    * Name registered with the shell completion script (usually the package.json bin key).
    */
-  commandName?: string
+  commandName?: string;
 
   /**
    * Executable invocation used by shell scripts (can include args, e.g. "bunx my-cli").
    * Default: commandName.
    */
-  executable?: string
+  executable?: string;
 
   /**
    * Whether to register command aliases from generated metadata.
    * Default: true.
    */
-  includeAliases?: boolean
+  includeAliases?: boolean;
 
   /**
    * Whether to include Bunli global flags on every command.
    * Default: true.
    */
-  includeGlobalFlags?: boolean
+  includeGlobalFlags?: boolean;
 }
 ```
 
@@ -314,6 +319,7 @@ The plugin supports four shells:
 ### PowerShell Completions
 
 **User profile:**
+
 ```bash
 my-cli completions powershell >> $PROFILE
 # Reload profile:
@@ -321,6 +327,7 @@ my-cli completions powershell >> $PROFILE
 ```
 
 **Or save to a file:**
+
 ```bash
 my-cli completions powershell > ~/Documents/PowerShell/my-cli_completions.ps1
 # Add to $PROFILE:
@@ -333,26 +340,26 @@ my-cli completions powershell > ~/Documents/PowerShell/my-cli_completions.ps1
 
 ```typescript
 // ✅ Good - generates completions
-environment: option(z.enum(['dev', 'staging', 'prod']), {
-  description: 'Target environment'
-})
+environment: option(z.enum(["dev", "staging", "prod"]), {
+  description: "Target environment",
+});
 
 // ❌ Less useful - no completions
 environment: option(z.string(), {
-  description: 'Target environment'
-})
+  description: "Target environment",
+});
 ```
 
 ### 2. Provide Descriptions
 
 ```typescript
 // ✅ Good - shows helpful descriptions
-preset: option(z.enum(['minimal', 'standard', 'full']), {
-  description: 'Configuration preset'
-})
+preset: option(z.enum(["minimal", "standard", "full"]), {
+  description: "Configuration preset",
+});
 
 // ❌ Less helpful - no context
-preset: option(z.enum(['minimal', 'standard', 'full']))
+preset: option(z.enum(["minimal", "standard", "full"]));
 ```
 
 ### 3. Use Short Flags
@@ -360,9 +367,9 @@ preset: option(z.enum(['minimal', 'standard', 'full']))
 ```typescript
 // ✅ Good - both long and short forms complete
 force: option(z.boolean().optional(), {
-  short: 'f',
-  description: 'Force operation'
-})
+  short: "f",
+  description: "Force operation",
+});
 ```
 
 ### 4. Generate After Command Changes
@@ -389,10 +396,7 @@ You can include pre-generated completions in your package:
 ```json
 {
   "name": "my-cli",
-  "files": [
-    "dist",
-    "completions"
-  ],
+  "files": ["dist", "completions"],
   "scripts": {
     "completions": "bun run cli.js completions",
     "postinstall": "node scripts/install-completions.js"
@@ -404,17 +408,19 @@ Create a postinstall script to prompt users:
 
 ```javascript
 // scripts/install-completions.js
-import { execSync } from 'child_process'
-import { existsSync, writeFileSync, mkdirSync } from 'fs'
-import { homedir } from 'os'
-import { join } from 'path'
+import { execSync } from "child_process";
+import { existsSync, writeFileSync, mkdirSync } from "fs";
+import { homedir } from "os";
+import { join } from "path";
 
-const shell = process.env.SHELL?.includes('zsh') ? 'zsh'
-           : process.env.SHELL?.includes('fish') ? 'fish'
-           : 'bash'
+const shell = process.env.SHELL?.includes("zsh")
+  ? "zsh"
+  : process.env.SHELL?.includes("fish")
+    ? "fish"
+    : "bash";
 
-console.log(`\n🐚 Shell completions are available for ${shell}`)
-console.log(`Run: my-cli completions ${shell}\n`)
+console.log(`\n🐚 Shell completions are available for ${shell}`);
+console.log(`Run: my-cli completions ${shell}\n`);
 ```
 
 ### Documentation for Users
@@ -427,12 +433,14 @@ Include installation instructions in your README:
 Enable tab completion for your shell:
 
 ### Bash
+
 ```bash
 my-cli completions bash > ~/.bash_completion.d/my-cli
 source ~/.bashrc
 ```
 
 ### Zsh
+
 ```bash
 my-cli completions zsh > ~/.zsh/completions/_my-cli
 # Add to ~/.zshrc:
@@ -441,6 +449,7 @@ autoload -U compinit && compinit
 ```
 
 ### Fish
+
 ```bash
 my-cli completions fish > ~/.config/fish/completions/my-cli.fish
 ```
@@ -458,11 +467,13 @@ my-cli completions fish > ~/.config/fish/completions/my-cli.fish
 ### Completions Not Working
 
 1. **Check shell type**: Verify you generated completions for the correct shell
+
    ```bash
    echo $SHELL
    ```
 
 2. **Verify installation**: Make sure the completion file is in the correct location
+
    ```bash
    # Bash
    ls ~/.bash_completion.d/
@@ -475,6 +486,7 @@ my-cli completions fish > ~/.config/fish/completions/my-cli.fish
    ```
 
 3. **Reload shell**: Source your shell config or restart your shell
+
    ```bash
    # Bash
    source ~/.bashrc
@@ -497,9 +509,9 @@ The plugin uses the CLI name from `createCLI()` or `bunli.config.ts`. Update it:
 
 ```typescript
 const cli = await createCLI({
-  name: 'correct-cli-name',  // This name is used in completions
+  name: "correct-cli-name", // This name is used in completions
   // ...
-})
+});
 ```
 
 ## See Also

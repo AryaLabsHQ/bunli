@@ -1,29 +1,23 @@
 ---
-title: '@bunli/test'
+title: "@bunli/test"
 description: Testing utilities for Bunli CLI applications
 ---
 
-import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
-import { Callout } from 'fumadocs-ui/components/callout';
-import { Steps } from 'fumadocs-ui/components/steps';
+import { Tabs, Tab } from "fumadocs-ui/components/tabs";
+import { Callout } from "fumadocs-ui/components/callout";
+import { Steps } from "fumadocs-ui/components/steps";
 
 ## Installation
 
 <Tabs groupId="package-manager" defaultValue="bun">
   <Tab value="bun" label="Bun">
-    ```bash
-    bun add -d @bunli/test
-    ```
+    ```bash bun add -d @bunli/test ```
   </Tab>
   <Tab value="npm" label="npm">
-    ```bash
-    npm install -D @bunli/test
-    ```
+    ```bash npm install -D @bunli/test ```
   </Tab>
   <Tab value="pnpm" label="pnpm">
-    ```bash
-    pnpm add -D @bunli/test
-    ```
+    ```bash pnpm add -D @bunli/test ```
   </Tab>
 </Tabs>
 
@@ -45,34 +39,35 @@ import { Steps } from 'fumadocs-ui/components/steps';
 ### Import testing utilities
 
 ```typescript
-import { test, expect } from 'bun:test'
-import { testCommand, expectCommand } from '@bunli/test'
+import { test, expect } from "bun:test";
+import { testCommand, expectCommand } from "@bunli/test";
 ```
 
 ### Test a simple command
 
 ```typescript
-import { defineCommand } from '@bunli/core'
+import { defineCommand } from "@bunli/core";
 
 const greetCommand = defineCommand({
-  name: 'greet',
-  description: 'Greet someone',
+  name: "greet",
+  description: "Greet someone",
   handler: async ({ colors }) => {
-    console.log(colors.green('Hello, world!'))
-  }
-})
+    console.log(colors.green("Hello, world!"));
+  },
+});
 
-test('greet command', async () => {
-  const result = await testCommand(greetCommand)
-  
-  expectCommand(result).toHaveSucceeded()
-  expectCommand(result).toContainInStdout('[green]Hello, world![/green]')
-})
+test("greet command", async () => {
+  const result = await testCommand(greetCommand);
+
+  expectCommand(result).toHaveSucceeded();
+  expectCommand(result).toContainInStdout("[green]Hello, world![/green]");
+});
 ```
 
 ### Verify the output
 
 The test utilities preserve color codes as tags for easy assertion:
+
 - `colors.green('text')` → `[green]text[/green]`
 - `colors.bold('text')` → `[bold]text[/bold]`
 - `colors.dim('text')` → `[dim]text[/dim]`
@@ -86,41 +81,35 @@ Test commands that accept flags and arguments:
 
 ```typescript
 const deployCommand = defineCommand({
-  name: 'deploy',
+  name: "deploy",
   options: {
-    env: option(
-      z.enum(['dev', 'staging', 'prod']),
-      { description: 'Target environment' }
-    ),
-    force: option(
-      z.coerce.boolean().default(false),
-      { description: 'Force deployment' }
-    )
+    env: option(z.enum(["dev", "staging", "prod"]), { description: "Target environment" }),
+    force: option(z.coerce.boolean().default(false), { description: "Force deployment" }),
   },
   handler: async ({ flags }) => {
-    console.log(`Deploying to ${flags.env}${flags.force ? ' (forced)' : ''}`)
-  }
-})
+    console.log(`Deploying to ${flags.env}${flags.force ? " (forced)" : ""}`);
+  },
+});
 
-test('deploy with flags', async () => {
+test("deploy with flags", async () => {
   const result = await testCommand(deployCommand, {
-    flags: { env: 'prod', force: true }
-  })
-  
-  expect(result.stdout).toContain('Deploying to prod (forced)')
-  expect(result.exitCode).toBe(0)
-})
+    flags: { env: "prod", force: true },
+  });
+
+  expect(result.stdout).toContain("Deploying to prod (forced)");
+  expect(result.exitCode).toBe(0);
+});
 
 // Test validation errors
-test('deploy validates environment', async () => {
+test("deploy validates environment", async () => {
   const result = await testCommand(deployCommand, {
-    flags: { env: 'invalid' as any }
-  })
-  
-  expectCommand(result).toHaveFailed()
-  expect(result.stderr).toContain('[red]Validation errors:[/red]')
-  expect(result.stderr).toContain('--env:')
-})
+    flags: { env: "invalid" as any },
+  });
+
+  expectCommand(result).toHaveFailed();
+  expect(result.stderr).toContain("[red]Validation errors:[/red]");
+  expect(result.stderr).toContain("--env:");
+});
 ```
 
 ## Mocking User Interactions
@@ -130,44 +119,50 @@ test('deploy validates environment', async () => {
 Test interactive commands by mocking user responses:
 
 ```typescript
-import { mockPromptResponses } from '@bunli/test'
+import { mockPromptResponses } from "@bunli/test";
 
 const setupCommand = defineCommand({
-  name: 'setup',
+  name: "setup",
   handler: async ({ prompt }) => {
-    const name = await prompt('Project name:')
-    const useTs = await prompt.confirm('Use TypeScript?')
-    const db = await prompt.select('Database:', {
-      options: ['postgres', 'mysql', 'sqlite']
-    })
-    
-    console.log(`Creating ${name} with ${db}${useTs ? ' and TypeScript' : ''}`)
-  }
-})
+    const name = await prompt("Project name:");
+    const useTs = await prompt.confirm("Use TypeScript?");
+    const db = await prompt.select("Database:", {
+      options: ["postgres", "mysql", "sqlite"],
+    });
 
-test('interactive setup', async () => {
-  const result = await testCommand(setupCommand, mockPromptResponses({
-    'Project name:': 'my-app',
-    'Use TypeScript?': 'y',
-    'Database:': '1'  // Select first option (postgres)
-  }))
-  
-  expect(result.stdout).toContain('Creating my-app with postgres and TypeScript')
-})
+    console.log(`Creating ${name} with ${db}${useTs ? " and TypeScript" : ""}`);
+  },
+});
+
+test("interactive setup", async () => {
+  const result = await testCommand(
+    setupCommand,
+    mockPromptResponses({
+      "Project name:": "my-app",
+      "Use TypeScript?": "y",
+      "Database:": "1", // Select first option (postgres)
+    }),
+  );
+
+  expect(result.stdout).toContain("Creating my-app with postgres and TypeScript");
+});
 
 // Test select menu display
-test('shows select options', async () => {
-  const result = await testCommand(setupCommand, mockPromptResponses({
-    'Project name:': 'test',
-    'Use TypeScript?': 'n',
-    'Database:': '2'  // Select second option
-  }))
-  
+test("shows select options", async () => {
+  const result = await testCommand(
+    setupCommand,
+    mockPromptResponses({
+      "Project name:": "test",
+      "Use TypeScript?": "n",
+      "Database:": "2", // Select second option
+    }),
+  );
+
   // Verify menu was displayed
-  expect(result.stdout).toContain('1. postgres')
-  expect(result.stdout).toContain('2. mysql')
-  expect(result.stdout).toContain('3. sqlite')
-})
+  expect(result.stdout).toContain("1. postgres");
+  expect(result.stdout).toContain("2. mysql");
+  expect(result.stdout).toContain("3. sqlite");
+});
 ```
 
 ### Mock Shell Commands
@@ -175,28 +170,31 @@ test('shows select options', async () => {
 Test commands that execute shell operations:
 
 ```typescript
-import { mockShellCommands } from '@bunli/test'
+import { mockShellCommands } from "@bunli/test";
 
 const statusCommand = defineCommand({
-  name: 'status',
+  name: "status",
   handler: async ({ shell }) => {
-    const branch = await shell`git branch --show-current`.text()
-    const hasChanges = await shell`git status --porcelain`.text()
-    
-    console.log(`Branch: ${branch.trim()}`)
-    console.log(`Status: ${hasChanges ? 'Modified' : 'Clean'}`)
-  }
-})
+    const branch = await shell`git branch --show-current`.text();
+    const hasChanges = await shell`git status --porcelain`.text();
 
-test('git status', async () => {
-  const result = await testCommand(statusCommand, mockShellCommands({
-    'git branch --show-current': 'feature/awesome\n',
-    'git status --porcelain': 'M src/index.ts\n'
-  }))
-  
-  expect(result.stdout).toContain('Branch: feature/awesome')
-  expect(result.stdout).toContain('Status: Modified')
-})
+    console.log(`Branch: ${branch.trim()}`);
+    console.log(`Status: ${hasChanges ? "Modified" : "Clean"}`);
+  },
+});
+
+test("git status", async () => {
+  const result = await testCommand(
+    statusCommand,
+    mockShellCommands({
+      "git branch --show-current": "feature/awesome\n",
+      "git status --porcelain": "M src/index.ts\n",
+    }),
+  );
+
+  expect(result.stdout).toContain("Branch: feature/awesome");
+  expect(result.stdout).toContain("Status: Modified");
+});
 ```
 
 ## Testing Validation
@@ -205,51 +203,57 @@ Test commands with input validation and retry logic:
 
 ```typescript
 const emailCommand = defineCommand({
-  name: 'register',
+  name: "register",
   handler: async ({ prompt }) => {
-    const email = await prompt('Enter email:', {
-      schema: z.string().email()
-    })
-    console.log(`Registered: ${email}`)
-  }
-})
+    const email = await prompt("Enter email:", {
+      schema: z.string().email(),
+    });
+    console.log(`Registered: ${email}`);
+  },
+});
 
-test('email validation with retries', async () => {
-  const result = await testCommand(emailCommand, mockPromptResponses({
-    // Provide multiple attempts - first two fail, third succeeds
-    'Enter email:': ['invalid', 'still@bad', 'valid@email.com']
-  }))
-  
+test("email validation with retries", async () => {
+  const result = await testCommand(
+    emailCommand,
+    mockPromptResponses({
+      // Provide multiple attempts - first two fail, third succeeds
+      "Enter email:": ["invalid", "still@bad", "valid@email.com"],
+    }),
+  );
+
   // Check validation errors appear in order
-  expect(result.stderr).toContain('[red]Invalid input:[/red]')
-  expect(result.stderr).toContain('[dim]  • Invalid email[/dim]')
-  
+  expect(result.stderr).toContain("[red]Invalid input:[/red]");
+  expect(result.stderr).toContain("[dim]  • Invalid email[/dim]");
+
   // Verify final success
-  expect(result.stdout).toContain('Registered: valid@email.com')
-  expectCommand(result).toHaveSucceeded()
-})
+  expect(result.stdout).toContain("Registered: valid@email.com");
+  expectCommand(result).toHaveSucceeded();
+});
 
 // Test password validation
-test('password masking and validation', async () => {
+test("password masking and validation", async () => {
   const passwordCommand = defineCommand({
     handler: async ({ prompt }) => {
-      const pass = await prompt.password('Enter password:', {
-        schema: z.string().min(8)
-      })
-      console.log('Password accepted')
-    }
-  })
-  
-  const result = await testCommand(passwordCommand, mockPromptResponses({
-    'Enter password:': ['short', 'validpassword123']
-  }))
-  
+      const pass = await prompt.password("Enter password:", {
+        schema: z.string().min(8),
+      });
+      console.log("Password accepted");
+    },
+  });
+
+  const result = await testCommand(
+    passwordCommand,
+    mockPromptResponses({
+      "Enter password:": ["short", "validpassword123"],
+    }),
+  );
+
   // Password input is masked with asterisks
-  expect(result.stdout).toContain('*****')  // 'short' masked
-  expect(result.stdout).toContain('****************')  // 'validpassword123' masked
-  
-  expectCommand(result).toHaveSucceeded()
-})
+  expect(result.stdout).toContain("*****"); // 'short' masked
+  expect(result.stdout).toContain("****************"); // 'validpassword123' masked
+
+  expectCommand(result).toHaveSucceeded();
+});
 ```
 
 ## Testing Complete CLIs
@@ -257,42 +261,42 @@ test('password masking and validation', async () => {
 Test entire CLI applications with multiple commands:
 
 ```typescript
-import { createCLI } from '@bunli/core'
-import { testCLI } from '@bunli/test'
+import { createCLI } from "@bunli/core";
+import { testCLI } from "@bunli/test";
 
-test('CLI help command', async () => {
+test("CLI help command", async () => {
   const result = await testCLI(
     (cli) => {
       cli.command({
-        name: 'hello',
-        description: 'Say hello',
-        handler: async () => console.log('Hello!')
-      })
-      
-      cli.command({
-        name: 'goodbye',
-        description: 'Say goodbye',
-        handler: async () => console.log('Goodbye!')
-      })
-    },
-    ['--help']
-  )
-  
-  expectCommand(result).toContainInStdout('Say hello')
-  expectCommand(result).toContainInStdout('Say goodbye')
-})
+        name: "hello",
+        description: "Say hello",
+        handler: async () => console.log("Hello!"),
+      });
 
-test('run specific command', async () => {
+      cli.command({
+        name: "goodbye",
+        description: "Say goodbye",
+        handler: async () => console.log("Goodbye!"),
+      });
+    },
+    ["--help"],
+  );
+
+  expectCommand(result).toContainInStdout("Say hello");
+  expectCommand(result).toContainInStdout("Say goodbye");
+});
+
+test("run specific command", async () => {
   const result = await testCLI(
     (cli) => {
       // ... setup commands
     },
-    ['hello'],
-    { flags: { verbose: true } }
-  )
-  
-  expect(result.stdout).toContain('Hello!')
-})
+    ["hello"],
+    { flags: { verbose: true } },
+  );
+
+  expect(result.stdout).toContain("Hello!");
+});
 ```
 
 ## Test Matchers
@@ -303,27 +307,27 @@ Bunli provides specialized matchers for CLI testing:
 
 ```typescript
 // Check specific exit code
-expectCommand(result).toHaveExitCode(0)
-expectCommand(result).toHaveExitCode(1)
+expectCommand(result).toHaveExitCode(0);
+expectCommand(result).toHaveExitCode(1);
 
 // Convenience matchers
-expectCommand(result).toHaveSucceeded()  // exit code 0
-expectCommand(result).toHaveFailed()     // exit code !== 0
+expectCommand(result).toHaveSucceeded(); // exit code 0
+expectCommand(result).toHaveFailed(); // exit code !== 0
 ```
 
 ### Output Matchers
 
 ```typescript
 // String contains
-expectCommand(result).toContainInStdout('success message')
-expectCommand(result).toContainInStderr('error message')
+expectCommand(result).toContainInStdout("success message");
+expectCommand(result).toContainInStderr("error message");
 
 // Regex matching
-expectCommand(result).toMatchStdout(/deployed to .+ successfully/)
-expectCommand(result).toMatchStderr(/failed: .+/)
+expectCommand(result).toMatchStdout(/deployed to .+ successfully/);
+expectCommand(result).toMatchStderr(/failed: .+/);
 
 // Negative assertions
-expectCommand(result).not.toContainInStdout('error')
+expectCommand(result).not.toContainInStdout("error");
 ```
 
 ## Advanced Testing
@@ -333,23 +337,26 @@ expectCommand(result).not.toContainInStdout('error')
 Use `mockInteractive` to combine prompt and shell mocks:
 
 ```typescript
-import { mockInteractive } from '@bunli/test'
+import { mockInteractive } from "@bunli/test";
 
-test('complex interaction', async () => {
-  const result = await testCommand(myCommand, mockInteractive(
-    {
-      'Project name:': 'awesome-cli',
-      'Initialize git?': 'y'
-    },
-    {
-      'git init': '',
-      'git add .': '',
-      'git commit -m "Initial commit"': ''
-    }
-  ))
-  
-  expectCommand(result).toHaveSucceeded()
-})
+test("complex interaction", async () => {
+  const result = await testCommand(
+    myCommand,
+    mockInteractive(
+      {
+        "Project name:": "awesome-cli",
+        "Initialize git?": "y",
+      },
+      {
+        "git init": "",
+        "git add .": "",
+        'git commit -m "Initial commit"': "",
+      },
+    ),
+  );
+
+  expectCommand(result).toHaveSucceeded();
+});
 ```
 
 ### Merge Test Options
@@ -357,15 +364,16 @@ test('complex interaction', async () => {
 Combine multiple test configurations:
 
 ```typescript
-import { mergeTestOptions } from '@bunli/test'
+import { mergeTestOptions } from "@bunli/test";
 
-test('with merged options', async () => {
-  const result = await testCommand(myCommand, mergeTestOptions(
-    { flags: { verbose: true } },
-    mockPromptResponses({ 'Name:': 'Test' }),
-    { env: { NODE_ENV: 'test' } }
-  ))
-})
+test("with merged options", async () => {
+  const result = await testCommand(
+    myCommand,
+    mergeTestOptions({ flags: { verbose: true } }, mockPromptResponses({ "Name:": "Test" }), {
+      env: { NODE_ENV: "test" },
+    }),
+  );
+});
 ```
 
 ### Test Spinner States
@@ -373,38 +381,38 @@ test('with merged options', async () => {
 Mock and verify spinner operations:
 
 ```typescript
-test('spinner states', async () => {
+test("spinner states", async () => {
   const command = defineCommand({
     handler: async ({ spinner }) => {
-      const spin = spinner('Processing...')
-      spin.start()
-      spin.update('Almost done...')
-      spin.succeed('Complete!')
-      
+      const spin = spinner("Processing...");
+      spin.start();
+      spin.update("Almost done...");
+      spin.succeed("Complete!");
+
       // Test other states
-      const spin2 = spinner('Checking...')
-      spin2.start()
-      spin2.fail('Failed!')
-      
-      const spin3 = spinner('Warning test')
-      spin3.start()
-      spin3.warn('Warning!')
-      
-      const spin4 = spinner('Info test')
-      spin4.start()
-      spin4.info('Information')
-    }
-  })
-  
-  const result = await testCommand(command)
-  
-  expect(result.stdout).toContain('⠋ Processing...')
-  expect(result.stdout).toContain('⠋ Almost done...')
-  expect(result.stdout).toContain('✅ Complete!')
-  expect(result.stdout).toContain('❌ Failed!')
-  expect(result.stdout).toContain('⚠️  Warning!')
-  expect(result.stdout).toContain('ℹ️  Information')
-})
+      const spin2 = spinner("Checking...");
+      spin2.start();
+      spin2.fail("Failed!");
+
+      const spin3 = spinner("Warning test");
+      spin3.start();
+      spin3.warn("Warning!");
+
+      const spin4 = spinner("Info test");
+      spin4.start();
+      spin4.info("Information");
+    },
+  });
+
+  const result = await testCommand(command);
+
+  expect(result.stdout).toContain("⠋ Processing...");
+  expect(result.stdout).toContain("⠋ Almost done...");
+  expect(result.stdout).toContain("✅ Complete!");
+  expect(result.stdout).toContain("❌ Failed!");
+  expect(result.stdout).toContain("⚠️  Warning!");
+  expect(result.stdout).toContain("ℹ️  Information");
+});
 ```
 
 ## API Reference
@@ -414,13 +422,11 @@ test('spinner states', async () => {
 Test a single command:
 
 ```typescript
-function testCommand(
-  command: Command,
-  options?: TestOptions
-): Promise<TestResult>
+function testCommand(command: Command, options?: TestOptions): Promise<TestResult>;
 ```
 
 **Options:**
+
 - `flags` - Command flags to pass (type-safe based on command options)
 - `args` - Positional arguments
 - `env` - Environment variables to merge with process.env
@@ -431,6 +437,7 @@ function testCommand(
 - `exitCode` - Expected exit code (for testing error scenarios)
 
 **Returns:**
+
 - `stdout` - Standard output
 - `stderr` - Standard error
 - `exitCode` - Process exit code
@@ -445,8 +452,8 @@ Test a complete CLI:
 function testCLI(
   setupFn: (cli: CLI) => void,
   argv: string[],
-  options?: TestOptions
-): Promise<TestResult>
+  options?: TestOptions,
+): Promise<TestResult>;
 ```
 
 ### Helper Functions
@@ -471,57 +478,61 @@ mergeTestOptions(...options: Partial<TestOptions>[])
 ## Best Practices
 
 <Callout type="tip">
-  **Color Output**: Test utilities preserve colors as tags (e.g., `[green]text[/green]`) making it easy to assert colored output without ANSI codes. This works automatically - no configuration needed.
+  **Color Output**: Test utilities preserve colors as tags (e.g., `[green]text[/green]`) making it
+  easy to assert colored output without ANSI codes. This works automatically - no configuration
+  needed.
 </Callout>
 
 <Callout type="info">
-  **Shell Mock Defaults**: The test utilities provide sensible defaults for common shell commands:
-  - `git branch --show-current` → `main\n`
-  - `git status` → `nothing to commit, working tree clean\n`
-  
+  **Shell Mock Defaults**: The test utilities provide sensible defaults for common shell commands: -
+  `git branch --show-current` → `main\n` - `git status` → `nothing to commit, working tree clean\n`
   Override these by providing your own mock values.
 </Callout>
 
 1. **Test both success and failure cases**:
+
    ```typescript
-   test('handles missing file', async () => {
+   test("handles missing file", async () => {
      const result = await testCommand(readCommand, {
-       args: ['nonexistent.txt']
-     })
-     
-     expectCommand(result).toHaveFailed()
-     expectCommand(result).toContainInStderr('File not found')
-   })
+       args: ["nonexistent.txt"],
+     });
+
+     expectCommand(result).toHaveFailed();
+     expectCommand(result).toContainInStderr("File not found");
+   });
    ```
 
 2. **Use descriptive test names**:
+
    ```typescript
-   test('deploy command deploys to production with --force flag', async () => {
+   test("deploy command deploys to production with --force flag", async () => {
      // ...
-   })
+   });
    ```
 
 3. **Mock external dependencies**:
+
    ```typescript
    // Don't actually hit external APIs or modify files
    mockShellCommands({
-     'curl https://api.example.com': '{"status": "ok"}'
-   })
+     "curl https://api.example.com": '{"status": "ok"}',
+   });
    ```
 
 4. **Test validation scenarios**:
+
    ```typescript
    // Provide multiple attempts for validation
    mockPromptResponses({
-     'Port:': ['abc', '99999', '3000']  // Test invalid → invalid → valid
-   })
+     "Port:": ["abc", "99999", "3000"], // Test invalid → invalid → valid
+   });
    ```
 
 5. **Verify side effects**:
    ```typescript
    // Check that commands were called
-   const result = await testCommand(deployCommand)
-   expect(result.stdout).toContain('git push origin main')
+   const result = await testCommand(deployCommand);
+   expect(result.stdout).toContain("git push origin main");
    ```
 
 ## Common Patterns
@@ -529,73 +540,79 @@ mergeTestOptions(...options: Partial<TestOptions>[])
 ### Testing Schema Errors
 
 ```typescript
-test('handles schema validation errors', async () => {
+test("handles schema validation errors", async () => {
   const result = await testCommand(deployCommand, {
-    flags: { env: 'qa' as any }  // Invalid enum value
-  })
-  
-  expectCommand(result).toHaveFailed()
-  expect(result.stderr).toContain('[red]Validation errors:[/red]')
-  expect(result.stderr).toContain('[yellow]  --env:[/yellow]')
-  expect(result.stderr).toContain("Expected 'dev' | 'staging' | 'prod'")
-})
+    flags: { env: "qa" as any }, // Invalid enum value
+  });
+
+  expectCommand(result).toHaveFailed();
+  expect(result.stderr).toContain("[red]Validation errors:[/red]");
+  expect(result.stderr).toContain("[yellow]  --env:[/yellow]");
+  expect(result.stderr).toContain("Expected 'dev' | 'staging' | 'prod'");
+});
 ```
 
 ### Testing Shell JSON Output
 
 ```typescript
-test('parses JSON from shell commands', async () => {
+test("parses JSON from shell commands", async () => {
   const command = defineCommand({
     handler: async ({ shell }) => {
-      const data = await shell`curl https://api.example.com`.json()
-      console.log(`Users: ${data.users.length}`)
-    }
-  })
-  
-  const result = await testCommand(command, mockShellCommands({
-    'curl https://api.example.com': JSON.stringify({ users: [{}, {}, {}] })
-  }))
-  
-  expect(result.stdout).toContain('Users: 3')
-})
+      const data = await shell`curl https://api.example.com`.json();
+      console.log(`Users: ${data.users.length}`);
+    },
+  });
+
+  const result = await testCommand(
+    command,
+    mockShellCommands({
+      "curl https://api.example.com": JSON.stringify({ users: [{}, {}, {}] }),
+    }),
+  );
+
+  expect(result.stdout).toContain("Users: 3");
+});
 ```
 
 ### Testing Progress Updates
 
 ```typescript
-test('shows progress during long operations', async () => {
-  const result = await testCommand(buildCommand)
-  
+test("shows progress during long operations", async () => {
+  const result = await testCommand(buildCommand);
+
   // Verify progress messages appear in order
-  const output = result.stdout
-  const buildIndex = output.indexOf('Building...')
-  const optimizeIndex = output.indexOf('Optimizing...')
-  const completeIndex = output.indexOf('✓ Build complete')
-  
-  expect(buildIndex).toBeLessThan(optimizeIndex)
-  expect(optimizeIndex).toBeLessThan(completeIndex)
-})
+  const output = result.stdout;
+  const buildIndex = output.indexOf("Building...");
+  const optimizeIndex = output.indexOf("Optimizing...");
+  const completeIndex = output.indexOf("✓ Build complete");
+
+  expect(buildIndex).toBeLessThan(optimizeIndex);
+  expect(optimizeIndex).toBeLessThan(completeIndex);
+});
 ```
 
 ### Testing Interactive Flows
 
 ```typescript
-test('wizard completes full flow', async () => {
-  const result = await testCommand(wizardCommand, mockInteractive(
-    {
-      'Project name:': 'my-app',
-      'Choose template:': 'typescript',
-      'Install dependencies?': 'y'
-    },
-    {
-      'npm install': 'added 150 packages',
-      'git init': 'Initialized empty Git repository'
-    }
-  ))
-  
-  expectCommand(result).toHaveSucceeded()
-  expect(result.stdout).toContain('Project created successfully')
-})
+test("wizard completes full flow", async () => {
+  const result = await testCommand(
+    wizardCommand,
+    mockInteractive(
+      {
+        "Project name:": "my-app",
+        "Choose template:": "typescript",
+        "Install dependencies?": "y",
+      },
+      {
+        "npm install": "added 150 packages",
+        "git init": "Initialized empty Git repository",
+      },
+    ),
+  );
+
+  expectCommand(result).toHaveSucceeded();
+  expect(result.stdout).toContain("Project created successfully");
+});
 ```
 
 ## Testing with Generated Types
@@ -604,35 +621,35 @@ When using type generation, you can test the generated types themselves and CLI 
 
 ```typescript
 // test/generated-types.test.ts
-import { test, expect } from 'bun:test'
-import { getCommandApi, listCommands } from '../commands.gen'
+import { test, expect } from "bun:test";
+import { getCommandApi, listCommands } from "../commands.gen";
 
-test('generated types are valid', () => {
-  const commands = listCommands()
-  expect(commands.length).toBeGreaterThan(0)
-  
+test("generated types are valid", () => {
+  const commands = listCommands();
+  expect(commands.length).toBeGreaterThan(0);
+
   // Test specific command
-  const greetApi = getCommandApi('greet')
-  expect(greetApi.description).toBe('A friendly greeting')
-  expect(greetApi.options).toHaveProperty('name')
-})
+  const greetApi = getCommandApi("greet");
+  expect(greetApi.description).toBe("A friendly greeting");
+  expect(greetApi.options).toHaveProperty("name");
+});
 
-test('command discovery works', () => {
-  const commands = listCommands()
-  const commandNames = commands.map(c => c.name)
+test("command discovery works", () => {
+  const commands = listCommands();
+  const commandNames = commands.map((c) => c.name);
 
-  expect(commandNames).toContain('greet')
-})
+  expect(commandNames).toContain("greet");
+});
 
-test('command options are properly typed', () => {
-  const greetApi = getCommandApi('greet')
-  
+test("command options are properly typed", () => {
+  const greetApi = getCommandApi("greet");
+
   // Test option structure
-  expect(greetApi.options.name.type).toBe('string')
-  expect(greetApi.options.name.required).toBe(true)
-  expect(greetApi.options.excited.type).toBe('boolean')
-  expect(greetApi.options.excited.default).toBe(false)
-})
+  expect(greetApi.options.name.type).toBe("string");
+  expect(greetApi.options.name.required).toBe(true);
+  expect(greetApi.options.excited.type).toBe("boolean");
+  expect(greetApi.options.excited.default).toBe(false);
+});
 ```
 
 ### Testing CLI Wrappers
@@ -641,41 +658,43 @@ Test CLI wrappers that use generated types:
 
 ```typescript
 // test/cli-wrapper.test.ts
-import { test, expect } from 'bun:test'
-import { DevToolsCLI } from '../src/cli-wrapper'
-import { getCommandApi } from '../commands.gen'
+import { test, expect } from "bun:test";
+import { DevToolsCLI } from "../src/cli-wrapper";
+import { getCommandApi } from "../commands.gen";
 
-test('CLI wrapper validates commands', async () => {
-  const cli = new DevToolsCLI()
-  
+test("CLI wrapper validates commands", async () => {
+  const cli = new DevToolsCLI();
+
   // Test valid command
-  await expect(cli.executeCommand('greet', { name: 'Alice' }))
-    .resolves.not.toThrow()
-  
-  // Test invalid command
-  await expect(cli.executeCommand('nonexistent', {}))
-    .rejects.toThrow('Unknown command: nonexistent')
-  
-  // Test invalid options
-  await expect(cli.executeCommand('greet', { name: 123 }))
-    .rejects.toThrow('Option name must be a string')
-})
+  await expect(cli.executeCommand("greet", { name: "Alice" })).resolves.not.toThrow();
 
-test('command discovery works', () => {
-  const cli = new DevToolsCLI()
-  const commands = cli.getAvailableCommands()
-  
-  expect(commands).toHaveLength(2)
+  // Test invalid command
+  await expect(cli.executeCommand("nonexistent", {})).rejects.toThrow(
+    "Unknown command: nonexistent",
+  );
+
+  // Test invalid options
+  await expect(cli.executeCommand("greet", { name: 123 })).rejects.toThrow(
+    "Option name must be a string",
+  );
+});
+
+test("command discovery works", () => {
+  const cli = new DevToolsCLI();
+  const commands = cli.getAvailableCommands();
+
+  expect(commands).toHaveLength(2);
   expect(commands[0]).toMatchObject({
-    name: 'greet',
-    description: 'A friendly greeting',
-    options: ['name', 'excited']
-  })
-})
+    name: "greet",
+    description: "A friendly greeting",
+    options: ["name", "excited"],
+  });
+});
 ```
 
 <Callout type="tip">
-  Testing generated types ensures your CLI's type generation is working correctly and provides confidence in type-safe CLI wrappers.
+  Testing generated types ensures your CLI's type generation is working correctly and provides
+  confidence in type-safe CLI wrappers.
 </Callout>
 
 ## Testing Full CLIs with `createTestCLI`
@@ -683,48 +702,49 @@ test('command discovery works', () => {
 For full CLI integration tests, use `createTestCLI` to create a test harness that captures stdout/stderr and intercepts `process.exit`:
 
 ```typescript
-import { createTestCLI } from '@bunli/test'
-import { greetCommand } from '../commands/greet'
-import { deployCommand } from '../commands/deploy'
+import { createTestCLI } from "@bunli/test";
+import { greetCommand } from "../commands/greet";
+import { deployCommand } from "../commands/deploy";
 
-test('greet via CLI harness', async () => {
+test("greet via CLI harness", async () => {
   const cli = await createTestCLI({
-    commands: [greetCommand]
-  })
+    commands: [greetCommand],
+  });
 
-  const result = await cli.run(['greet', '--name', 'Alice'])
+  const result = await cli.run(["greet", "--name", "Alice"]);
 
-  expect(result.exitCode).toBe(0)
-  expect(result.stdout).toContain('Hello, Alice!')
-})
+  expect(result.exitCode).toBe(0);
+  expect(result.stdout).toContain("Hello, Alice!");
+});
 
-test('deploy via programmatic execute', async () => {
+test("deploy via programmatic execute", async () => {
   const cli = await createTestCLI({
-    commands: [deployCommand]
-  })
+    commands: [deployCommand],
+  });
 
-  const result = await cli.execute('deploy', ['--env', 'prod'])
+  const result = await cli.execute("deploy", ["--env", "prod"]);
 
-  expect(result.exitCode).toBe(0)
-  expect(result.stdout).toContain('Deploying to prod')
-})
+  expect(result.exitCode).toBe(0);
+  expect(result.stdout).toContain("Deploying to prod");
+});
 ```
 
 <Callout type="info">
-  **Limitation**: `createTestCLI` does NOT support `stdin` or `mockPrompts` options. For testing interactive prompts, use `testCommand` instead.
+  **Limitation**: `createTestCLI` does NOT support `stdin` or `mockPrompts` options. For testing
+  interactive prompts, use `testCommand` instead.
 </Callout>
 
 ### Configuration
 
 ```typescript
 interface TestCLIConfig {
-  name?: string         // CLI name (default: 'test-cli')
-  version?: string      // CLI version (default: '1.0.0')
-  description?: string   // CLI description
-  commands?: Command[]   // Commands to register (required for run/execute)
-  plugins?: BunliPlugin[]  // Plugins to load
-  env?: Record<string, string | undefined>  // Environment overrides
-  config?: Partial<BunliConfigInput>   // Config overrides
+  name?: string; // CLI name (default: 'test-cli')
+  version?: string; // CLI version (default: '1.0.0')
+  description?: string; // CLI description
+  commands?: Command[]; // Commands to register (required for run/execute)
+  plugins?: BunliPlugin[]; // Plugins to load
+  env?: Record<string, string | undefined>; // Environment overrides
+  config?: Partial<BunliConfigInput>; // Config overrides
 }
 ```
 
@@ -734,20 +754,20 @@ interface TestCLIConfig {
 
 ```typescript
 interface TestCLIRunResult {
-  stdout: string   // Captured stdout (lines joined by newlines)
-  stderr: string   // Captured stderr
-  exitCode: number // Process exit code (0 = success)
-  error?: Error    // Error thrown during execution
+  stdout: string; // Captured stdout (lines joined by newlines)
+  stderr: string; // Captured stderr
+  exitCode: number; // Process exit code (0 = success)
+  error?: Error; // Error thrown during execution
 }
 ```
 
 ### Key Differences from `testCommand`
 
-| | `testCommand` | `createTestCLI` |
-|--|---------------|----------------|
-| Scope | Single command | Full CLI with plugin lifecycle |
-| Commands | Passed per-test | Registered once at setup |
-| Plugins | Not supported | Supported |
-| `stdin`/`mockPrompts` | ✅ Supported | ❌ Not supported |
-| `cli.run(argv)` | — | Run with argv like CLI invocation |
-| `cli.execute(name, args?)` | — | Execute a named command programmatically |
+|                            | `testCommand`   | `createTestCLI`                          |
+| -------------------------- | --------------- | ---------------------------------------- |
+| Scope                      | Single command  | Full CLI with plugin lifecycle           |
+| Commands                   | Passed per-test | Registered once at setup                 |
+| Plugins                    | Not supported   | Supported                                |
+| `stdin`/`mockPrompts`      | ✅ Supported    | ❌ Not supported                         |
+| `cli.run(argv)`            | —               | Run with argv like CLI invocation        |
+| `cli.execute(name, args?)` | —               | Execute a named command programmatically |

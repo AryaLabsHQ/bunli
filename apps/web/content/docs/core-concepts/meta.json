@@ -1,11 +1,4 @@
 {
   "title": "Core Concepts",
-  "pages": [
-    "index",
-    "commands",
-    "type-inference",
-    "validation",
-    "configuration",
-    "plugins"
-  ]
+  "pages": ["index", "commands", "type-inference", "validation", "configuration", "plugins"]
 }

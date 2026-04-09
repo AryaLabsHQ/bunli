@@ -43,8 +43,8 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@tsconfig/bun": "catalog:",
     "@cloudflare/vite-plugin": "^1.21.0",
+    "@tsconfig/bun": "catalog:",
     "@types/mdx": "^2.0.13",
     "@types/node": "catalog:",
     "@types/react": "catalog:",

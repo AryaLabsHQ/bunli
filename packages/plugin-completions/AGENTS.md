@@ -8,18 +8,18 @@ Generates shell completion scripts for bash, zsh, fish, and powershell.
 
 ## WHERE TO LOOK
 
-| Task | Location |
-|------|----------|
-| Main plugin | `src/plugin.ts` |
+| Task                | Location                      |
+| ------------------- | ----------------------------- |
+| Main plugin         | `src/plugin.ts`               |
 | Completions command | `src/commands/completions.ts` |
-| Metadata extraction | `src/utils/metadata.ts` |
+| Metadata extraction | `src/utils/metadata.ts`       |
 
 ## PATTERNS
 
 ```typescript
-import { completionsPlugin } from '@bunli/plugin-completions'
+import { completionsPlugin } from "@bunli/plugin-completions";
 
-plugins: [completionsPlugin()]
+plugins: [completionsPlugin()];
 ```
 
 ## SHELL TYPES

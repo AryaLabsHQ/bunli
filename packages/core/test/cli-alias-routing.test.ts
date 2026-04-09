@@ -1,77 +1,78 @@
-import { describe, test, expect } from 'bun:test'
-import { createCLI, defineCommand, defineGroup } from '../src/index.js'
+import { describe, test, expect } from "bun:test";
 
-describe('CLI alias routing', () => {
-  test('routes subcommands through parent aliases', async () => {
-    const invoked: string[] = []
+import { createCLI, defineCommand, defineGroup } from "../src/index.js";
+
+describe("CLI alias routing", () => {
+  test("routes subcommands through parent aliases", async () => {
+    const invoked: string[] = [];
 
     const migrateCommand = defineCommand({
-      name: 'migrate',
-      alias: 'm',
-      description: 'Run migrations',
+      name: "migrate",
+      alias: "m",
+      description: "Run migrations",
       handler: async () => {
-        invoked.push('migrate')
-      }
-    })
+        invoked.push("migrate");
+      },
+    });
 
     const databaseGroup = defineGroup({
-      name: 'database',
-      alias: 'db',
-      description: 'Database commands',
-      commands: [migrateCommand]
-    })
+      name: "database",
+      alias: "db",
+      description: "Database commands",
+      commands: [migrateCommand],
+    });
 
     const cli = await createCLI({
-      name: 'alias-cli',
-      version: '0.0.0',
-      plugins: []
-    })
+      name: "alias-cli",
+      version: "0.0.0",
+      plugins: [],
+    });
 
-    cli.command(databaseGroup)
+    cli.command(databaseGroup);
 
-    await cli.execute('db migrate')
-    await cli.execute('db m')
+    await cli.execute("db migrate");
+    await cli.execute("db m");
 
-    expect(invoked).toEqual(['migrate', 'migrate'])
-  })
+    expect(invoked).toEqual(["migrate", "migrate"]);
+  });
 
-  test('routes deep nested subcommands through chained aliases', async () => {
-    const invoked: string[] = []
+  test("routes deep nested subcommands through chained aliases", async () => {
+    const invoked: string[] = [];
 
     const setCommand = defineCommand({
-      name: 'set',
-      alias: 's',
-      description: 'Set value',
+      name: "set",
+      alias: "s",
+      description: "Set value",
       handler: async () => {
-        invoked.push('set')
-      }
-    })
+        invoked.push("set");
+      },
+    });
 
     const profileGroup = defineGroup({
-      name: 'profile',
-      alias: 'p',
-      description: 'Profile commands',
-      commands: [setCommand]
-    })
+      name: "profile",
+      alias: "p",
+      description: "Profile commands",
+      commands: [setCommand],
+    });
 
     const configGroup = defineGroup({
-      name: 'config',
-      alias: 'cfg',
-      description: 'Config commands',
-      commands: [profileGroup]
-    })
+      name: "config",
+      alias: "cfg",
+      description: "Config commands",
+      commands: [profileGroup],
+    });
 
     const cli = await createCLI({
-      name: 'nested-alias-cli',
-      version: '0.0.0',
-      plugins: []
-    })
+      name: "nested-alias-cli",
+      version: "0.0.0",
+      plugins: [],
+    });
 
-    cli.command(configGroup)
+    cli.command(configGroup);
 
-    await cli.execute('cfg profile set')
-    await cli.execute('cfg p s')
+    await cli.execute("cfg profile set");
+    await cli.execute("cfg p s");
 
-    expect(invoked).toEqual(['set', 'set'])
-  })
-})
+    expect(invoked).toEqual(["set", "set"]);
+  });
+});

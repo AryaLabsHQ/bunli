@@ -2,6 +2,19 @@
   "name": "@bunli/runtime",
   "version": "0.3.1",
   "description": "Runtime renderer and prompt primitives for Bunli",
+  "keywords": [
+    "bunli",
+    "prompt",
+    "runtime",
+    "terminal",
+    "tui"
+  ],
+  "license": "MIT",
+  "author": "Bunli Contributors",
+  "files": [
+    "dist",
+    "src"
+  ],
   "type": "module",
   "main": "src/index.ts",
   "exports": {
@@ -56,26 +69,13 @@
   "devDependencies": {
     "@tsconfig/bun": "catalog:",
     "@types/bun": "catalog:",
-    "@types/react": "catalog:",
     "@types/debug": "catalog:",
+    "@types/react": "catalog:",
     "react": "catalog:",
     "typescript": "catalog:"
   },
   "peerDependencies": {
     "@opentui/core": "catalog:",
     "react": "catalog:"
-  },
-  "files": [
-    "dist",
-    "src"
-  ],
-  "keywords": [
-    "bunli",
-    "runtime",
-    "tui",
-    "prompt",
-    "terminal"
-  ],
-  "author": "Bunli Contributors",
-  "license": "MIT"
+  }
 }

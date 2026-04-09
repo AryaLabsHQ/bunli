@@ -1,83 +1,87 @@
-import { parse } from '@babel/parser'
-const traverse = require('@babel/traverse').default
-import path from 'node:path'
-import { existsSync } from 'node:fs'
-import { Result } from 'better-result'
-import type { CommandMetadata, OptionMetadata } from './types.js'
-import { createLogger } from '@bunli/core/utils'
-import { ParseCommandError } from './errors.js'
+import { parse } from "@babel/parser";
+const traverse = require("@babel/traverse").default;
+import { existsSync } from "node:fs";
+import path from "node:path";
 
-const logger = createLogger('generator:parser')
-const SUPPORTED_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs']
+import { createLogger } from "@bunli/core/utils";
+import { Result } from "better-result";
+
+import { ParseCommandError } from "./errors.js";
+import type { CommandMetadata, OptionMetadata } from "./types.js";
+
+const logger = createLogger("generator:parser");
+const SUPPORTED_EXTENSIONS = [".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"];
 
 interface ParseContext {
-  readonly sourceRoot: string
-  readonly outputFile: string
-  readonly cache: Map<string, Promise<Result<CommandMetadata | null, ParseCommandError>>>
-  readonly inProgress: Set<string>
-  readonly moduleCache: Map<string, Promise<Result<ModuleInfo, ParseCommandError>>>
-  readonly moduleInProgress: Set<string>
+  readonly sourceRoot: string;
+  readonly outputFile: string;
+  readonly cache: Map<string, Promise<Result<CommandMetadata | null, ParseCommandError>>>;
+  readonly inProgress: Set<string>;
+  readonly moduleCache: Map<string, Promise<Result<ModuleInfo, ParseCommandError>>>;
+  readonly moduleInProgress: Set<string>;
 }
 
 interface ImportBinding {
-  filePath: string
-  importedName: string
+  filePath: string;
+  importedName: string;
 }
 
 interface ModuleInfo {
-  variableInitializers: Map<string, any>
-  importBindings: Map<string, ImportBinding>
-  exportedExpressions: Map<string, any>
+  variableInitializers: Map<string, any>;
+  importBindings: Map<string, ImportBinding>;
+  exportedExpressions: Map<string, any>;
 }
 
 interface OptionResolverScope {
-  readonly filePath: string
-  readonly variableInitializers: Map<string, any>
-  readonly importBindings: Map<string, ImportBinding>
-  readonly context: ParseContext
+  readonly filePath: string;
+  readonly variableInitializers: Map<string, any>;
+  readonly importBindings: Map<string, ImportBinding>;
+  readonly context: ParseContext;
 }
 
 function toAbsolute(target: string): string {
-  return path.isAbsolute(target) ? target : path.join(process.cwd() || '.', target)
+  return path.isAbsolute(target) ? target : path.join(process.cwd() || ".", target);
 }
 
 function getCommandName(filePath: string, sourceRoot: string): string {
-  const sourceRootAbsolute = toAbsolute(sourceRoot)
-  const fileAbsolute = toAbsolute(filePath)
-  const relativePath = path.relative(sourceRootAbsolute, fileAbsolute).replace(/\\/g, '/')
-  const withoutExt = relativePath.replace(/\.[^.]+$/, '')
+  const sourceRootAbsolute = toAbsolute(sourceRoot);
+  const fileAbsolute = toAbsolute(filePath);
+  const relativePath = path.relative(sourceRootAbsolute, fileAbsolute).replace(/\\/g, "/");
+  const withoutExt = relativePath.replace(/\.[^.]+$/, "");
 
-  if (withoutExt.endsWith('/index')) {
-    return withoutExt.slice(0, -6)
+  if (withoutExt.endsWith("/index")) {
+    return withoutExt.slice(0, -6);
   }
 
-  return withoutExt
+  return withoutExt;
 }
 
 function getImportPath(filePath: string, outputFile: string): string {
-  const commandAbsolute = toAbsolute(filePath)
-  const outputAbsolute = toAbsolute(outputFile)
-  const relativePath = path.relative(path.dirname(outputAbsolute), commandAbsolute).replace(/\\/g, '/')
-  const withJsExt = relativePath.replace(/\.(ts|tsx)$/, '.js')
+  const commandAbsolute = toAbsolute(filePath);
+  const outputAbsolute = toAbsolute(outputFile);
+  const relativePath = path
+    .relative(path.dirname(outputAbsolute), commandAbsolute)
+    .replace(/\\/g, "/");
+  const withJsExt = relativePath.replace(/\.(ts|tsx)$/, ".js");
 
-  if (withJsExt.startsWith('../') || withJsExt.startsWith('./')) {
-    return withJsExt
+  if (withJsExt.startsWith("../") || withJsExt.startsWith("./")) {
+    return withJsExt;
   }
-  return `./${withJsExt}`
+  return `./${withJsExt}`;
 }
 
 function getExportPath(filePath: string): string {
-  const fileAbsolute = toAbsolute(filePath)
-  const cwdAbsolute = toAbsolute(process.cwd())
-  const relativePath = path.relative(cwdAbsolute, fileAbsolute).replace(/\\/g, '/')
-  const withoutExt = relativePath.replace(/\.[^.]+$/, '')
-  return withoutExt.startsWith('.') ? withoutExt : `./${withoutExt}`
+  const fileAbsolute = toAbsolute(filePath);
+  const cwdAbsolute = toAbsolute(process.cwd());
+  const relativePath = path.relative(cwdAbsolute, fileAbsolute).replace(/\\/g, "/");
+  const withoutExt = relativePath.replace(/\.[^.]+$/, "");
+  return withoutExt.startsWith(".") ? withoutExt : `./${withoutExt}`;
 }
 
 export async function parseCommand(
   filePath: string,
   sourceRoot: string,
-  outputFile: string
+  outputFile: string,
 ): Promise<Result<CommandMetadata | null, ParseCommandError>> {
   const context: ParseContext = {
     sourceRoot,
@@ -85,363 +89,367 @@ export async function parseCommand(
     cache: new Map(),
     inProgress: new Set(),
     moduleCache: new Map(),
-    moduleInProgress: new Set()
-  }
+    moduleInProgress: new Set(),
+  };
 
-  return parseCommandWithContext(filePath, context)
+  return parseCommandWithContext(filePath, context);
 }
 
 async function parseCommandWithContext(
   filePath: string,
-  context: ParseContext
+  context: ParseContext,
 ): Promise<Result<CommandMetadata | null, ParseCommandError>> {
-  const absoluteFilePath = toAbsolute(filePath)
+  const absoluteFilePath = toAbsolute(filePath);
   if (context.inProgress.has(absoluteFilePath)) {
-    return Result.err(new ParseCommandError({
-      filePath: absoluteFilePath,
-      message: `Circular command reference detected while parsing ${absoluteFilePath}`,
-      cause: new Error('Circular command reference')
-    }))
+    return Result.err(
+      new ParseCommandError({
+        filePath: absoluteFilePath,
+        message: `Circular command reference detected while parsing ${absoluteFilePath}`,
+        cause: new Error("Circular command reference"),
+      }),
+    );
   }
 
-  const cached = context.cache.get(absoluteFilePath)
-  if (cached) return cached
+  const cached = context.cache.get(absoluteFilePath);
+  if (cached) return cached;
 
-  const work = parseCommandInternal(absoluteFilePath, context)
-  context.cache.set(absoluteFilePath, work)
-  return work
+  const work = parseCommandInternal(absoluteFilePath, context);
+  context.cache.set(absoluteFilePath, work);
+  return work;
 }
 
 async function parseCommandInternal(
   filePath: string,
-  context: ParseContext
+  context: ParseContext,
 ): Promise<Result<CommandMetadata | null, ParseCommandError>> {
   if (context.inProgress.has(filePath)) {
-    return Result.err(new ParseCommandError({
-      filePath,
-      message: `Circular command reference detected while parsing ${filePath}`,
-      cause: new Error('Circular command reference')
-    }))
+    return Result.err(
+      new ParseCommandError({
+        filePath,
+        message: `Circular command reference detected while parsing ${filePath}`,
+        cause: new Error("Circular command reference"),
+      }),
+    );
   }
-  context.inProgress.add(filePath)
+  context.inProgress.add(filePath);
 
   const parseResult = await Result.tryPromise({
     try: async () => {
-      const content = await Bun.file(filePath).text()
-      const transpiler = new Bun.Transpiler({ loader: 'tsx' })
-      const scanResult = transpiler.scan(content)
+      const content = await Bun.file(filePath).text();
+      const transpiler = new Bun.Transpiler({ loader: "tsx" });
+      const scanResult = transpiler.scan(content);
 
-      const hasCommandCall = content.includes('defineCommand(') || content.includes('defineGroup(')
+      const hasCommandCall = content.includes("defineCommand(") || content.includes("defineGroup(");
       if (!hasCommandCall) {
-        return null
+        return null;
       }
 
-      const hasDefaultExport = scanResult.exports.includes('default')
+      const hasDefaultExport = scanResult.exports.includes("default");
       if (!hasDefaultExport) {
         throw new Error(
-          `Command module must default-export a defineCommand(...) or defineGroup(...): ${filePath}`
-        )
+          `Command module must default-export a defineCommand(...) or defineGroup(...): ${filePath}`,
+        );
       }
 
       const ast = parse(content, {
-        sourceType: 'module',
-        plugins: ['typescript', 'jsx', 'decorators-legacy']
-      })
+        sourceType: "module",
+        plugins: ["typescript", "jsx", "decorators-legacy"],
+      });
 
-      const importBindings = collectImportBindings(ast, filePath)
-      const importMap = collectImportMap(importBindings)
-      const variableInitializers = collectVariableInitializers(ast)
-      const defaultExpr = findDefaultExportExpression(ast, variableInitializers)
+      const importBindings = collectImportBindings(ast, filePath);
+      const importMap = collectImportMap(importBindings);
+      const variableInitializers = collectVariableInitializers(ast);
+      const defaultExpr = findDefaultExportExpression(ast, variableInitializers);
       if (!defaultExpr) {
         throw new Error(
-          `Default export in ${filePath} is not a command/group definition. Expected defineCommand(...) or defineGroup(...).`
-        )
+          `Default export in ${filePath} is not a command/group definition. Expected defineCommand(...) or defineGroup(...).`,
+        );
       }
 
-      const commandObject = extractCommandObjectExpression(defaultExpr)
+      const commandObject = extractCommandObjectExpression(defaultExpr);
       if (!commandObject) {
         throw new Error(
-          `Could not extract command metadata from default export in ${filePath}. Expected object literal in defineCommand(...) or defineGroup(...).`
-        )
+          `Could not extract command metadata from default export in ${filePath}. Expected object literal in defineCommand(...) or defineGroup(...).`,
+        );
       }
 
-      const metadata = await extractCommandMetadata(
-        commandObject,
+      const metadata = await extractCommandMetadata(commandObject, filePath, context, importMap, {
         filePath,
+        variableInitializers,
+        importBindings,
         context,
-        importMap,
-        {
-          filePath,
-          variableInitializers,
-          importBindings,
-          context
-        }
-      )
+      });
 
       if (!metadata.name) {
-        metadata.name = getCommandName(filePath, context.sourceRoot)
+        metadata.name = getCommandName(filePath, context.sourceRoot);
       }
 
-      return metadata
+      return metadata;
     },
     catch: (cause) =>
       new ParseCommandError({
         filePath,
         message: `Could not parse command file ${filePath}`,
-        cause
-      })
-  })
+        cause,
+      }),
+  });
 
-  context.inProgress.delete(filePath)
+  context.inProgress.delete(filePath);
   if (Result.isError(parseResult)) {
-    logger.debug('Could not parse command file %s: %O', filePath, parseResult.error)
+    logger.debug("Could not parse command file %s: %O", filePath, parseResult.error);
   }
-  return parseResult
+  return parseResult;
 }
 
 function collectVariableInitializers(ast: any): Map<string, any> {
-  const bindings = new Map<string, any>()
+  const bindings = new Map<string, any>();
   traverse(ast, {
     VariableDeclarator(path: any) {
-      const id = path.node.id
-      const init = path.node.init
-      if (id?.type === 'Identifier' && init) {
-        bindings.set(id.name, init)
+      const id = path.node.id;
+      const init = path.node.init;
+      if (id?.type === "Identifier" && init) {
+        bindings.set(id.name, init);
       }
-    }
-  })
-  return bindings
+    },
+  });
+  return bindings;
 }
 
 function findDefaultExportExpression(ast: any, variableInitializers: Map<string, any>): any | null {
-  let result: any | null = null
+  let result: any | null = null;
   traverse(ast, {
     ExportDefaultDeclaration(path: any) {
-      const declaration = path.node.declaration
-      if (declaration?.type === 'Identifier') {
-        result = variableInitializers.get(declaration.name) ?? null
-        return
+      const declaration = path.node.declaration;
+      if (declaration?.type === "Identifier") {
+        result = variableInitializers.get(declaration.name) ?? null;
+        return;
       }
-      result = declaration
-    }
-  })
-  return result
+      result = declaration;
+    },
+  });
+  return result;
 }
 
 function extractCommandObjectExpression(node: any): any | null {
-  if (!node) return null
+  if (!node) return null;
 
   if (
-    node.type === 'CallExpression' &&
-    (
-      (node.callee?.type === 'Identifier' &&
-        (node.callee.name === 'defineCommand' || node.callee.name === 'defineGroup')) ||
-      (node.callee?.type === 'MemberExpression' &&
-        node.callee.property?.type === 'Identifier' &&
-        (node.callee.property.name === 'defineCommand' || node.callee.property.name === 'defineGroup'))
-    )
+    node.type === "CallExpression" &&
+    ((node.callee?.type === "Identifier" &&
+      (node.callee.name === "defineCommand" || node.callee.name === "defineGroup")) ||
+      (node.callee?.type === "MemberExpression" &&
+        node.callee.property?.type === "Identifier" &&
+        (node.callee.property.name === "defineCommand" ||
+          node.callee.property.name === "defineGroup")))
   ) {
-    const arg0 = node.arguments?.[0]
-    if (arg0?.type === 'ObjectExpression') return arg0
+    const arg0 = node.arguments?.[0];
+    if (arg0?.type === "ObjectExpression") return arg0;
   }
 
-  return null
+  return null;
 }
 
 function collectImportBindings(ast: any, filePath: string): Map<string, ImportBinding> {
-  const bindings = new Map<string, ImportBinding>()
+  const bindings = new Map<string, ImportBinding>();
 
   traverse(ast, {
     ImportDeclaration(path: any) {
-      const source = path.node.source?.value
-      if (typeof source !== 'string' || !source.startsWith('.')) return
+      const source = path.node.source?.value;
+      if (typeof source !== "string" || !source.startsWith(".")) return;
 
-      const resolved = resolveImportPath(filePath, source)
-      if (!resolved) return
+      const resolved = resolveImportPath(filePath, source);
+      if (!resolved) return;
 
       for (const specifier of path.node.specifiers) {
-        if (!specifier?.local?.name) continue
+        if (!specifier?.local?.name) continue;
 
-        if (specifier.type === 'ImportDefaultSpecifier') {
+        if (specifier.type === "ImportDefaultSpecifier") {
           bindings.set(specifier.local.name, {
             filePath: resolved,
-            importedName: 'default'
-          })
-          continue
+            importedName: "default",
+          });
+          continue;
         }
 
-        if (specifier.type === 'ImportSpecifier') {
-          const importedName = specifier.imported?.name ?? specifier.imported?.value
-          if (typeof importedName === 'string' && importedName.length > 0) {
+        if (specifier.type === "ImportSpecifier") {
+          const importedName = specifier.imported?.name ?? specifier.imported?.value;
+          if (typeof importedName === "string" && importedName.length > 0) {
             bindings.set(specifier.local.name, {
               filePath: resolved,
-              importedName
-            })
+              importedName,
+            });
           }
-          continue
+          continue;
         }
 
-        if (specifier.type === 'ImportNamespaceSpecifier') {
+        if (specifier.type === "ImportNamespaceSpecifier") {
           bindings.set(specifier.local.name, {
             filePath: resolved,
-            importedName: '*'
-          })
+            importedName: "*",
+          });
         }
       }
-    }
-  })
+    },
+  });
 
-  return bindings
+  return bindings;
 }
 
 function collectImportMap(bindings: Map<string, ImportBinding>): Map<string, string> {
-  const importMap = new Map<string, string>()
+  const importMap = new Map<string, string>();
   for (const [name, binding] of bindings) {
-    importMap.set(name, binding.filePath)
+    importMap.set(name, binding.filePath);
   }
-  return importMap
+  return importMap;
 }
 
-function collectExportedExpressions(ast: any, variableInitializers: Map<string, any>): Map<string, any> {
-  const exports = new Map<string, any>()
+function collectExportedExpressions(
+  ast: any,
+  variableInitializers: Map<string, any>,
+): Map<string, any> {
+  const exports = new Map<string, any>();
 
   traverse(ast, {
     ExportDefaultDeclaration(path: any) {
-      const declaration = path.node.declaration
-      if (declaration?.type === 'Identifier') {
-        const init = variableInitializers.get(declaration.name)
-        if (init) exports.set('default', init)
-        return
+      const declaration = path.node.declaration;
+      if (declaration?.type === "Identifier") {
+        const init = variableInitializers.get(declaration.name);
+        if (init) exports.set("default", init);
+        return;
       }
-      if (declaration) exports.set('default', declaration)
+      if (declaration) exports.set("default", declaration);
     },
     ExportNamedDeclaration(path: any) {
-      const declaration = path.node.declaration
+      const declaration = path.node.declaration;
 
-      if (declaration?.type === 'VariableDeclaration') {
+      if (declaration?.type === "VariableDeclaration") {
         for (const decl of declaration.declarations) {
-          const id = decl?.id
-          if (id?.type !== 'Identifier') continue
+          const id = decl?.id;
+          if (id?.type !== "Identifier") continue;
           if (decl.init) {
-            exports.set(id.name, decl.init)
+            exports.set(id.name, decl.init);
           } else {
-            const init = variableInitializers.get(id.name)
-            if (init) exports.set(id.name, init)
+            const init = variableInitializers.get(id.name);
+            if (init) exports.set(id.name, init);
           }
         }
-      } else if (declaration?.type === 'FunctionDeclaration' && declaration.id?.name) {
-        exports.set(declaration.id.name, declaration)
+      } else if (declaration?.type === "FunctionDeclaration" && declaration.id?.name) {
+        exports.set(declaration.id.name, declaration);
       }
 
       for (const specifier of path.node.specifiers ?? []) {
-        if (specifier.type !== 'ExportSpecifier') continue
-        const localName = specifier.local?.name ?? specifier.local?.value
-        const exportedName = specifier.exported?.name ?? specifier.exported?.value
-        if (typeof localName !== 'string' || typeof exportedName !== 'string') continue
-        const init = variableInitializers.get(localName)
-        if (init) exports.set(exportedName, init)
+        if (specifier.type !== "ExportSpecifier") continue;
+        const localName = specifier.local?.name ?? specifier.local?.value;
+        const exportedName = specifier.exported?.name ?? specifier.exported?.value;
+        if (typeof localName !== "string" || typeof exportedName !== "string") continue;
+        const init = variableInitializers.get(localName);
+        if (init) exports.set(exportedName, init);
       }
-    }
-  })
+    },
+  });
 
-  return exports
+  return exports;
 }
 
 function resolveImportPath(fromFile: string, specifier: string): string | null {
-  const base = path.resolve(path.dirname(fromFile), specifier)
-  const ext = path.extname(base)
-  const candidates: string[] = []
+  const base = path.resolve(path.dirname(fromFile), specifier);
+  const ext = path.extname(base);
+  const candidates: string[] = [];
 
   if (ext) {
     if (!SUPPORTED_EXTENSIONS.includes(ext)) {
-      return null
+      return null;
     }
 
-    candidates.push(base)
-    if (ext === '.js' || ext === '.mjs' || ext === '.cjs') {
-      const stem = base.slice(0, -ext.length)
+    candidates.push(base);
+    if (ext === ".js" || ext === ".mjs" || ext === ".cjs") {
+      const stem = base.slice(0, -ext.length);
       for (const supported of SUPPORTED_EXTENSIONS) {
-        candidates.push(`${stem}${supported}`)
+        candidates.push(`${stem}${supported}`);
       }
     }
   } else {
     for (const supported of SUPPORTED_EXTENSIONS) {
-      candidates.push(`${base}${supported}`)
+      candidates.push(`${base}${supported}`);
     }
     for (const supported of SUPPORTED_EXTENSIONS) {
-      candidates.push(path.join(base, `index${supported}`))
+      candidates.push(path.join(base, `index${supported}`));
     }
   }
 
   for (const candidate of candidates) {
-    if (existsSync(candidate)) return candidate
+    if (existsSync(candidate)) return candidate;
   }
-  return null
+  return null;
 }
 
 async function parseModuleInfoWithContext(
   filePath: string,
-  context: ParseContext
+  context: ParseContext,
 ): Promise<Result<ModuleInfo, ParseCommandError>> {
-  const absoluteFilePath = toAbsolute(filePath)
+  const absoluteFilePath = toAbsolute(filePath);
   if (context.moduleInProgress.has(absoluteFilePath)) {
-    return Result.err(new ParseCommandError({
-      filePath: absoluteFilePath,
-      message: `Circular module reference detected while parsing ${absoluteFilePath}`,
-      cause: new Error('Circular module reference')
-    }))
+    return Result.err(
+      new ParseCommandError({
+        filePath: absoluteFilePath,
+        message: `Circular module reference detected while parsing ${absoluteFilePath}`,
+        cause: new Error("Circular module reference"),
+      }),
+    );
   }
 
-  const cached = context.moduleCache.get(absoluteFilePath)
-  if (cached) return cached
+  const cached = context.moduleCache.get(absoluteFilePath);
+  if (cached) return cached;
 
-  const work = parseModuleInfoInternal(absoluteFilePath, context)
-  context.moduleCache.set(absoluteFilePath, work)
-  return work
+  const work = parseModuleInfoInternal(absoluteFilePath, context);
+  context.moduleCache.set(absoluteFilePath, work);
+  return work;
 }
 
 async function parseModuleInfoInternal(
   filePath: string,
-  context: ParseContext
+  context: ParseContext,
 ): Promise<Result<ModuleInfo, ParseCommandError>> {
   if (context.moduleInProgress.has(filePath)) {
-    return Result.err(new ParseCommandError({
-      filePath,
-      message: `Circular module reference detected while parsing ${filePath}`,
-      cause: new Error('Circular module reference')
-    }))
+    return Result.err(
+      new ParseCommandError({
+        filePath,
+        message: `Circular module reference detected while parsing ${filePath}`,
+        cause: new Error("Circular module reference"),
+      }),
+    );
   }
 
-  context.moduleInProgress.add(filePath)
+  context.moduleInProgress.add(filePath);
 
   const parseResult = await Result.tryPromise({
     try: async () => {
-      const content = await Bun.file(filePath).text()
+      const content = await Bun.file(filePath).text();
       const ast = parse(content, {
-        sourceType: 'module',
-        plugins: ['typescript', 'jsx', 'decorators-legacy']
-      })
+        sourceType: "module",
+        plugins: ["typescript", "jsx", "decorators-legacy"],
+      });
 
-      const variableInitializers = collectVariableInitializers(ast)
-      const importBindings = collectImportBindings(ast, filePath)
-      const exportedExpressions = collectExportedExpressions(ast, variableInitializers)
+      const variableInitializers = collectVariableInitializers(ast);
+      const importBindings = collectImportBindings(ast, filePath);
+      const exportedExpressions = collectExportedExpressions(ast, variableInitializers);
 
       return {
         variableInitializers,
         importBindings,
-        exportedExpressions
-      }
+        exportedExpressions,
+      };
     },
     catch: (cause) =>
       new ParseCommandError({
         filePath,
         message: `Could not parse module file ${filePath}`,
-        cause
-      })
-  })
+        cause,
+      }),
+  });
 
-  context.moduleInProgress.delete(filePath)
-  return parseResult
+  context.moduleInProgress.delete(filePath);
+  return parseResult;
 }
 
 async function extractCommandMetadata(
@@ -449,65 +457,65 @@ async function extractCommandMetadata(
   filePath: string,
   context: ParseContext,
   importMap: Map<string, string>,
-  optionResolver: OptionResolverScope
+  optionResolver: OptionResolverScope,
 ): Promise<CommandMetadata> {
   const metadata: CommandMetadata = {
-    name: '',
-    description: '',
+    name: "",
+    description: "",
     filePath,
     importPath: getImportPath(filePath, context.outputFile),
-    exportPath: getExportPath(filePath)
-  }
+    exportPath: getExportPath(filePath),
+  };
 
   for (const prop of objectExpression.properties) {
-    if (prop.type !== 'ObjectProperty' || prop.key.type !== 'Identifier') continue
+    if (prop.type !== "ObjectProperty" || prop.key.type !== "Identifier") continue;
 
-    const key = prop.key.name
-    const value = prop.value
+    const key = prop.key.name;
+    const value = prop.value;
 
     switch (key) {
-      case 'name':
-        metadata.name = extractNameValue(value) ?? ''
-        break
-      case 'description':
-        if (value.type === 'StringLiteral') metadata.description = value.value
-        break
-      case 'alias':
-        if (value.type === 'StringLiteral') {
-          metadata.alias = value.value
-        } else if (value.type === 'ArrayExpression') {
+      case "name":
+        metadata.name = extractNameValue(value) ?? "";
+        break;
+      case "description":
+        if (value.type === "StringLiteral") metadata.description = value.value;
+        break;
+      case "alias":
+        if (value.type === "StringLiteral") {
+          metadata.alias = value.value;
+        } else if (value.type === "ArrayExpression") {
           metadata.alias = value.elements
-            .filter((el: any) => el?.type === 'StringLiteral')
-            .map((el: any) => el.value)
+            .filter((el: any) => el?.type === "StringLiteral")
+            .map((el: any) => el.value);
         }
-        break
-      case 'options':
+        break;
+      case "options":
         {
-          const extractedOptions = await extractOptions(value, optionResolver)
+          const extractedOptions = await extractOptions(value, optionResolver);
           if (Object.keys(extractedOptions).length > 0) {
-            metadata.options = extractedOptions
+            metadata.options = extractedOptions;
           }
         }
-        break
-      case 'handler':
-        metadata.hasHandler = true
-        break
-      case 'render':
-        metadata.hasRender = true
-        break
-      case 'commands':
+        break;
+      case "handler":
+        metadata.hasHandler = true;
+        break;
+      case "render":
+        metadata.hasRender = true;
+        break;
+      case "commands":
         metadata.commands = await extractNestedCommands(
           value,
           filePath,
           context,
           importMap,
-          optionResolver
-        )
-        break
+          optionResolver,
+        );
+        break;
     }
   }
 
-  return metadata
+  return metadata;
 }
 
 async function extractNestedCommands(
@@ -515,140 +523,142 @@ async function extractNestedCommands(
   parentFile: string,
   context: ParseContext,
   importMap: Map<string, string>,
-  optionResolver: OptionResolverScope
+  optionResolver: OptionResolverScope,
 ): Promise<CommandMetadata[] | undefined> {
-  if (value.type !== 'ArrayExpression') return undefined
+  if (value.type !== "ArrayExpression") return undefined;
 
-  const nested: CommandMetadata[] = []
+  const nested: CommandMetadata[] = [];
 
   for (const element of value.elements) {
-    if (!element) continue
+    if (!element) continue;
 
-    if (element.type === 'ObjectExpression') {
+    if (element.type === "ObjectExpression") {
       const nestedMetadata = await extractCommandMetadata(
         element,
         parentFile,
         context,
         importMap,
-        optionResolver
-      )
+        optionResolver,
+      );
       if (!nestedMetadata.name) {
-        nestedMetadata.name = getCommandName(parentFile, context.sourceRoot)
+        nestedMetadata.name = getCommandName(parentFile, context.sourceRoot);
       }
-      nested.push(nestedMetadata)
-      continue
+      nested.push(nestedMetadata);
+      continue;
     }
 
-    if (element.type === 'Identifier') {
-      const importedPath = importMap.get(element.name)
-      if (!importedPath) continue
-      const nestedResult = await parseCommandWithContext(importedPath, context)
+    if (element.type === "Identifier") {
+      const importedPath = importMap.get(element.name);
+      if (!importedPath) continue;
+      const nestedResult = await parseCommandWithContext(importedPath, context);
       if (Result.isError(nestedResult)) {
-        throw nestedResult.error
+        throw nestedResult.error;
       }
       if (nestedResult.value) {
-        nested.push(nestedResult.value)
+        nested.push(nestedResult.value);
       }
-      continue
+      continue;
     }
 
-    if (element.type === 'CallExpression') {
-      const nestedObject = extractCommandObjectExpression(element)
+    if (element.type === "CallExpression") {
+      const nestedObject = extractCommandObjectExpression(element);
       if (nestedObject) {
         const nestedMetadata = await extractCommandMetadata(
           nestedObject,
           parentFile,
           context,
           importMap,
-          optionResolver
-        )
-        if (nestedMetadata.name) nested.push(nestedMetadata)
+          optionResolver,
+        );
+        if (nestedMetadata.name) nested.push(nestedMetadata);
       }
     }
   }
 
-  return nested.length > 0 ? nested : undefined
+  return nested.length > 0 ? nested : undefined;
 }
 
 function isOptionCallExpression(node: any): boolean {
   return Boolean(
     node &&
-    node.type === 'CallExpression' &&
-    node.callee?.type === 'Identifier' &&
-    node.callee.name === 'option'
-  )
+    node.type === "CallExpression" &&
+    node.callee?.type === "Identifier" &&
+    node.callee.name === "option",
+  );
 }
 
 function getObjectPropertyKey(key: any): string | undefined {
-  if (key?.type === 'Identifier') return key.name
-  if (key?.type === 'StringLiteral') return key.value
-  return undefined
+  if (key?.type === "Identifier") return key.name;
+  if (key?.type === "StringLiteral") return key.value;
+  return undefined;
 }
 
 async function resolveExpressionNode(
   node: any,
   scope: OptionResolverScope,
-  visited: Set<string> = new Set()
-): Promise<{ node: any, scope: OptionResolverScope } | null> {
-  if (!node) return null
-  if (node.type !== 'Identifier') {
-    return { node, scope }
+  visited: Set<string> = new Set(),
+): Promise<{ node: any; scope: OptionResolverScope } | null> {
+  if (!node) return null;
+  if (node.type !== "Identifier") {
+    return { node, scope };
   }
 
-  const key = `${scope.filePath}:${node.name}`
-  if (visited.has(key)) return null
+  const key = `${scope.filePath}:${node.name}`;
+  if (visited.has(key)) return null;
 
-  const nextVisited = new Set(visited)
-  nextVisited.add(key)
+  const nextVisited = new Set(visited);
+  nextVisited.add(key);
 
-  const localInitializer = scope.variableInitializers.get(node.name)
+  const localInitializer = scope.variableInitializers.get(node.name);
   if (localInitializer) {
-    return resolveExpressionNode(localInitializer, scope, nextVisited)
+    return resolveExpressionNode(localInitializer, scope, nextVisited);
   }
 
-  const importBinding = scope.importBindings.get(node.name)
-  if (!importBinding || importBinding.importedName === '*') {
-    return null
+  const importBinding = scope.importBindings.get(node.name);
+  if (!importBinding || importBinding.importedName === "*") {
+    return null;
   }
 
-  const importedModule = await parseModuleInfoWithContext(importBinding.filePath, scope.context)
+  const importedModule = await parseModuleInfoWithContext(importBinding.filePath, scope.context);
   if (Result.isError(importedModule)) {
     logger.debug(
-      'Could not resolve imported option symbol %s from %s: %O',
+      "Could not resolve imported option symbol %s from %s: %O",
       node.name,
       importBinding.filePath,
-      importedModule.error
-    )
-    return null
+      importedModule.error,
+    );
+    return null;
   }
 
-  const importedExpression = importedModule.value.exportedExpressions.get(importBinding.importedName)
-  if (!importedExpression) return null
+  const importedExpression = importedModule.value.exportedExpressions.get(
+    importBinding.importedName,
+  );
+  if (!importedExpression) return null;
 
   const importedScope: OptionResolverScope = {
     filePath: importBinding.filePath,
     variableInitializers: importedModule.value.variableInitializers,
     importBindings: importedModule.value.importBindings,
-    context: scope.context
-  }
+    context: scope.context,
+  };
 
-  return resolveExpressionNode(importedExpression, importedScope, nextVisited)
+  return resolveExpressionNode(importedExpression, importedScope, nextVisited);
 }
 
 function buildOptionMetadata(optionCall: any): OptionMetadata | null {
-  const args = optionCall.arguments
+  const args = optionCall.arguments;
   if (!Array.isArray(args) || args.length < 1) {
-    return null
+    return null;
   }
 
-  const schema = args[0]
-  const metadata = args[1]?.type === 'ObjectExpression' ? args[1] : null
-  const { type } = inferSchemaType(schema)
-  const defaultInfo = inferDefault(schema)
-  const enumValues = extractEnumValues(schema)
-  const constraints = extractConstraints(schema)
-  const description = extractDescription(metadata)
-  const fileType = detectFileType(metadata, description)
+  const schema = args[0];
+  const metadata = args[1]?.type === "ObjectExpression" ? args[1] : null;
+  const { type } = inferSchemaType(schema);
+  const defaultInfo = inferDefault(schema);
+  const enumValues = extractEnumValues(schema);
+  const constraints = extractConstraints(schema);
+  const description = extractDescription(metadata);
+  const fileType = detectFileType(metadata, description);
 
   return {
     type,
@@ -661,359 +671,366 @@ function buildOptionMetadata(optionCall: any): OptionMetadata | null {
     ...constraints,
     fileType,
     schema: extractSchemaDefinition(schema),
-    validator: generateValidator(schema)
-  }
+    validator: generateValidator(schema),
+  };
 }
 
 async function extractOptions(
   value: any,
-  scope: OptionResolverScope
+  scope: OptionResolverScope,
 ): Promise<Record<string, OptionMetadata>> {
-  const options: Record<string, OptionMetadata> = {}
-  const resolved = await resolveExpressionNode(value, scope)
-  if (!resolved || resolved.node.type !== 'ObjectExpression') {
-    return options
+  const options: Record<string, OptionMetadata> = {};
+  const resolved = await resolveExpressionNode(value, scope);
+  if (!resolved || resolved.node.type !== "ObjectExpression") {
+    return options;
   }
 
   for (const prop of resolved.node.properties) {
-    if (prop.type === 'SpreadElement') {
-      const spreadOptions = await extractOptions(prop.argument, resolved.scope)
-      Object.assign(options, spreadOptions)
-      continue
+    if (prop.type === "SpreadElement") {
+      const spreadOptions = await extractOptions(prop.argument, resolved.scope);
+      Object.assign(options, spreadOptions);
+      continue;
     }
 
-    if (prop.type !== 'ObjectProperty') continue
-    const optionName = getObjectPropertyKey(prop.key)
-    if (!optionName) continue
+    if (prop.type !== "ObjectProperty") continue;
+    const optionName = getObjectPropertyKey(prop.key);
+    if (!optionName) continue;
 
-    const optionValue = await resolveExpressionNode(prop.value, resolved.scope)
-    if (!optionValue || !isOptionCallExpression(optionValue.node)) continue
+    const optionValue = await resolveExpressionNode(prop.value, resolved.scope);
+    if (!optionValue || !isOptionCallExpression(optionValue.node)) continue;
 
-    const built = buildOptionMetadata(optionValue.node)
+    const built = buildOptionMetadata(optionValue.node);
     if (built) {
-      options[optionName] = built
+      options[optionName] = built;
     }
   }
 
-  return options
+  return options;
 }
 
 function inferDefault(schema: any): any {
-  if (schema.type === 'CallExpression') {
-    const callee = schema.callee
-    if (callee.type === 'MemberExpression' && callee.property.type === 'Identifier') {
-      if (callee.property.name === 'default' || callee.property.name === 'catch') {
-        const args = schema.arguments
+  if (schema.type === "CallExpression") {
+    const callee = schema.callee;
+    if (callee.type === "MemberExpression" && callee.property.type === "Identifier") {
+      if (callee.property.name === "default" || callee.property.name === "catch") {
+        const args = schema.arguments;
         if (args.length > 0) {
-          return { hasDefault: true, value: extractLiteralValue(args[0]) }
+          return { hasDefault: true, value: extractLiteralValue(args[0]) };
         }
       }
     }
   }
 
-  return { hasDefault: false, value: undefined }
+  return { hasDefault: false, value: undefined };
 }
 
 function extractDescription(metadata: any): string | undefined {
-  if (!metadata) return undefined
+  if (!metadata) return undefined;
 
   for (const prop of metadata.properties) {
     if (
-      prop.type === 'ObjectProperty' &&
-      prop.key.type === 'Identifier' &&
-      prop.key.name === 'description' &&
-      prop.value.type === 'StringLiteral'
+      prop.type === "ObjectProperty" &&
+      prop.key.type === "Identifier" &&
+      prop.key.name === "description" &&
+      prop.value.type === "StringLiteral"
     ) {
-      return prop.value.value
+      return prop.value.value;
     }
   }
 
-  return undefined
+  return undefined;
 }
 
 function extractShort(metadata: any): string | undefined {
-  if (!metadata) return undefined
+  if (!metadata) return undefined;
 
   for (const prop of metadata.properties) {
     if (
-      prop.type === 'ObjectProperty' &&
-      prop.key.type === 'Identifier' &&
-      prop.key.name === 'short' &&
-      prop.value.type === 'StringLiteral'
+      prop.type === "ObjectProperty" &&
+      prop.key.type === "Identifier" &&
+      prop.key.name === "short" &&
+      prop.value.type === "StringLiteral"
     ) {
-      return prop.value.value
+      return prop.value.value;
     }
   }
 
-  return undefined
+  return undefined;
 }
 
 function extractLiteralValue(node: any): any {
   switch (node.type) {
-    case 'StringLiteral':
-      return node.value
-    case 'NumericLiteral':
-      return node.value
-    case 'BooleanLiteral':
-      return node.value
-    case 'NullLiteral':
-      return null
+    case "StringLiteral":
+      return node.value;
+    case "NumericLiteral":
+      return node.value;
+    case "BooleanLiteral":
+      return node.value;
+    case "NullLiteral":
+      return null;
     default:
-      return undefined
+      return undefined;
   }
 }
 
 function extractNameValue(node: any): string | undefined {
-  if (!node) return undefined
-  if (node.type === 'StringLiteral') return node.value
-  if (node.type === 'TemplateLiteral' && node.quasis.length === 1) {
-    return node.quasis[0]?.value?.cooked
+  if (!node) return undefined;
+  if (node.type === "StringLiteral") return node.value;
+  if (node.type === "TemplateLiteral" && node.quasis.length === 1) {
+    return node.quasis[0]?.value?.cooked;
   }
-  if (node.type === 'Identifier' && typeof node.name === 'string') {
-    return node.name
+  if (node.type === "Identifier" && typeof node.name === "string") {
+    return node.name;
   }
-  return undefined
+  return undefined;
 }
 
 function inferSchemaType(schema: any): { type: string } {
-  if (!schema) return { type: 'unknown' }
+  if (!schema) return { type: "unknown" };
 
   switch (schema.type) {
-    case 'Identifier':
-      return { type: schema.name }
-    case 'StringLiteral':
-      return { type: schema.value }
-    case 'CallExpression':
-      return inferSchemaType(schema.callee)
-    case 'MemberExpression': {
-      const object = inferSchemaType(schema.object).type
-      const property = schema.property?.name
-      if (object && property) return { type: `${object}.${property}` }
-      return { type: object || 'unknown' }
+    case "Identifier":
+      return { type: schema.name };
+    case "StringLiteral":
+      return { type: schema.value };
+    case "CallExpression":
+      return inferSchemaType(schema.callee);
+    case "MemberExpression": {
+      const object = inferSchemaType(schema.object).type;
+      const property = schema.property?.name;
+      if (object && property) return { type: `${object}.${property}` };
+      return { type: object || "unknown" };
     }
     default:
-      return { type: 'unknown' }
+      return { type: "unknown" };
   }
 }
 
 function inferRequired(schema: any): boolean {
-  if (schema.type === 'CallExpression') {
-    const callee = schema.callee
-    if (callee.type === 'MemberExpression' && callee.property.type === 'Identifier') {
-      return callee.property.name !== 'optional'
+  if (schema.type === "CallExpression") {
+    const callee = schema.callee;
+    if (callee.type === "MemberExpression" && callee.property.type === "Identifier") {
+      return callee.property.name !== "optional";
     }
   }
-  return true
+  return true;
 }
 
 function extractSchemaDefinition(schema: any): any {
-  if (!schema) return null
+  if (!schema) return null;
 
   switch (schema.type) {
-    case 'CallExpression': {
-      const callee = schema.callee
-      if (callee.type === 'MemberExpression') {
+    case "CallExpression": {
+      const callee = schema.callee;
+      if (callee.type === "MemberExpression") {
         return {
-          type: 'zod',
-          method: callee.property?.name || 'unknown',
-          args: schema.arguments?.map((arg: any) => extractSchemaDefinition(arg)) || []
-        }
+          type: "zod",
+          method: callee.property?.name || "unknown",
+          args: schema.arguments?.map((arg: any) => extractSchemaDefinition(arg)) || [],
+        };
       }
       return {
-        type: 'zod',
-        method: callee.name || 'unknown',
-        args: schema.arguments?.map((arg: any) => extractSchemaDefinition(arg)) || []
-      }
+        type: "zod",
+        method: callee.name || "unknown",
+        args: schema.arguments?.map((arg: any) => extractSchemaDefinition(arg)) || [],
+      };
     }
-    case 'MemberExpression':
+    case "MemberExpression":
       return {
-        type: 'zod',
+        type: "zod",
         object: extractSchemaDefinition(schema.object),
-        property: schema.property?.name || 'unknown'
-      }
-    case 'Identifier':
+        property: schema.property?.name || "unknown",
+      };
+    case "Identifier":
       return {
-        type: 'zod',
-        name: schema.name
-      }
-    case 'StringLiteral':
+        type: "zod",
+        name: schema.name,
+      };
+    case "StringLiteral":
       return {
-        type: 'literal',
-        value: schema.value
-      }
+        type: "literal",
+        value: schema.value,
+      };
     default:
       return {
-        type: 'unknown',
-        raw: schema
-      }
+        type: "unknown",
+        raw: schema,
+      };
   }
 }
 
 function generateValidator(schema: any): string {
-  if (!schema) return '() => true'
-  const { type } = inferSchemaType(schema)
+  if (!schema) return "() => true";
+  const { type } = inferSchemaType(schema);
 
   switch (type) {
-    case 'string':
-      return '(val) => typeof val === "string"'
-    case 'number':
-      return '(val) => typeof val === "number"'
-    case 'boolean':
-      return '(val) => typeof val === "boolean"'
-    case 'array':
-      return '(val) => Array.isArray(val)'
-    case 'object':
-      return '(val) => typeof val === "object" && val !== null'
+    case "string":
+      return '(val) => typeof val === "string"';
+    case "number":
+      return '(val) => typeof val === "number"';
+    case "boolean":
+      return '(val) => typeof val === "boolean"';
+    case "array":
+      return "(val) => Array.isArray(val)";
+    case "object":
+      return '(val) => typeof val === "object" && val !== null';
     default:
-      return '(val) => true'
+      return "(val) => true";
   }
 }
 
 function extractEnumValues(schema: any): (string | number)[] | undefined {
-  if (!schema) return undefined
+  if (!schema) return undefined;
 
-  if (schema.type === 'CallExpression') {
-    const callee = schema.callee
+  if (schema.type === "CallExpression") {
+    const callee = schema.callee;
 
     if (
-      callee.type === 'MemberExpression' &&
-      callee.property?.type === 'Identifier' &&
-      callee.property.name === 'enum'
+      callee.type === "MemberExpression" &&
+      callee.property?.type === "Identifier" &&
+      callee.property.name === "enum"
     ) {
-      const args = schema.arguments
-      if (args[0]?.type === 'ArrayExpression') {
+      const args = schema.arguments;
+      if (args[0]?.type === "ArrayExpression") {
         const values = args[0].elements
-          .filter((el: any) => el?.type === 'StringLiteral' || el?.type === 'NumericLiteral')
-          .map((el: any) => el.value)
-        return values.length > 0 ? values : undefined
+          .filter((el: any) => el?.type === "StringLiteral" || el?.type === "NumericLiteral")
+          .map((el: any) => el.value);
+        return values.length > 0 ? values : undefined;
       }
     }
 
     if (
-      callee.type === 'MemberExpression' &&
-      callee.property?.type === 'Identifier' &&
-      callee.property.name === 'literal'
+      callee.type === "MemberExpression" &&
+      callee.property?.type === "Identifier" &&
+      callee.property.name === "literal"
     ) {
-      const args = schema.arguments
+      const args = schema.arguments;
       if (args[0]) {
-        const value = extractLiteralValue(args[0])
-        return value !== undefined ? [value] : undefined
+        const value = extractLiteralValue(args[0]);
+        return value !== undefined ? [value] : undefined;
       }
     }
 
-    if (callee.type === 'MemberExpression') {
-      const fromObject = extractEnumValues(callee.object)
-      if (fromObject) return fromObject
+    if (callee.type === "MemberExpression") {
+      const fromObject = extractEnumValues(callee.object);
+      if (fromObject) return fromObject;
     }
 
-    if (callee.type === 'CallExpression') {
-      const fromCallee = extractEnumValues(callee)
-      if (fromCallee) return fromCallee
+    if (callee.type === "CallExpression") {
+      const fromCallee = extractEnumValues(callee);
+      if (fromCallee) return fromCallee;
     }
   }
 
-  return undefined
+  return undefined;
 }
 
 function extractConstraints(schema: any): Partial<OptionMetadata> {
-  const constraints: Partial<OptionMetadata> = {}
-  if (!schema) return constraints
+  const constraints: Partial<OptionMetadata> = {};
+  if (!schema) return constraints;
 
-  if (schema.type === 'CallExpression') {
-    const callee = schema.callee
+  if (schema.type === "CallExpression") {
+    const callee = schema.callee;
 
-    if (callee.type === 'MemberExpression' && callee.property?.type === 'Identifier') {
-      const methodName = callee.property.name
-      const args = schema.arguments
+    if (callee.type === "MemberExpression" && callee.property?.type === "Identifier") {
+      const methodName = callee.property.name;
+      const args = schema.arguments;
 
       switch (methodName) {
-        case 'min': {
-          const value = args[0] ? extractLiteralValue(args[0]) : undefined
-          if (typeof value === 'number') {
-            constraints.min = value
-            constraints.minLength = value
+        case "min": {
+          const value = args[0] ? extractLiteralValue(args[0]) : undefined;
+          if (typeof value === "number") {
+            constraints.min = value;
+            constraints.minLength = value;
           }
-          break
+          break;
         }
-        case 'max': {
-          const value = args[0] ? extractLiteralValue(args[0]) : undefined
-          if (typeof value === 'number') {
-            constraints.max = value
-            constraints.maxLength = value
+        case "max": {
+          const value = args[0] ? extractLiteralValue(args[0]) : undefined;
+          if (typeof value === "number") {
+            constraints.max = value;
+            constraints.maxLength = value;
           }
-          break
+          break;
         }
-        case 'regex':
-          if (args[0]?.type === 'RegExpLiteral') {
-            constraints.pattern = args[0].pattern
+        case "regex":
+          if (args[0]?.type === "RegExpLiteral") {
+            constraints.pattern = args[0].pattern;
           } else if (
-            args[0]?.type === 'NewExpression' &&
-            args[0].callee?.type === 'Identifier' &&
-            args[0].callee.name === 'RegExp' &&
-            args[0].arguments[0]?.type === 'StringLiteral'
+            args[0]?.type === "NewExpression" &&
+            args[0].callee?.type === "Identifier" &&
+            args[0].callee.name === "RegExp" &&
+            args[0].arguments[0]?.type === "StringLiteral"
           ) {
-            constraints.pattern = args[0].arguments[0].value
+            constraints.pattern = args[0].arguments[0].value;
           }
-          break
-        case 'transform':
-          constraints.isTransform = true
-          break
-        case 'refine':
-          constraints.isRefine = true
-          break
-        case 'array':
-          constraints.isArray = true
-          break
-        case 'literal':
-          if (args[0]) constraints.literalValue = extractLiteralValue(args[0])
-          break
+          break;
+        case "transform":
+          constraints.isTransform = true;
+          break;
+        case "refine":
+          constraints.isRefine = true;
+          break;
+        case "array":
+          constraints.isArray = true;
+          break;
+        case "literal":
+          if (args[0]) constraints.literalValue = extractLiteralValue(args[0]);
+          break;
       }
 
       if (callee.object) {
-        const parentConstraints = extractConstraints(callee.object)
+        const parentConstraints = extractConstraints(callee.object);
         for (const key of Object.keys(parentConstraints) as Array<keyof OptionMetadata>) {
           if (!(key in constraints)) {
-            const value = parentConstraints[key]
-            if (value !== undefined) constraints[key] = value
+            const value = parentConstraints[key];
+            if (value !== undefined) constraints[key] = value;
           }
         }
       }
     }
   }
 
-  return constraints
+  return constraints;
 }
 
-function detectFileType(optionConfig: any, description?: string): 'file' | 'directory' | 'path' | undefined {
-  if (optionConfig?.type === 'ObjectExpression') {
+function detectFileType(
+  optionConfig: any,
+  description?: string,
+): "file" | "directory" | "path" | undefined {
+  if (optionConfig?.type === "ObjectExpression") {
     for (const prop of optionConfig.properties) {
-      if (prop.key?.name === 'fileType' && prop.value?.type === 'StringLiteral') {
-        const value = prop.value.value
-        if (value === 'file' || value === 'directory' || value === 'path') {
-          return value
+      if (prop.key?.name === "fileType" && prop.value?.type === "StringLiteral") {
+        const value = prop.value.value;
+        if (value === "file" || value === "directory" || value === "path") {
+          return value;
         }
       }
     }
   }
 
   if (description) {
-    const lowerDesc = description.toLowerCase()
-    if (lowerDesc.includes('directory') || lowerDesc.includes('folder') || lowerDesc.includes('dir')) {
-      return 'directory'
+    const lowerDesc = description.toLowerCase();
+    if (
+      lowerDesc.includes("directory") ||
+      lowerDesc.includes("folder") ||
+      lowerDesc.includes("dir")
+    ) {
+      return "directory";
     }
     if (
-      lowerDesc.includes('file path') ||
-      lowerDesc.includes('file name') ||
-      lowerDesc.includes('config file') ||
-      lowerDesc.includes('output file') ||
-      lowerDesc.includes('input file')
+      lowerDesc.includes("file path") ||
+      lowerDesc.includes("file name") ||
+      lowerDesc.includes("config file") ||
+      lowerDesc.includes("output file") ||
+      lowerDesc.includes("input file")
     ) {
-      return 'file'
+      return "file";
     }
-    if (lowerDesc.includes(' path') || lowerDesc.includes('filepath')) {
-      return 'path'
+    if (lowerDesc.includes(" path") || lowerDesc.includes("filepath")) {
+      return "path";
     }
   }
 
-  return undefined
+  return undefined;
 }

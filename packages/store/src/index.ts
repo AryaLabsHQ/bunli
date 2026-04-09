@@ -1,6 +1,11 @@
-export { createStore } from './store.js'
+export { createStore } from "./store.js";
 
-export { StoreReadError, StoreWriteError, StoreParseError, StoreValidationError } from './errors.js'
+export {
+  StoreReadError,
+  StoreWriteError,
+  StoreParseError,
+  StoreValidationError,
+} from "./errors.js";
 
 export type {
   FieldDef,
@@ -10,4 +15,4 @@ export type {
   StoreInstance,
   StoreUpdater,
   ValueType,
-} from './types.js'
+} from "./types.js";

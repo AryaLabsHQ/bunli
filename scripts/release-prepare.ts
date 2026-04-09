@@ -1,126 +1,130 @@
 #!/usr/bin/env bun
-import { $ } from 'bun'
-import * as p from '@bunli/runtime/prompt'
-import { readdir, readFile, writeFile } from 'fs/promises'
-import { existsSync } from 'node:fs'
-import { join } from 'path'
-import { randomBytes } from 'crypto'
-import { generateChangesetSummary } from './ai.js'
-import { Result, TaggedError } from 'better-result'
+import { randomBytes } from "crypto";
+import { readdir, readFile, writeFile } from "fs/promises";
+import { existsSync } from "node:fs";
+import { join } from "path";
+
+import * as p from "@bunli/runtime/prompt";
+import { Result, TaggedError } from "better-result";
+import { $ } from "bun";
+
+import { generateChangesetSummary } from "./ai.js";
 
 const toErrorMessage = (error: unknown): string =>
-  error instanceof Error ? error.message : String(error)
+  error instanceof Error ? error.message : String(error);
 
 const tryAsync = <TValue, TError>(
   fn: () => Promise<TValue>,
-  mapError: (cause: unknown) => TError
+  mapError: (cause: unknown) => TError,
 ): Promise<Result<TValue, TError>> =>
   fn()
     .then((value) => Result.ok<TValue, TError>(value))
-    .catch((cause) => Result.err<TValue, TError>(mapError(cause)))
+    .catch((cause) => Result.err<TValue, TError>(mapError(cause)));
 
 const trySync = <TValue, TError>(
   fn: () => TValue,
-  mapError: (cause: unknown) => TError
+  mapError: (cause: unknown) => TError,
 ): Result<TValue, TError> => {
   try {
-    return Result.ok<TValue, TError>(fn())
+    return Result.ok<TValue, TError>(fn());
   } catch (cause) {
-    return Result.err<TValue, TError>(mapError(cause))
+    return Result.err<TValue, TError>(mapError(cause));
   }
-}
+};
 
-type VersionBump = 'major' | 'minor' | 'patch'
+type VersionBump = "major" | "minor" | "patch";
 
 type Commit = {
-  hash: string
-  type: string
-  breaking: boolean
-  message: string
-}
+  hash: string;
+  type: string;
+  breaking: boolean;
+  message: string;
+};
 
 type PackageReleaseConfig = {
-  name: string
-  shortName: string
-  version: string
-  path: string
-  tagPrefix: string
-  commitPaths: string[]
-  publishable: boolean
-}
+  name: string;
+  shortName: string;
+  version: string;
+  path: string;
+  tagPrefix: string;
+  commitPaths: string[];
+  publishable: boolean;
+};
 
 type Options = {
-  package?: string
-  all: boolean
-  since?: string
-  dryRun: boolean
-  pr: boolean
-  yes: boolean
-  ai: boolean
-}
+  package?: string;
+  all: boolean;
+  since?: string;
+  dryRun: boolean;
+  pr: boolean;
+  yes: boolean;
+  ai: boolean;
+};
 
-class UsageError extends TaggedError('UsageError')<{
-  message: string
+class UsageError extends TaggedError("UsageError")<{
+  message: string;
 }>() {
   constructor(message: string) {
-    super({ message })
+    super({ message });
   }
 }
 
-class HelpRequested extends TaggedError('HelpRequested')<{
-  message: string
+class HelpRequested extends TaggedError("HelpRequested")<{
+  message: string;
 }>() {
   constructor() {
-    super({ message: 'Help requested' })
+    super({ message: "Help requested" });
   }
 }
 
-class UserCancelled extends TaggedError('UserCancelled')<{
-  message: string
+class UserCancelled extends TaggedError("UserCancelled")<{
+  message: string;
 }>() {
-  constructor(message = 'Release prepare cancelled') {
-    super({ message })
+  constructor(message = "Release prepare cancelled") {
+    super({ message });
   }
 }
 
-class IoError extends TaggedError('IoError')<{
-  message: string
-  cause: unknown
+class IoError extends TaggedError("IoError")<{
+  message: string;
+  cause: unknown;
 }>() {
   constructor(step: string, cause: unknown) {
-    super({ message: `I/O error while ${step}: ${toErrorMessage(cause)}`, cause })
+    super({ message: `I/O error while ${step}: ${toErrorMessage(cause)}`, cause });
   }
 }
 
-class CommandError extends TaggedError('CommandError')<{
-  message: string
-  command: string
-  cause: unknown
+class CommandError extends TaggedError("CommandError")<{
+  message: string;
+  command: string;
+  cause: unknown;
 }>() {
   constructor(command: string, cause: unknown) {
-    super({ message: `Command failed (${command}): ${toErrorMessage(cause)}`, command, cause })
+    super({ message: `Command failed (${command}): ${toErrorMessage(cause)}`, command, cause });
   }
 }
 
-type ReleasePrepareError = UsageError | HelpRequested | UserCancelled | IoError | CommandError
+type ReleasePrepareError = UsageError | HelpRequested | UserCancelled | IoError | CommandError;
 
-const COMMIT_TYPE_REGEX = /^(\w+)(?:\(([^)]*)\))?(!)?:\s*(.+)$/
-const PATCH_TYPES = ['fix', 'refactor', 'chore', 'docs', 'test', 'perf', 'style', 'ci', 'build']
+const COMMIT_TYPE_REGEX = /^(\w+)(?:\(([^)]*)\))?(!)?:\s*(.+)$/;
+const PATCH_TYPES = ["fix", "refactor", "chore", "docs", "test", "perf", "style", "ci", "build"];
 
 function printHelp(): void {
-  console.log(`\nRelease Prepare (Changesets)\n\nUsage:\n  bun scripts/release-prepare.ts [options]\n\nOptions:\n  --package, -p <name>  Prepare a changeset for one package\n  --all                 Consider all publishable packages\n  --since <tag|commit>   Override the commit range\n  --dry-run, -d          Show output without writing files\n  --pr                   Create a PR with the changeset(s)\n  --yes, -y              Skip confirmation prompts\n  --ai                   Generate summary with AI (optional)\n  --help, -h             Show help\n`)
+  console.log(
+    `\nRelease Prepare (Changesets)\n\nUsage:\n  bun scripts/release-prepare.ts [options]\n\nOptions:\n  --package, -p <name>  Prepare a changeset for one package\n  --all                 Consider all publishable packages\n  --since <tag|commit>   Override the commit range\n  --dry-run, -d          Show output without writing files\n  --pr                   Create a PR with the changeset(s)\n  --yes, -y              Skip confirmation prompts\n  --ai                   Generate summary with AI (optional)\n  --help, -h             Show help\n`,
+  );
 }
 
 function printPromptUxSmokeChecklist(): void {
   p.note(
     [
-      'Manual prompt UX smoke checklist:',
-      '1) Non-TTY fallback: run a prompt command with CI=1 and confirm fallbackValue path.',
-      '2) Inline wizard flow: run task-runner setup and verify select/multiselect/password rendering.',
-      '3) Alternate-buffer showcase: run hello-world showcase and verify terminal cleanup on exit.'
-    ].join('\n'),
-    'Release Checklist'
-  )
+      "Manual prompt UX smoke checklist:",
+      "1) Non-TTY fallback: run a prompt command with CI=1 and confirm fallbackValue path.",
+      "2) Inline wizard flow: run task-runner setup and verify select/multiselect/password rendering.",
+      "3) Alternate-buffer showcase: run hello-world showcase and verify terminal cleanup on exit.",
+    ].join("\n"),
+    "Release Checklist",
+  );
 }
 
 function parseArgs(args: string[]): Result<Options, ReleasePrepareError> {
@@ -130,389 +134,401 @@ function parseArgs(args: string[]): Result<Options, ReleasePrepareError> {
     pr: false,
     yes: false,
     ai: false,
-  }
+  };
 
-  const requireValue = (flag: string, next: string | undefined): Result<string, ReleasePrepareError> => {
-    if (!next || next.startsWith('-')) {
-      return Result.err(new UsageError(`Missing value for ${flag}`))
+  const requireValue = (
+    flag: string,
+    next: string | undefined,
+  ): Result<string, ReleasePrepareError> => {
+    if (!next || next.startsWith("-")) {
+      return Result.err(new UsageError(`Missing value for ${flag}`));
     }
 
-    return Result.ok(next)
-  }
+    return Result.ok(next);
+  };
 
   for (let index = 0; index < args.length; index += 1) {
-    const arg = args[index]
+    const arg = args[index];
 
     switch (arg) {
-      case '--package':
-      case '-p': {
-        const valueResult = requireValue(arg, args[index + 1])
-        if (Result.isError(valueResult)) return valueResult
-        options.package = valueResult.value
-        index += 1
-        break
+      case "--package":
+      case "-p": {
+        const valueResult = requireValue(arg, args[index + 1]);
+        if (Result.isError(valueResult)) return valueResult;
+        options.package = valueResult.value;
+        index += 1;
+        break;
       }
-      case '--all':
-        options.all = true
-        break
-      case '--since': {
-        const valueResult = requireValue(arg, args[index + 1])
-        if (Result.isError(valueResult)) return valueResult
-        options.since = valueResult.value
-        index += 1
-        break
+      case "--all":
+        options.all = true;
+        break;
+      case "--since": {
+        const valueResult = requireValue(arg, args[index + 1]);
+        if (Result.isError(valueResult)) return valueResult;
+        options.since = valueResult.value;
+        index += 1;
+        break;
       }
-      case '--dry-run':
-      case '-d':
-        options.dryRun = true
-        break
-      case '--pr':
-        options.pr = true
-        break
-      case '--yes':
-      case '-y':
-        options.yes = true
-        break
-      case '--ai':
-        options.ai = true
-        break
-      case '--help':
-      case '-h':
-        return Result.err(new HelpRequested())
+      case "--dry-run":
+      case "-d":
+        options.dryRun = true;
+        break;
+      case "--pr":
+        options.pr = true;
+        break;
+      case "--yes":
+      case "-y":
+        options.yes = true;
+        break;
+      case "--ai":
+        options.ai = true;
+        break;
+      case "--help":
+      case "-h":
+        return Result.err(new HelpRequested());
       default:
-        if (arg?.startsWith('-')) {
-          return Result.err(new UsageError(`Unknown option: ${arg}`))
+        if (arg?.startsWith("-")) {
+          return Result.err(new UsageError(`Unknown option: ${arg}`));
         }
     }
   }
 
-  return Result.ok(options)
+  return Result.ok(options);
 }
 
 function parseConventionalCommit(line: string): Commit | null {
-  const [hash, ...rest] = line.split('|')
-  if (!hash || rest.length === 0) return null
+  const [hash, ...rest] = line.split("|");
+  if (!hash || rest.length === 0) return null;
 
-  const message = rest.join('|').trim()
-  const match = message.match(COMMIT_TYPE_REGEX)
+  const message = rest.join("|").trim();
+  const match = message.match(COMMIT_TYPE_REGEX);
 
   if (!match) {
     return {
       hash: hash.trim(),
-      type: 'other',
+      type: "other",
       breaking: false,
       message,
-    }
+    };
   }
 
-  const [, type, , bang, subject] = match
-  const hasBreakingFooter = message.includes('BREAKING CHANGE')
+  const [, type, , bang, subject] = match;
+  const hasBreakingFooter = message.includes("BREAKING CHANGE");
 
   return {
     hash: hash.trim(),
-    type: type?.toLowerCase() || 'other',
+    type: type?.toLowerCase() || "other",
     breaking: !!bang || hasBreakingFooter,
     message: subject?.trim() || message,
-  }
+  };
 }
 
 function determineVersionBump(commits: Commit[]): VersionBump | null {
-  if (commits.length === 0) return null
+  if (commits.length === 0) return null;
 
-  if (commits.some((commit) => commit.breaking)) return 'major'
-  if (commits.some((commit) => commit.type === 'feat')) return 'minor'
-  if (commits.some((commit) => PATCH_TYPES.includes(commit.type))) return 'patch'
+  if (commits.some((commit) => commit.breaking)) return "major";
+  if (commits.some((commit) => commit.type === "feat")) return "minor";
+  if (commits.some((commit) => PATCH_TYPES.includes(commit.type))) return "patch";
 
-  return 'patch'
+  return "patch";
 }
 
-async function getAllPackageConfigs(): Promise<Result<PackageReleaseConfig[], ReleasePrepareError>> {
-  const packagesDir = join(process.cwd(), 'packages')
+async function getAllPackageConfigs(): Promise<
+  Result<PackageReleaseConfig[], ReleasePrepareError>
+> {
+  const packagesDir = join(process.cwd(), "packages");
   const entriesResult = await tryAsync(
     () => readdir(packagesDir, { withFileTypes: true }),
-    (cause) => new IoError(`reading ${packagesDir}`, cause)
-  )
+    (cause) => new IoError(`reading ${packagesDir}`, cause),
+  );
 
   if (Result.isError(entriesResult)) {
-    return entriesResult
+    return entriesResult;
   }
 
-  const configs: PackageReleaseConfig[] = []
+  const configs: PackageReleaseConfig[] = [];
 
   for (const entry of entriesResult.value) {
-    if (!entry.isDirectory()) continue
+    if (!entry.isDirectory()) continue;
 
-    const packagePath = join(packagesDir, entry.name)
-    const packageJsonPath = join(packagePath, 'package.json')
-    if (!existsSync(packageJsonPath)) continue
+    const packagePath = join(packagesDir, entry.name);
+    const packageJsonPath = join(packagePath, "package.json");
+    if (!existsSync(packageJsonPath)) continue;
 
     const packageJsonTextResult = await tryAsync(
-      () => readFile(packageJsonPath, 'utf-8'),
-      (cause) => new IoError(`reading ${packageJsonPath}`, cause)
-    )
+      () => readFile(packageJsonPath, "utf-8"),
+      (cause) => new IoError(`reading ${packageJsonPath}`, cause),
+    );
 
     if (Result.isError(packageJsonTextResult)) {
-      p.log.warn(`Skipping ${entry.name}: ${packageJsonTextResult.error.message}`)
-      continue
+      p.log.warn(`Skipping ${entry.name}: ${packageJsonTextResult.error.message}`);
+      continue;
     }
 
     const packageJsonResult = trySync(
-      () => JSON.parse(packageJsonTextResult.value) as {
-        private?: boolean
-        name?: string
-        version?: string
-      },
-      (cause) => new IoError(`parsing ${packageJsonPath}`, cause)
-    )
+      () =>
+        JSON.parse(packageJsonTextResult.value) as {
+          private?: boolean;
+          name?: string;
+          version?: string;
+        },
+      (cause) => new IoError(`parsing ${packageJsonPath}`, cause),
+    );
 
     if (Result.isError(packageJsonResult)) {
-      p.log.warn(`Skipping ${entry.name}: ${packageJsonResult.error.message}`)
-      continue
+      p.log.warn(`Skipping ${entry.name}: ${packageJsonResult.error.message}`);
+      continue;
     }
 
-    const packageJson = packageJsonResult.value
-    const packageName = packageJson.name
+    const packageJson = packageJsonResult.value;
+    const packageName = packageJson.name;
     if (!packageName) {
-      p.log.warn(`Skipping ${entry.name}: missing package name`)
-      continue
+      p.log.warn(`Skipping ${entry.name}: missing package name`);
+      continue;
     }
 
     const isPublishable =
       !packageJson.private &&
-      (packageName.startsWith('@bunli/') ||
-        packageName === 'bunli' ||
-        packageName === 'create-bunli')
+      (packageName.startsWith("@bunli/") ||
+        packageName === "bunli" ||
+        packageName === "create-bunli");
 
-    if (!isPublishable) continue
+    if (!isPublishable) continue;
 
-    const shortName = packageName.startsWith('@bunli/')
-      ? packageName.replace('@bunli/', '')
-      : packageName
+    const shortName = packageName.startsWith("@bunli/")
+      ? packageName.replace("@bunli/", "")
+      : packageName;
 
     configs.push({
       name: packageName,
       shortName,
-      version: packageJson.version || '0.0.0',
+      version: packageJson.version || "0.0.0",
       path: packagePath,
       tagPrefix: `${packageName}@`,
       commitPaths: [`packages/${entry.name}/`],
       publishable: true,
-    })
+    });
   }
 
-  return Result.ok(configs.sort((a, b) => a.name.localeCompare(b.name)))
+  return Result.ok(configs.sort((a, b) => a.name.localeCompare(b.name)));
 }
 
 async function getLastTagForPackage(tagPrefix: string): Promise<string | null> {
-  const result = await $`git tag -l ${`${tagPrefix}*`} --sort=-v:refname`.nothrow()
+  const result = await $`git tag -l ${`${tagPrefix}*`} --sort=-v:refname`.nothrow();
   if (result.exitCode !== 0) {
-    p.log.warn(`Could not read tags for ${tagPrefix}: ${result.stderr.toString().trim()}`)
-    return null
+    p.log.warn(`Could not read tags for ${tagPrefix}: ${result.stderr.toString().trim()}`);
+    return null;
   }
 
-  const tags = result.stdout.toString().trim().split('\n').filter(Boolean)
-  return tags[0] || null
+  const tags = result.stdout.toString().trim().split("\n").filter(Boolean);
+  return tags[0] || null;
 }
 
-async function getCommitsSince(
-  since: string | null,
-  commitPaths: string[]
-): Promise<Commit[]> {
-  const pathArgs = commitPaths.length > 0 ? ['--', ...commitPaths] : []
-  const range = since ? `${since}..HEAD` : 'HEAD'
+async function getCommitsSince(since: string | null, commitPaths: string[]): Promise<Commit[]> {
+  const pathArgs = commitPaths.length > 0 ? ["--", ...commitPaths] : [];
+  const range = since ? `${since}..HEAD` : "HEAD";
 
-  const result = await $`git log ${range} --pretty=format:"%h|%s" ${pathArgs}`.nothrow()
+  const result = await $`git log ${range} --pretty=format:"%h|%s" ${pathArgs}`.nothrow();
   if (result.exitCode !== 0) {
-    p.log.warn(`Could not collect commits for range ${range}: ${result.stderr.toString().trim()}`)
-    return []
+    p.log.warn(`Could not collect commits for range ${range}: ${result.stderr.toString().trim()}`);
+    return [];
   }
 
-  const lines = result.stdout.toString().trim().split('\n').filter(Boolean)
-  return lines.map(parseConventionalCommit).filter((commit): commit is Commit => commit !== null)
+  const lines = result.stdout.toString().trim().split("\n").filter(Boolean);
+  return lines.map(parseConventionalCommit).filter((commit): commit is Commit => commit !== null);
 }
 
 async function getFilesChangedSince(
   since: string | null,
-  commitPaths: string[]
+  commitPaths: string[],
 ): Promise<string[]> {
-  if (!since) return []
+  if (!since) return [];
 
-  const pathArgs = commitPaths.length > 0 ? ['--', ...commitPaths] : []
-  const range = `${since}..HEAD`
-  const result = await $`git diff --name-only ${range} ${pathArgs}`.nothrow()
+  const pathArgs = commitPaths.length > 0 ? ["--", ...commitPaths] : [];
+  const range = `${since}..HEAD`;
+  const result = await $`git diff --name-only ${range} ${pathArgs}`.nothrow();
 
   if (result.exitCode !== 0) {
-    p.log.warn(`Could not collect changed files for range ${range}: ${result.stderr.toString().trim()}`)
-    return []
+    p.log.warn(
+      `Could not collect changed files for range ${range}: ${result.stderr.toString().trim()}`,
+    );
+    return [];
   }
 
-  return result.stdout.toString().trim().split('\n').filter(Boolean)
+  return result.stdout.toString().trim().split("\n").filter(Boolean);
 }
 
-async function ensureCleanWorkingTree(options: Options): Promise<Result<void, ReleasePrepareError>> {
-  if (options.dryRun) return Result.ok(undefined)
+async function ensureCleanWorkingTree(
+  options: Options,
+): Promise<Result<void, ReleasePrepareError>> {
+  if (options.dryRun) return Result.ok(undefined);
 
   const statusResult = await tryAsync(
     () => $`git status --porcelain`.text(),
-    (cause) => new CommandError('git status --porcelain', cause)
-  )
+    (cause) => new CommandError("git status --porcelain", cause),
+  );
 
   if (Result.isError(statusResult)) {
-    return statusResult
+    return statusResult;
   }
 
   if (!statusResult.value.trim()) {
-    return Result.ok(undefined)
+    return Result.ok(undefined);
   }
 
   if (options.yes) {
-    p.log.warn('Working tree is not clean; proceeding because --yes was provided.')
-    return Result.ok(undefined)
+    p.log.warn("Working tree is not clean; proceeding because --yes was provided.");
+    return Result.ok(undefined);
   }
 
-  const confirmed = await p.confirm('Working tree is not clean. Continue anyway?', {
+  const confirmed = await p.confirm("Working tree is not clean. Continue anyway?", {
     default: false,
-  })
+  });
 
   if (!confirmed) {
-    return Result.err(new UserCancelled())
+    return Result.err(new UserCancelled());
   }
 
-  return Result.ok(undefined)
+  return Result.ok(undefined);
 }
 
 async function main(): Promise<Result<void, ReleasePrepareError>> {
-  const parseResult = parseArgs(process.argv.slice(2))
+  const parseResult = parseArgs(process.argv.slice(2));
   if (Result.isError(parseResult)) {
-    return parseResult
+    return parseResult;
   }
 
-  const options = parseResult.value
-  p.intro('Release Prepare')
+  const options = parseResult.value;
+  p.intro("Release Prepare");
 
-  const cleanWorkingTreeResult = await ensureCleanWorkingTree(options)
+  const cleanWorkingTreeResult = await ensureCleanWorkingTree(options);
   if (Result.isError(cleanWorkingTreeResult)) {
-    return cleanWorkingTreeResult
+    return cleanWorkingTreeResult;
   }
 
-  const configResult = await getAllPackageConfigs()
+  const configResult = await getAllPackageConfigs();
   if (Result.isError(configResult)) {
-    return configResult
+    return configResult;
   }
 
-  const allConfigs = configResult.value
+  const allConfigs = configResult.value;
   if (allConfigs.length === 0) {
-    return Result.err(new UsageError('No publishable packages found'))
+    return Result.err(new UsageError("No publishable packages found"));
   }
 
-  let configsToConsider = allConfigs
+  let configsToConsider = allConfigs;
 
   if (options.package) {
-    const searchTerm = options.package.toLowerCase()
+    const searchTerm = options.package.toLowerCase();
     const found = allConfigs.find(
       (pkg) =>
         pkg.name.toLowerCase() === searchTerm ||
         pkg.shortName.toLowerCase() === searchTerm ||
-        pkg.name.toLowerCase() === `@bunli/${searchTerm}`
-    )
+        pkg.name.toLowerCase() === `@bunli/${searchTerm}`,
+    );
 
     if (!found) {
       return Result.err(
         new UsageError(
           `Package "${options.package}" not found. Available packages: ${allConfigs
             .map((config) => config.shortName)
-            .join(', ')}`
-        )
-      )
+            .join(", ")}`,
+        ),
+      );
     }
 
-    configsToConsider = [found]
+    configsToConsider = [found];
   }
 
   const packagesWithCommits = await Promise.all(
     configsToConsider.map(async (config) => {
-      const lastTag = await getLastTagForPackage(config.tagPrefix)
-      const since = options.since ?? lastTag
-      const commits = await getCommitsSince(since, config.commitPaths)
-      const filesChanged = await getFilesChangedSince(since, config.commitPaths)
-      return { config, commits, filesChanged, lastTag }
-    })
-  )
+      const lastTag = await getLastTagForPackage(config.tagPrefix);
+      const since = options.since ?? lastTag;
+      const commits = await getCommitsSince(since, config.commitPaths);
+      const filesChanged = await getFilesChangedSince(since, config.commitPaths);
+      return { config, commits, filesChanged, lastTag };
+    }),
+  );
 
-  const modifiedPackages = packagesWithCommits.filter((pkg) => pkg.commits.length > 0)
-  let selectedPackages = packagesWithCommits
+  const modifiedPackages = packagesWithCommits.filter((pkg) => pkg.commits.length > 0);
+  let selectedPackages = packagesWithCommits;
 
   if (!options.package && !options.all) {
     if (modifiedPackages.length === 0) {
-      p.log.info('No packages have commits since their last tag')
-      p.outro('Nothing to prepare')
-      return Result.ok(undefined)
+      p.log.info("No packages have commits since their last tag");
+      p.outro("Nothing to prepare");
+      return Result.ok(undefined);
     }
 
     if (options.yes || modifiedPackages.length === 1) {
-      selectedPackages = modifiedPackages
+      selectedPackages = modifiedPackages;
     } else {
-      const selected = await p.multiselect('Select packages to include in the changeset', {
+      const selected = await p.multiselect("Select packages to include in the changeset", {
         options: modifiedPackages.map((pkg) => ({
           value: pkg.config.name,
           label: `${pkg.config.name} (${pkg.commits.length} commits)`,
-          hint: pkg.lastTag ? `last: ${pkg.lastTag}` : 'first release',
+          hint: pkg.lastTag ? `last: ${pkg.lastTag}` : "first release",
         })),
         min: 1,
-      })
+      });
 
-      selectedPackages = modifiedPackages.filter((pkg) => selected.includes(pkg.config.name))
+      selectedPackages = modifiedPackages.filter((pkg) => selected.includes(pkg.config.name));
     }
   }
 
   if (selectedPackages.length === 0) {
-    p.log.info('No packages selected')
-    p.outro('Nothing to prepare')
-    return Result.ok(undefined)
+    p.log.info("No packages selected");
+    p.outro("Nothing to prepare");
+    return Result.ok(undefined);
   }
 
-  const entries: Array<{ name: string; bump: VersionBump; commits: Commit[]; filesChanged: string[] }> = []
+  const entries: Array<{
+    name: string;
+    bump: VersionBump;
+    commits: Commit[];
+    filesChanged: string[];
+  }> = [];
 
   for (const pkg of selectedPackages) {
-    if (pkg.commits.length === 0) continue
+    if (pkg.commits.length === 0) continue;
 
-    const bump = determineVersionBump(pkg.commits)
-    if (!bump) continue
+    const bump = determineVersionBump(pkg.commits);
+    if (!bump) continue;
 
     entries.push({
       name: pkg.config.name,
       bump,
       commits: pkg.commits,
       filesChanged: pkg.filesChanged,
-    })
+    });
   }
 
   if (entries.length === 0) {
-    p.log.info('No changesets needed based on commits')
-    p.outro('Nothing to prepare')
-    return Result.ok(undefined)
+    p.log.info("No changesets needed based on commits");
+    p.outro("Nothing to prepare");
+    return Result.ok(undefined);
   }
 
-  const packageNames = entries.map((entry) => entry.name)
-  const allCommits = entries.flatMap((entry) => entry.commits.map((commit) => commit.message))
-  const uniqueCommits = Array.from(new Set(allCommits))
-  const allFiles = entries.flatMap((entry) => entry.filesChanged)
-  const uniqueFiles = Array.from(new Set(allFiles))
+  const packageNames = entries.map((entry) => entry.name);
+  const allCommits = entries.flatMap((entry) => entry.commits.map((commit) => commit.message));
+  const uniqueCommits = Array.from(new Set(allCommits));
+  const allFiles = entries.flatMap((entry) => entry.filesChanged);
+  const uniqueFiles = Array.from(new Set(allFiles));
 
   const bumpTypes = entries.reduce<Record<string, VersionBump>>((acc, entry) => {
-    acc[entry.name] = entry.bump
-    return acc
-  }, {})
+    acc[entry.name] = entry.bump;
+    return acc;
+  }, {});
 
-  let summary = `Release updates for ${packageNames.join(', ')}.`
+  let summary = `Release updates for ${packageNames.join(", ")}.`;
 
   if (uniqueCommits.length > 0) {
-    summary += ` Changes: ${uniqueCommits.slice(0, 3).join('; ')}.`
+    summary += ` Changes: ${uniqueCommits.slice(0, 3).join("; ")}.`;
   }
 
   if (options.ai) {
     if (!process.env.AI_GATEWAY_API_KEY) {
-      p.log.warn('AI_GATEWAY_API_KEY not set; using deterministic summary.')
+      p.log.warn("AI_GATEWAY_API_KEY not set; using deterministic summary.");
     } else {
       const summaryResult = await tryAsync(
         () =>
@@ -522,138 +538,142 @@ async function main(): Promise<Result<void, ReleasePrepareError>> {
             commits: uniqueCommits,
             filesChanged: uniqueFiles,
           }),
-        (cause) => new CommandError('generateChangesetSummary', cause)
-      )
+        (cause) => new CommandError("generateChangesetSummary", cause),
+      );
 
       if (Result.isOk(summaryResult)) {
-        summary = summaryResult.value
+        summary = summaryResult.value;
       } else {
-        p.log.warn(`AI summary failed: ${summaryResult.error.message}`)
-        p.log.info('Falling back to deterministic summary')
+        p.log.warn(`AI summary failed: ${summaryResult.error.message}`);
+        p.log.info("Falling back to deterministic summary");
       }
     }
   }
 
-  const changesetId = `release-${randomBytes(4).toString('hex')}`
-  const changesetPath = join(process.cwd(), '.changeset', `${changesetId}.md`)
+  const changesetId = `release-${randomBytes(4).toString("hex")}`;
+  const changesetPath = join(process.cwd(), ".changeset", `${changesetId}.md`);
   const frontmatter = entries
     .sort((a, b) => a.name.localeCompare(b.name))
     .map((entry) => `"${entry.name}": ${entry.bump}`)
-    .join('\n')
+    .join("\n");
 
-  const content = `---\n${frontmatter}\n---\n\n${summary}\n`
+  const content = `---\n${frontmatter}\n---\n\n${summary}\n`;
 
-  p.log.info(`Changeset: .changeset/${changesetId}.md`)
+  p.log.info(`Changeset: .changeset/${changesetId}.md`);
 
   if (options.dryRun) {
-    p.log.info('Dry run enabled; no files will be written.')
-    console.log('\n' + content)
-    p.outro('Dry run complete')
-    return Result.ok(undefined)
+    p.log.info("Dry run enabled; no files will be written.");
+    console.log("\n" + content);
+    p.outro("Dry run complete");
+    return Result.ok(undefined);
   }
 
-  if (!existsSync(join(process.cwd(), '.changeset'))) {
-    return Result.err(new UsageError('Missing .changeset directory. Run changeset init first.'))
+  if (!existsSync(join(process.cwd(), ".changeset"))) {
+    return Result.err(new UsageError("Missing .changeset directory. Run changeset init first."));
   }
 
   const writeResult = await tryAsync(
     () => writeFile(changesetPath, content),
-    (cause) => new IoError(`writing ${changesetPath}`, cause)
-  )
+    (cause) => new IoError(`writing ${changesetPath}`, cause),
+  );
 
   if (Result.isError(writeResult)) {
-    return writeResult
+    return writeResult;
   }
 
-  p.log.success('Changeset written')
-  printPromptUxSmokeChecklist()
+  p.log.success("Changeset written");
+  printPromptUxSmokeChecklist();
 
   if (options.pr) {
     if (!options.yes) {
-      const confirmPr = await p.confirm('Create a PR with this changeset?', {
+      const confirmPr = await p.confirm("Create a PR with this changeset?", {
         default: true,
-      })
+      });
 
       if (!confirmPr) {
-        p.outro('Changeset prepared without PR')
-        return Result.ok(undefined)
+        p.outro("Changeset prepared without PR");
+        return Result.ok(undefined);
       }
     }
 
-    const ghCheck = await $`gh --version`.nothrow()
+    const ghCheck = await $`gh --version`.nothrow();
     if (ghCheck.exitCode !== 0) {
-      return Result.err(new UsageError('GitHub CLI (gh) not found. Install it to use --pr.'))
+      return Result.err(new UsageError("GitHub CLI (gh) not found. Install it to use --pr."));
     }
 
-    const beforeBranchResult = await $`git branch --show-current`.nothrow()
+    const beforeBranchResult = await $`git branch --show-current`.nothrow();
     if (beforeBranchResult.exitCode !== 0) {
-      return Result.err(new CommandError('git branch --show-current', beforeBranchResult.stderr.toString()))
+      return Result.err(
+        new CommandError("git branch --show-current", beforeBranchResult.stderr.toString()),
+      );
     }
 
-    const beforeBranch = beforeBranchResult.stdout.toString().trim() || null
-    const branchName = `release/${Date.now()}`
-    const title = 'chore: release prep'
+    const beforeBranch = beforeBranchResult.stdout.toString().trim() || null;
+    const branchName = `release/${Date.now()}`;
+    const title = "chore: release prep";
     const body = `## Release changeset\n\nPackages:\n${packageNames
       .map((name) => `- ${name}`)
-      .join('\n')}\n\nSummary:\n${summary}`
+      .join("\n")}\n\nSummary:\n${summary}`;
 
     const createPrResult = await tryAsync(
       async () => {
-        await $`git checkout -b ${branchName}`
-        await $`git add .changeset/${changesetId}.md`
-        await $`git commit -m ${`chore: add changeset for ${packageNames.join(', ')}`}`
-        await $`git push -u origin ${branchName}`
-        await $`gh pr create --title ${title} --body ${body}`
+        await $`git checkout -b ${branchName}`;
+        await $`git add .changeset/${changesetId}.md`;
+        await $`git commit -m ${`chore: add changeset for ${packageNames.join(", ")}`}`;
+        await $`git push -u origin ${branchName}`;
+        await $`gh pr create --title ${title} --body ${body}`;
       },
-      (cause) => new CommandError('creating PR branch and GitHub PR', cause)
-    )
+      (cause) => new CommandError("creating PR branch and GitHub PR", cause),
+    );
 
     if (beforeBranch) {
-      const checkoutBackResult = await $`git checkout ${beforeBranch}`.nothrow()
+      const checkoutBackResult = await $`git checkout ${beforeBranch}`.nothrow();
       if (checkoutBackResult.exitCode !== 0) {
-        p.log.warn(`Failed to checkout ${beforeBranch}: ${checkoutBackResult.stderr.toString().trim()}`)
+        p.log.warn(
+          `Failed to checkout ${beforeBranch}: ${checkoutBackResult.stderr.toString().trim()}`,
+        );
       }
     }
 
     if (Result.isError(createPrResult)) {
-      return createPrResult
+      return createPrResult;
     }
 
-    p.outro('PR created')
-    return Result.ok(undefined)
+    p.outro("PR created");
+    return Result.ok(undefined);
   }
 
-  p.outro('Changeset prepared')
-  return Result.ok(undefined)
+  p.outro("Changeset prepared");
+  return Result.ok(undefined);
 }
 
 try {
-  const result = await main()
+  const result = await main();
   if (Result.isError(result)) {
     if (result.error instanceof HelpRequested) {
-      printHelp()
-      process.exit(0)
+      printHelp();
+      process.exit(0);
     }
 
     if (result.error instanceof UserCancelled) {
-      p.cancel(result.error.message)
-      process.exit(0)
+      p.cancel(result.error.message);
+      process.exit(0);
     }
 
     if (result.error instanceof UsageError) {
-      p.log.error(result.error.message)
-      printHelp()
-      process.exit(1)
+      p.log.error(result.error.message);
+      printHelp();
+      process.exit(1);
     }
 
-    p.log.error(`Release prepare failed: ${result.error.message}`)
-    process.exit(1)
+    p.log.error(`Release prepare failed: ${result.error.message}`);
+    process.exit(1);
   }
 } catch (error) {
   if (error instanceof p.PromptCancelledError) {
-    process.exit(0)
+    process.exit(0);
   }
 
-  p.log.error(`Release prepare failed: ${toErrorMessage(error)}`)
-  process.exit(1)
+  p.log.error(`Release prepare failed: ${toErrorMessage(error)}`);
+  process.exit(1);
 }

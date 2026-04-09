@@ -1,8 +1,13 @@
 // Note: createCLI is now async and returns Promise<CLI>
-export { createCLI } from './cli.js'
-export { defineCommand, defineGroup, option } from './types.js'
-export { defineConfig, bunliConfigSchema, type BunliConfig, type BunliConfigInput } from './config.js'
-export { loadConfig, loadConfigResult } from './config-loader.js'
+export { createCLI } from "./cli.js";
+export { defineCommand, defineGroup, option } from "./types.js";
+export {
+  defineConfig,
+  bunliConfigSchema,
+  type BunliConfig,
+  type BunliConfigInput,
+} from "./config.js";
+export { loadConfig, loadConfigResult } from "./config-loader.js";
 export {
   createGeneratedHelpers,
   registerGeneratedStore,
@@ -11,9 +16,9 @@ export {
   type GeneratedStore,
   type GeneratedCommandMeta,
   type GeneratedOptionMeta,
-  type GeneratedExecutor
-} from './generated.js'
-export { SchemaError } from '@standard-schema/utils'
+  type GeneratedExecutor,
+} from "./generated.js";
+export { SchemaError } from "@standard-schema/utils";
 export type {
   CLI,
   Command,
@@ -39,12 +44,12 @@ export type {
   PromptApi,
   PromptSpinnerFactory,
   RegisteredCommands,
-  CommandOptions
-} from './types.js'
+  CommandOptions,
+} from "./types.js";
 
 // Export global flags
-export { GLOBAL_FLAGS } from './global-flags.js'
-export type { GlobalFlags } from './global-flags.js'
+export { GLOBAL_FLAGS } from "./global-flags.js";
+export type { GlobalFlags } from "./global-flags.js";
 
 // Note: Plugin system is exported via subpath export
 // Usage: import { PluginManager, createPlugin } from '@bunli/core/plugin'
@@ -55,8 +60,8 @@ export {
   validateValues,
   isValueOfType,
   createValidator,
-  createBatchValidator
-} from './validation.js'
+  createBatchValidator,
+} from "./validation.js";
 
 // Export type utilities
 export type {
@@ -79,8 +84,8 @@ export type {
   IsUnion,
   IsNonEmptyObject,
   Assign,
-  IntersectAssign
-} from './utils/type-helpers.js'
+  IntersectAssign,
+} from "./utils/type-helpers.js";
 
 // Export Result utilities
 export {
@@ -90,38 +95,30 @@ export {
   TaggedError,
   UnhandledException,
   matchError,
-  matchErrorPartial
-} from 'better-result'
-export type { TaggedErrorClass, TaggedErrorInstance } from 'better-result'
-export {
-  ConfigNotFoundError,
-  ConfigLoadError
-} from './config-loader.js'
+  matchErrorPartial,
+} from "better-result";
+export type { TaggedErrorClass, TaggedErrorInstance } from "better-result";
+export { ConfigNotFoundError, ConfigLoadError } from "./config-loader.js";
 export {
   BunliValidationError,
   InvalidConfigError,
   CommandNotFoundError,
   CommandExecutionError,
-  OptionValidationError
-} from './errors.js'
+  OptionValidationError,
+} from "./errors.js";
 export {
   PluginLoadError,
   PluginValidationError,
   PluginHookError,
-  toErrorMessage
-} from './plugin/errors.js'
+  toErrorMessage,
+} from "./plugin/errors.js";
 
 // Export output system
-export { format as formatOutput } from './output/formatter.js'
-export { serializeCliError } from './output/serialize.js'
-export { resolveFormat, shouldRenderOutput } from './output/policy.js'
-export type {
-  OutputFormat,
-  OutputPolicy,
-  OutputMeta,
-  OutputEnvelope
-} from './output/types.js'
-export type { SerializedCliError, SerializedCliIssue } from './output/serialize.js'
+export { format as formatOutput } from "./output/formatter.js";
+export { serializeCliError } from "./output/serialize.js";
+export { resolveFormat, shouldRenderOutput } from "./output/policy.js";
+export type { OutputFormat, OutputPolicy, OutputMeta, OutputEnvelope } from "./output/types.js";
+export type { SerializedCliError, SerializedCliIssue } from "./output/serialize.js";
 
 // Export help rendering
 export {
@@ -130,14 +127,14 @@ export {
   renderCommandHelp,
   collectTopLevelCommands,
   wrapText,
-  formatTwoColumnRows
-} from './help/index.js'
-export type { HelpContext } from './help/index.js'
+  formatTwoColumnRows,
+} from "./help/index.js";
+export type { HelpContext } from "./help/index.js";
 
 // Export manifest system
 export {
   renderIndex as renderManifestIndex,
   renderFull as renderManifestFull,
   toJsonSchema,
-  resolveTypeName
-} from './manifest/index.js'
+  resolveTypeName,
+} from "./manifest/index.js";

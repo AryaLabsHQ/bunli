@@ -7,8 +7,8 @@ export {
   type ThemeProviderProps,
   type TuiTheme,
   type TuiThemeInput,
-  type TuiThemeTokens
-} from './theme.js'
+  type TuiThemeTokens,
+} from "./theme.js";
 
 export {
   createKeyMatcher,
@@ -16,16 +16,16 @@ export {
   eventToBinding,
   type KeyBinding,
   type KeymapDefinition,
-  type KeyMatcher
-} from './keymap.js'
+  type KeyMatcher,
+} from "./keymap.js";
 
 export {
   displayWidth,
   truncateEnd,
   padEndTo,
   formatFixedWidth,
-  type TextOverflowMode
-} from './text-layout.js'
+  type TextOverflowMode,
+} from "./text-layout.js";
 
 export {
   FocusScopeProvider,
@@ -35,15 +35,15 @@ export {
   type FocusScopeProviderProps,
   type ScopedKeyHandler,
   type UseFocusScopeOptions,
-  type UseScopedKeyboardOptions
-} from './focus-scope.js'
+  type UseScopedKeyboardOptions,
+} from "./focus-scope.js";
 
 export {
   OverlayHostProvider,
   OverlayPortal,
   type OverlayHostProviderProps,
-  type OverlayPortalProps
-} from './overlay-host.js'
+  type OverlayPortalProps,
+} from "./overlay-host.js";
 
 export {
   DialogProvider,
@@ -60,5 +60,5 @@ export {
   type DialogManager,
   type DialogOpenOptions,
   type DialogProviderProps,
-  type DialogRenderContext
-} from './dialog-manager.js'
+  type DialogRenderContext,
+} from "./dialog-manager.js";

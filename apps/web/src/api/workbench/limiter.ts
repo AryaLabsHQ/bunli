@@ -10,7 +10,7 @@ async function postLimiter(
   env: Env,
   userId: string,
   actionPath: string,
-  body: Record<string, unknown> = {}
+  body: Record<string, unknown> = {},
 ): Promise<LimiterResponse> {
   const id = env.WORKBENCH_LIMITER.idFromName(userId);
   const stub = env.WORKBENCH_LIMITER.get(id);
@@ -45,12 +45,7 @@ export function abortRun(env: Env, userId: string, runId: string) {
   return postLimiter(env, userId, "/run/abort", { runId });
 }
 
-export function finishRun(
-  env: Env,
-  userId: string,
-  runId: string,
-  completionToken?: string
-) {
+export function finishRun(env: Env, userId: string, runId: string, completionToken?: string) {
   return postLimiter(env, userId, "/run/finish", { runId, completionToken });
 }
 

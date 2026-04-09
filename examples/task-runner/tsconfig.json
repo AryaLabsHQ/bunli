@@ -10,9 +10,5 @@
       "~commands/*": ["./.bunli/commands.gen.ts"]
     }
   },
-  "include": [
-    ".bunli/**/*.ts",
-    "**/*.ts",
-    "**/*.tsx"
-  ]
+  "include": [".bunli/**/*.ts", "**/*.ts", "**/*.tsx"]
 }

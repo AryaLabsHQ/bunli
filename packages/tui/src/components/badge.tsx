@@ -1,44 +1,48 @@
-import { useTuiTheme } from '@bunli/runtime/app'
+import { useTuiTheme } from "@bunli/runtime/app";
+
 import {
   resolveVariantStyle,
   type ComponentEmphasis,
   type ComponentSize,
-  type ComponentTone
-} from './variant.js'
+  type ComponentTone,
+} from "./variant.js";
 
-export type BadgeTone = Extract<ComponentTone, 'default' | 'accent' | 'success' | 'warning' | 'danger'>
+export type BadgeTone = Extract<
+  ComponentTone,
+  "default" | "accent" | "success" | "warning" | "danger"
+>;
 
 export interface BadgeProps {
-  label: string
-  tone?: BadgeTone
-  size?: ComponentSize
-  emphasis?: ComponentEmphasis
-  fg?: string
-  bg?: string
+  label: string;
+  tone?: BadgeTone;
+  size?: ComponentSize;
+  emphasis?: ComponentEmphasis;
+  fg?: string;
+  bg?: string;
 }
 
 function wrapLabel(label: string, size: ComponentSize): string {
-  if (size === 'sm') return `[${label}]`
-  if (size === 'lg') return `[[ ${label} ]]`
-  return `[ ${label} ]`
+  if (size === "sm") return `[${label}]`;
+  if (size === "lg") return `[[ ${label} ]]`;
+  return `[ ${label} ]`;
 }
 
 export function Badge({
   label,
-  tone = 'default',
-  size = 'md',
-  emphasis = 'outline',
+  tone = "default",
+  size = "md",
+  emphasis = "outline",
   fg,
-  bg
+  bg,
 }: BadgeProps) {
-  const theme = useTuiTheme()
+  const theme = useTuiTheme();
   const style = resolveVariantStyle(theme.tokens, {
     tone,
     size,
     emphasis,
     fg,
-    bg
-  })
+    bg,
+  });
 
-  return <text content={wrapLabel(label, size)} fg={style.fg} bg={style.bg} />
+  return <text content={wrapLabel(label, size)} fg={style.fg} bg={style.bg} />;
 }

@@ -1,10 +1,11 @@
-import { describe, expect, test } from 'bun:test'
-import type { KeyEvent } from '@opentui/core'
-import { dispatchScopedKeyboardEvent } from '@bunli/runtime/app'
+import { describe, expect, test } from "bun:test";
+
+import { dispatchScopedKeyboardEvent } from "@bunli/runtime/app";
+import type { KeyEvent } from "@opentui/core";
 
 function createKey(name: string) {
-  let defaultPrevented = false
-  let propagationStopped = false
+  let defaultPrevented = false;
+  let propagationStopped = false;
 
   return {
     name,
@@ -15,133 +16,133 @@ function createKey(name: string) {
     option: false,
     number: false,
     raw: name,
-    eventType: 'press',
-    source: 'raw',
+    eventType: "press",
+    source: "raw",
     get defaultPrevented() {
-      return defaultPrevented
+      return defaultPrevented;
     },
     get propagationStopped() {
-      return propagationStopped
+      return propagationStopped;
     },
     preventDefault() {
-      defaultPrevented = true
+      defaultPrevented = true;
     },
     stopPropagation() {
-      propagationStopped = true
-    }
-  } as KeyEvent
+      propagationStopped = true;
+    },
+  } as KeyEvent;
 }
 
-describe('@bunli/tui focus scope', () => {
-  test('dispatches only listeners in the active scope', () => {
-    const calls: string[] = []
-    const key = createKey('enter')
+describe("@bunli/tui focus scope", () => {
+  test("dispatches only listeners in the active scope", () => {
+    const calls: string[] = [];
+    const key = createKey("enter");
 
     const handled = dispatchScopedKeyboardEvent(
       key,
       [
         {
-          id: 'a',
-          scopeId: 'form',
+          id: "a",
+          scopeId: "form",
           priority: 0,
           active: true,
           order: 0,
           handler() {
-            calls.push('form')
-            return false
-          }
+            calls.push("form");
+            return false;
+          },
         },
         {
-          id: 'b',
-          scopeId: 'modal',
+          id: "b",
+          scopeId: "modal",
           priority: 0,
           active: true,
           order: 1,
           handler() {
-            calls.push('modal')
-            return true
-          }
-        }
+            calls.push("modal");
+            return true;
+          },
+        },
       ],
-      { activeScopeId: 'modal' }
-    )
+      { activeScopeId: "modal" },
+    );
 
-    expect(handled).toBe(true)
-    expect(calls).toEqual(['modal'])
-  })
+    expect(handled).toBe(true);
+    expect(calls).toEqual(["modal"]);
+  });
 
-  test('honors priority and stops after consumed handler', () => {
-    const calls: string[] = []
-    const key = createKey('escape')
+  test("honors priority and stops after consumed handler", () => {
+    const calls: string[] = [];
+    const key = createKey("escape");
 
     const handled = dispatchScopedKeyboardEvent(
       key,
       [
         {
-          id: 'low',
-          scopeId: 'modal',
+          id: "low",
+          scopeId: "modal",
           priority: 1,
           active: true,
           order: 0,
           handler() {
-            calls.push('low')
-            return false
-          }
+            calls.push("low");
+            return false;
+          },
         },
         {
-          id: 'high',
-          scopeId: 'modal',
+          id: "high",
+          scopeId: "modal",
           priority: 10,
           active: true,
           order: 1,
           handler() {
-            calls.push('high')
-            return true
-          }
-        }
+            calls.push("high");
+            return true;
+          },
+        },
       ],
-      { activeScopeId: 'modal' }
-    )
+      { activeScopeId: "modal" },
+    );
 
-    expect(handled).toBe(true)
-    expect(calls).toEqual(['high'])
-  })
+    expect(handled).toBe(true);
+    expect(calls).toEqual(["high"]);
+  });
 
-  test('stops dispatch when key propagation is stopped by a listener', () => {
-    const calls: string[] = []
-    const key = createKey('x')
+  test("stops dispatch when key propagation is stopped by a listener", () => {
+    const calls: string[] = [];
+    const key = createKey("x");
 
     const handled = dispatchScopedKeyboardEvent(
       key,
       [
         {
-          id: 'first',
-          scopeId: 'modal',
+          id: "first",
+          scopeId: "modal",
           priority: 10,
           active: true,
           order: 0,
           handler(event) {
-            calls.push('first')
-            event.stopPropagation()
-            return false
-          }
+            calls.push("first");
+            event.stopPropagation();
+            return false;
+          },
         },
         {
-          id: 'second',
-          scopeId: 'modal',
+          id: "second",
+          scopeId: "modal",
           priority: 0,
           active: true,
           order: 1,
           handler() {
-            calls.push('second')
-            return false
-          }
-        }
+            calls.push("second");
+            return false;
+          },
+        },
       ],
-      { activeScopeId: 'modal' }
-    )
+      { activeScopeId: "modal" },
+    );
 
-    expect(handled).toBe(true)
-    expect(calls).toEqual(['first'])
-  })
-})
+    expect(handled).toBe(true);
+    expect(calls).toEqual(["first"]);
+  });
+});

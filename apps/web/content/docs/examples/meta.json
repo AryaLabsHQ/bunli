@@ -1,10 +1,4 @@
 {
   "title": "Examples",
-  "pages": [
-    "index",
-    "hello-world",
-    "task-runner",
-    "git-tool",
-    "dev-server"
-  ]
+  "pages": ["index", "hello-world", "task-runner", "git-tool", "dev-server"]
 }

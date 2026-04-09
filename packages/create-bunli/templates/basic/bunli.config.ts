@@ -1,33 +1,33 @@
-import { defineConfig } from '@bunli/core'
+import { defineConfig } from "@bunli/core";
 
 export default defineConfig({
-  name: '{{name}}',
-  version: '{{version}}',
-  description: '{{description}}',
-  
+  name: "{{name}}",
+  version: "{{version}}",
+  description: "{{description}}",
+
   commands: {
-    directory: './src/commands'
+    directory: "./src/commands",
   },
-  
+
   build: {
-    entry: './src/index.ts',
-    outdir: './dist',
-    targets: ['native'],
+    entry: "./src/index.ts",
+    outdir: "./dist",
+    targets: ["native"],
     minify: true,
     sourcemap: true,
-    compress: false
+    compress: false,
   },
-  
+
   dev: {
     watch: true,
-    inspect: true
+    inspect: true,
   },
-  
+
   test: {
-    pattern: ['**/*.test.ts', '**/*.spec.ts'],
+    pattern: ["**/*.test.ts", "**/*.spec.ts"],
     coverage: true,
-    watch: false
+    watch: false,
   },
 
   plugins: [],
-})
+});

@@ -1,19 +1,23 @@
 {
   "name": "@bunli/plugin-mcp",
   "version": "0.2.5",
-  "type": "module",
   "description": "MCP (Model Context Protocol) plugin for Bunli - create CLI commands from MCP tool schemas",
   "keywords": [
+    "ai",
     "bunli",
     "cli",
-    "plugin",
+    "llm",
     "mcp",
     "model-context-protocol",
-    "ai",
-    "llm"
+    "plugin"
   ],
-  "author": "Bunli Team",
   "license": "MIT",
+  "author": "Bunli Team",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "type": "module",
   "main": "./src/index.ts",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -22,10 +26,6 @@
       "default": "./src/index.ts"
     }
   },
-  "files": [
-    "dist",
-    "src"
-  ],
   "scripts": {
     "build": "bun run scripts/build.ts",
     "typecheck": "tsgo --noEmit",
@@ -35,14 +35,14 @@
     "@bunli/core": "workspace:^",
     "better-result": "catalog:"
   },
-  "peerDependencies": {
-    "zod": "catalog:"
-  },
   "devDependencies": {
-    "@tsconfig/bun": "catalog:",
     "@modelcontextprotocol/sdk": "^1.25.3",
+    "@tsconfig/bun": "catalog:",
     "@types/bun": "catalog:",
     "typescript": "catalog:",
+    "zod": "catalog:"
+  },
+  "peerDependencies": {
     "zod": "catalog:"
   }
 }

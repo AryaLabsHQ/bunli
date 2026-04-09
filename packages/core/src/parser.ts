@@ -1,187 +1,176 @@
-import type { Options, StandardSchemaV1 } from './types.js'
-import { BunliValidationError } from './errors.js'
-import { SchemaError } from '@standard-schema/utils'
+import { SchemaError } from "@standard-schema/utils";
+
+import { BunliValidationError } from "./errors.js";
+import type { Options, StandardSchemaV1 } from "./types.js";
 
 export interface ParsedArgs {
-  flags: Record<string, unknown>
-  positional: string[]
+  flags: Record<string, unknown>;
+  positional: string[];
 }
 
 export async function parseArgs(
   args: string[],
   options: Options,
-  commandName: string = 'unknown'
+  commandName: string = "unknown",
 ): Promise<ParsedArgs> {
-  const flags: Record<string, unknown> = {}
-  const repeatableValues: Record<string, unknown[]> = {}
-  const positional: string[] = []
-  
+  const flags: Record<string, unknown> = {};
+  const repeatableValues: Record<string, unknown[]> = {};
+  const positional: string[] = [];
+
   // Build lookup maps for short aliases
-  const shortToName = new Map<string, string>()
+  const shortToName = new Map<string, string>();
   for (const [name, opt] of Object.entries(options)) {
     if (opt.short) {
-      shortToName.set(opt.short, name)
+      shortToName.set(opt.short, name);
     }
   }
-  
+
   // Parse arguments
-  let stopParsingFlags = false
+  let stopParsingFlags = false;
   for (let i = 0; i < args.length; i++) {
-    const arg = args[i]
-    if (!arg) continue
-    
+    const arg = args[i];
+    if (!arg) continue;
+
     // Handle -- separator: everything after is positional
-    if (arg === '--') {
-      stopParsingFlags = true
-      continue
+    if (arg === "--") {
+      stopParsingFlags = true;
+      continue;
     }
-    
+
     // After -- separator, treat everything as positional
     if (stopParsingFlags) {
-      positional.push(arg)
-      continue
+      positional.push(arg);
+      continue;
     }
-    
-    if (arg.startsWith('--')) {
+
+    if (arg.startsWith("--")) {
       // Long flag: --name or --name=value
-      const eqIndex = arg.indexOf('=')
-      const name = eqIndex > 0 ? arg.slice(2, eqIndex) : arg.slice(2)
-      const inlineValue = eqIndex > 0 ? arg.slice(eqIndex + 1) : undefined
-      
-      if (!name || !options[name]) continue
+      const eqIndex = arg.indexOf("=");
+      const name = eqIndex > 0 ? arg.slice(2, eqIndex) : arg.slice(2);
+      const inlineValue = eqIndex > 0 ? arg.slice(eqIndex + 1) : undefined;
+
+      if (!name || !options[name]) continue;
 
       // Get the value (inline, next arg, or 'true' for boolean-like flags)
-      let value: string | undefined = inlineValue
-      const option = options[name]
+      let value: string | undefined = inlineValue;
+      const option = options[name];
       if (
         value === undefined &&
         i + 1 < args.length &&
-        !args[i + 1]?.startsWith('-') &&
-        (
-          option.argumentKind !== 'flag' ||
-          args[i + 1] === 'true' ||
-          args[i + 1] === 'false'
-        )
+        !args[i + 1]?.startsWith("-") &&
+        (option.argumentKind !== "flag" || args[i + 1] === "true" || args[i + 1] === "false")
       ) {
-        value = args[++i]
+        value = args[++i];
       }
 
-      if (!option) continue
-      const parsedValue = value ?? (option.argumentKind === 'flag' ? 'true' : undefined)
+      if (!option) continue;
+      const parsedValue = value ?? (option.argumentKind === "flag" ? "true" : undefined);
 
       if (option.repeatable) {
-        if (!repeatableValues[name]) repeatableValues[name] = []
-        repeatableValues[name].push(parsedValue)
+        if (!repeatableValues[name]) repeatableValues[name] = [];
+        repeatableValues[name].push(parsedValue);
       } else {
-        flags[name] = await validateOption(name, parsedValue, option.schema, commandName)
+        flags[name] = await validateOption(name, parsedValue, option.schema, commandName);
       }
-      
-    } else if (arg.startsWith('-') && arg.length > 1) {
+    } else if (arg.startsWith("-") && arg.length > 1) {
       // Short flag: -n or -n value
-      const short = arg.slice(1)
-      const name = shortToName.get(short)
-      
+      const short = arg.slice(1);
+      const name = shortToName.get(short);
+
       if (name && options[name]) {
-        const option = options[name]
-        if (!option) continue
+        const option = options[name];
+        if (!option) continue;
 
         // Get the next argument as value if available
-        let value: string | undefined
+        let value: string | undefined;
         if (
           i + 1 < args.length &&
-          !args[i + 1]?.startsWith('-') &&
-          (
-            option.argumentKind !== 'flag' ||
-            args[i + 1] === 'true' ||
-            args[i + 1] === 'false'
-          )
+          !args[i + 1]?.startsWith("-") &&
+          (option.argumentKind !== "flag" || args[i + 1] === "true" || args[i + 1] === "false")
         ) {
-          value = args[++i]
+          value = args[++i];
         }
-        const parsedValue = value ?? (option.argumentKind === 'flag' ? 'true' : undefined)
+        const parsedValue = value ?? (option.argumentKind === "flag" ? "true" : undefined);
 
         if (option.repeatable) {
-          if (!repeatableValues[name]) repeatableValues[name] = []
-          repeatableValues[name].push(parsedValue)
+          if (!repeatableValues[name]) repeatableValues[name] = [];
+          repeatableValues[name].push(parsedValue);
         } else {
-          flags[name] = await validateOption(name, parsedValue, option.schema, commandName)
+          flags[name] = await validateOption(name, parsedValue, option.schema, commandName);
         }
       }
     } else {
       // Positional argument
-      positional.push(arg)
+      positional.push(arg);
     }
   }
-  
+
   // Validate all options were provided (schemas handle their own defaults/required logic)
   // We run validation with undefined for options not provided on command line
   for (const [name, opt] of Object.entries(options)) {
     if (opt.repeatable && name in repeatableValues) {
-      flags[name] = await validateOption(name, repeatableValues[name], opt.schema, commandName)
-      continue
+      flags[name] = await validateOption(name, repeatableValues[name], opt.schema, commandName);
+      continue;
     }
 
     if (!(name in flags)) {
-      flags[name] = await validateOption(name, undefined, opt.schema, commandName)
+      flags[name] = await validateOption(name, undefined, opt.schema, commandName);
     }
   }
-  
-  return { flags, positional }
+
+  return { flags, positional };
 }
 
 async function validateOption(
   name: string,
   value: unknown,
   schema: StandardSchemaV1,
-  commandName: string = 'unknown'
+  commandName: string = "unknown",
 ): Promise<unknown> {
   // Convert string 'true'/'false' to boolean for boolean schemas
-  let processedValue = value
-  if (typeof value === 'string' && (value === 'true' || value === 'false')) {
+  let processedValue = value;
+  if (typeof value === "string" && (value === "true" || value === "false")) {
     // Check if the schema expects a boolean by trying to validate true
-    const testResult = await schema['~standard'].validate(true)
+    const testResult = await schema["~standard"].validate(true);
     if (!testResult.issues) {
       // Schema accepts boolean, convert the string
-      processedValue = value === 'true'
+      processedValue = value === "true";
     }
   }
 
   if (Array.isArray(value)) {
-    const coercedArray = value.map(item => {
-      if (item === 'true') return true
-      if (item === 'false') return false
-      return item
-    })
+    const coercedArray = value.map((item) => {
+      if (item === "true") return true;
+      if (item === "false") return false;
+      return item;
+    });
 
-    const coercedArrayResult = await schema['~standard'].validate(coercedArray)
+    const coercedArrayResult = await schema["~standard"].validate(coercedArray);
     if (!coercedArrayResult.issues) {
-      processedValue = coercedArray
+      processedValue = coercedArray;
     }
   }
-  
+
   // Use Standard Schema validation
-  const result = await schema['~standard'].validate(processedValue)
-  
+  const result = await schema["~standard"].validate(processedValue);
+
   if (result.issues && result.issues.length > 0) {
-    const issue = result.issues[0]
-    if (!issue) return processedValue // Fallback if no issues
-    
-    const expectedType = extractSchemaType(schema)
-    const hint = generateHint(schema, value)
-    
-    throw new BunliValidationError(
-      `Invalid option '${name}': ${issue.message}`,
-      {
-        option: name,
-        value: value,
-        command: commandName,
-        expectedType,
-        hint
-      }
-    )
+    const issue = result.issues[0];
+    if (!issue) return processedValue; // Fallback if no issues
+
+    const expectedType = extractSchemaType(schema);
+    const hint = generateHint(schema, value);
+
+    throw new BunliValidationError(`Invalid option '${name}': ${issue.message}`, {
+      option: name,
+      value: value,
+      command: commandName,
+      expectedType,
+      hint,
+    });
   }
-  
-  return 'value' in result ? result.value : processedValue
+
+  return "value" in result ? result.value : processedValue;
 }
 
 /**
@@ -189,36 +178,36 @@ async function validateOption(
  */
 function extractSchemaType(schema: StandardSchemaV1): string {
   // Try to infer type from the schema structure
-  if ('type' in schema && typeof schema.type === 'string') {
-    return schema.type
+  if ("type" in schema && typeof schema.type === "string") {
+    return schema.type;
   }
-  
+
   // Fallback to checking common patterns
-  if ('enum' in schema) return 'enum'
-  if ('items' in schema) return 'array'
-  if ('properties' in schema) return 'object'
-  if ('format' in schema) return 'string'
-  
-  return 'unknown'
+  if ("enum" in schema) return "enum";
+  if ("items" in schema) return "array";
+  if ("properties" in schema) return "object";
+  if ("format" in schema) return "string";
+
+  return "unknown";
 }
 
 /**
  * Generate a helpful hint based on the schema and value
  */
 function generateHint(schema: StandardSchemaV1, value: unknown): string {
-  const type = extractSchemaType(schema)
-  
-  if (type === 'boolean' && typeof value === 'string') {
-    return 'Use --flag, --flag=true, or --flag=false for boolean options'
+  const type = extractSchemaType(schema);
+
+  if (type === "boolean" && typeof value === "string") {
+    return "Use --flag, --flag=true, or --flag=false for boolean options";
   }
-  if (type === 'number' && typeof value === 'string') {
-    return 'Provide a numeric value'
+  if (type === "number" && typeof value === "string") {
+    return "Provide a numeric value";
   }
-  if (type === 'array' && !Array.isArray(value)) {
-    return 'Provide a comma-separated list of values'
+  if (type === "array" && !Array.isArray(value)) {
+    return "Provide a comma-separated list of values";
   }
-  if (type === 'enum' && typeof value === 'string') {
-    return 'Choose from the available options'
+  if (type === "enum" && typeof value === "string") {
+    return "Choose from the available options";
   }
-  return ''
+  return "";
 }

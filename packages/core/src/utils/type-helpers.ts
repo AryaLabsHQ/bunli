@@ -3,33 +3,33 @@
  */
 
 // Union to intersection conversion
-export type UnionToIntersection<T> = (
-  T extends any ? (arg: T) => any : never
-) extends (arg: infer T) => any
+export type UnionToIntersection<T> = (T extends any ? (arg: T) => any : never) extends (
+  arg: infer T,
+) => any
   ? T
-  : never
+  : never;
 
 // Constrain types with fallback
 export type Constrain<T, TConstraint, TDefault = TConstraint> =
   | (T extends TConstraint ? T : never)
-  | TDefault
+  | TDefault;
 
 // Pick required properties
 export type PickRequired<T> = {
-  [K in keyof T as undefined extends T[K] ? never : K]: T[K]
-}
+  [K in keyof T as undefined extends T[K] ? never : K]: T[K];
+};
 
 // Pick optional properties
 export type PickOptional<T> = {
-  [K in keyof T as undefined extends T[K] ? K : never]: T[K]
-}
+  [K in keyof T as undefined extends T[K] ? K : never]: T[K];
+};
 
 // Extract primitive types from union
 export type ExtractPrimitives<TUnion> = TUnion extends MergeAllPrimitive
   ? TUnion
   : TUnion extends object
     ? never
-    : TUnion
+    : TUnion;
 
 // Merge all primitive types
 export type MergeAllPrimitive =
@@ -40,12 +40,10 @@ export type MergeAllPrimitive =
   | boolean
   | symbol
   | undefined
-  | null
+  | null;
 
 // Extract objects from union
-export type ExtractObjects<TUnion> = TUnion extends MergeAllPrimitive
-  ? never
-  : TUnion
+export type ExtractObjects<TUnion> = TUnion extends MergeAllPrimitive ? never : TUnion;
 
 // Partial merge all objects
 export type PartialMergeAllObject<TUnion> =
@@ -57,49 +55,39 @@ export type PartialMergeAllObject<TUnion> =
             ? TKey extends keyof TObj
               ? TObj[TKey]
               : never
-            : never
+            : never;
         }
-    : never
+    : never;
 
 // Partial merge all
-export type PartialMergeAll<TUnion> =
-  | ExtractPrimitives<TUnion>
-  | PartialMergeAllObject<TUnion>
+export type PartialMergeAll<TUnion> = ExtractPrimitives<TUnion> | PartialMergeAllObject<TUnion>;
 
 // Merge all objects in union
-export type MergeAllObjects<
-  TUnion,
-  TIntersected = UnionToIntersection<ExtractObjects<TUnion>>,
-> = [keyof TIntersected] extends [never]
+export type MergeAllObjects<TUnion, TIntersected = UnionToIntersection<ExtractObjects<TUnion>>> = [
+  keyof TIntersected,
+] extends [never]
   ? never
   : {
-      [TKey in keyof TIntersected]: TUnion extends any
-        ? TUnion[TKey & keyof TUnion]
-        : never
-    }
+      [TKey in keyof TIntersected]: TUnion extends any ? TUnion[TKey & keyof TUnion] : never;
+    };
 
 // Merge all types in union
-export type MergeAll<TUnion> =
-  | MergeAllObjects<TUnion>
-  | ExtractPrimitives<TUnion>
+export type MergeAll<TUnion> = MergeAllObjects<TUnion> | ExtractPrimitives<TUnion>;
 
 // No inference utility
-export type NoInfer<T> = [T][T extends any ? 0 : never]
+export type NoInfer<T> = [T][T extends any ? 0 : never];
 
 // Check if type is any
 export type IsAny<TValue, TYesResult, TNoResult = TValue> = 1 extends 0 & TValue
   ? TYesResult
-  : TNoResult
+  : TNoResult;
 
 // Pick as required
-export type PickAsRequired<TValue, TKey extends keyof TValue> = Omit<
-  TValue,
-  TKey
-> &
-  Required<Pick<TValue, TKey>>
+export type PickAsRequired<TValue, TKey extends keyof TValue> = Omit<TValue, TKey> &
+  Required<Pick<TValue, TKey>>;
 
 // Without empty objects
-export type WithoutEmpty<T> = T extends any ? ({} extends T ? never : T) : never
+export type WithoutEmpty<T> = T extends any ? ({} extends T ? never : T) : never;
 
 // Expand type for better IntelliSense
 export type Expand<T> = T extends object
@@ -108,36 +96,31 @@ export type Expand<T> = T extends object
       ? O
       : { [K in keyof O]: O[K] }
     : never
-  : T
+  : T;
 
 // Deep partial
 export type DeepPartial<T> = T extends object
   ? {
-      [P in keyof T]?: DeepPartial<T[P]>
+      [P in keyof T]?: DeepPartial<T[P]>;
     }
-  : T
+  : T;
 
 // Make difference optional
-export type MakeDifferenceOptional<TLeft, TRight> = keyof TLeft &
-  keyof TRight extends never
+export type MakeDifferenceOptional<TLeft, TRight> = keyof TLeft & keyof TRight extends never
   ? TRight
   : Omit<TRight, keyof TLeft & keyof TRight> & {
-      [K in keyof TLeft & keyof TRight]?: TRight[K]
-    }
+      [K in keyof TLeft & keyof TRight]?: TRight[K];
+    };
 
 // Check if type is union
 export type IsUnion<T, U extends T = T> = (
   T extends any ? (U extends T ? false : true) : never
 ) extends false
   ? false
-  : true
+  : true;
 
 // Check if type is non-empty object
-export type IsNonEmptyObject<T> = T extends object
-  ? keyof T extends never
-    ? false
-    : true
-  : false
+export type IsNonEmptyObject<T> = T extends object ? (keyof T extends never ? false : true) : false;
 
 // Assign types
 export type Assign<TLeft, TRight> = TLeft extends any
@@ -150,7 +133,7 @@ export type Assign<TLeft, TRight> = TLeft extends any
           ? TLeft & TRight
           : Omit<TLeft, keyof TRight> & TRight
     : never
-  : never
+  : never;
 
 // Intersect assign
 export type IntersectAssign<TLeft, TRight> = TLeft extends any
@@ -161,4 +144,4 @@ export type IntersectAssign<TLeft, TRight> = TLeft extends any
         ? TLeft
         : TRight & TLeft
     : never
-  : never
+  : never;

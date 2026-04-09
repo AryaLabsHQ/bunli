@@ -1,3 +1,5 @@
+import { DurableObject } from "cloudflare:workers";
+
 import {
   applyAbortRun,
   DEFAULT_LIMITS,
@@ -10,7 +12,6 @@ import {
   cleanupExpiredInflight,
   type LimiterState,
 } from "./limiter-logic";
-import { DurableObject } from "cloudflare:workers";
 
 const STATE_KEY = "limiter:state";
 
@@ -78,24 +79,13 @@ export class WorkbenchLimiter extends DurableObject<Env> {
         const runId = payload.runId ?? `run-${actionNowMs}-${crypto.randomUUID()}`;
         const completionToken =
           payload.completionToken ?? `token-${actionNowMs}-${crypto.randomUUID()}`;
-        const decision = applyStartRun(
-          state,
-          actionNowMs,
-          DEFAULT_LIMITS,
-          runId,
-          completionToken
-        );
+        const decision = applyStartRun(state, actionNowMs, DEFAULT_LIMITS, runId, completionToken);
         await this.saveState(decision.state);
         return decision;
       }
 
       if (path.endsWith("/run/finish")) {
-        const decision = applyFinishRun(
-          state,
-          actionNowMs,
-          payload.runId,
-          payload.completionToken
-        );
+        const decision = applyFinishRun(state, actionNowMs, payload.runId, payload.completionToken);
         await this.saveState(decision.state);
         return decision;
       }

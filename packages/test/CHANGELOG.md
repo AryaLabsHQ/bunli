@@ -5,7 +5,6 @@
 ### Minor Changes
 
 - aa971b5: Add a new agent-oriented framework layer across Bunli.
-
   - Add multi-format output support to `@bunli/core` with `--format`, handler `output()` helpers, agent-aware defaults, `--llms` / `--llms-full` manifests, richer command errors, help rendering extraction, recursive manifest generation, alias-safe manifest output, plugin `preRun` / `postRun` hooks, and XDG-aware plugin paths.
   - Add XDG directory helpers to `@bunli/utils`.
   - Add `createTestCLI`, type-level inference tests, and direct stdout/stderr capture support to `@bunli/test`.
@@ -17,7 +16,6 @@
 ### Patch Changes
 
 - 44bb5d0: Add follow-up fixes for config loading, repeatable flags, and machine-readable CLI output.
-
   - Let a complete inline `createCLI()` override win even when the on-disk Bunli config fails to load, while preserving `ConfigNotFoundError` and `ConfigLoadError` behavior for incomplete overrides.
   - Add `repeatable: true` option metadata in `@bunli/core` so repeated flags can accumulate into validated arrays.
   - Finish normalizing machine-readable core output by formatting built-in help, version, manifest, unknown-command, and validation error paths through the shared output system.
@@ -47,7 +45,6 @@
 ### Minor Changes
 
 - f1c404a: introducing `@bunli/tui` component-library
-
   - move prompt runtime ownership to `@bunli/tui` with inline + interactive modes
   - drop `@bunli/utils` prompt/clack exports and update usage across the toolchain
   - add schema-driven interactive form engine and expanded themed interactive component primitives

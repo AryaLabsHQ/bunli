@@ -1,9 +1,10 @@
-import { expect, test } from 'bun:test'
-import { format } from '../src/output/index.js'
+import { expect, test } from "bun:test";
 
-test('yaml formatting does not keep the serializer trailing newline', () => {
-  const output = format({ ok: true }, 'yaml')
+import { format } from "../src/output/index.js";
 
-  expect(output).toBe('ok: true')
-  expect(output.endsWith('\n')).toBe(false)
-})
+test("yaml formatting does not keep the serializer trailing newline", () => {
+  const output = format({ ok: true }, "yaml");
+
+  expect(output).toBe("ok: true");
+  expect(output.endsWith("\n")).toBe(false);
+});

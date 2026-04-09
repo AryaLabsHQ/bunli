@@ -2,6 +2,20 @@
   "name": "@bunli/plugin-completions",
   "version": "0.3.5",
   "description": "Shell completions plugin for Bunli CLI framework",
+  "keywords": [
+    "bash",
+    "bunli",
+    "cli",
+    "completions",
+    "fish",
+    "shell",
+    "zsh"
+  ],
+  "license": "MIT",
+  "author": "Bunli Team",
+  "files": [
+    "dist"
+  ],
   "type": "module",
   "exports": {
     ".": {
@@ -9,9 +23,6 @@
       "default": "./dist/index.js"
     }
   },
-  "files": [
-    "dist"
-  ],
   "scripts": {
     "build": "bun run scripts/build.ts && bun run tsgo",
     "test": "bun test",
@@ -24,16 +35,5 @@
   "devDependencies": {
     "@tsconfig/bun": "catalog:",
     "typescript": "catalog:"
-  },
-  "keywords": [
-    "bunli",
-    "cli",
-    "completions",
-    "bash",
-    "zsh",
-    "fish",
-    "shell"
-  ],
-  "author": "Bunli Team",
-  "license": "MIT"
+  }
 }

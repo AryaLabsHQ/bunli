@@ -1,13 +1,13 @@
-@import 'tailwindcss';
-@import 'fumadocs-ui/css/neutral.css';
-@import 'fumadocs-ui/css/preset.css';
-@import 'tw-animate-css';
+@import "tailwindcss";
+@import "fumadocs-ui/css/neutral.css";
+@import "fumadocs-ui/css/preset.css";
+@import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -101,12 +101,12 @@
   --secondary-foreground: oklch(0.88 0.02 196);
   --muted: oklch(0.22 0 0);
   --muted-foreground: oklch(0.52 0 0);
-  --accent: oklch(0.70 0.19 196);
+  --accent: oklch(0.7 0.19 196);
   --accent-foreground: oklch(0.08 0 0);
-  --destructive: oklch(0.55 0.20 25);
+  --destructive: oklch(0.55 0.2 25);
   --border: oklch(1 0 0 / 0.1);
   --input: oklch(0.22 0 0);
-  --ring: oklch(0.70 0.19 196);
+  --ring: oklch(0.7 0.19 196);
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
@@ -114,12 +114,12 @@
   --chart-5: oklch(0.645 0.246 16.439);
   --sidebar: oklch(0.12 0 0);
   --sidebar-foreground: oklch(0.88 0.02 196);
-  --sidebar-primary: oklch(0.70 0.19 196);
+  --sidebar-primary: oklch(0.7 0.19 196);
   --sidebar-primary-foreground: oklch(0.08 0 0);
   --sidebar-accent: oklch(0.18 0 0);
   --sidebar-accent-foreground: oklch(0.88 0.02 196);
   --sidebar-border: oklch(0.22 0 0);
-  --sidebar-ring: oklch(0.70 0.19 196);
+  --sidebar-ring: oklch(0.7 0.19 196);
   --terminal: oklch(0.12 0 0);
   --terminal-foreground: oklch(0.88 0.02 196);
   --terminal-border: oklch(0.22 0 0);
@@ -127,7 +127,9 @@
 }
 
 @layer base {
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     border-radius: 0 !important;
   }
   * {
@@ -138,10 +140,14 @@
     background-color: oklch(0.08 0 0);
     color: oklch(0.88 0.02 196);
     color-scheme: dark;
-    font-family: 'JetBrains Mono', 'JetBrains Mono Fallback', ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-family:
+      "JetBrains Mono", "JetBrains Mono Fallback", ui-monospace, SFMono-Regular, Menlo, monospace;
   }
-  code, pre, .font-mono {
-    font-family: 'JetBrains Mono', 'JetBrains Mono Fallback', ui-monospace, SFMono-Regular, Menlo, monospace;
+  code,
+  pre,
+  .font-mono {
+    font-family:
+      "JetBrains Mono", "JetBrains Mono Fallback", ui-monospace, SFMono-Regular, Menlo, monospace;
   }
 }
 
@@ -151,8 +157,9 @@
   }
 
   pre code {
-    font-family: 'JetBrains Mono', 'JetBrains Mono Fallback', ui-monospace, SFMono-Regular, Menlo, monospace;
-    @apply text-sm leading-normal block whitespace-pre break-normal;
+    font-family:
+      "JetBrains Mono", "JetBrains Mono Fallback", ui-monospace, SFMono-Regular, Menlo, monospace;
+    @apply block text-sm leading-normal break-normal whitespace-pre;
   }
 }
 
@@ -165,13 +172,25 @@
 
 /* Terminal animations */
 @keyframes blink {
-  0%, 49% { opacity: 1; }
-  50%, 100% { opacity: 0; }
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
 }
 
 @keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .cursor-blink {
@@ -183,8 +202,14 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .cursor-blink { animation: none; opacity: 1; }
-  .fade-in-up { animation: none; opacity: 1; }
+  .cursor-blink {
+    animation: none;
+    opacity: 1;
+  }
+  .fade-in-up {
+    animation: none;
+    opacity: 1;
+  }
 }
 
 /* ═══════════════════════════════════════════

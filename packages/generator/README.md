@@ -15,37 +15,37 @@ The Bunli command type generator that creates TypeScript definitions from your C
 ### Basic Generation
 
 ```typescript
-import { Generator } from '@bunli/generator'
-import { Result } from 'better-result'
+import { Generator } from "@bunli/generator";
+import { Result } from "better-result";
 
 const generator = new Generator({
-  entry: './src/cli.ts',
-  directory: './src/commands',
-  outputFile: './.bunli/commands.gen.ts'
-})
+  entry: "./src/cli.ts",
+  directory: "./src/commands",
+  outputFile: "./.bunli/commands.gen.ts",
+});
 
-const runResult = await generator.run()
+const runResult = await generator.run();
 if (Result.isError(runResult)) {
-  console.error(runResult.error.message)
+  console.error(runResult.error.message);
 }
 ```
 
 ### With Watch Mode
 
 ```typescript
-import { Generator } from '@bunli/generator'
-import { Result } from 'better-result'
+import { Generator } from "@bunli/generator";
+import { Result } from "better-result";
 
 const generator = new Generator({
-  entry: './src/cli.ts',
-  directory: './src/commands',
-  outputFile: './.bunli/commands.gen.ts'
-})
+  entry: "./src/cli.ts",
+  directory: "./src/commands",
+  outputFile: "./.bunli/commands.gen.ts",
+});
 
 // Initial generation
-const runResult = await generator.run()
+const runResult = await generator.run();
 if (Result.isError(runResult)) {
-  console.error(runResult.error.message)
+  console.error(runResult.error.message);
 }
 
 // Watch for changes (integrated with Bun's watch mode)
@@ -89,26 +89,26 @@ export function listCommands(): Array<{...}>
 The generator discovers command modules from your CLI entry (`commands.entry` / `build.entry`) and parses default-exported `defineCommand` / `defineGroup` calls:
 
 ```typescript
-import { defineCommand, option } from '@bunli/core'
-import { z } from 'zod'
+import { defineCommand, option } from "@bunli/core";
+import { z } from "zod";
 
 export default defineCommand({
-  name: 'deploy',
-  description: 'Deploy your application',
-  alias: 'd',
+  name: "deploy",
+  description: "Deploy your application",
+  alias: "d",
   options: {
-    env: option(z.string(), { 
-      description: 'Environment to deploy to',
-      short: 'e'
+    env: option(z.string(), {
+      description: "Environment to deploy to",
+      short: "e",
     }),
     force: option(z.boolean().default(false), {
-      description: 'Force deployment'
-    })
+      description: "Force deployment",
+    }),
   },
   handler: async ({ flags }) => {
     // Implementation
-  }
-})
+  },
+});
 ```
 
 ## Integration with Bunli CLI
@@ -124,12 +124,12 @@ The generator is automatically integrated with:
 Configure the generator in your `bunli.config.ts`:
 
 ```typescript
-import { defineConfig } from '@bunli/core'
+import { defineConfig } from "@bunli/core";
 
 export default defineConfig({
-  name: 'my-cli',
-  version: '1.0.0',
-})
+  name: "my-cli",
+  version: "1.0.0",
+});
 ```
 
 ## API Reference
@@ -138,10 +138,10 @@ export default defineConfig({
 
 ```typescript
 class Generator {
-  constructor(config: GeneratorConfig)
-  async run(event?: GeneratorEvent): Promise<Result<void, GeneratorRunError>>
-  getConfig(): GeneratorConfig
-  updateConfig(updates: Partial<GeneratorConfig>): void
+  constructor(config: GeneratorConfig);
+  async run(event?: GeneratorEvent): Promise<Result<void, GeneratorRunError>>;
+  getConfig(): GeneratorConfig;
+  updateConfig(updates: Partial<GeneratorConfig>): void;
 }
 ```
 
@@ -149,24 +149,24 @@ class Generator {
 
 ```typescript
 interface GeneratorConfig {
-  entry: string
-  directory?: string
-  outputFile: string
-  config?: any
+  entry: string;
+  directory?: string;
+  outputFile: string;
+  config?: any;
 }
 
 interface GeneratorEvent {
-  type: 'create' | 'update' | 'delete'
-  path: string
+  type: "create" | "update" | "delete";
+  path: string;
 }
 
 interface CommandMetadata {
-  name: string
-  description: string
-  alias?: string | string[]
-  options?: Record<string, OptionMetadata>
-  filePath: string
-  exportPath: string
+  name: string;
+  description: string;
+  alias?: string | string[];
+  options?: Record<string, OptionMetadata>;
+  filePath: string;
+  exportPath: string;
 }
 ```
 

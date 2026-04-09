@@ -85,17 +85,18 @@ Configure this in `createCLI()` config:
 
 ```typescript
 const cli = await createCLI({
-  name: 'my-app',
-  version: '1.0.0',
+  name: "my-app",
+  version: "1.0.0",
   tui: {
     renderer: {
-      bufferMode: 'alternate' // or 'standard'
-    }
-  }
-})
+      bufferMode: "alternate", // or 'standard'
+    },
+  },
+});
 ```
 
 Notes:
+
 - `bufferMode: 'standard'` is the default.
 - Use `bufferMode: 'alternate'` for fullscreen/blocking experiences.
 - Mouse tracking is disabled by default (`useMouse: false`) to avoid leaking raw mouse escape sequences after exit in standard-buffer workflows. Enable explicitly when needed.
@@ -123,23 +124,23 @@ Use this when replacing a clack mental model with Bunli-native APIs:
 // bunli
 // prompt is provided via handler args by Bunli
 
-prompt.intro('Setup')
-const confirmed = await prompt.confirm('Continue?', { default: true })
-const env = await prompt.select('Environment', {
+prompt.intro("Setup");
+const confirmed = await prompt.confirm("Continue?", { default: true });
+const env = await prompt.select("Environment", {
   options: [
-    { label: 'Development', value: 'dev' },
-    { label: 'Production', value: 'prod' }
-  ]
-})
-const features = await prompt.multiselect('Features', {
-  options: [
-    { label: 'Testing', value: 'testing' },
-    { label: 'Docker', value: 'docker' }
+    { label: "Development", value: "dev" },
+    { label: "Production", value: "prod" },
   ],
-  initialValues: ['testing']
-})
-prompt.log.success(`Selected ${env}`)
-prompt.outro('Done')
+});
+const features = await prompt.multiselect("Features", {
+  options: [
+    { label: "Testing", value: "testing" },
+    { label: "Docker", value: "docker" },
+  ],
+  initialValues: ["testing"],
+});
+prompt.log.success(`Selected ${env}`);
+prompt.outro("Done");
 ```
 
 ### Basic TUI Component
@@ -229,9 +230,9 @@ function InteractiveTUI({ command }) {
   const [count, setCount] = useState(0)
   const { width, height } = useTerminalDimensions()
   const runtime = useRuntime()
-  
+
   const timeline = useTimeline({ duration: 2000 })
-  
+
   useKeyboard((key) => {
     if (key.name === 'q') {
       runtime.exit()
@@ -240,7 +241,7 @@ function InteractiveTUI({ command }) {
       setCount(prev => prev + 1)
     }
   })
-  
+
   useEffect(() => {
     timeline.add({ count: 0 }, {
       count: 100,
@@ -248,7 +249,7 @@ function InteractiveTUI({ command }) {
       onUpdate: (anim) => setCount(anim.targets[0].count)
     })
   }, [])
-  
+
   return (
     <box title="Interactive Demo" style={{ border: true, padding: 2 }}>
       <text>Count: {count}</text>
@@ -264,6 +265,7 @@ function InteractiveTUI({ command }) {
 Interactive components are available from `@bunli/tui/interactive` and root exports.
 
 Included primitives:
+
 - Form: `Form`, `SchemaForm`, `FormField`, `SelectField`
 - Form v2: `NumberField`, `PasswordField`, `TextareaField`, `CheckboxField`, `MultiSelectField`
 - Layout: `Container`, `Stack`, `Grid`, `Panel`, `Card`, `Divider`, `SectionHeader`
@@ -331,7 +333,7 @@ A schema-driven container for controlled interactive forms.
 ```typescript
 const runtime = useRuntime()
 
-<Form 
+<Form
   title="My Form"
   schema={schema}
   onSubmit={(values) => console.log(values)}
@@ -342,6 +344,7 @@ const runtime = useRuntime()
 ```
 
 **Props:**
+
 - `title: string` - Form title
 - `schema: StandardSchemaV1` - Validation schema (Zod and other Standard Schema adapters supported)
 - `onSubmit: (values) => void | Promise<void>` - Submit handler with schema-validated values
@@ -379,6 +382,7 @@ A higher-level schema form builder that renders fields from descriptors.
 ```
 
 Supported `SchemaForm` field kinds:
+
 - `text`
 - `select`
 - `multiselect`
@@ -388,6 +392,7 @@ Supported `SchemaForm` field kinds:
 - `checkbox`
 
 Field-level behavior:
+
 - `visibleWhen(values) => boolean` for conditional rendering.
 - `deriveDefault(values) => unknown` for dependent default initialization.
 
@@ -406,6 +411,7 @@ A controlled text field bound to form context.
 ```
 
 **Props:**
+
 - `label: string` - Field label
 - `name: string` - Field name
 - `placeholder?: string` - Placeholder text
@@ -433,6 +439,7 @@ A controlled select field bound to form context.
 ```
 
 **Props:**
+
 - `label: string` - Field label
 - `name: string` - Field name
 - `options: SelectOption[]` - Available options
@@ -446,14 +453,15 @@ A controlled select field bound to form context.
 A progress bar component for showing completion status.
 
 ```typescript
-<ProgressBar 
-  value={75} 
-  label="Upload Progress" 
-  color="#00ff00" 
+<ProgressBar
+  value={75}
+  label="Upload Progress"
+  color="#00ff00"
 />
 ```
 
 **Props:**
+
 - `value: number` - Progress value (0-100)
 - `label?: string` - Progress label
 - `color?: string` - Progress bar color
@@ -514,16 +522,16 @@ The package re-exports useful OpenTUI React hooks:
 Handle keyboard events.
 
 ```typescript
-import { useRuntime } from '@bunli/runtime/app'
-import { useKeyboard } from '@bunli/tui'
+import { useRuntime } from "@bunli/runtime/app";
+import { useKeyboard } from "@bunli/tui";
 
-const runtime = useRuntime()
+const runtime = useRuntime();
 
 useKeyboard((key) => {
-  if (key.name === 'escape') {
-    runtime.exit()
+  if (key.name === "escape") {
+    runtime.exit();
   }
-})
+});
 ```
 
 ### useRenderer
@@ -531,10 +539,10 @@ useKeyboard((key) => {
 Access the OpenTUI renderer instance.
 
 ```typescript
-import { useRenderer } from '@bunli/tui'
+import { useRenderer } from "@bunli/tui";
 
-const renderer = useRenderer()
-renderer.console.show()
+const renderer = useRenderer();
+renderer.console.show();
 ```
 
 Use `useRenderer()` for advanced renderer inspection/control only. Use `useRuntime().exit()` for normal command completion.
@@ -544,9 +552,9 @@ Use `useRenderer()` for advanced renderer inspection/control only. Use `useRunti
 Get current terminal dimensions.
 
 ```typescript
-import { useTerminalDimensions } from '@bunli/tui'
+import { useTerminalDimensions } from "@bunli/tui";
 
-const { width, height } = useTerminalDimensions()
+const { width, height } = useTerminalDimensions();
 ```
 
 ### useTimeline
@@ -554,15 +562,18 @@ const { width, height } = useTerminalDimensions()
 Create and manage animations.
 
 ```typescript
-import { useTimeline } from '@bunli/tui'
+import { useTimeline } from "@bunli/tui";
 
-const timeline = useTimeline({ duration: 2000 })
+const timeline = useTimeline({ duration: 2000 });
 
-timeline.add({ x: 0 }, {
-  x: 100,
-  duration: 2000,
-  onUpdate: (anim) => setX(anim.targets[0].x)
-})
+timeline.add(
+  { x: 0 },
+  {
+    x: 100,
+    duration: 2000,
+    onUpdate: (anim) => setX(anim.targets[0].x),
+  },
+);
 ```
 
 ### useOnResize
@@ -570,11 +581,11 @@ timeline.add({ x: 0 }, {
 Handle terminal resize events.
 
 ```typescript
-import { useOnResize } from '@bunli/tui'
+import { useOnResize } from "@bunli/tui";
 
 useOnResize((width, height) => {
-  console.log(`Terminal resized to ${width}x${height}`)
-})
+  console.log(`Terminal resized to ${width}x${height}`);
+});
 ```
 
 ## Renderer Configuration
@@ -600,6 +611,7 @@ function MyComponent() {
 ```
 
 Available components:
+
 - `<box>` - Container with borders and layout
 - `<text>` - Text display with styling
 - `<input>` - Text input field

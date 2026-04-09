@@ -5,91 +5,91 @@ export interface SyncBatcherOptions {
    * - "microtask" batches updates in the current tick.
    * - "timeout" batches updates in a setTimeout callback.
    */
-  mode?: 'sync' | 'microtask' | 'timeout'
+  mode?: "sync" | "microtask" | "timeout";
   /**
    * Timeout used when mode="timeout".
    */
-  delayMs?: number
+  delayMs?: number;
 }
 
 export interface SyncBatcher<TAction> {
-  enqueue(action: TAction): void
-  flush(): void
-  clear(): void
-  size(): number
-  dispose(): void
+  enqueue(action: TAction): void;
+  flush(): void;
+  clear(): void;
+  size(): number;
+  dispose(): void;
 }
 
 export function createSyncBatcher<TAction>(
   applyBatch: (actions: TAction[]) => void,
-  options: SyncBatcherOptions = {}
+  options: SyncBatcherOptions = {},
 ): SyncBatcher<TAction> {
-  const mode = options.mode ?? 'microtask'
-  const delayMs = options.delayMs ?? 0
+  const mode = options.mode ?? "microtask";
+  const delayMs = options.delayMs ?? 0;
 
-  let queue: TAction[] = []
-  let scheduled = false
-  let disposed = false
-  let timeoutId: ReturnType<typeof setTimeout> | null = null
+  let queue: TAction[] = [];
+  let scheduled = false;
+  let disposed = false;
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
   const flush = () => {
-    if (disposed) return
+    if (disposed) return;
     if (queue.length === 0) {
-      scheduled = false
-      return
+      scheduled = false;
+      return;
     }
 
-    const batch = queue
-    queue = []
-    scheduled = false
-    timeoutId = null
-    applyBatch(batch)
-  }
+    const batch = queue;
+    queue = [];
+    scheduled = false;
+    timeoutId = null;
+    applyBatch(batch);
+  };
 
   const schedule = () => {
-    if (scheduled || disposed) return
-    scheduled = true
+    if (scheduled || disposed) return;
+    scheduled = true;
 
-    if (mode === 'sync') {
-      flush()
-      return
+    if (mode === "sync") {
+      flush();
+      return;
     }
 
-    if (mode === 'timeout') {
-      timeoutId = setTimeout(() => flush(), delayMs)
-      return
+    if (mode === "timeout") {
+      timeoutId = setTimeout(() => flush(), delayMs);
+      return;
     }
 
-    queueMicrotask(() => flush())
-  }
+    queueMicrotask(() => flush());
+  };
 
   return {
     enqueue(action) {
-      if (disposed) return
-      queue.push(action)
-      schedule()
+      if (disposed) return;
+      queue.push(action);
+      schedule();
     },
     flush,
     clear() {
-      queue = []
+      queue = [];
       if (timeoutId) {
-        clearTimeout(timeoutId)
-        timeoutId = null
+        clearTimeout(timeoutId);
+        timeoutId = null;
       }
-      scheduled = false
+      scheduled = false;
     },
     size() {
-      return queue.length
+      return queue.length;
     },
     dispose() {
-      if (disposed) return
-      disposed = true
+      if (disposed) return;
+      disposed = true;
       if (timeoutId) {
-        clearTimeout(timeoutId)
-        timeoutId = null
+        clearTimeout(timeoutId);
+        timeoutId = null;
       }
-      queue = []
-      scheduled = false
-    }
-  }
+      queue = [];
+      scheduled = false;
+    },
+  };
 }

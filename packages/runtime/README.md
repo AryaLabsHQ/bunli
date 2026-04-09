@@ -11,6 +11,7 @@ bun add @bunli/runtime react
 ## Exports
 
 Use subpath imports:
+
 - `@bunli/runtime/renderer` - render runner
 - `@bunli/runtime/app` - runtime providers/hooks plus shared app-facing UI runtime utilities
 - `@bunli/runtime/prompt` - prompt/session/spinner APIs

@@ -1,11 +1,4 @@
 {
   "title": "Plugin Packages",
-  "pages": [
-    "index",
-    "config",
-    "ai-detect",
-    "completions",
-    "mcp",
-    "skills"
-  ]
+  "pages": ["index", "config", "ai-detect", "completions", "mcp", "skills"]
 }

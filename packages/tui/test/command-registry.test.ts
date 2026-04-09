@@ -1,42 +1,37 @@
-import { describe, expect, test } from 'bun:test'
+import { describe, expect, test } from "bun:test";
+
 import {
   commandToPaletteItem,
   normalizeBinding,
-  shouldCleanupRegisteredCommand
-} from '@bunli/runtime/app'
+  shouldCleanupRegisteredCommand,
+} from "@bunli/runtime/app";
 
-describe('@bunli/tui command registry', () => {
-  test('normalizeBinding trims and lowercases keys', () => {
-    expect(normalizeBinding(' Ctrl+K ')).toBe('ctrl+k')
-    expect(normalizeBinding('Shift+Tab')).toBe('shift+tab')
-  })
+describe("@bunli/tui command registry", () => {
+  test("normalizeBinding trims and lowercases keys", () => {
+    expect(normalizeBinding(" Ctrl+K ")).toBe("ctrl+k");
+    expect(normalizeBinding("Shift+Tab")).toBe("shift+tab");
+  });
 
-  test('commandToPaletteItem composes section, hint, and keybind metadata', () => {
+  test("commandToPaletteItem composes section, hint, and keybind metadata", () => {
     const item = commandToPaletteItem({
-      id: 'view.data',
-      title: 'Open Data tab',
-      section: 'View',
-      hint: 'Switch route',
-      keybinds: ['2', 'shift+2'],
-      run: () => {}
-    })
+      id: "view.data",
+      title: "Open Data tab",
+      section: "View",
+      hint: "Switch route",
+      keybinds: ["2", "shift+2"],
+      run: () => {},
+    });
 
-    expect(item.key).toBe('view.data')
-    expect(item.label).toBe('Open Data tab')
-    expect(item.hint).toBe('View · Switch route · 2, shift+2')
-  })
+    expect(item.key).toBe("view.data");
+    expect(item.label).toBe("Open Data tab");
+    expect(item.hint).toBe("View · Switch route · 2, shift+2");
+  });
 
-  test('shouldCleanupRegisteredCommand only matches identical registration ownership', () => {
-    const currentEntry = { id: 'view.data', registrationId: 8 }
+  test("shouldCleanupRegisteredCommand only matches identical registration ownership", () => {
+    const currentEntry = { id: "view.data", registrationId: 8 };
 
-    expect(
-      shouldCleanupRegisteredCommand(currentEntry, 'view.data', 8)
-    ).toBe(true)
-    expect(
-      shouldCleanupRegisteredCommand(currentEntry, 'view.data', 9)
-    ).toBe(false)
-    expect(
-      shouldCleanupRegisteredCommand(currentEntry, 'view.charts', 8)
-    ).toBe(false)
-  })
-})
+    expect(shouldCleanupRegisteredCommand(currentEntry, "view.data", 8)).toBe(true);
+    expect(shouldCleanupRegisteredCommand(currentEntry, "view.data", 9)).toBe(false);
+    expect(shouldCleanupRegisteredCommand(currentEntry, "view.charts", 8)).toBe(false);
+  });
+});

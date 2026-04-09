@@ -1,68 +1,69 @@
-import { test, expect } from 'bun:test'
-import { defineConfig, bunliConfigSchema } from '../../core/src/config.js'
+import { test, expect } from "bun:test";
 
-test('defineConfig - parses config and applies defaults', () => {
+import { defineConfig, bunliConfigSchema } from "../../core/src/config.js";
+
+test("defineConfig - parses config and applies defaults", () => {
   const config = {
-    name: 'test-cli',
+    name: "test-cli",
     build: {
-      entry: 'src/cli.ts'
-    }
-  }
+      entry: "src/cli.ts",
+    },
+  };
 
-  const result = defineConfig(config)
-  expect(result.name).toBe('test-cli')
-  expect(result.build.entry).toBe('src/cli.ts')
+  const result = defineConfig(config);
+  expect(result.name).toBe("test-cli");
+  expect(result.build.entry).toBe("src/cli.ts");
   // Defaults should be applied
-  expect(result.build.targets).toEqual([])
-  expect(result.build.minify).toBe(false)
-  expect(result.dev.watch).toBe(true)
-})
+  expect(result.build.targets).toEqual([]);
+  expect(result.build.minify).toBe(false);
+  expect(result.dev.watch).toBe(true);
+});
 
-test('bunliConfigSchema - validates valid config', () => {
+test("bunliConfigSchema - validates valid config", () => {
   const config = {
-    name: 'test-cli',
-    version: '1.0.0',
+    name: "test-cli",
+    version: "1.0.0",
     build: {
-      entry: 'src/cli.ts',
-      outdir: './dist',
-      minify: true
+      entry: "src/cli.ts",
+      outdir: "./dist",
+      minify: true,
     },
     dev: {
-      watch: true
-    }
-  }
-  
-  const result = bunliConfigSchema.parse(config)
-  expect(result.name).toBe('test-cli')
-  expect(result.version).toBe('1.0.0')
-  expect(result.build?.entry).toBe('src/cli.ts')
-  expect(result.build?.minify).toBe(true)
-  expect(result.build?.outdir).toBe('./dist')
-  expect(result.dev?.watch).toBe(true)
-})
+      watch: true,
+    },
+  };
 
-test('bunliConfigSchema - handles partial build config', () => {
+  const result = bunliConfigSchema.parse(config);
+  expect(result.name).toBe("test-cli");
+  expect(result.version).toBe("1.0.0");
+  expect(result.build?.entry).toBe("src/cli.ts");
+  expect(result.build?.minify).toBe(true);
+  expect(result.build?.outdir).toBe("./dist");
+  expect(result.dev?.watch).toBe(true);
+});
+
+test("bunliConfigSchema - handles partial build config", () => {
   const config = {
     build: {
-      entry: 'src/index.ts',
-      minify: false
-    }
-  }
-  
-  const result = bunliConfigSchema.parse(config)
-  expect(result.build?.entry).toBe('src/index.ts')
-  expect(result.build?.minify).toBe(false)
-  expect(result.build?.outdir).toBeUndefined()
-})
+      entry: "src/index.ts",
+      minify: false,
+    },
+  };
 
-test('bunliConfigSchema - rejects removed commands.manifest', () => {
+  const result = bunliConfigSchema.parse(config);
+  expect(result.build?.entry).toBe("src/index.ts");
+  expect(result.build?.minify).toBe(false);
+  expect(result.build?.outdir).toBeUndefined();
+});
+
+test("bunliConfigSchema - rejects removed commands.manifest", () => {
   expect(() =>
     bunliConfigSchema.parse({
-      name: 'test-cli',
-      version: '1.0.0',
+      name: "test-cli",
+      version: "1.0.0",
       commands: {
-        manifest: './commands/manifest.ts'
-      }
-    })
-  ).toThrow(/commands\.manifest has been removed/)
-})
+        manifest: "./commands/manifest.ts",
+      },
+    }),
+  ).toThrow(/commands\.manifest has been removed/);
+});

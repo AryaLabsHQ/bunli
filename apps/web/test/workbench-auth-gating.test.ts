@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+
 import { AuthRequiredError, type AuthSession } from "../src/api/auth/session";
 import { createWorkbenchRouter, type WorkbenchDeps } from "../src/api/workbench/router";
 

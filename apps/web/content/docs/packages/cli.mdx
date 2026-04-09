@@ -1,28 +1,22 @@
 ---
-title: 'bunli'
-description: 'CLI toolchain for developing, building, testing, and distributing Bunli applications'
+title: "bunli"
+description: "CLI toolchain for developing, building, testing, and distributing Bunli applications"
 ---
 
-import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
-import { Callout } from 'fumadocs-ui/components/callout';
+import { Tabs, Tab } from "fumadocs-ui/components/tabs";
+import { Callout } from "fumadocs-ui/components/callout";
 
 ## Installation
 
 <Tabs groupId="package-manager" defaultValue="bun">
   <Tab value="bun" label="Bun">
-    ```bash
-    bun add -g bunli
-    ```
+    ```bash bun add -g bunli ```
   </Tab>
   <Tab value="npm" label="npm">
-    ```bash
-    npm install -g bunli
-    ```
+    ```bash npm install -g bunli ```
   </Tab>
   <Tab value="pnpm" label="pnpm">
-    ```bash
-    pnpm add -g bunli
-    ```
+    ```bash pnpm add -g bunli ```
   </Tab>
 </Tabs>
 
@@ -51,6 +45,7 @@ cd my-cli
 ```
 
 **Options:**
+
 - `--name, -n` - Project name
 - `--template, -t` - Project template (`basic`, `advanced`, `monorepo`)
 - `--dir, -d` - Directory to create project in
@@ -68,6 +63,7 @@ bunli dev
 ```
 
 **Options:**
+
 - `--entry, -e` - Entry file (defaults to auto-detect)
 - `--generate` - Enable codegen (default: true)
 - `--clearScreen` - Clear screen on reload (default: true)
@@ -76,6 +72,7 @@ bunli dev
 - `--port, -p` - Debugger port (default: 9229)
 
 **Features:**
+
 - Automatic hot reload with Bun's `--hot` flag
 - Automatic type generation when code changes
 - Debugger support for breakpoint debugging
@@ -83,6 +80,7 @@ bunli dev
 - Pass-through arguments to your CLI
 
 **Example:**
+
 ```bash
 # Run with debugger
 bunli dev --inspect
@@ -107,6 +105,7 @@ bunli build
 ```
 
 **Options:**
+
 - `--entry, -e` - Entry file (defaults to auto-detect)
 - `--outdir, -o` - Output directory (default: `./dist`)
 - `--outfile` - Output filename (for single executable)
@@ -118,6 +117,7 @@ bunli build
 - `--watch, -w` - Watch for changes
 
 **Target Platforms:**
+
 - `native` - Current platform only
 - `darwin-arm64` - macOS Apple Silicon
 - `darwin-x64` - macOS Intel
@@ -127,6 +127,7 @@ bunli build
 - `all` - All supported platforms
 
 **Examples:**
+
 ```bash
 # Build traditional JS (requires Bun runtime)
 bunli build
@@ -157,12 +158,14 @@ bunli generate
 ```
 
 **Options:**
+
 - `--entry, -e` - CLI entry file used for command discovery
 - `--directory` - Optional fallback command source directory
 - `--output, -o` - Output file (default: `./.bunli/commands.gen.ts`)
 - `--watch, -w` - Watch for changes and regenerate
 
 **Examples:**
+
 ```bash
 # Generate types once
 bunli generate
@@ -181,7 +184,8 @@ bunli generate --directory ./src/commands
 ```
 
 <Callout type="info">
-  Type generation is automatically run during `bunli dev` and `bunli build`. You typically only need to run this manually for one-off generation or when using watch mode.
+  Type generation is automatically run during `bunli dev` and `bunli build`. You typically only need
+  to run this manually for one-off generation or when using watch mode.
 </Callout>
 
 ### bunli test
@@ -194,6 +198,7 @@ bunli test
 ```
 
 **Options:**
+
 - `--pattern, -p` - Test file patterns (default: `**/*.test.ts`); can be specified multiple times
 - `--watch, -w` - Watch for changes
 - `--coverage, -c` - Generate coverage report
@@ -202,6 +207,7 @@ bunli test
 - `--all` - Run tests in all packages (workspace mode)
 
 **Examples:**
+
 ```bash
 # Run all tests
 bunli test
@@ -229,6 +235,7 @@ bunli release
 ```
 
 **Options:**
+
 - `--version, -V` - Version to release (`patch`, `minor`, `major`, or `x.y.z`)
 - `--tag, -t` - Git tag format (default: `v{{version}}`)
 - `--npm` - Publish to npm
@@ -237,6 +244,7 @@ bunli release
 - `--dry, -d` - Dry run - show what would be done without making changes
 
 **Features:**
+
 - Interactive version selection
 - Automated version bumping following semver
 - Git tag creation and pushing
@@ -246,6 +254,7 @@ bunli release
 - Dry run mode for testing
 
 **Examples:**
+
 ```bash
 # Interactive release
 bunli release
@@ -270,7 +279,8 @@ bunli release --resume=false
 ```
 
 <Callout type="warning">
-  Use `--npm=false` (not `--no-npm`) to disable npm publishing. Boolean options work as `--flag` (true) or `--flag=false` (false).
+  Use `--npm=false` (not `--no-npm`) to disable npm publishing. Boolean options work as `--flag`
+  (true) or `--flag=false` (false).
 </Callout>
 
 ### bunli doctor
@@ -292,9 +302,11 @@ bunli doctor completions
 ```
 
 **Options:**
+
 - `--shell` - Target shell (`bash`, `zsh`, `fish`, `powershell`)
 
 **Examples:**
+
 ```bash
 # Check all shell completions
 bunli doctor completions
@@ -323,6 +335,7 @@ bunli shell confirm "Continue with deployment?"
 ```
 
 **Options:**
+
 - `--default` - Default value (default: false)
 - `--affirmative` - Affirmative label (default: "Yes")
 - `--negative` - Negative label (default: "No")
@@ -339,6 +352,7 @@ echo -e "Option1\nOption2\nOption3" | bunli shell choose
 ```
 
 **Options:**
+
 - `--multiple` - Allow multiple selections
 - `--limit` - Max selections
 - `--height` - Visible items (default: 10)
@@ -353,6 +367,7 @@ bunli shell input "Enter your name:"
 ```
 
 **Options:**
+
 - `--placeholder` - Placeholder text
 - `--prompt` - Prompt message
 - `--value` - Default value
@@ -367,6 +382,7 @@ bunli shell spin "Building..." -- bun run build
 ```
 
 **Options:**
+
 - `--title` - Spinner title (default: "Loading...")
 
 #### bunli shell pager
@@ -380,6 +396,7 @@ cat README.md | bunli shell pager
 ```
 
 **Options:**
+
 - `--file, -f` - File to display
 
 #### bunli shell filter
@@ -444,62 +461,62 @@ bunli shell log --level info "Server started"
 Create a `bunli.config.ts` file in your project root to configure the CLI behavior:
 
 ```typescript
-import { defineConfig } from '@bunli/core'
+import { defineConfig } from "@bunli/core";
 
 export default defineConfig({
-  name: 'my-cli',
-  version: '1.0.0',
-  description: 'My awesome CLI',
+  name: "my-cli",
+  version: "1.0.0",
+  description: "My awesome CLI",
 
   // Command configuration
   commands: {
-    entry: './src/cli.ts',
-    directory: './src/commands'
+    entry: "./src/cli.ts",
+    directory: "./src/commands",
   },
 
   // Build configuration
   build: {
-    entry: './src/cli.ts',
-    outdir: './dist',
-    targets: ['darwin-arm64', 'linux-x64', 'windows-x64'],
+    entry: "./src/cli.ts",
+    outdir: "./dist",
+    targets: ["darwin-arm64", "linux-x64", "windows-x64"],
     compress: true,
-    external: ['@aws-sdk/*'],
+    external: ["@aws-sdk/*"],
     minify: true,
-    sourcemap: false
+    sourcemap: false,
   },
 
   // Development configuration
   dev: {
     watch: true,
     inspect: false,
-    port: 9229
+    port: 9229,
   },
 
   // Test configuration
   test: {
-    pattern: ['**/*.test.ts', '**/*.spec.ts'],
+    pattern: ["**/*.test.ts", "**/*.spec.ts"],
     coverage: false,
-    watch: false
+    watch: false,
   },
 
   // Release configuration
   release: {
     npm: true,
     github: true,
-    tagFormat: 'v{{version}}',
+    tagFormat: "v{{version}}",
     conventionalCommits: true,
     binary: {
-      packageNameFormat: '{{name}}-{{platform}}',
-      shimPath: 'bin/run.mjs'
-    }
+      packageNameFormat: "{{name}}-{{platform}}",
+      shimPath: "bin/run.mjs",
+    },
   },
 
   // Workspace configuration (monorepos)
   workspace: {
-    packages: ['packages/*'],
-    versionStrategy: 'independent'
-  }
-})
+    packages: ["packages/*"],
+    versionStrategy: "independent",
+  },
+});
 ```
 
 ## Entry Point Detection
@@ -533,6 +550,7 @@ bunli build --targets darwin-arm64,linux-x64,windows-x64
 ```
 
 Output structure:
+
 ```
 dist/
 ├── darwin-arm64/
@@ -546,6 +564,7 @@ dist/
 ```
 
 With compression enabled:
+
 ```
 dist/
 ├── darwin-arm64.tar.gz
@@ -609,9 +628,9 @@ export default defineConfig({
     },
     onAfterBuild: async (result) => {
       // Copy additional files, generate docs, etc.
-    }
-  }
-})
+    },
+  },
+});
 ```
 
 ### Cross-Platform Considerations
@@ -622,12 +641,10 @@ When building for multiple platforms:
 // bunli.config.ts
 export default defineConfig({
   build: {
-    targets: ['darwin-arm64', 'linux-x64', 'windows-x64'],
-    external: process.platform === 'win32'
-      ? ['node-pty']
-      : ['windows-specific-module']
-  }
-})
+    targets: ["darwin-arm64", "linux-x64", "windows-x64"],
+    external: process.platform === "win32" ? ["node-pty"] : ["windows-specific-module"],
+  },
+});
 ```
 
 ### Continuous Integration
@@ -659,7 +676,8 @@ jobs:
 ```
 
 <Callout type="info">
-  `bunli build` can optionally compress multi-target builds into `dist/&lt;target&gt;.tar.gz`. For stable, release-ready archives and checksums, use `bunli-releaser`.
+  `bunli build` can optionally compress multi-target builds into `dist/&lt;target&gt;.tar.gz`. For
+  stable, release-ready archives and checksums, use `bunli-releaser`.
 </Callout>
 
 **Release (binaries + checksums + Homebrew via bunli-releaser):**
@@ -698,28 +716,33 @@ jobs:
 ## Troubleshooting
 
 <Callout type="warning">
-  **Command not found**: If `bunli` is not found after installation, ensure your global bin directory is in PATH. Alternatively, use `bunx bunli` to run without global installation.
+  **Command not found**: If `bunli` is not found after installation, ensure your global bin
+  directory is in PATH. Alternatively, use `bunx bunli` to run without global installation.
 </Callout>
 
 ### Common Issues
 
 **Build fails with module errors:**
+
 - Check that all dependencies are installed
 - Verify entry point exists
 - Use `--external` for native modules
 - Check TypeScript configuration
 
 **Hot reload not working:**
+
 - Ensure you're using `bunli dev`
 - Check that Bun version supports `--hot`
 - Some file changes may require manual restart
 
 **Tests not found:**
+
 - Verify test file pattern matches your test files
 - Default pattern is `**/*.test.ts`
 - Use `--pattern` to specify custom patterns
 
 **Shell completions not working:**
+
 - Run `bunli doctor completions` to diagnose
 - Ensure your shell is configured to source completion scripts
 - Restart your shell after installing completions

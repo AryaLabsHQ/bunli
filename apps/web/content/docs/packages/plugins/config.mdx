@@ -1,5 +1,5 @@
 ---
-title: '@bunli/plugin-config'
+title: "@bunli/plugin-config"
 description: Configuration loading and merging plugin for Bunli
 ---
 
@@ -21,15 +21,13 @@ bun add @bunli/plugin-config
 ## Basic Usage
 
 ```typescript
-import { createCLI } from '@bunli/core'
-import { configMergerPlugin } from '@bunli/plugin-config'
+import { createCLI } from "@bunli/core";
+import { configMergerPlugin } from "@bunli/plugin-config";
 
 const cli = await createCLI({
-  name: 'my-cli',
-  plugins: [
-    configMergerPlugin()
-  ] as const
-})
+  name: "my-cli",
+  plugins: [configMergerPlugin()] as const,
+});
 ```
 
 ## Configuration Sources
@@ -52,20 +50,20 @@ interface ConfigPluginOptions {
    * Supports template variables: {{name}} for app name
    * Default: ['~/.config/{{name}}/config.json', '.{{name}}rc', '.{{name}}rc.json', '.config/{{name}}.json']
    */
-  sources?: string[]
-  
+  sources?: string[];
+
   /**
    * Merge strategy
    * - 'deep': Recursively merge objects (default)
    * - 'shallow': Only merge top-level properties
    */
-  mergeStrategy?: 'shallow' | 'deep'
-  
+  mergeStrategy?: "shallow" | "deep";
+
   /**
    * Whether to stop on first found config
    * Default: false (loads and merges all found configs)
    */
-  stopOnFirst?: boolean
+  stopOnFirst?: boolean;
 }
 ```
 
@@ -75,32 +73,25 @@ interface ConfigPluginOptions {
 
 ```typescript
 configMergerPlugin({
-  sources: [
-    '~/.myapp/config.json',
-    './myapp.config.json',
-    './config/myapp.json'
-  ]
-})
+  sources: ["~/.myapp/config.json", "./myapp.config.json", "./config/myapp.json"],
+});
 ```
 
 ### Shallow Merge
 
 ```typescript
 configMergerPlugin({
-  mergeStrategy: 'shallow'
-})
+  mergeStrategy: "shallow",
+});
 ```
 
 ### Stop on First Config
 
 ```typescript
 configMergerPlugin({
-  sources: [
-    './local.config.json',
-    '~/.config/{{name}}/config.json'
-  ],
-  stopOnFirst: true // Use local config if it exists
-})
+  sources: ["./local.config.json", "~/.config/{{name}}/config.json"],
+  stopOnFirst: true, // Use local config if it exists
+});
 ```
 
 ## Configuration File Format
@@ -193,11 +184,11 @@ Place more specific configs later in the sources array:
 ```typescript
 configMergerPlugin({
   sources: [
-    '~/.config/{{name}}/config.json',  // User defaults
-    '.{{name}}rc.json',                 // Project config
-    '.{{name}}rc.local.json'            // Local overrides
-  ]
-})
+    "~/.config/{{name}}/config.json", // User defaults
+    ".{{name}}rc.json", // Project config
+    ".{{name}}rc.local.json", // Local overrides
+  ],
+});
 ```
 
 ### 2. Document Config Schema
@@ -207,14 +198,14 @@ Create a config schema for your users:
 ```typescript
 interface MyAppConfig {
   api: {
-    url: string
-    timeout?: number
-    retries?: number
-  }
+    url: string;
+    timeout?: number;
+    retries?: number;
+  };
   features: {
-    experimental?: boolean
-    telemetry?: boolean
-  }
+    experimental?: boolean;
+    telemetry?: boolean;
+  };
 }
 ```
 
@@ -243,16 +234,13 @@ The plugin handles missing config files gracefully:
 ```typescript
 // No error thrown if config files don't exist
 const cli = await createCLI({
-  name: 'my-cli',
+  name: "my-cli",
   plugins: [
     configMergerPlugin({
-      sources: [
-        './optional-config.json',
-        '~/.config/{{name}}/config.json'
-      ]
-    })
-  ]
-})
+      sources: ["./optional-config.json", "~/.config/{{name}}/config.json"],
+    }),
+  ],
+});
 ```
 
 ## Integration with Commands
@@ -261,22 +249,24 @@ Merged configuration is available in your CLI config:
 
 ```typescript
 const cli = await createCLI({
-  name: 'my-cli',
-  version: '1.0.0',
-  plugins: [configMergerPlugin()]
-})
+  name: "my-cli",
+  version: "1.0.0",
+  plugins: [configMergerPlugin()],
+});
 
 // Config values can override CLI properties
-cli.command(defineCommand({
-  name: 'info',
-  description: 'Show CLI information',
-  handler: async ({ context, runtime }) => {
-    // Access config via plugin store
-    if (context?.store.config) {
-      console.log('Config loaded:', context.store.config)
-    }
-  }
-}))
+cli.command(
+  defineCommand({
+    name: "info",
+    description: "Show CLI information",
+    handler: async ({ context, runtime }) => {
+      // Access config via plugin store
+      if (context?.store.config) {
+        console.log("Config loaded:", context.store.config);
+      }
+    },
+  }),
+);
 ```
 
 ## Debugging
@@ -285,11 +275,11 @@ The plugin uses the logger to provide debugging information:
 
 ```typescript
 // Enable debug logging to see which configs are loaded
-process.env.DEBUG = 'bunli:*'
+process.env.DEBUG = "bunli:*";
 
 configMergerPlugin({
-  sources: ['./config.json', '~/.config/app.json']
-})
+  sources: ["./config.json", "~/.config/app.json"],
+});
 
 // Output:
 // [bunli:plugin] Config file not found: ./config.json

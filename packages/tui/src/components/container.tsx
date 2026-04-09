@@ -1,13 +1,13 @@
-import type { ReactNode } from 'react'
-import { useTuiTheme } from '@bunli/runtime/app'
+import { useTuiTheme } from "@bunli/runtime/app";
+import type { ReactNode } from "react";
 
 export interface ContainerProps {
-  children: ReactNode
-  title?: string
-  border?: boolean
-  padding?: number
-  muted?: boolean
-  style?: Record<string, unknown>
+  children: ReactNode;
+  title?: string;
+  border?: boolean;
+  padding?: number;
+  muted?: boolean;
+  style?: Record<string, unknown>;
 }
 
 export function Container({
@@ -16,23 +16,23 @@ export function Container({
   border = false,
   padding = 1,
   muted = false,
-  style = {}
+  style = {},
 }: ContainerProps) {
-  const { tokens } = useTuiTheme()
+  const { tokens } = useTuiTheme();
   return (
     <box
       title={title}
       border={border}
       padding={padding}
       style={{
-        flexDirection: 'column',
+        flexDirection: "column",
         gap: 1,
         backgroundColor: muted ? tokens.backgroundMuted : tokens.background,
         borderColor: tokens.border,
-        ...style
+        ...style,
       }}
     >
       {children}
     </box>
-  )
+  );
 }

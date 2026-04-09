@@ -1,52 +1,49 @@
-import type { ReactNode, Ref } from 'react'
-import type { ScrollBoxRenderable } from '@opentui/core'
-import { formatFixedWidth, useTuiTheme } from '@bunli/runtime/app'
-import {
-  resolveVariantStyle,
-  type ComponentEmphasis,
-  type ComponentSize
-} from './variant.js'
-import type { PanelTone } from './panel.js'
+import { formatFixedWidth, useTuiTheme } from "@bunli/runtime/app";
+import type { ScrollBoxRenderable } from "@opentui/core";
+import type { ReactNode, Ref } from "react";
+
+import type { PanelTone } from "./panel.js";
+import { resolveVariantStyle, type ComponentEmphasis, type ComponentSize } from "./variant.js";
 
 export interface ScrollPanelScrollbarOptions {
-  visible?: boolean
-  trackColor?: string
-  thumbColor?: string
+  visible?: boolean;
+  trackColor?: string;
+  thumbColor?: string;
 }
 
 export interface ScrollPanelProps {
-  id?: string
-  title?: string
-  subtitle?: string
-  chromeLineWidth?: number
-  header?: ReactNode
-  footer?: ReactNode
-  tone?: PanelTone
-  size?: ComponentSize
-  emphasis?: ComponentEmphasis
-  padded?: boolean
-  focused?: boolean
-  stickyHeader?: boolean
-  stickyFooter?: boolean
-  height?: number | `${number}%` | 'auto'
-  width?: number | `${number}%` | 'auto'
-  fg?: string
-  bg?: string
-  borderColor?: string
-  bodyGap?: number
-  bodyPadding?: number
-  allowHorizontalScroll?: boolean
-  bodyRef?: Ref<ScrollBoxRenderable>
-  scrollbar?: ScrollPanelScrollbarOptions
-  children?: ReactNode
+  id?: string;
+  title?: string;
+  subtitle?: string;
+  chromeLineWidth?: number;
+  header?: ReactNode;
+  footer?: ReactNode;
+  tone?: PanelTone;
+  size?: ComponentSize;
+  emphasis?: ComponentEmphasis;
+  padded?: boolean;
+  focused?: boolean;
+  stickyHeader?: boolean;
+  stickyFooter?: boolean;
+  height?: number | `${number}%` | "auto";
+  width?: number | `${number}%` | "auto";
+  fg?: string;
+  bg?: string;
+  borderColor?: string;
+  bodyGap?: number;
+  bodyPadding?: number;
+  allowHorizontalScroll?: boolean;
+  bodyRef?: Ref<ScrollBoxRenderable>;
+  scrollbar?: ScrollPanelScrollbarOptions;
+  children?: ReactNode;
 }
 
 function hasChrome(props: { title?: string; subtitle?: string; header?: ReactNode }) {
-  return Boolean(props.title || props.subtitle || props.header)
+  return Boolean(props.title || props.subtitle || props.header);
 }
 
 function hasFooter(props: { footer?: ReactNode }) {
-  return Boolean(props.footer)
+  return Boolean(props.footer);
 }
 
 export function ScrollPanel({
@@ -56,9 +53,9 @@ export function ScrollPanel({
   chromeLineWidth,
   header,
   footer,
-  tone = 'default',
-  size = 'md',
-  emphasis = 'subtle',
+  tone = "default",
+  size = "md",
+  emphasis = "subtle",
   padded = true,
   focused = false,
   stickyHeader = true,
@@ -73,9 +70,9 @@ export function ScrollPanel({
   allowHorizontalScroll = false,
   bodyRef,
   scrollbar,
-  children
+  children,
 }: ScrollPanelProps) {
-  const { tokens } = useTuiTheme()
+  const { tokens } = useTuiTheme();
   const panelStyle = resolveVariantStyle(tokens, {
     tone,
     size,
@@ -83,39 +80,33 @@ export function ScrollPanel({
     fg,
     bg,
     border: borderColor,
-    padding: padded ? undefined : 0
-  })
-  const chromePadding = bodyPadding ?? (padded ? panelStyle.padding : 0)
-  const chromeExists = hasChrome({ title, subtitle, header })
-  const footerExists = hasFooter({ footer })
-  const resolvedTitle = title && typeof chromeLineWidth === 'number'
-    ? formatFixedWidth(title, chromeLineWidth, { overflow: 'clip' })
-    : title
-  const resolvedSubtitle = subtitle && typeof chromeLineWidth === 'number'
-    ? formatFixedWidth(subtitle, chromeLineWidth, { overflow: 'clip' })
-    : subtitle
+    padding: padded ? undefined : 0,
+  });
+  const chromePadding = bodyPadding ?? (padded ? panelStyle.padding : 0);
+  const chromeExists = hasChrome({ title, subtitle, header });
+  const footerExists = hasFooter({ footer });
+  const resolvedTitle =
+    title && typeof chromeLineWidth === "number"
+      ? formatFixedWidth(title, chromeLineWidth, { overflow: "clip" })
+      : title;
+  const resolvedSubtitle =
+    subtitle && typeof chromeLineWidth === "number"
+      ? formatFixedWidth(subtitle, chromeLineWidth, { overflow: "clip" })
+      : subtitle;
 
   const headerNode = chromeExists ? (
-    <box
-      padding={chromePadding}
-      paddingBottom={0}
-      style={{ flexDirection: 'column', gap: 1 }}
-    >
+    <box padding={chromePadding} paddingBottom={0} style={{ flexDirection: "column", gap: 1 }}>
       {resolvedTitle ? <text content={resolvedTitle} fg={panelStyle.fg} /> : null}
       {resolvedSubtitle ? <text content={resolvedSubtitle} fg={tokens.textMuted} /> : null}
-      {header ? <box style={{ flexDirection: 'column', gap: 1 }}>{header}</box> : null}
+      {header ? <box style={{ flexDirection: "column", gap: 1 }}>{header}</box> : null}
     </box>
-  ) : null
+  ) : null;
 
   const footerNode = footerExists ? (
-    <box
-      padding={chromePadding}
-      paddingTop={0}
-      style={{ flexDirection: 'column', gap: 1 }}
-    >
+    <box padding={chromePadding} paddingTop={0} style={{ flexDirection: "column", gap: 1 }}>
       {footer}
     </box>
-  ) : null
+  ) : null;
 
   return (
     <box
@@ -124,10 +115,10 @@ export function ScrollPanel({
       height={height}
       width={width}
       style={{
-        flexDirection: 'column',
+        flexDirection: "column",
         flexGrow: 1,
         backgroundColor: panelStyle.bg,
-        borderColor: focused ? tokens.accent : panelStyle.border
+        borderColor: focused ? tokens.accent : panelStyle.border,
       }}
     >
       {stickyHeader ? headerNode : null}
@@ -138,28 +129,29 @@ export function ScrollPanel({
         scrollY
         scrollX={allowHorizontalScroll}
         viewportOptions={{
-          width: '100%'
+          width: "100%",
         }}
         contentOptions={{
-          width: '100%'
+          width: "100%",
         }}
         scrollbarOptions={{
           visible: scrollbar?.visible ?? true,
           trackOptions: {
             backgroundColor: scrollbar?.trackColor ?? tokens.backgroundMuted,
-            foregroundColor: scrollbar?.thumbColor ?? (focused ? tokens.accent : tokens.borderMuted)
-          }
+            foregroundColor:
+              scrollbar?.thumbColor ?? (focused ? tokens.accent : tokens.borderMuted),
+          },
         }}
         horizontalScrollbarOptions={{
-          visible: false
+          visible: false,
         }}
       >
         {!stickyHeader ? headerNode : null}
         <box
-          width='100%'
+          width="100%"
           padding={chromePadding}
           paddingTop={chromePadding}
-          style={{ flexDirection: 'column', gap: bodyGap }}
+          style={{ flexDirection: "column", gap: bodyGap }}
         >
           {children}
         </box>
@@ -167,5 +159,5 @@ export function ScrollPanel({
       </scrollbox>
       {stickyFooter ? footerNode : null}
     </box>
-  )
+  );
 }

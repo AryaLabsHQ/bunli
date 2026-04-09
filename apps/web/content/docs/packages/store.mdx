@@ -1,5 +1,5 @@
 ---
-title: '@bunli/store'
+title: "@bunli/store"
 description: Typed file-backed persistence for Bunli CLI apps
 ---
 
@@ -22,38 +22,38 @@ bun add @bunli/store
 ## Basic Usage
 
 ```typescript
-import { createStore } from '@bunli/store'
-import { configDir } from '@bunli/utils'
+import { createStore } from "@bunli/store";
+import { configDir } from "@bunli/utils";
 
 // Define a typed config store
 const store = createStore({
-  dirPath: configDir('my-cli'),
-  name: 'settings',
+  dirPath: configDir("my-cli"),
+  name: "settings",
   fields: {
-    theme: { type: 'string', default: 'dark' },
-    port: { type: 'number', default: 3000 },
-    verbose: { type: 'boolean', default: false }
-  }
-})
+    theme: { type: "string", default: "dark" },
+    port: { type: "number", default: 3000 },
+    verbose: { type: "boolean", default: false },
+  },
+});
 
 // Read current config
-const config = await store.read()
+const config = await store.read();
 // { theme: 'dark', port: 3000, verbose: false }
 
 // Update the entire config
-await store.write({ theme: 'light', port: 8080, verbose: true })
+await store.write({ theme: "light", port: 8080, verbose: true });
 
 // Patch specific fields
-await store.patch({ port: 9000 })
+await store.patch({ port: 9000 });
 
 // Update using a function
 await store.update((current) => ({
   ...current,
-  port: current.port + 1
-}))
+  port: current.port + 1,
+}));
 
 // Reset to defaults (deletes the file)
-await store.reset()
+await store.reset();
 ```
 
 ## Field Types
@@ -62,27 +62,27 @@ await store.reset()
 
 ```typescript
 const store = createStore({
-  dirPath: './data',
+  dirPath: "./data",
   fields: {
-    name: { type: 'string', default: 'unnamed' },
-    count: { type: 'number', default: 0 },
-    enabled: { type: 'boolean', default: false }
-  }
-})
+    name: { type: "string", default: "unnamed" },
+    count: { type: "number", default: 0 },
+    enabled: { type: "boolean", default: false },
+  },
+});
 ```
 
 ### Array Fields
 
 ```typescript
 const store = createStore({
-  dirPath: './data',
+  dirPath: "./data",
   fields: {
-    tags: { type: 'string', array: true, default: [] },
-    scores: { type: 'number', array: true, default: [0, 0] }
-  }
-})
+    tags: { type: "string", array: true, default: [] },
+    scores: { type: "number", array: true, default: [0, 0] },
+  },
+});
 
-await store.patch({ tags: ['a', 'b', 'c'] })
+await store.patch({ tags: ["a", "b", "c"] });
 // TypeScript knows tags is string[]
 ```
 
@@ -90,42 +90,42 @@ await store.patch({ tags: ['a', 'b', 'c'] })
 
 ```typescript
 const store = createStore({
-  dirPath: './data',
+  dirPath: "./data",
   fields: {
     port: {
-      type: 'number',
+      type: "number",
       default: 3000,
       validate: (value) => {
         if (value < 1 || value > 65535) {
-          throw new Error('Port must be between 1 and 65535')
+          throw new Error("Port must be between 1 and 65535");
         }
-      }
+      },
     },
     email: {
-      type: 'string',
+      type: "string",
       validate: (value) => {
-        if (!value.includes('@')) {
-          throw new Error('Invalid email address')
+        if (!value.includes("@")) {
+          throw new Error("Invalid email address");
         }
-      }
-    }
-  }
-})
+      },
+    },
+  },
+});
 ```
 
 ### Field Descriptions
 
 ```typescript
 const store = createStore({
-  dirPath: './data',
+  dirPath: "./data",
   fields: {
     theme: {
-      type: 'string',
-      default: 'dark',
-      description: 'Color theme to use'
-    }
-  }
-})
+      type: "string",
+      default: "dark",
+      description: "Color theme to use",
+    },
+  },
+});
 ```
 
 ## Store Options
@@ -133,16 +133,16 @@ const store = createStore({
 ```typescript
 interface StoreOptions<F extends FieldsDef> {
   /** Directory path for the store file */
-  dirPath: string
+  dirPath: string;
 
   /** Store file name (without .json). Default: 'config' */
-  name?: string
+  name?: string;
 
   /** Field definitions */
-  fields: F
+  fields: F;
 
   /** Remove unknown fields on read. Default: true */
-  pruneUnknown?: boolean
+  pruneUnknown?: boolean;
 }
 ```
 
@@ -151,19 +151,19 @@ interface StoreOptions<F extends FieldsDef> {
 ```typescript
 interface StoreInstance<TConfig> {
   /** Read and validate config from disk */
-  read(): Promise<TConfig>
+  read(): Promise<TConfig>;
 
   /** Overwrite entire config */
-  write(config: NoInfer<TConfig>): Promise<void>
+  write(config: NoInfer<TConfig>): Promise<void>;
 
   /** Update via a transformation function */
-  update(updater: (current: TConfig) => NoInfer<TConfig>): Promise<void>
+  update(updater: (current: TConfig) => NoInfer<TConfig>): Promise<void>;
 
   /** Shallow merge partial config */
-  patch(partial: Partial<NoInfer<TConfig>>): Promise<void>
+  patch(partial: Partial<NoInfer<TConfig>>): Promise<void>;
 
   /** Delete config file (resets to defaults) */
-  reset(): Promise<void>
+  reset(): Promise<void>;
 }
 ```
 
@@ -173,17 +173,17 @@ interface StoreInstance<TConfig> {
 
 ```typescript
 const store = createStore({
-  dirPath: './data',
+  dirPath: "./data",
   fields: {
-    name: { type: 'string', default: 'unnamed' },
-    count: { type: 'number', default: 0 }
-  }
-})
+    name: { type: "string", default: "unnamed" },
+    count: { type: "number", default: 0 },
+  },
+});
 
 // config is typed as { name: string; count: number }
-const config = await store.read()
-config.name // string
-config.count // number
+const config = await store.read();
+config.name; // string
+config.count; // number
 ```
 
 ## Error Handling
@@ -195,57 +195,57 @@ import {
   StoreReadError,
   StoreWriteError,
   StoreParseError,
-  StoreValidationError
-} from '@bunli/store'
+  StoreValidationError,
+} from "@bunli/store";
 
 try {
-  const config = await store.read()
+  const config = await store.read();
 } catch (error) {
   if (error instanceof StoreReadError) {
-    console.error(`Failed to read: ${error.path}`, error.cause)
+    console.error(`Failed to read: ${error.path}`, error.cause);
   } else if (error instanceof StoreParseError) {
-    console.error(`Malformed JSON: ${error.path}`)
+    console.error(`Malformed JSON: ${error.path}`);
   } else if (error instanceof StoreValidationError) {
-    console.error(`Validation failed for ${error.field}:`, error.message)
+    console.error(`Validation failed for ${error.field}:`, error.message);
   }
 }
 ```
 
 ### Error Classes
 
-| Class | Description |
-|-------|-------------|
-| `StoreReadError` | Failed to read the store file |
-| `StoreWriteError` | Failed to write the store file |
-| `StoreParseError` | JSON parse error in store file |
-| `StoreValidationError` | Field validation failed |
+| Class                  | Description                    |
+| ---------------------- | ------------------------------ |
+| `StoreReadError`       | Failed to read the store file  |
+| `StoreWriteError`      | Failed to write the store file |
+| `StoreParseError`      | JSON parse error in store file |
+| `StoreValidationError` | Field validation failed        |
 
 ## Using with XDG Directories
 
 ```typescript
-import { createStore } from '@bunli/store'
-import { configDir, dataDir, stateDir } from '@bunli/utils'
+import { createStore } from "@bunli/store";
+import { configDir, dataDir, stateDir } from "@bunli/utils";
 
 // Store in config directory (for settings)
 const settings = createStore({
-  dirPath: configDir('my-cli'),
-  name: 'settings',
-  fields: { theme: { type: 'string', default: 'dark' } }
-})
+  dirPath: configDir("my-cli"),
+  name: "settings",
+  fields: { theme: { type: "string", default: "dark" } },
+});
 
 // Store in data directory (for application data)
 const cache = createStore({
-  dirPath: dataDir('my-cli'),
-  name: 'cache',
-  fields: { entries: { type: 'string', array: true, default: [] } }
-})
+  dirPath: dataDir("my-cli"),
+  name: "cache",
+  fields: { entries: { type: "string", array: true, default: [] } },
+});
 
 // Store in state directory (for transient state)
 const session = createStore({
-  dirPath: stateDir('my-cli'),
-  name: 'session',
-  fields: { lastRun: { type: 'number' } }
-})
+  dirPath: stateDir("my-cli"),
+  name: "session",
+  fields: { lastRun: { type: "number" } },
+});
 ```
 
 ## Atomic Writes
@@ -257,6 +257,7 @@ The store uses atomic writes for safety:
 3. Renames temp file to final location
 
 This means:
+
 - No partial writes on crash
 - No read during write
 - Safe on network filesystems
@@ -291,10 +292,10 @@ fields: {
 
 ```typescript
 // Good: Only update what user changed
-await store.patch({ theme: 'light' })
+await store.patch({ theme: "light" });
 
 // Avoid: Overwrites everything
-await store.write({ theme: 'light', port: 3000, verbose: false })
+await store.write({ theme: "light", port: 3000, verbose: false });
 ```
 
 ## See Also

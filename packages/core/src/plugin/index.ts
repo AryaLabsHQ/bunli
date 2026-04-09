@@ -2,23 +2,23 @@
  * Plugin system public API
  */
 
-export * from './types.js'
-export { PluginManager } from './manager.js'
-export { PluginContext, CommandContext, createEnvironmentInfo } from './context.js'
+export * from "./types.js";
+export { PluginManager } from "./manager.js";
+export { PluginContext, CommandContext, createEnvironmentInfo } from "./context.js";
 
 // Plugin development utilities
-export { createPlugin, createTestPlugin, composePlugins } from './create.js'
+export { createPlugin, createTestPlugin, composePlugins } from "./create.js";
 
 // Plugin testing utilities
-export { 
-  createMockPluginContext, 
-  createMockCommandContext, 
-  testPluginHooks, 
-  assertPluginBehavior 
-} from './testing.js'
+export {
+  createMockPluginContext,
+  createMockCommandContext,
+  testPluginHooks,
+  assertPluginBehavior,
+} from "./testing.js";
 
 // Re-export for convenience
-export { ExecutionState } from './types.js'
+export { ExecutionState } from "./types.js";
 export type {
   BunliPlugin,
   PluginFactory,
@@ -28,5 +28,5 @@ export type {
   CommandResult,
   PathInfo,
   EnvironmentInfo,
-  Middleware
-} from './types.js'
+  Middleware,
+} from "./types.js";

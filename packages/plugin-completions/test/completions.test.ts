@@ -1,254 +1,273 @@
-import { describe, test, expect, beforeEach, afterEach } from 'bun:test'
-import { createCLI } from '@bunli/core'
-import { completionsPlugin } from '../src/index.js'
-import { resolve } from 'node:path'
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import type { CompletionsPluginOptions } from '../src/types.js'
-import { buildRegistry } from '../src/tab/registry.js'
-import type { GeneratedCommandMeta } from '@bunli/core'
+import { describe, test, expect, beforeEach, afterEach } from "bun:test";
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { resolve } from "node:path";
 
-const EXAMPLE_DIR = resolve(import.meta.dir, '../../../examples/task-runner')
-const SHELLS = ['bash', 'zsh', 'fish', 'powershell'] as const
+import { createCLI } from "@bunli/core";
+import type { GeneratedCommandMeta } from "@bunli/core";
+
+import { completionsPlugin } from "../src/index.js";
+import { buildRegistry } from "../src/tab/registry.js";
+import type { CompletionsPluginOptions } from "../src/types.js";
+
+const EXAMPLE_DIR = resolve(import.meta.dir, "../../../examples/task-runner");
+const SHELLS = ["bash", "zsh", "fish", "powershell"] as const;
 
 async function createTestCLI(overrides: CompletionsPluginOptions = {}) {
   return createCLI({
-    name: 'my-cli',
-    version: '1.0.0',
+    name: "my-cli",
+    version: "1.0.0",
     plugins: [
       completionsPlugin({
-        commandName: 'my-cli',
-        executable: 'my-cli',
-        ...overrides
-      })
-    ] as const
-  })
+        commandName: "my-cli",
+        executable: "my-cli",
+        ...overrides,
+      }),
+    ] as const,
+  });
 }
 
 function captureConsole() {
-  const stdout: string[] = []
-  const stderr: string[] = []
+  const stdout: string[] = [];
+  const stderr: string[] = [];
 
-  const originalLog = console.log
-  const originalError = console.error
+  const originalLog = console.log;
+  const originalError = console.error;
 
-  console.log = (...args: unknown[]) => stdout.push(args.map(String).join(' '))
-  console.error = (...args: unknown[]) => stderr.push(args.map(String).join(' '))
+  console.log = (...args: unknown[]) => stdout.push(args.map(String).join(" "));
+  console.error = (...args: unknown[]) => stderr.push(args.map(String).join(" "));
 
   return {
     restore() {
-      console.log = originalLog
-      console.error = originalError
+      console.log = originalLog;
+      console.error = originalError;
     },
     stdout() {
-      return stdout.join('\n')
+      return stdout.join("\n");
     },
     stderr() {
-      return stderr.join('\n')
-    }
-  }
+      return stderr.join("\n");
+    },
+  };
 }
 
-describe('completions/complete command (Tab protocol)', () => {
-  let cwd: string
+describe("completions/complete command (Tab protocol)", () => {
+  let cwd: string;
 
   beforeEach(() => {
-    cwd = process.cwd()
-    process.chdir(EXAMPLE_DIR)
-  })
+    cwd = process.cwd();
+    process.chdir(EXAMPLE_DIR);
+  });
 
   afterEach(() => {
-    process.chdir(cwd)
-  })
+    process.chdir(cwd);
+  });
 
   for (const shell of SHELLS) {
     test(`completions ${shell} outputs a script that calls back into \`complete --\``, async () => {
-      const cli = await createTestCLI()
+      const cli = await createTestCLI();
 
-      const cap = captureConsole()
+      const cap = captureConsole();
       try {
-        await cli.run(['completions', shell])
+        await cli.run(["completions", shell]);
       } finally {
-        cap.restore()
+        cap.restore();
       }
 
-      expect(cap.stdout()).toMatch(/complete\s+['"]?--['"]?/)
-    })
+      expect(cap.stdout()).toMatch(/complete\s+['"]?--['"]?/);
+    });
   }
 
-  test('protocol output ends with a :N directive line', async () => {
-    const cli = await createTestCLI()
+  test("protocol output ends with a :N directive line", async () => {
+    const cli = await createTestCLI();
 
-    const cap = captureConsole()
+    const cap = captureConsole();
     try {
       // Tab scripts call `complete -- ...`, so that alias must exist.
-      await cli.run(['complete', '--', 'deploy'])
+      await cli.run(["complete", "--", "deploy"]);
     } finally {
-      cap.restore()
+      cap.restore();
     }
 
-    const lines = cap.stdout().trim().split('\n')
-    const last = lines[lines.length - 1] ?? ''
-    expect(last).toMatch(/^:\d+$/)
-  })
+    const lines = cap.stdout().trim().split("\n");
+    const last = lines[lines.length - 1] ?? "";
+    expect(last).toMatch(/^:\d+$/);
+  });
 
-  test('completions without shell shows usage guidance instead of protocol output', async () => {
-    const cli = await createTestCLI()
+  test("completions without shell shows usage guidance instead of protocol output", async () => {
+    const cli = await createTestCLI();
 
-    const cap = captureConsole()
+    const cap = captureConsole();
     try {
-      await cli.run(['completions'])
+      await cli.run(["completions"]);
     } finally {
-      cap.restore()
+      cap.restore();
     }
 
-    expect(cap.stderr()).toContain('Missing or invalid shell name')
-    expect(cap.stderr()).toContain('completions <bash|zsh|fish|powershell>')
-    expect(cap.stdout().trim()).toBe('')
-  })
+    expect(cap.stderr()).toContain("Missing or invalid shell name");
+    expect(cap.stderr()).toContain("completions <bash|zsh|fish|powershell>");
+    expect(cap.stdout().trim()).toBe("");
+  });
 
-  test('matched command includes both global and command-specific flags', async () => {
-    const cli = await createTestCLI()
+  test("matched command includes both global and command-specific flags", async () => {
+    const cli = await createTestCLI();
 
-    const cap = captureConsole()
+    const cap = captureConsole();
     try {
-      await cli.run(['complete', '--', 'deploy', '--'])
+      await cli.run(["complete", "--", "deploy", "--"]);
     } finally {
-      cap.restore()
+      cap.restore();
     }
 
-    const output = cap.stdout()
-    expect(output).toContain('--help')
-    expect(output).toContain('--environment')
-    expect(output).not.toContain('--quiet')
-    expect(output).not.toContain('--verbose')
-    const last = output.trim().split('\n').at(-1) ?? ''
-    expect(last).toMatch(/^:\d+$/)
-  })
+    const output = cap.stdout();
+    expect(output).toContain("--help");
+    expect(output).toContain("--environment");
+    expect(output).not.toContain("--quiet");
+    expect(output).not.toContain("--verbose");
+    const last = output.trim().split("\n").at(-1) ?? "";
+    expect(last).toMatch(/^:\d+$/);
+  });
 
-  test('inline global option values do not break subcommand flag completion', async () => {
-    const cli = await createTestCLI()
+  test("inline global option values do not break subcommand flag completion", async () => {
+    const cli = await createTestCLI();
 
-    const cap = captureConsole()
+    const cap = captureConsole();
     try {
-      await cli.run(['complete', '--', '--format=json', 'deploy', '--'])
+      await cli.run(["complete", "--", "--format=json", "deploy", "--"]);
     } finally {
-      cap.restore()
+      cap.restore();
     }
 
-    const output = cap.stdout()
-    expect(output).toContain('--environment')
-    expect(output).not.toContain('deploy\t')
-    const last = output.trim().split('\n').at(-1) ?? ''
-    expect(last).toMatch(/^:\d+$/)
-  })
+    const output = cap.stdout();
+    expect(output).toContain("--environment");
+    expect(output).not.toContain("deploy\t");
+    const last = output.trim().split("\n").at(-1) ?? "";
+    expect(last).toMatch(/^:\d+$/);
+  });
 
-  test('enum-valued options return value candidates via option handlers', async () => {
-    const cli = await createTestCLI()
+  test("enum-valued options return value candidates via option handlers", async () => {
+    const cli = await createTestCLI();
 
-    const cap = captureConsole()
+    const cap = captureConsole();
     try {
-      await cli.run(['complete', '--', 'deploy', '--environment', ''])
+      await cli.run(["complete", "--", "deploy", "--environment", ""]);
     } finally {
-      cap.restore()
+      cap.restore();
     }
 
-    const output = cap.stdout()
-    expect(output).toContain('development\t')
-    expect(output).toContain('staging\t')
-    expect(output).toContain('production\t')
-    const last = output.trim().split('\n').at(-1) ?? ''
-    expect(last).toMatch(/^:\d+$/)
-  })
+    const output = cap.stdout();
+    expect(output).toContain("development\t");
+    expect(output).toContain("staging\t");
+    expect(output).toContain("production\t");
+    const last = output.trim().split("\n").at(-1) ?? "";
+    expect(last).toMatch(/^:\d+$/);
+  });
 
-  test('global enum flags are registered as value-taking options', () => {
+  test("global enum flags are registered as value-taking options", () => {
     const commands: GeneratedCommandMeta[] = [
       {
-        name: 'deploy',
-        description: 'Deploy the app',
-        options: {}
-      }
-    ]
+        name: "deploy",
+        description: "Deploy the app",
+        options: {},
+      },
+    ];
 
-    const root = buildRegistry(commands)
-    const deploy = root.commands.get('deploy')
-    const formatOption = deploy?.options.get('format')
-    const imageModeOption = deploy?.options.get('image-mode')
+    const root = buildRegistry(commands);
+    const deploy = root.commands.get("deploy");
+    const formatOption = deploy?.options.get("format");
+    const imageModeOption = deploy?.options.get("image-mode");
 
-    const formatValues: string[] = []
-    formatOption?.handler?.call(formatOption, (value) => {
-      formatValues.push(value)
-    }, deploy?.options ?? new Map())
+    const formatValues: string[] = [];
+    formatOption?.handler?.call(
+      formatOption,
+      (value) => {
+        formatValues.push(value);
+      },
+      deploy?.options ?? new Map(),
+    );
 
-    const imageModeValues: string[] = []
-    imageModeOption?.handler?.call(imageModeOption, (value) => {
-      imageModeValues.push(value)
-    }, deploy?.options ?? new Map())
+    const imageModeValues: string[] = [];
+    imageModeOption?.handler?.call(
+      imageModeOption,
+      (value) => {
+        imageModeValues.push(value);
+      },
+      deploy?.options ?? new Map(),
+    );
 
-    expect(formatOption?.isBoolean).toBe(false)
-    expect(formatValues).toEqual(['json', 'yaml', 'md', 'toon'])
-    expect(imageModeOption?.isBoolean).toBe(false)
-    expect(imageModeValues).toEqual(['off', 'auto', 'on'])
-  })
+    expect(formatOption?.isBoolean).toBe(false);
+    expect(formatValues).toEqual(["json", "yaml", "md", "toon"]);
+    expect(imageModeOption?.isBoolean).toBe(false);
+    expect(imageModeValues).toEqual(["off", "auto", "on"]);
+  });
 
-  test('ends-with-space sentinel is preserved via runtime.args (trailing empty string)', async () => {
-    const cli = await createTestCLI()
+  test("ends-with-space sentinel is preserved via runtime.args (trailing empty string)", async () => {
+    const cli = await createTestCLI();
 
-    const cap = captureConsole()
+    const cap = captureConsole();
     try {
-      await cli.run(['complete', '--', 'deploy', ''])
+      await cli.run(["complete", "--", "deploy", ""]);
     } finally {
-      cap.restore()
+      cap.restore();
     }
 
-    const out = cap.stdout().trim()
+    const out = cap.stdout().trim();
     // When Tab sees the trailing '', it treats it as "ends with space" and should not suggest "deploy" itself.
-    expect(out).not.toContain('deploy\t')
-    expect(out).toMatch(/^:\d+$/)
-  })
+    expect(out).not.toContain("deploy\t");
+    expect(out).toMatch(/^:\d+$/);
+  });
 
-  test('task-runner example works end-to-end for completions zsh', async () => {
+  test("task-runner example works end-to-end for completions zsh", async () => {
     const proc = Bun.spawn({
-      cmd: ['bun', 'cli.ts', 'completions', 'zsh'],
+      cmd: ["bun", "cli.ts", "completions", "zsh"],
       cwd: EXAMPLE_DIR,
-      stdout: 'pipe',
-      stderr: 'pipe'
-    })
+      stdout: "pipe",
+      stderr: "pipe",
+    });
 
-    const stdout = await new Response(proc.stdout).text()
-    const stderr = await new Response(proc.stderr).text()
-    const code = await proc.exited
+    const stdout = await new Response(proc.stdout).text();
+    const stderr = await new Response(proc.stderr).text();
+    const code = await proc.exited;
 
-    expect(code).toBe(0)
-    expect(stderr.trim()).toBe('')
-    expect(stdout).toContain('complete --')
-  })
+    expect(code).toBe(0);
+    expect(stderr.trim()).toBe("");
+    expect(stdout).toContain("complete --");
+  });
 
-  test('missing generated metadata returns :1 directive without stack trace', async () => {
-    const cli = await createTestCLI({ generatedPath: '.bunli/does-not-exist.ts' })
-    const cap = captureConsole()
+  test("missing generated metadata returns :1 directive without stack trace", async () => {
+    const cli = await createTestCLI({ generatedPath: ".bunli/does-not-exist.ts" });
+    const cap = captureConsole();
 
     try {
-      await cli.run(['complete', '--', 'deploy'])
+      await cli.run(["complete", "--", "deploy"]);
     } finally {
-      cap.restore()
+      cap.restore();
     }
 
-    expect(cap.stdout().trim()).toBe(':1')
-    expect(cap.stderr().trim()).toBe('')
-  })
+    expect(cap.stdout().trim()).toBe(":1");
+    expect(cap.stderr().trim()).toBe("");
+  });
 
-  test('deep nested command paths resolve completion candidates across 3 levels', async () => {
-    const fixtureDir = mkdtempSync(resolve(tmpdir(), 'bunli-plugin-completions-nested-'))
+  test("deep nested command paths resolve completion candidates across 3 levels", async () => {
+    const fixtureDir = mkdtempSync(resolve(tmpdir(), "bunli-plugin-completions-nested-"));
     try {
-      const generatedDir = resolve(fixtureDir, '.bunli')
-      mkdirSync(generatedDir, { recursive: true })
-      writeFileSync(resolve(fixtureDir, 'package.json'), JSON.stringify({
-        name: 'nested-completions-fixture',
-        version: '0.0.0',
-        type: 'module'
-      }, null, 2))
-      writeFileSync(resolve(generatedDir, 'commands.gen.ts'), `
+      const generatedDir = resolve(fixtureDir, ".bunli");
+      mkdirSync(generatedDir, { recursive: true });
+      writeFileSync(
+        resolve(fixtureDir, "package.json"),
+        JSON.stringify(
+          {
+            name: "nested-completions-fixture",
+            version: "0.0.0",
+            type: "module",
+          },
+          null,
+          2,
+        ),
+      );
+      writeFileSync(
+        resolve(generatedDir, "commands.gen.ts"),
+        `
 export const generated = {
   list() {
     return [
@@ -259,49 +278,59 @@ export const generated = {
     ]
   }
 }
-`)
+`,
+      );
 
-      process.chdir(fixtureDir)
-      const cli = await createTestCLI()
+      process.chdir(fixtureDir);
+      const cli = await createTestCLI();
 
-      const firstCap = captureConsole()
+      const firstCap = captureConsole();
       try {
-        await cli.run(['complete', '--', 'config', ''])
+        await cli.run(["complete", "--", "config", ""]);
       } finally {
-        firstCap.restore()
+        firstCap.restore();
       }
-      const firstOutput = firstCap.stdout()
-      expect(firstOutput).toContain('init\t')
-      expect(firstOutput).toContain('profile\t')
-      expect(firstOutput.trim().split('\n').at(-1) ?? '').toMatch(/^:\d+$/)
+      const firstOutput = firstCap.stdout();
+      expect(firstOutput).toContain("init\t");
+      expect(firstOutput).toContain("profile\t");
+      expect(firstOutput.trim().split("\n").at(-1) ?? "").toMatch(/^:\d+$/);
 
-      const secondCap = captureConsole()
+      const secondCap = captureConsole();
       try {
-        await cli.run(['complete', '--', 'config', 'profile', ''])
+        await cli.run(["complete", "--", "config", "profile", ""]);
       } finally {
-        secondCap.restore()
+        secondCap.restore();
       }
-      const secondOutput = secondCap.stdout()
-      expect(secondOutput).toContain('set\t')
-      expect(secondOutput).toContain('show\t')
-      expect(secondOutput.trim().split('\n').at(-1) ?? '').toMatch(/^:\d+$/)
+      const secondOutput = secondCap.stdout();
+      expect(secondOutput).toContain("set\t");
+      expect(secondOutput).toContain("show\t");
+      expect(secondOutput.trim().split("\n").at(-1) ?? "").toMatch(/^:\d+$/);
     } finally {
-      process.chdir(EXAMPLE_DIR)
-      rmSync(fixtureDir, { recursive: true, force: true })
+      process.chdir(EXAMPLE_DIR);
+      rmSync(fixtureDir, { recursive: true, force: true });
     }
-  })
+  });
 
-  test('group metadata commands are recursively reachable for subcommand and flag completions', async () => {
-    const fixtureDir = mkdtempSync(resolve(tmpdir(), 'bunli-plugin-completions-group-'))
+  test("group metadata commands are recursively reachable for subcommand and flag completions", async () => {
+    const fixtureDir = mkdtempSync(resolve(tmpdir(), "bunli-plugin-completions-group-"));
     try {
-      const generatedDir = resolve(fixtureDir, '.bunli')
-      mkdirSync(generatedDir, { recursive: true })
-      writeFileSync(resolve(fixtureDir, 'package.json'), JSON.stringify({
-        name: 'nested-group-completions-fixture',
-        version: '0.0.0',
-        type: 'module'
-      }, null, 2))
-      writeFileSync(resolve(generatedDir, 'commands.gen.ts'), `
+      const generatedDir = resolve(fixtureDir, ".bunli");
+      mkdirSync(generatedDir, { recursive: true });
+      writeFileSync(
+        resolve(fixtureDir, "package.json"),
+        JSON.stringify(
+          {
+            name: "nested-group-completions-fixture",
+            version: "0.0.0",
+            type: "module",
+          },
+          null,
+          2,
+        ),
+      );
+      writeFileSync(
+        resolve(generatedDir, "commands.gen.ts"),
+        `
 export const generated = {
   list() {
     return [
@@ -336,46 +365,47 @@ export const generated = {
     ]
   }
 }
-`)
+`,
+      );
 
-      process.chdir(fixtureDir)
-      const cli = await createTestCLI()
+      process.chdir(fixtureDir);
+      const cli = await createTestCLI();
 
-      const childrenCap = captureConsole()
+      const childrenCap = captureConsole();
       try {
-        await cli.run(['complete', '--', 'config', ''])
+        await cli.run(["complete", "--", "config", ""]);
       } finally {
-        childrenCap.restore()
+        childrenCap.restore();
       }
-      const childrenOutput = childrenCap.stdout()
-      expect(childrenOutput).toContain('init\t')
-      expect(childrenOutput).toContain('show\t')
-      expect(childrenOutput).toContain('set\t')
-      expect(childrenOutput).toContain('unset\t')
-      expect(childrenOutput.trim().split('\n').at(-1) ?? '').toMatch(/^:\d+$/)
+      const childrenOutput = childrenCap.stdout();
+      expect(childrenOutput).toContain("init\t");
+      expect(childrenOutput).toContain("show\t");
+      expect(childrenOutput).toContain("set\t");
+      expect(childrenOutput).toContain("unset\t");
+      expect(childrenOutput.trim().split("\n").at(-1) ?? "").toMatch(/^:\d+$/);
 
-      const partialCap = captureConsole()
+      const partialCap = captureConsole();
       try {
-        await cli.run(['complete', '--', 'config', 'i'])
+        await cli.run(["complete", "--", "config", "i"]);
       } finally {
-        partialCap.restore()
+        partialCap.restore();
       }
-      const partialOutput = partialCap.stdout()
-      expect(partialOutput).toContain('init\t')
-      expect(partialOutput.trim().split('\n').at(-1) ?? '').toMatch(/^:\d+$/)
+      const partialOutput = partialCap.stdout();
+      expect(partialOutput).toContain("init\t");
+      expect(partialOutput.trim().split("\n").at(-1) ?? "").toMatch(/^:\d+$/);
 
-      const flagsCap = captureConsole()
+      const flagsCap = captureConsole();
       try {
-        await cli.run(['complete', '--', 'config', 'set', '--'])
+        await cli.run(["complete", "--", "config", "set", "--"]);
       } finally {
-        flagsCap.restore()
+        flagsCap.restore();
       }
-      const flagsOutput = flagsCap.stdout()
-      expect(flagsOutput).toContain('--key')
-      expect(flagsOutput.trim().split('\n').at(-1) ?? '').toMatch(/^:\d+$/)
+      const flagsOutput = flagsCap.stdout();
+      expect(flagsOutput).toContain("--key");
+      expect(flagsOutput.trim().split("\n").at(-1) ?? "").toMatch(/^:\d+$/);
     } finally {
-      process.chdir(EXAMPLE_DIR)
-      rmSync(fixtureDir, { recursive: true, force: true })
+      process.chdir(EXAMPLE_DIR);
+      rmSync(fixtureDir, { recursive: true, force: true });
     }
-  })
-})
+  });
+});

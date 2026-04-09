@@ -3,10 +3,7 @@
   "name": "bunli-web",
   "main": "./src/server.ts",
   "compatibility_date": "2026-02-11",
-  "compatibility_flags": [
-    "nodejs_compat",
-    "nodejs_compat_populate_process_env",
-  ],
+  "compatibility_flags": ["nodejs_compat", "nodejs_compat_populate_process_env"],
   "routes": [{ "custom_domain": true, "pattern": "bunli.dev" }],
   "observability": {
     "enabled": true,

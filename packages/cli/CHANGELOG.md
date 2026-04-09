@@ -37,7 +37,6 @@
 ### Minor Changes
 
 - f1c404a: introducing `@bunli/tui` component-library
-
   - move prompt runtime ownership to `@bunli/tui` with inline + interactive modes
   - drop `@bunli/utils` prompt/clack exports and update usage across the toolchain
   - add schema-driven interactive form engine and expanded themed interactive component primitives
@@ -65,7 +64,6 @@
 ### Minor Changes
 
 - 88cfc08: feat!: simplify command/group authoring and codegen discovery
-
   - Introduce a clearer command group model and align manual registration around default-exported command/group modules.
   - Improve generator/scanner discovery for registered identifiers, alias chains, nested references, and circular detection.
   - Fix completion/codegen edge cases including non-code import traversal and multi-entry build handling.
@@ -124,7 +122,6 @@
 ### Patch Changes
 
 - 5186a7d: feat: add binary release support for npm package publishing
-
   - Add release.binary config for per-platform npm packages
   - Generate ESM shim that dispatches to correct platform binary
   - Improve boolean flag handling (--flag=false form)

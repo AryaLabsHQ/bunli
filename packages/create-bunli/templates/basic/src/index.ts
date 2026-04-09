@@ -1,13 +1,14 @@
 #!/usr/bin/env bun
-import { createCLI } from '@bunli/core'
-import helloCommand from './commands/hello.js'
+import { createCLI } from "@bunli/core";
+
+import helloCommand from "./commands/hello.js";
 
 const cli = await createCLI({
-  name: '{{name}}',
-  version: '0.1.0',
-  description: '{{description}}'
-})
+  name: "{{name}}",
+  version: "0.1.0",
+  description: "{{description}}",
+});
 
-cli.command(helloCommand)
+cli.command(helloCommand);
 
-await cli.run()
+await cli.run();

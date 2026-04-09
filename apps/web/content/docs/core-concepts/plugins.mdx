@@ -6,6 +6,7 @@ description: Extend Bunli's functionality with a powerful plugin system
 ## Overview
 
 Plugins in Bunli can:
+
 - Modify CLI configuration during setup
 - Register new commands dynamically
 - Hook into command lifecycle events
@@ -19,27 +20,27 @@ Plugins in Bunli can:
 A plugin is an object that implements the `BunliPlugin` interface:
 
 ```typescript
-import { createPlugin } from '@bunli/core/plugin'
+import { createPlugin } from "@bunli/core/plugin";
 
 const myPlugin = createPlugin({
-  name: 'my-plugin',
-  version: '1.0.0',
-  
+  name: "my-plugin",
+  version: "1.0.0",
+
   // Define type-safe store
   store: {
     count: 0,
-    message: '' as string
+    message: "" as string,
   },
-  
+
   // Lifecycle hooks
   setup(context) {
-    console.log('Plugin setup')
+    console.log("Plugin setup");
   },
-  
+
   beforeCommand(context) {
-    context.store.count++
-  }
-})
+    context.store.count++;
+  },
+});
 ```
 
 ### Plugin with Options
@@ -47,36 +48,36 @@ const myPlugin = createPlugin({
 For configurable plugins, use a factory function:
 
 ```typescript
-import { createPlugin } from '@bunli/core/plugin'
+import { createPlugin } from "@bunli/core/plugin";
 
 interface MyPluginOptions {
-  prefix: string
-  verbose?: boolean
+  prefix: string;
+  verbose?: boolean;
 }
 
 interface MyPluginStore {
-  messages: string[]
+  messages: string[];
 }
 
 const myPlugin = createPlugin<MyPluginOptions, MyPluginStore>((options) => ({
-  name: 'my-plugin',
-  
+  name: "my-plugin",
+
   store: {
-    messages: [] as string[]
+    messages: [] as string[],
   },
-  
+
   beforeCommand(context) {
-    const message = `${options.prefix}: Command starting`
-    context.store.messages = [...context.store.messages, message]
+    const message = `${options.prefix}: Command starting`;
+    context.store.messages = [...context.store.messages, message];
 
     if (options.verbose) {
-      console.log(message)
+      console.log(message);
     }
-  }
-}))
+  },
+}));
 
 // Usage
-myPlugin({ prefix: 'APP', verbose: true })
+myPlugin({ prefix: "APP", verbose: true });
 ```
 
 ## Plugin Lifecycle
@@ -86,6 +87,7 @@ Plugins go through several lifecycle stages:
 ### 1. Setup Phase
 
 The `setup` hook runs during CLI initialization. Use it to:
+
 - Modify configuration
 - Register commands
 - Initialize resources
@@ -179,52 +181,54 @@ The store system provides compile-time type safety for sharing data between plug
 
 ```typescript
 interface TimingStore {
-  startTime: number | null
-  duration: number | null
+  startTime: number | null;
+  duration: number | null;
 }
 
 const timingPlugin = createPlugin<TimingStore>({
-  name: 'timing',
-  
+  name: "timing",
+
   store: {
     startTime: null,
-    duration: null
+    duration: null,
   },
-  
+
   beforeCommand(context) {
-    context.store.startTime = Date.now()
+    context.store.startTime = Date.now();
   },
 
   afterCommand(context) {
-    const startTime = context.store.startTime
+    const startTime = context.store.startTime;
     if (startTime != null) {
-      context.store.duration = Date.now() - startTime
+      context.store.duration = Date.now() - startTime;
     }
-  }
-})
+  },
+});
 ```
 
 ### Accessing Store in Commands
 
 ```typescript
 const cli = await createCLI({
-  name: 'my-cli',
-  plugins: [timingPlugin] as const // Use 'as const' for better inference
-})
+  name: "my-cli",
+  plugins: [timingPlugin] as const, // Use 'as const' for better inference
+});
 
-cli.command(defineCommand({
-  name: 'info',
-  description: 'Show timing information (if available)',
-  handler: async ({ context }) => {
-    // TypeScript knows about startTime and duration!
-    if (context) {
-      const startTime = context.store.startTime
-      if (startTime != null) {
-        console.log(`Started at: ${new Date(startTime)}`)
+cli.command(
+  defineCommand({
+    name: "info",
+    description: "Show timing information (if available)",
+    handler: async ({ context }) => {
+      // TypeScript knows about startTime and duration!
+      if (context) {
+        const startTime = context.store.startTime;
+        if (startTime != null) {
+          console.log(`Started at: ${new Date(startTime)}`);
+        }
       }
-    }
-  }
-}))
+    },
+  }),
+);
 ```
 
 ## Multiple Plugins
@@ -233,23 +237,25 @@ When using multiple plugins, their stores are automatically merged:
 
 ```typescript
 const cli = await createCLI({
-  name: 'my-cli',
+  name: "my-cli",
   plugins: [
     pluginA, // store: { foo: string }
     pluginB, // store: { bar: number }
-    pluginC  // store: { baz: boolean }
-  ] as const
-})
+    pluginC, // store: { baz: boolean }
+  ] as const,
+});
 
 // In commands, the merged store type is available:
-cli.command(defineCommand({
-  handler: async ({ context }) => {
-    // TypeScript knows about all store properties!
-    context.store.foo // string
-    context.store.bar // number
-    context.store.baz // boolean
-  }
-}))
+cli.command(
+  defineCommand({
+    handler: async ({ context }) => {
+      // TypeScript knows about all store properties!
+      context.store.foo; // string
+      context.store.bar; // number
+      context.store.baz; // boolean
+    },
+  }),
+);
 ```
 
 ## Module Augmentation
@@ -257,15 +263,15 @@ cli.command(defineCommand({
 Plugins can extend core interfaces using TypeScript's module augmentation:
 
 ```typescript
-declare module '@bunli/core' {
+declare module "@bunli/core" {
   interface PluginStore {
     // Extend the shared plugin store
-    myPluginData: string
+    myPluginData: string;
   }
 
   interface CommandContext {
     // Extend command execution context
-    customField: number
+    customField: number;
   }
 }
 ```
@@ -279,19 +285,16 @@ Bunli provides several built-in plugins:
 Loads and merges configuration from multiple sources:
 
 ```typescript
-import { configMergerPlugin } from '@bunli/plugin-config'
+import { configMergerPlugin } from "@bunli/plugin-config";
 
 const cli = await createCLI({
   plugins: [
     configMergerPlugin({
-      sources: [
-        '~/.config/{{name}}/config.json',
-        '.{{name}}rc.json'
-      ],
-      mergeStrategy: 'deep'
-    })
-  ]
-})
+      sources: ["~/.config/{{name}}/config.json", ".{{name}}rc.json"],
+      mergeStrategy: "deep",
+    }),
+  ],
+});
 ```
 
 ### @bunli/plugin-ai-detect
@@ -299,24 +302,24 @@ const cli = await createCLI({
 Detects AI coding assistants from environment variables:
 
 ```typescript
-import { aiAgentPlugin } from '@bunli/plugin-ai-detect'
+import { aiAgentPlugin } from "@bunli/plugin-ai-detect";
 
 const cli = await createCLI({
-  plugins: [
-    aiAgentPlugin({ verbose: true })
-  ]
-})
+  plugins: [aiAgentPlugin({ verbose: true })],
+});
 
 // In commands:
-cli.command(defineCommand({
-  name: 'info',
-  description: 'Show AI agent detection info',
-  handler: async ({ context }) => {
-    if (context && context.store.isAIAgent) {
-      console.log(`AI agents: ${context.store.aiAgents.join(', ')}`)
-    }
-  }
-}))
+cli.command(
+  defineCommand({
+    name: "info",
+    description: "Show AI agent detection info",
+    handler: async ({ context }) => {
+      if (context && context.store.isAIAgent) {
+        console.log(`AI agents: ${context.store.aiAgents.join(", ")}`);
+      }
+    },
+  }),
+);
 ```
 
 ## Best Practices
@@ -328,40 +331,40 @@ Always define explicit types for your plugin stores:
 ```typescript
 // ✅ Good - Explicit types with createPlugin generics
 interface MyStore {
-  items: string[]
-  count: number
+  items: string[];
+  count: number;
 }
 
 // For direct plugins:
 const plugin = createPlugin<MyStore>({
-  name: 'my-plugin',
-  store: { items: [], count: 0 }
-})
+  name: "my-plugin",
+  store: { items: [], count: 0 },
+});
 
 // For plugin factories:
 const plugin = createPlugin<Options, MyStore>((options) => ({
-  name: 'my-plugin',
-  store: { items: [], count: 0 }
-}))
+  name: "my-plugin",
+  store: { items: [], count: 0 },
+}));
 
 // ❌ Avoid - Less type safety
 const plugin = createPlugin({
-  store: { items: [], count: 0 } // Types are inferred but less explicit
-})
+  store: { items: [], count: 0 }, // Types are inferred but less explicit
+});
 ```
 
 ### 2. Handle Errors Gracefully
 
 Error handling behavior varies by hook. The framework catches thrown errors via try/catch:
 
-| Hook | On Error | Recommendation |
-|------|----------|---------------|
-| `setup` | Throws, stops CLI init | Validate inputs; don't throw for recoverable errors |
-| `beforeCommand` | Throws, stops command execution | Throw on validation failure |
-| `preRun` | Throws, stops handler | Use for command-level guards only |
-| `configResolved` | Logs, continues | Safe for telemetry and reporting |
-| `postRun` | Logs, continues | Safe for cleanup and metrics |
-| `afterCommand` | Logs, continues | Safe for reporting and cleanup |
+| Hook             | On Error                        | Recommendation                                      |
+| ---------------- | ------------------------------- | --------------------------------------------------- |
+| `setup`          | Throws, stops CLI init          | Validate inputs; don't throw for recoverable errors |
+| `beforeCommand`  | Throws, stops command execution | Throw on validation failure                         |
+| `preRun`         | Throws, stops handler           | Use for command-level guards only                   |
+| `configResolved` | Logs, continues                 | Safe for telemetry and reporting                    |
+| `postRun`        | Logs, continues                 | Safe for cleanup and metrics                        |
+| `afterCommand`   | Logs, continues                 | Safe for reporting and cleanup                      |
 
 ```typescript
 beforeCommand(context) {
@@ -385,10 +388,10 @@ Leverage the plugin context for shared functionality:
 setup(context) {
   // Use the logger
   context.logger.info('Plugin loaded')
-  
+
   // Access paths
   console.log(`Config dir: ${context.paths.config}`)
-  
+
   // Share data between plugins (setup store is a Map, unlike command-phase typed store)
   context.store.set('shared-key', 'value')
 }
@@ -404,13 +407,13 @@ export interface MyPluginOptions {
    * Enable verbose logging
    * @default false
    */
-  verbose?: boolean
-  
+  verbose?: boolean;
+
   /**
    * Custom timeout in milliseconds
    * @default 5000
    */
-  timeout?: number
+  timeout?: number;
 }
 ```
 
@@ -419,27 +422,27 @@ export interface MyPluginOptions {
 Plugins can be loaded in various ways:
 
 ```typescript
-import { createCLI } from '@bunli/core'
-import { createPlugin } from '@bunli/core/plugin'
+import { createCLI } from "@bunli/core";
+import { createPlugin } from "@bunli/core/plugin";
 
 const myPlugin = createPlugin({
-  name: 'my-plugin'
-})
+  name: "my-plugin",
+});
 
 const myPluginFactory = createPlugin<{ verbose?: boolean }, {}>((options) => ({
-  name: 'my-plugin',
-  version: options.verbose ? 'debug' : undefined
-}))
+  name: "my-plugin",
+  version: options.verbose ? "debug" : undefined,
+}));
 
 const cli = await createCLI({
   plugins: [
     // Plugin object
     myPlugin,
-    
+
     // Plugin factory
     myPluginFactory({ verbose: true }),
-  ] as const
-})
+  ] as const,
+});
 ```
 
 ## Examples
@@ -450,29 +453,29 @@ Track command usage:
 
 ```typescript
 interface AnalyticsStore {
-  commandCount: number
-  commandHistory: string[]
+  commandCount: number;
+  commandHistory: string[];
 }
 
 const analyticsPlugin = createPlugin<AnalyticsStore>({
-  name: 'analytics',
-  
+  name: "analytics",
+
   store: {
     commandCount: 0,
-    commandHistory: []
+    commandHistory: [],
   },
-  
+
   beforeCommand(context) {
-    context.store.commandCount++
-    context.store.commandHistory = [...context.store.commandHistory, context.command]
+    context.store.commandCount++;
+    context.store.commandHistory = [...context.store.commandHistory, context.command];
   },
 
   afterCommand(context) {
     if (context.store.commandCount % 10 === 0) {
-      console.log(`You've run ${context.store.commandCount} commands!`)
+      console.log(`You've run ${context.store.commandCount} commands!`);
     }
-  }
-})
+  },
+});
 ```
 
 ### Environment Plugin
@@ -481,26 +484,26 @@ Add environment-specific behavior:
 
 ```typescript
 interface EnvStore {
-  isDevelopment: boolean
-  isProduction: boolean
+  isDevelopment: boolean;
+  isProduction: boolean;
 }
 
 const envPlugin = createPlugin<EnvStore>({
-  name: 'env-plugin',
-  
+  name: "env-plugin",
+
   store: {
-    isDevelopment: process.env.NODE_ENV === 'development',
-    isProduction: process.env.NODE_ENV === 'production'
+    isDevelopment: process.env.NODE_ENV === "development",
+    isProduction: process.env.NODE_ENV === "production",
   },
-  
+
   setup(context) {
-    if (process.env.NODE_ENV === 'development') {
+    if (process.env.NODE_ENV === "development") {
       context.updateConfig({
-        description: 'Development mode'
-      })
+        description: "Development mode",
+      });
     }
-  }
-})
+  },
+});
 ```
 
 ## Generated Types and Plugins
@@ -509,35 +512,37 @@ When using type generation, plugin context is included in the generated types:
 
 ```typescript
 // Generated in .bunli/commands.gen.ts
-import { cli } from './.bunli/commands.gen'
+import { cli } from "./.bunli/commands.gen";
 
 // Generated types include plugin context
 interface CommandContext<TStore> {
-  store: TStore
+  store: TStore;
   // Plugin-specific context is included
 }
 
 // Access generated CLI API
-const commands = cli.list()
-const deploy = cli.findByName('deploy')
+const commands = cli.list();
+const deploy = cli.findByName("deploy");
 
 // Type-safe plugin store access
 function usePluginData(context: CommandContext<any>) {
   // Access plugin store with full type safety
-  const timingData = context.store.timing
-  const configData = context.store.config
-  const aiData = context.store.aiAgent
+  const timingData = context.store.timing;
+  const configData = context.store.config;
+  const aiData = context.store.aiAgent;
 }
 ```
 
 This enables:
+
 - **Plugin context types** with full type safety
 - **Store access** for all registered plugins
 - **Type-safe plugin data** in command handlers
 - **IntelliSense** for plugin-specific functionality
 
 <Callout type="tip">
-  Generated types work seamlessly with plugins, providing type safety for plugin store access and context usage.
+  Generated types work seamlessly with plugins, providing type safety for plugin store access and
+  context usage.
 </Callout>
 
 ## Next Steps

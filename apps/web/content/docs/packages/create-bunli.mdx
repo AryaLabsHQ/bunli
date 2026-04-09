@@ -1,35 +1,27 @@
 ---
-title: 'create-bunli'
-description: 'Scaffold new Bunli CLI projects with ease'
+title: "create-bunli"
+description: "Scaffold new Bunli CLI projects with ease"
 ---
 
-import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
-import { Callout } from 'fumadocs-ui/components/callout';
-import { Steps } from 'fumadocs-ui/components/steps';
-import { Badge } from '@/components/ui/badge';
+import { Tabs, Tab } from "fumadocs-ui/components/tabs";
+import { Callout } from "fumadocs-ui/components/callout";
+import { Steps } from "fumadocs-ui/components/steps";
+import { Badge } from "@/components/ui/badge";
 
 ## Quick Start
 
 <Tabs groupId="package-manager" defaultValue="bun">
   <Tab value="bun" label="Bun">
-    ```bash
-    bunx create-bunli my-cli
-    ```
+    ```bash bunx create-bunli my-cli ```
   </Tab>
   <Tab value="npm" label="npm">
-    ```bash
-    npm create bunli@latest my-cli
-    ```
+    ```bash npm create bunli@latest my-cli ```
   </Tab>
   <Tab value="yarn" label="yarn">
-    ```bash
-    yarn create bunli my-cli
-    ```
+    ```bash yarn create bunli my-cli ```
   </Tab>
   <Tab value="pnpm" label="pnpm">
-    ```bash
-    pnpm create bunli my-cli
-    ```
+    ```bash pnpm create bunli my-cli ```
   </Tab>
 </Tabs>
 
@@ -54,6 +46,7 @@ bunx create-bunli
 ```
 
 You'll be prompted for:
+
 - Project name
 - Directory location
 - Template selection
@@ -69,14 +62,14 @@ bunx create-bunli my-cli --template advanced --package-manager pnpm
 
 ### Options
 
-| Option | Short | Description | Default |
-|--------|-------|-------------|---------|
-| `--template` | `-t` | Project template | `basic` |
-| `--dir` | `-d` | Directory to create project in | `./{name}` |
-| `--package-manager` | `-p` | Package manager (bun, npm, yarn, pnpm) | `bun` |
-| `--git` | `-g` | Initialize git repository | `true` |
-| `--install` | `-i` | Install dependencies | `true` |
-| `--offline` | | Use cached templates when available | `false` |
+| Option              | Short | Description                            | Default    |
+| ------------------- | ----- | -------------------------------------- | ---------- |
+| `--template`        | `-t`  | Project template                       | `basic`    |
+| `--dir`             | `-d`  | Directory to create project in         | `./{name}` |
+| `--package-manager` | `-p`  | Package manager (bun, npm, yarn, pnpm) | `bun`      |
+| `--git`             | `-g`  | Initialize git repository              | `true`     |
+| `--install`         | `-i`  | Install dependencies                   | `true`     |
+| `--offline`         |       | Use cached templates when available    | `false`    |
 
 ## Built-in Templates
 
@@ -106,6 +99,7 @@ my-cli/
 </details>
 
 **Features:**
+
 - Single command setup
 - TypeScript configuration
 - Test setup with @bunli/test
@@ -147,6 +141,7 @@ my-cli/
 </details>
 
 **Features:**
+
 - Multiple commands with subcommands
 - Configuration management system
 - File validation with rules
@@ -187,6 +182,7 @@ my-cli/
 </details>
 
 **Features:**
+
 - Turborepo configuration
 - Multiple packages with workspace setup
 - Shared dependencies management
@@ -272,25 +268,25 @@ A template is any directory with files that will be copied and processed. Add a 
 
 Templates support multiple variable formats:
 
-| Format | Example | Usage |
-|--------|---------|-------|
-| Handlebars | `{{name}}` | Most common |
-| EJS | `<%= name %>` | Alternative |
-| Shell | `$name` | Scripts |
-| Python | `__name__` | File names |
+| Format     | Example       | Usage       |
+| ---------- | ------------- | ----------- |
+| Handlebars | `{{name}}`    | Most common |
+| EJS        | `<%= name %>` | Alternative |
+| Shell      | `$name`       | Scripts     |
+| Python     | `__name__`    | File names  |
 
 **Available Variables:**
 
 These are the variables passed to the template engine from `create-project.ts`:
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `{{name}}` | The project name (slug) | User input |
-| `{{description}}` | Project description | `"A CLI built with Bunli"` |
-| `{{version}}` | Project version | `"0.1.0"` |
-| `{{author}}` | Author name | `""` (empty) |
-| `{{license}}` | License type | `"MIT"` |
-| `{{year}}` | Current year | e.g. `"2026"` |
+| Variable          | Description             | Default                    |
+| ----------------- | ----------------------- | -------------------------- |
+| `{{name}}`        | The project name (slug) | User input                 |
+| `{{description}}` | Project description     | `"A CLI built with Bunli"` |
+| `{{version}}`     | Project version         | `"0.1.0"`                  |
+| `{{author}}`      | Author name             | `""` (empty)               |
+| `{{license}}`     | License type            | `"MIT"`                    |
+| `{{year}}`        | Current year            | e.g. `"2026"`              |
 
 ### File Name Variables
 
@@ -359,17 +355,17 @@ templates/
 Use create-bunli programmatically:
 
 ```typescript
-import { createProject } from 'create-bunli'
+import { createProject } from "create-bunli";
 
 await createProject({
-  name: 'my-cli',
-  template: 'advanced',
-  dir: './projects/my-cli',
-  packageManager: 'bun',
+  name: "my-cli",
+  template: "advanced",
+  dir: "./projects/my-cli",
+  packageManager: "bun",
   install: true,
   git: true,
-  offline: false
-})
+  offline: false,
+});
 ```
 
 ### Offline Mode
@@ -443,6 +439,7 @@ bunx create-bunli api-cli \
 ### Template not found
 
 If you get a "template not found" error:
+
 - Check the template name spelling
 - For GitHub templates, ensure the repository exists and is public
 - For local templates, verify the path exists
@@ -451,6 +448,7 @@ If you get a "template not found" error:
 ### Installation fails
 
 If dependency installation fails:
+
 - Check your internet connection
 - Ensure the package manager is installed
 - Try with `--no-install` and install manually
@@ -459,6 +457,7 @@ If dependency installation fails:
 ### Permission errors
 
 If you get permission errors:
+
 - Ensure write access to the target directory
 - Try a different directory
 - Check available disk space
@@ -467,13 +466,15 @@ If you get permission errors:
 ### Variable substitution not working
 
 If template variables aren't replaced:
+
 - Check variable syntax (use `{{variable}}` format)
 - Ensure variables are defined in template.json
 - Verify file is not in excluded patterns
 - Check file encoding (UTF-8 required)
 
 <Callout type="tip">
-  **Pro tip**: Create your own organization template and share it with your team using GitHub repositories!
+  **Pro tip**: Create your own organization template and share it with your team using GitHub
+  repositories!
 </Callout>
 
 ## Next Steps

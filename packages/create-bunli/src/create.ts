@@ -1,82 +1,88 @@
-import type { HandlerArgs } from '@bunli/core'
+import path from "node:path";
+
+import type { HandlerArgs } from "@bunli/core";
+import { Result, TaggedError } from "better-result";
+
 import {
   createProject,
   type CreateProjectError,
-  UserCancelledError as CreateProjectUserCancelledError
-} from './create-project.js'
-import path from 'node:path'
-import { Result, TaggedError } from 'better-result'
+  UserCancelledError as CreateProjectUserCancelledError,
+} from "./create-project.js";
 
 interface CreateOptions {
-  name?: string
-  template: string
-  dir?: string
-  git: boolean
-  install: boolean
-  offline?: boolean
+  name?: string;
+  template: string;
+  dir?: string;
+  git: boolean;
+  install: boolean;
+  offline?: boolean;
 }
 
-class InvalidProjectNameError extends TaggedError('InvalidProjectNameError')<{
-  message: string
+class InvalidProjectNameError extends TaggedError("InvalidProjectNameError")<{
+  message: string;
 }>() {
   constructor(name: string) {
-    super({ message: `Project name "${name}" must only contain lowercase letters, numbers, and hyphens` })
+    super({
+      message: `Project name "${name}" must only contain lowercase letters, numbers, and hyphens`,
+    });
   }
 }
 
-export class UserCancelledError extends TaggedError('UserCancelledError')<{
-  message: string
+export class UserCancelledError extends TaggedError("UserCancelledError")<{
+  message: string;
 }>() {
   constructor(message: string) {
-    super({ message })
+    super({ message });
   }
 }
 
-export type CreateCommandError = InvalidProjectNameError | UserCancelledError | CreateProjectError
+export type CreateCommandError = InvalidProjectNameError | UserCancelledError | CreateProjectError;
 
 export async function create(
-  context: HandlerArgs<CreateOptions>
+  context: HandlerArgs<CreateOptions>,
 ): Promise<Result<void, CreateCommandError>> {
-  const { flags, positional, prompt, colors, spinner, shell } = context
+  const { flags, positional, prompt, colors, spinner, shell } = context;
 
-  let projectName = positional[0] || flags.name
+  let projectName = positional[0] || flags.name;
 
   if (!projectName) {
-    projectName = await prompt('Project name:', {
+    projectName = await prompt("Project name:", {
       validate: (value) => {
-        if (!value) return 'Project name is required'
+        if (!value) return "Project name is required";
         if (!/^[a-z0-9-]+$/.test(value)) {
-          return 'Project name must only contain lowercase letters, numbers, and hyphens'
+          return "Project name must only contain lowercase letters, numbers, and hyphens";
         }
-        return true
-      }
-    })
+        return true;
+      },
+    });
   }
 
   if (!projectName || !/^[a-z0-9-]+$/.test(projectName)) {
-    const invalidName = projectName || ''
-    console.error(colors.red(`Project name must only contain lowercase letters, numbers, and hyphens`))
-    return Result.err(new InvalidProjectNameError(invalidName))
+    const invalidName = projectName || "";
+    console.error(
+      colors.red(`Project name must only contain lowercase letters, numbers, and hyphens`),
+    );
+    return Result.err(new InvalidProjectNameError(invalidName));
   }
 
-  const projectDir = flags.dir || path.join(process.cwd(), projectName)
+  const projectDir = flags.dir || path.join(process.cwd(), projectName);
 
-  console.log()
-  console.log(colors.bold('Creating Bunli project:'))
-  console.log(colors.dim('  Name:     ') + colors.cyan(projectName))
-  console.log(colors.dim('  Template: ') + colors.cyan(flags.template))
-  console.log(colors.dim('  Location: ') + colors.cyan(projectDir))
-  console.log(colors.dim('  Git:      ') + colors.cyan(flags.git ? 'Yes' : 'No'))
-  console.log(colors.dim('  Install:  ') + colors.cyan(flags.install ? 'Yes' : 'No'))
-  console.log()
+  console.log();
+  console.log(colors.bold("Creating Bunli project:"));
+  console.log(colors.dim("  Name:     ") + colors.cyan(projectName));
+  console.log(colors.dim("  Template: ") + colors.cyan(flags.template));
+  console.log(colors.dim("  Location: ") + colors.cyan(projectDir));
+  console.log(colors.dim("  Git:      ") + colors.cyan(flags.git ? "Yes" : "No"));
+  console.log(colors.dim("  Install:  ") + colors.cyan(flags.install ? "Yes" : "No"));
+  console.log();
 
-  const confirmed = await prompt.confirm('Continue?', { default: true })
+  const confirmed = await prompt.confirm("Continue?", { default: true });
   if (!confirmed) {
-    console.log(colors.yellow('Cancelled'))
-    return Result.err(new UserCancelledError('Cancelled'))
+    console.log(colors.yellow("Cancelled"));
+    return Result.err(new UserCancelledError("Cancelled"));
   }
 
-  console.log()
+  console.log();
 
   const projectResult = await createProject({
     name: projectName,
@@ -88,30 +94,30 @@ export async function create(
     prompt,
     spinner,
     colors,
-    shell
-  })
+    shell,
+  });
 
   if (Result.isError(projectResult)) {
     if (CreateProjectUserCancelledError.is(projectResult.error)) {
-      return Result.err(new UserCancelledError(projectResult.error.message))
+      return Result.err(new UserCancelledError(projectResult.error.message));
     }
 
-    console.error(colors.red(projectResult.error.message))
-    return projectResult
+    console.error(colors.red(projectResult.error.message));
+    return projectResult;
   }
 
-  console.log()
-  console.log(colors.green('✨ Project created successfully!'))
-  console.log()
-  console.log('Next steps:')
-  console.log(colors.gray(`  cd ${path.relative(process.cwd(), projectDir)}`))
+  console.log();
+  console.log(colors.green("✨ Project created successfully!"));
+  console.log();
+  console.log("Next steps:");
+  console.log(colors.gray(`  cd ${path.relative(process.cwd(), projectDir)}`));
 
   if (!flags.install) {
-    console.log(colors.gray('  bun install'))
+    console.log(colors.gray("  bun install"));
   }
 
-  console.log(colors.gray('  bun run dev'))
-  console.log()
+  console.log(colors.gray("  bun run dev"));
+  console.log();
 
-  return Result.ok(undefined)
+  return Result.ok(undefined);
 }

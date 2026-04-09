@@ -5,7 +5,9 @@ This directory contains example Bunli CLI applications demonstrating various fea
 ## Examples Overview
 
 ### hello-world
+
 The absolute simplest possible Bunli CLI with a single command. Perfect starting point to understand the basics.
+
 - Basic command definition
 - Simple flag handling
 - OpenTUI `render` + CLI `handler` dual mode
@@ -13,7 +15,9 @@ The absolute simplest possible Bunli CLI with a single command. Perfect starting
 - Type generation for enhanced DX
 
 ### task-runner
+
 A practical task automation CLI showcasing validation and interactivity patterns.
+
 - Schema validation with Zod
 - Interactive prompts and confirmations
 - Progress indicators and spinners
@@ -21,7 +25,9 @@ A practical task automation CLI showcasing validation and interactivity patterns
 - Conditional flows based on options
 
 ### git-tool
+
 A Git workflow helper demonstrating command organization and external tool integration.
+
 - Flat command structure
 - Command aliases
 - Integration with external tools (git)
@@ -29,7 +35,9 @@ A Git workflow helper demonstrating command organization and external tool integ
 - Colored output for status
 
 ### dev-server
+
 A development server CLI showcasing advanced plugin system and configuration management.
+
 - Plugin system with lifecycle hooks
 - Type-safe plugin context
 - Configuration management
@@ -64,6 +72,7 @@ bun cli.ts
 ```
 
 All examples include:
+
 - `bunli.config.ts` - Configuration with `commands.entry` for codegen discovery
 - Command modules registered explicitly via `cli.command(...)`
 - `.bunli/commands.gen.ts` - Generated TypeScript definitions (auto-created)
@@ -87,53 +96,53 @@ For a dedicated component and runtime showcase, use [`apps/tui-gallery`](../apps
 ## Key Concepts
 
 ### Schema-Driven Options
+
 Bunli uses Standard Schema for validation, allowing you to use any compatible validation library:
 
 ```typescript
-import { defineCommand, option } from '@bunli/core'
-import { z } from 'zod'
+import { defineCommand, option } from "@bunli/core";
+import { z } from "zod";
 
 export default defineCommand({
   options: {
-    port: option(
-      z.coerce.number().min(1000).max(65535),
-      { short: 'p', description: 'Port number' }
-    )
-  }
-})
+    port: option(z.coerce.number().min(1000).max(65535), {
+      short: "p",
+      description: "Port number",
+    }),
+  },
+});
 ```
 
 ### Command Organization
+
 For larger CLIs, organize commands in a clear structure:
 
 ```typescript
 // commands/index.ts
-export const commands = [
-  buildCommand,
-  testCommand,
-  deployCommand
-]
+export const commands = [buildCommand, testCommand, deployCommand];
 ```
 
 ### Interactive Prompts
+
 Create engaging CLI experiences with built-in prompts:
 
 ```typescript
-const name = await prompt.text('What is your name?')
-const color = await prompt.select('Favorite color?', {
+const name = await prompt.text("What is your name?");
+const color = await prompt.select("Favorite color?", {
   options: [
-    { label: 'Red', value: 'red' },
-    { label: 'Green', value: 'green' },
-    { label: 'Blue', value: 'blue' }
-  ]
-})
-const confirmed = await prompt.confirm('Continue?')
+    { label: "Red", value: "red" },
+    { label: "Green", value: "green" },
+    { label: "Blue", value: "blue" },
+  ],
+});
+const confirmed = await prompt.confirm("Continue?");
 
-prompt.intro('Setup')
-prompt.outro('Done')
+prompt.intro("Setup");
+prompt.outro("Done");
 ```
 
 ### OpenTUI Rendering
+
 Use `render` for interactive terminal UI. Commands with `render` run directly without TUI flags:
 
 ```typescript
@@ -152,68 +161,70 @@ Buffer mode defaults to `standard`; use `tui.renderer.bufferMode: 'alternate'` w
 Render lifecycle: commands using `render` should call `useRuntime().exit()` (for example on submit, cancel, or quit) so the command exits cleanly without directly owning renderer teardown.
 
 ### Plugin System
+
 Extend functionality with type-safe plugins:
 
 ```typescript
-import { createPlugin } from '@bunli/core/plugin'
+import { createPlugin } from "@bunli/core/plugin";
 
 export const myPlugin = createPlugin({
-  name: 'my-plugin',
+  name: "my-plugin",
   store: { count: 0 },
   beforeCommand({ store }) {
-    store.count++
-  }
-})
+    store.count++;
+  },
+});
 ```
 
 ## Building for Distribution
 
 Examples now intentionally cover different build configurations:
 
-| Example | Build Mode | Key Settings |
-|---------|------------|--------------|
-| `hello-world` | JS bundle mode | `targets: []`, `minify: true`, `sourcemap: true` |
-| `task-runner` | Native standalone binary | `targets: ['native']`, `sourcemap: true` |
-| `git-tool` | Multi-target compressed binaries | `targets: ['darwin-arm64', 'darwin-x64']`, `compress: true`, `minify: true` |
-| `dev-server` | Native optimized binary | `targets: ['native']`, `minify: true`, `sourcemap: false` |
+| Example       | Build Mode                       | Key Settings                                                                |
+| ------------- | -------------------------------- | --------------------------------------------------------------------------- |
+| `hello-world` | JS bundle mode                   | `targets: []`, `minify: true`, `sourcemap: true`                            |
+| `task-runner` | Native standalone binary         | `targets: ['native']`, `sourcemap: true`                                    |
+| `git-tool`    | Multi-target compressed binaries | `targets: ['darwin-arm64', 'darwin-x64']`, `compress: true`, `minify: true` |
+| `dev-server`  | Native optimized binary          | `targets: ['native']`, `minify: true`, `sourcemap: false`                   |
 
 A reference config shape:
 
 ```typescript
 // bunli.config.ts
-import { defineConfig } from '@bunli/core'
+import { defineConfig } from "@bunli/core";
 
 export default defineConfig({
-  name: 'my-cli',
-  version: '1.0.0',
-  description: 'My awesome CLI',
-  
+  name: "my-cli",
+  version: "1.0.0",
+  description: "My awesome CLI",
+
   // Command discovery for tooling/codegen
   commands: {
-    entry: './cli.ts',
-    directory: './commands' // optional fallback hint
+    entry: "./cli.ts",
+    directory: "./commands", // optional fallback hint
   },
-  
+
   // Plugins are optional (default: [])
   plugins: [],
-  
+
   build: {
-    entry: './cli.ts',
-    outdir: './dist',
-    targets: ['native'],  // Example target
-    compress: false,      // Default: false
-    minify: false,        // Default: false
-    sourcemap: true       // Default: true
+    entry: "./cli.ts",
+    outdir: "./dist",
+    targets: ["native"], // Example target
+    compress: false, // Default: false
+    minify: false, // Default: false
+    sourcemap: true, // Default: true
   },
-  
+
   dev: {
     watch: true,
-    inspect: false
-  }
-})
+    inspect: false,
+  },
+});
 ```
 
 Build commands:
+
 ```bash
 # Build for current platform
 bun run build
@@ -232,6 +243,7 @@ bunli build --minify --sourcemap
 ```
 
 The Bunli CLI handles:
+
 - Hot reload in development (`bunli dev`)
 - Standalone executable creation with Bun's `--compile` flag
 - Multi-platform builds
@@ -273,6 +285,7 @@ bunli release --github=true
 ```
 
 Resumability:
+
 - Failed non-dry releases persist checkpoints at `.bunli/release-state.json`.
 - Subsequent `bunli release` runs auto-resume from the last incomplete step.
 - `--resume=false` starts a fresh release and ignores the checkpoint file.

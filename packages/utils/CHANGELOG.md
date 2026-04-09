@@ -5,7 +5,6 @@
 ### Minor Changes
 
 - aa971b5: Add a new agent-oriented framework layer across Bunli.
-
   - Add multi-format output support to `@bunli/core` with `--format`, handler `output()` helpers, agent-aware defaults, `--llms` / `--llms-full` manifests, richer command errors, help rendering extraction, recursive manifest generation, alias-safe manifest output, plugin `preRun` / `postRun` hooks, and XDG-aware plugin paths.
   - Add XDG directory helpers to `@bunli/utils`.
   - Add `createTestCLI`, type-level inference tests, and direct stdout/stderr capture support to `@bunli/test`.
@@ -27,7 +26,6 @@
 ### Minor Changes
 
 - f1c404a: introducing `@bunli/tui` component-library
-
   - move prompt runtime ownership to `@bunli/tui` with inline + interactive modes
   - drop `@bunli/utils` prompt/clack exports and update usage across the toolchain
   - add schema-driven interactive form engine and expanded themed interactive component primitives

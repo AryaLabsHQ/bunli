@@ -33,24 +33,24 @@ Minimal, type-safe CLI framework for Bun with advanced plugin system. Uses Zod f
 
 ## WHERE TO LOOK
 
-| Task | Location | Notes |
-|------|----------|-------|
-| Add command | `packages/cli/src/commands/` | Use `defineCommand` pattern |
-| Plugin system | `packages/core/src/plugin/` | `createPlugin<T>()` with typed store |
-| Type generation | `packages/generator/src/` | Creates `commands.gen.ts` |
-| Utilities | `packages/utils/src/` | colors, validation |
-| Runtime | `packages/runtime/src/` | OpenTUI prompt/renderer runtime |
-| Tests | `packages/*/test/*.test.ts` | Bun test runner |
+| Task            | Location                     | Notes                                |
+| --------------- | ---------------------------- | ------------------------------------ |
+| Add command     | `packages/cli/src/commands/` | Use `defineCommand` pattern          |
+| Plugin system   | `packages/core/src/plugin/`  | `createPlugin<T>()` with typed store |
+| Type generation | `packages/generator/src/`    | Creates `commands.gen.ts`            |
+| Utilities       | `packages/utils/src/`        | colors, validation                   |
+| Runtime         | `packages/runtime/src/`      | OpenTUI prompt/renderer runtime      |
+| Tests           | `packages/*/test/*.test.ts`  | Bun test runner                      |
 
 ## CODE MAP
 
-| Symbol | Location | Purpose |
-|--------|----------|---------|
-| `defineCommand` | `packages/core/src/types.ts` | Command builder |
-| `option()` | `packages/core/src/types.ts` | Flag definition |
-| `createPlugin` | `packages/core/src/plugin/` | Plugin factory |
-| `createCLI` | `packages/core/src/cli.ts` | CLI entry point |
-| `TaggedError` | `better-result` | Error class pattern |
+| Symbol          | Location                     | Purpose             |
+| --------------- | ---------------------------- | ------------------- |
+| `defineCommand` | `packages/core/src/types.ts` | Command builder     |
+| `option()`      | `packages/core/src/types.ts` | Flag definition     |
+| `createPlugin`  | `packages/core/src/plugin/`  | Plugin factory      |
+| `createCLI`     | `packages/core/src/cli.ts`   | CLI entry point     |
+| `TaggedError`   | `better-result`              | Error class pattern |
 
 ## CONVENTIONS
 
@@ -65,7 +65,7 @@ Minimal, type-safe CLI framework for Bun with advanced plugin system. Uses Zod f
 
 ## TOOLING
 
-- **Always use Bun** — never Node.js, npm, pnpm, yarn, webpack, or jest. Vite is used for the web app build. Vitest is allowed only for type-level tests (*.test-d.ts)
+- **Always use Bun** — never Node.js, npm, pnpm, yarn, webpack, or jest. Vite is used for the web app build. Vitest is allowed only for type-level tests (\*.test-d.ts)
 - Prefer `Bun.file` over `node:fs` readFile/writeFile
 - Prefer `Bun.$` (shell) over `execa` or `child_process`
 - Bun auto-loads `.env` — don't use `dotenv`
@@ -101,21 +101,21 @@ bun run release
 
 ## AGENTS.md LOCATIONS
 
-| Directory | Purpose |
-|-----------|---------|
-| `packages/core/` | CLI framework patterns |
-| `packages/cli/` | bunli CLI commands |
-| `packages/utils/` | Utility patterns |
-| `packages/plugin-ai-detect/` | AI detection plugin |
-| `packages/plugin-config/` | Config merging plugin |
-| `packages/plugin-completions/` | Shell completions |
-| `packages/plugin-mcp/` | MCP tool→command conversion |
-| `packages/plugin-skills/` | AI agent skill sync |
-| `packages/store/` | Persistent typed store |
-| `packages/generator/` | Type generation |
-| `packages/test/` | Testing utilities |
-| `packages/runtime/` | OpenTUI runtime patterns |
-| `packages/tui/` | TUI components |
-| `packages/create-bunli/` | Scaffolding patterns |
-| `examples/*/` | Example-specific patterns |
-| `apps/web/` | TanStack Start + Cloudflare Workers docs site |
+| Directory                      | Purpose                                       |
+| ------------------------------ | --------------------------------------------- |
+| `packages/core/`               | CLI framework patterns                        |
+| `packages/cli/`                | bunli CLI commands                            |
+| `packages/utils/`              | Utility patterns                              |
+| `packages/plugin-ai-detect/`   | AI detection plugin                           |
+| `packages/plugin-config/`      | Config merging plugin                         |
+| `packages/plugin-completions/` | Shell completions                             |
+| `packages/plugin-mcp/`         | MCP tool→command conversion                   |
+| `packages/plugin-skills/`      | AI agent skill sync                           |
+| `packages/store/`              | Persistent typed store                        |
+| `packages/generator/`          | Type generation                               |
+| `packages/test/`               | Testing utilities                             |
+| `packages/runtime/`            | OpenTUI runtime patterns                      |
+| `packages/tui/`                | TUI components                                |
+| `packages/create-bunli/`       | Scaffolding patterns                          |
+| `examples/*/`                  | Example-specific patterns                     |
+| `apps/web/`                    | TanStack Start + Cloudflare Workers docs site |

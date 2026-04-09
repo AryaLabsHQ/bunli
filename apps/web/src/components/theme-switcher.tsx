@@ -1,74 +1,72 @@
-'use client'
+"use client";
 
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { useTheme } from 'next-themes'
-import { ChevronDown, Check } from 'lucide-react'
-import { createPortal } from 'react-dom'
-import { themes } from '../lib/themes.js'
+import { ChevronDown, Check } from "lucide-react";
+import { useTheme } from "next-themes";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+
+import { themes } from "../lib/themes.js";
 
 interface DropdownPos {
-  left: number
-  top?: number
-  bottom?: number
+  left: number;
+  top?: number;
+  bottom?: number;
 }
 
 export function ThemeSwitcher() {
-  const { theme, setTheme } = useTheme()
-  const [open, setOpen] = useState(false)
-  const buttonRef = useRef<HTMLButtonElement>(null)
-  const dropdownRef = useRef<HTMLDivElement>(null)
-  const [pos, setPos] = useState<DropdownPos | null>(null)
+  const { theme, setTheme } = useTheme();
+  const [open, setOpen] = useState(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<DropdownPos | null>(null);
 
-  const currentTheme = themes.find((t) => t.id === theme) ?? themes[0]
+  const currentTheme = themes.find((t) => t.id === theme) ?? themes[0];
 
   const updatePosition = useCallback(() => {
-    const btn = buttonRef.current
-    if (!btn) return
-    const rect = btn.getBoundingClientRect()
-    const spaceAbove = rect.top
-    const spaceBelow = window.innerHeight - rect.bottom
+    const btn = buttonRef.current;
+    if (!btn) return;
+    const rect = btn.getBoundingClientRect();
+    const spaceAbove = rect.top;
+    const spaceBelow = window.innerHeight - rect.bottom;
 
     if (spaceAbove > spaceBelow) {
       // Open upward
       setPos({
         left: rect.left,
         bottom: window.innerHeight - rect.top + 6,
-      })
+      });
     } else {
       // Open downward
       setPos({
         left: rect.left,
         top: rect.bottom + 6,
-      })
+      });
     }
-  }, [])
+  }, []);
 
   useEffect(() => {
-    if (!open) return
+    if (!open) return;
 
-    updatePosition()
+    updatePosition();
 
     function handleClickOutside(e: MouseEvent) {
-      const target = e.target as Node
-      if (
-        buttonRef.current?.contains(target) ||
-        dropdownRef.current?.contains(target)
-      ) {
-        return
+      const target = e.target as Node;
+      if (buttonRef.current?.contains(target) || dropdownRef.current?.contains(target)) {
+        return;
       }
-      setOpen(false)
+      setOpen(false);
     }
 
-    document.addEventListener('mousedown', handleClickOutside)
-    window.addEventListener('resize', updatePosition)
-    window.addEventListener('scroll', updatePosition, true)
+    document.addEventListener("mousedown", handleClickOutside);
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-      window.removeEventListener('resize', updatePosition)
-      window.removeEventListener('scroll', updatePosition, true)
-    }
-  }, [open, updatePosition])
+      document.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+    };
+  }, [open, updatePosition]);
 
   return (
     <>
@@ -76,7 +74,7 @@ export function ThemeSwitcher() {
         ref={buttonRef}
         type="button"
         onClick={() => setOpen(!open)}
-        className="inline-flex items-center gap-2 px-2 py-1.5 rounded-none border border-transparent hover:border-border hover:bg-muted/50 transition-colors text-xs font-mono text-foreground"
+        className="hover:border-border hover:bg-muted/50 text-foreground inline-flex items-center gap-2 rounded-none border border-transparent px-2 py-1.5 font-mono text-xs transition-colors"
         aria-label="Switch theme"
         aria-expanded={open}
       >
@@ -86,15 +84,17 @@ export function ThemeSwitcher() {
         />
         <span className="hidden sm:inline">{currentTheme.name}</span>
         <ChevronDown
-          className={`hidden sm:block h-3 w-3 shrink-0 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`}
+          className={`text-muted-foreground hidden h-3 w-3 shrink-0 transition-transform sm:block ${open ? "rotate-180" : ""}`}
         />
       </button>
 
-      {open && pos && typeof document !== 'undefined' &&
+      {open &&
+        pos &&
+        typeof document !== "undefined" &&
         createPortal(
           <div
             ref={dropdownRef}
-            className="fixed z-[9999] w-56 rounded-none border border-border bg-card shadow-lg"
+            className="border-border bg-card fixed z-[9999] w-56 rounded-none border shadow-lg"
             style={{
               left: pos.left,
               ...(pos.bottom != null ? { bottom: pos.bottom } : {}),
@@ -102,54 +102,49 @@ export function ThemeSwitcher() {
             }}
           >
             {/* Header */}
-            <div className="flex items-center gap-2 px-3 py-2 border-b border-border">
-              <span className="font-mono text-xs text-muted-foreground uppercase tracking-widest">
+            <div className="border-border flex items-center gap-2 border-b px-3 py-2">
+              <span className="text-muted-foreground font-mono text-xs tracking-widest uppercase">
                 Theme
               </span>
-              <span className="ml-auto font-mono text-xs text-foreground">
-                {currentTheme.name}
-              </span>
+              <span className="text-foreground ml-auto font-mono text-xs">{currentTheme.name}</span>
             </div>
 
             {/* Theme list */}
-            <div className="p-1 max-h-[60vh] overflow-y-auto">
+            <div className="max-h-[60vh] overflow-y-auto p-1">
               {themes.map((t) => {
-                const isActive = t.id === theme
+                const isActive = t.id === theme;
                 return (
                   <button
                     key={t.id}
                     type="button"
                     onClick={() => {
-                      setTheme(t.id)
-                      setOpen(false)
+                      setTheme(t.id);
+                      setOpen(false);
                     }}
                     className={`flex w-full items-center gap-3 rounded-none px-2 py-2 text-left transition-colors ${
                       isActive
-                        ? 'bg-accent/10 text-foreground'
-                        : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                        ? "bg-accent/10 text-foreground"
+                        : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                     }`}
                   >
                     <span
-                      className={`block h-4 w-4 shrink-0 rounded-none ${isActive ? 'ring-2 ring-accent ring-offset-1 ring-offset-card' : ''}`}
+                      className={`block h-4 w-4 shrink-0 rounded-none ${isActive ? "ring-accent ring-offset-card ring-2 ring-offset-1" : ""}`}
                       style={{ backgroundColor: t.accent }}
                     />
                     <span className="font-mono text-xs">{t.name}</span>
-                    {t.id === 'vesper' && (
-                      <span className="ml-1 rounded-none border border-border/50 bg-muted/50 px-1 py-0.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                    {t.id === "vesper" && (
+                      <span className="border-border/50 bg-muted/50 text-muted-foreground ml-1 rounded-none border px-1 py-0.5 font-mono text-[10px] tracking-wider uppercase">
                         default
                       </span>
                     )}
-                    {isActive && (
-                      <Check className="ml-auto h-3 w-3 shrink-0 text-accent" />
-                    )}
+                    {isActive && <Check className="text-accent ml-auto h-3 w-3 shrink-0" />}
                   </button>
-                )
+                );
               })}
             </div>
           </div>,
-          document.body
-        )
-      }
+          document.body,
+        )}
     </>
-  )
+  );
 }

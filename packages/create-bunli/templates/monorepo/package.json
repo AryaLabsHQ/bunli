@@ -2,12 +2,12 @@
   "name": "{{name}}",
   "version": "0.0.0",
   "private": true,
-  "type": "module",
   "description": "{{description}}",
   "author": "{{author}}",
   "workspaces": [
     "packages/*"
   ],
+  "type": "module",
   "scripts": {
     "postinstall": "bunli generate",
     "dev": "turbo run dev",
@@ -21,8 +21,8 @@
     "release": "turbo run build && changeset publish"
   },
   "devDependencies": {
-    "@tsconfig/bun": "catalog:",
     "@changesets/cli": "^2.27.0",
+    "@tsconfig/bun": "catalog:",
     "@types/bun": "latest",
     "turbo": "latest",
     "typescript": "^5.0.0"

@@ -1,26 +1,21 @@
-import { ShellCompDirective } from './t.js'
+import { ShellCompDirective } from "./t.js";
 
 // TODO: issue with -- -- completions
 
 export function generate(name: string, exec: string): string {
   // Replace '-' and ':' with '_' for variable names
-  const nameForVar = name.replace(/[-:]/g, '_')
+  const nameForVar = name.replace(/[-:]/g, "_");
 
   // Determine the completion command
   // const compCmd = includeDesc ? "complete" : "complete";
 
   // Shell completion directives
-  const ShellCompDirectiveError = ShellCompDirective.ShellCompDirectiveError
-  const ShellCompDirectiveNoSpace =
-    ShellCompDirective.ShellCompDirectiveNoSpace
-  const ShellCompDirectiveNoFileComp =
-    ShellCompDirective.ShellCompDirectiveNoFileComp
-  const ShellCompDirectiveFilterFileExt =
-    ShellCompDirective.ShellCompDirectiveFilterFileExt
-  const ShellCompDirectiveFilterDirs =
-    ShellCompDirective.ShellCompDirectiveFilterDirs
-  const ShellCompDirectiveKeepOrder =
-    ShellCompDirective.ShellCompDirectiveKeepOrder
+  const ShellCompDirectiveError = ShellCompDirective.ShellCompDirectiveError;
+  const ShellCompDirectiveNoSpace = ShellCompDirective.ShellCompDirectiveNoSpace;
+  const ShellCompDirectiveNoFileComp = ShellCompDirective.ShellCompDirectiveNoFileComp;
+  const ShellCompDirectiveFilterFileExt = ShellCompDirective.ShellCompDirectiveFilterFileExt;
+  const ShellCompDirectiveFilterDirs = ShellCompDirective.ShellCompDirectiveFilterDirs;
+  const ShellCompDirectiveKeepOrder = ShellCompDirective.ShellCompDirectiveKeepOrder;
 
   return `# powershell completion for ${name} -*- shell-script -*-
 
@@ -270,5 +265,5 @@ export function generate(name: string, exec: string): string {
 }
 
 Register-ArgumentCompleter -CommandName '${name}' -ScriptBlock $__${nameForVar}CompleterBlock
-`
+`;
 }

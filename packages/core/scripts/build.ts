@@ -1,20 +1,20 @@
-import { $ } from 'bun'
+import { $ } from "bun";
 
 // Clean dist directory
-await $`rm -rf dist`
-await $`mkdir -p dist`
+await $`rm -rf dist`;
+await $`mkdir -p dist`;
 
 // Build with Bun instead of tsc for now
-const entrypoints = ['./src/index.ts']
+const entrypoints = ["./src/index.ts"];
 
 for (const entry of entrypoints) {
   await Bun.build({
     entrypoints: [entry],
-    outdir: './dist',
-    target: 'bun',
-    format: 'esm',
-    external: ['bun']
-  })
+    outdir: "./dist",
+    target: "bun",
+    format: "esm",
+    external: ["bun"],
+  });
 }
 
-console.log('✅ @bunli/core built successfully')
+console.log("✅ @bunli/core built successfully");

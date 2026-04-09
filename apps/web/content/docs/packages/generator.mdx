@@ -1,33 +1,28 @@
 ---
-title: '@bunli/generator'
+title: "@bunli/generator"
 description: Generate TypeScript definitions from CLI commands for enhanced developer experience
 ---
 
-import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
-import { Callout } from 'fumadocs-ui/components/callout';
-import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Tabs, Tab } from "fumadocs-ui/components/tabs";
+import { Callout } from "fumadocs-ui/components/callout";
+import { Card, Cards } from "fumadocs-ui/components/card";
 
 <Callout type="info">
-  @bunli/generator has **minimal dependencies** and uses Babel for AST parsing to extract command metadata from your TypeScript files.
+  @bunli/generator has **minimal dependencies** and uses Babel for AST parsing to extract command
+  metadata from your TypeScript files.
 </Callout>
 
 ## Installation
 
 <Tabs groupId="package-manager" defaultValue="bun">
   <Tab value="bun" label="Bun">
-    ```bash
-    bun add @bunli/generator
-    ```
+    ```bash bun add @bunli/generator ```
   </Tab>
   <Tab value="npm" label="npm">
-    ```bash
-    npm install @bunli/generator
-    ```
+    ```bash npm install @bunli/generator ```
   </Tab>
   <Tab value="pnpm" label="pnpm">
-    ```bash
-    pnpm add @bunli/generator
-    ```
+    ```bash pnpm add @bunli/generator ```
   </Tab>
 </Tabs>
 
@@ -48,24 +43,24 @@ import { Card, Cards } from 'fumadocs-ui/components/card';
 The main class for generating TypeScript definitions:
 
 ```typescript
-import { Generator } from '@bunli/generator'
+import { Generator } from "@bunli/generator";
 
 const generator = new Generator({
-  entry: './src/cli.ts',
-  directory: './src/commands',
-  outputFile: './.bunli/commands.gen.ts',
+  entry: "./src/cli.ts",
+  directory: "./src/commands",
+  outputFile: "./.bunli/commands.gen.ts",
   config: {}, // Optional config object
-  generateReport: false // Optional report generation
-})
+  generateReport: false, // Optional report generation
+});
 
 // Generate types once
-await generator.run()
+await generator.run();
 
 // Generate with specific options
 await generator.run({
-  type: 'update',
-  path: './commands/new-command.ts'
-})
+  type: "update",
+  path: "./commands/new-command.ts",
+});
 ```
 
 ### CommandScanner
@@ -73,12 +68,12 @@ await generator.run({
 Scans directories for command files:
 
 ```typescript
-import { CommandScanner } from '@bunli/generator'
+import { CommandScanner } from "@bunli/generator";
 
-const scanner = new CommandScanner()
-const files = await scanner.scanCommands('./src/cli.ts', './src/commands')
+const scanner = new CommandScanner();
+const files = await scanner.scanCommands("./src/cli.ts", "./src/commands");
 
-console.log(files) // ['greet.ts', 'deploy.ts', 'test.ts']
+console.log(files); // ['greet.ts', 'deploy.ts', 'test.ts']
 ```
 
 ### parseCommand Function
@@ -86,10 +81,10 @@ console.log(files) // ['greet.ts', 'deploy.ts', 'test.ts']
 Parse individual command files:
 
 ```typescript
-import { parseCommand } from '@bunli/generator'
+import { parseCommand } from "@bunli/generator";
 
-const commandData = await parseCommand('./commands/greet.ts', './src', './.bunli/commands.gen.ts')
-console.log(commandData)
+const commandData = await parseCommand("./commands/greet.ts", "./src", "./.bunli/commands.gen.ts");
+console.log(commandData);
 // {
 //   name: 'greet',
 //   description: 'Greet someone',
@@ -124,18 +119,18 @@ console.log(types) // Generated TypeScript code
 Use as a Bun plugin for build integration:
 
 ```typescript
-import { bunliCodegenPlugin } from '@bunli/generator'
+import { bunliCodegenPlugin } from "@bunli/generator";
 
 // In your build configuration
 export default {
   plugins: [
     bunliCodegenPlugin({
-      entry: './src/cli.ts',
-      directory: './src/commands',
-      outputFile: './.bunli/commands.gen.ts'
-    })
-  ]
-}
+      entry: "./src/cli.ts",
+      directory: "./src/commands",
+      outputFile: "./.bunli/commands.gen.ts",
+    }),
+  ],
+};
 ```
 
 ### CLI Integration
@@ -157,13 +152,13 @@ bunli generate --watch
 
 <Card title="Generator Options" description="Configuration for type generation">
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `entry` | `string` | `'./cli.ts'` | CLI entry file used for command discovery |
-| `directory` | `string` | `undefined` | Optional fallback directory for command scanning |
-| `outputFile` | `string` | `'./commands.gen.ts'` | Output file for generated types |
-| `include` | `string[]` | `['**/*.ts', '**/*.js']` | File patterns to include |
-| `exclude` | `string[]` | `['**/*.test.*', '**/*.spec.*']` | File patterns to exclude |
+| Option       | Type       | Default                          | Description                                      |
+| ------------ | ---------- | -------------------------------- | ------------------------------------------------ |
+| `entry`      | `string`   | `'./cli.ts'`                     | CLI entry file used for command discovery        |
+| `directory`  | `string`   | `undefined`                      | Optional fallback directory for command scanning |
+| `outputFile` | `string`   | `'./commands.gen.ts'`            | Output file for generated types                  |
+| `include`    | `string[]` | `['**/*.ts', '**/*.js']`         | File patterns to include                         |
+| `exclude`    | `string[]` | `['**/*.test.*', '**/*.spec.*']` | File patterns to exclude                         |
 
 </Card>
 
@@ -177,36 +172,48 @@ The generated file exports a `cli` object (a `GeneratedStore` instance) and name
 
 ```typescript
 // Named command exports
-export { greet } from '../src/commands/greet.js'
-export { deploy } from '../src/commands/deploy.js'
+export { greet } from "../src/commands/greet.js";
+export { deploy } from "../src/commands/deploy.js";
 
 // Generated command metadata
-export const metadata: Record<string, GeneratedCommandMeta>
+export const metadata: Record<string, GeneratedCommandMeta>;
 
 // Generated store instance
-export const cli: GeneratedStore<typeof commands, typeof metadata>
+export const cli: GeneratedStore<typeof commands, typeof metadata>;
 ```
 
 ### GeneratedStore Methods
 
 ```typescript
 interface GeneratedStore<TModules, TMeta> {
-  commands: TModules
-  metadata: TMeta
-  register(cli?: CLI<any>): GeneratedStore<TModules, TMeta>
-  list(): Array<{ name: keyof TModules; command: TModules[keyof TModules]; metadata: TMeta[keyof TModules] }>
-  get<Name extends keyof TModules>(name: Name): TModules[Name]
-  getMetadata<Name extends keyof TModules>(name: Name): TMeta[Name]
-  findByName<Name extends keyof TModules>(name: Name): { name: Name; command: TModules[Name]; metadata: TMeta[Name] }
-  findByDescription(searchTerm: string): Array<{ name: keyof TModules; command: TModules[keyof TModules]; metadata: TMeta[keyof TModules] }>
-  getCommandNames(): Array<keyof TModules & string>
-  getFlags<Name extends keyof RegisteredCommands>(name: Name): Record<string, unknown>
-  getFlagsMeta<Name extends keyof TModules>(name: Name): Record<string, GeneratedOptionMeta>
+  commands: TModules;
+  metadata: TMeta;
+  register(cli?: CLI<any>): GeneratedStore<TModules, TMeta>;
+  list(): Array<{
+    name: keyof TModules;
+    command: TModules[keyof TModules];
+    metadata: TMeta[keyof TModules];
+  }>;
+  get<Name extends keyof TModules>(name: Name): TModules[Name];
+  getMetadata<Name extends keyof TModules>(name: Name): TMeta[Name];
+  findByName<Name extends keyof TModules>(
+    name: Name,
+  ): { name: Name; command: TModules[Name]; metadata: TMeta[Name] };
+  findByDescription(
+    searchTerm: string,
+  ): Array<{
+    name: keyof TModules;
+    command: TModules[keyof TModules];
+    metadata: TMeta[keyof TModules];
+  }>;
+  getCommandNames(): Array<keyof TModules & string>;
+  getFlags<Name extends keyof RegisteredCommands>(name: Name): Record<string, unknown>;
+  getFlagsMeta<Name extends keyof TModules>(name: Name): Record<string, GeneratedOptionMeta>;
   validateCommand<Name extends keyof TModules>(
     name: Name,
-    flags: Record<string, unknown>
-  ): { success: true; data: Record<string, unknown> } | { success: false; errors: string[] }
-  withCLI(cli: CLI<any>): GeneratedExecutor<TModules>
+    flags: Record<string, unknown>,
+  ): { success: true; data: Record<string, unknown> } | { success: false; errors: string[] };
+  withCLI(cli: CLI<any>): GeneratedExecutor<TModules>;
 }
 ```
 
@@ -214,7 +221,7 @@ interface GeneratedStore<TModules, TMeta> {
 
 ```typescript
 interface GeneratedExecutor<TModules extends Record<string, Command<any>>> {
-  execute(name: string, options: unknown): Promise<void>
+  execute(name: string, options: unknown): Promise<void>;
 }
 ```
 
@@ -223,15 +230,15 @@ interface GeneratedExecutor<TModules extends Record<string, Command<any>>> {
 ### Basic Generation
 
 ```typescript
-import { Generator } from '@bunli/generator'
+import { Generator } from "@bunli/generator";
 
 const generator = new Generator({
-  entry: './src/cli.ts',
-  directory: './src/commands',
-  outputFile: './.bunli/commands.gen.ts'
-})
+  entry: "./src/cli.ts",
+  directory: "./src/commands",
+  outputFile: "./.bunli/commands.gen.ts",
+});
 
-await generator.run()
+await generator.run();
 ```
 
 ### Watch Mode
@@ -255,16 +262,16 @@ bunli generate --watch
 
 ```typescript
 class Generator {
-  constructor(options: GeneratorConfig)
+  constructor(options: GeneratorConfig);
 
   // Generate types
-  run(options?: GeneratorEvent): Promise<Result<void, GeneratorRunError>>
+  run(options?: GeneratorEvent): Promise<Result<void, GeneratorRunError>>;
 
   // Get current configuration
-  getConfig(): GeneratorConfig
+  getConfig(): GeneratorConfig;
 
   // Update configuration
-  updateConfig(options: Partial<GeneratorConfig>): void
+  updateConfig(options: Partial<GeneratorConfig>): void;
 }
 ```
 
@@ -272,11 +279,11 @@ class Generator {
 
 ```typescript
 interface GeneratorConfig {
-  entry: string
-  directory?: string
-  outputFile: string
-  config?: any
-  generateReport?: boolean
+  entry: string;
+  directory?: string;
+  outputFile: string;
+  config?: any;
+  generateReport?: boolean;
 }
 ```
 
@@ -284,8 +291,8 @@ interface GeneratorConfig {
 
 ```typescript
 interface GeneratorEvent {
-  type: 'create' | 'update' | 'delete'
-  path: string
+  type: "create" | "update" | "delete";
+  path: string;
 }
 ```
 
@@ -293,27 +300,27 @@ interface GeneratorEvent {
 
 ```typescript
 interface CommandMetadata {
-  name: string
-  description: string
-  alias?: string | string[]
-  options?: Record<string, OptionMetadata>
-  commands?: CommandMetadata[]
-  filePath: string
-  importPath: string
-  exportPath: string
-  hasHandler?: boolean
-  hasRender?: boolean
+  name: string;
+  description: string;
+  alias?: string | string[];
+  options?: Record<string, OptionMetadata>;
+  commands?: CommandMetadata[];
+  filePath: string;
+  importPath: string;
+  exportPath: string;
+  hasHandler?: boolean;
+  hasRender?: boolean;
 }
 
 interface OptionMetadata {
-  type: string
-  required: boolean
-  hasDefault: boolean
-  default?: any
-  description?: string
-  short?: string
-  schema?: any
-  validator?: string
+  type: string;
+  required: boolean;
+  hasDefault: boolean;
+  default?: any;
+  description?: string;
+  short?: string;
+  schema?: any;
+  validator?: string;
 }
 ```
 
@@ -323,39 +330,42 @@ interface OptionMetadata {
 
 ```typescript
 // bunli.config.ts
-import { defineConfig } from '@bunli/core'
+import { defineConfig } from "@bunli/core";
 
 export default defineConfig({
-  name: 'my-cli',
-  version: '1.0.0',
-})
+  name: "my-cli",
+  version: "1.0.0",
+});
 ```
 
 ### With Custom Build Script
 
 ```typescript
-import { Generator } from '@bunli/generator'
+import { Generator } from "@bunli/generator";
 
 const generator = new Generator({
-  entry: './src/cli.ts',
-  directory: './src/commands',
-  outputFile: './.bunli/commands.gen.ts'
-})
+  entry: "./src/cli.ts",
+  directory: "./src/commands",
+  outputFile: "./.bunli/commands.gen.ts",
+});
 
-await generator.run()
+await generator.run();
 ```
 
 ## Troubleshooting
 
 **Generation fails:**
+
 - Check that command files use `defineCommand`
 - Verify TypeScript syntax is correct
 
 **Types not updating:**
+
 - Use `bunli generate --watch` for development
 - Check file paths are correct
 
 **Import errors:**
+
 - Ensure generated file exists at `./.bunli/commands.gen.ts`
 - Verify TypeScript configuration
 

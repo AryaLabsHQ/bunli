@@ -3,24 +3,28 @@ title: defineCommand
 description: Define type-safe commands with automatic inference
 ---
 
-import { Callout } from 'fumadocs-ui/components/callout';
+import { Callout } from "fumadocs-ui/components/callout";
 
 Defines a command with full type inference for options and handler arguments.
 
 ## Syntax
 
 ```typescript
-function defineCommand<TOptions extends Options = Options, TStore = {}, TName extends string = string>(
-  command: RunnableCommand<TOptions, TStore> & { name: TName }
-): RunnableCommand<TOptions, TStore> & { name: TName }
+function defineCommand<
+  TOptions extends Options = Options,
+  TStore = {},
+  TName extends string = string,
+>(
+  command: RunnableCommand<TOptions, TStore> & { name: TName },
+): RunnableCommand<TOptions, TStore> & { name: TName };
 ```
 
 Defines a non-runnable command group:
 
 ```typescript
 function defineGroup<TStore = {}, TName extends string = string>(
-  group: Group<TStore, TName>
-): Group<TStore, TName>
+  group: Group<TStore, TName>,
+): Group<TStore, TName>;
 ```
 
 ## Parameters
@@ -34,17 +38,20 @@ The command definition object.
 type RunnableCommand<TOptions = Options, TStore = {}> =
   | (BaseRunnableCommand<TOptions, TStore> & { handler: Handler<TOptions, TStore> })
   | (BaseRunnableCommand<TOptions, TStore> & { render: RenderFunction<TOptions, TStore> })
-  | (BaseRunnableCommand<TOptions, TStore> & { handler: Handler<TOptions, TStore>; render: RenderFunction<TOptions, TStore> })
+  | (BaseRunnableCommand<TOptions, TStore> & {
+      handler: Handler<TOptions, TStore>;
+      render: RenderFunction<TOptions, TStore>;
+    });
 
 interface BaseRunnableCommand<TOptions = Options, TStore = {}> {
-  name: string
-  description: string
-  alias?: string | string[]
-  options?: TOptions
-  commands?: Command[]
-  tui?: CommandTuiOptions
-  outputPolicy?: OutputPolicy
-  defaultFormat?: OutputFormat
+  name: string;
+  description: string;
+  alias?: string | string[];
+  options?: TOptions;
+  commands?: Command[];
+  tui?: CommandTuiOptions;
+  outputPolicy?: OutputPolicy;
+  defaultFormat?: OutputFormat;
 }
 ```
 
@@ -53,22 +60,22 @@ interface BaseRunnableCommand<TOptions = Options, TStore = {}> {
 `defineCommand` automatically infers types from your Zod schemas:
 
 ```typescript
-import { defineCommand, option } from '@bunli/core'
-import { z } from 'zod'
+import { defineCommand, option } from "@bunli/core";
+import { z } from "zod";
 
 const command = defineCommand({
-  name: 'serve' as const,
-  description: 'Start server',
+  name: "serve" as const,
+  description: "Start server",
   options: {
     port: option(z.coerce.number().default(3000)),
-    host: option(z.string().default('localhost'))
+    host: option(z.string().default("localhost")),
   },
   handler: async ({ flags }) => {
     // TypeScript knows:
     // flags.port is number
     // flags.host is string
-  }
-})
+  },
+});
 ```
 
 ## Examples
@@ -77,46 +84,43 @@ const command = defineCommand({
 
 ```typescript
 export default defineCommand({
-  name: 'hello' as const,
-  description: 'Say hello',
+  name: "hello" as const,
+  description: "Say hello",
   handler: async ({ colors }) => {
-    console.log(colors.green('Hello, World!'))
-  }
-})
+    console.log(colors.green("Hello, World!"));
+  },
+});
 ```
 
 ### Command with Options
 
 ```typescript
 export default defineCommand({
-  name: 'deploy' as const,
-  description: 'Deploy application',
+  name: "deploy" as const,
+  description: "Deploy application",
   options: {
-    env: option(
-      z.enum(['dev', 'staging', 'prod']),
-      { description: 'Target environment', short: 'e' }
-    ),
-    force: option(
-      z.coerce.boolean().default(false),
-      { description: 'Force deployment', short: 'f' }
-    ),
-    tag: option(
-      z.string().optional(),
-      { description: 'Version tag' }
-    )
+    env: option(z.enum(["dev", "staging", "prod"]), {
+      description: "Target environment",
+      short: "e",
+    }),
+    force: option(z.coerce.boolean().default(false), {
+      description: "Force deployment",
+      short: "f",
+    }),
+    tag: option(z.string().optional(), { description: "Version tag" }),
   },
   handler: async ({ flags, shell, spinner }) => {
-    const spin = spinner(`Deploying to ${flags.env}...`)
-    spin.start()
+    const spin = spinner(`Deploying to ${flags.env}...`);
+    spin.start();
 
     if (flags.tag) {
-      await shell`git tag ${flags.tag}`
+      await shell`git tag ${flags.tag}`;
     }
 
-    await shell`deploy --env ${flags.env} ${flags.force ? '--force' : ''}`
-    spin.succeed('Deployed successfully!')
-  }
-})
+    await shell`deploy --env ${flags.env} ${flags.force ? "--force" : ""}`;
+    spin.succeed("Deployed successfully!");
+  },
+});
 ```
 
 ### TUI Rendering
@@ -148,45 +152,45 @@ export default defineCommand({
 
 ```typescript
 export default defineCommand({
-  name: 'development' as const,
-  alias: ['dev', 'd'],
-  description: 'Start development server',
+  name: "development" as const,
+  alias: ["dev", "d"],
+  description: "Start development server",
   handler: async ({ shell }) => {
-    await shell`bun run dev`
-  }
-})
+    await shell`bun run dev`;
+  },
+});
 ```
 
 ### Nested Commands
 
 ```typescript
 export default defineGroup({
-  name: 'db' as const,
-  description: 'Database operations',
+  name: "db" as const,
+  description: "Database operations",
   commands: [
     defineCommand({
-      name: 'migrate' as const,
-      alias: 'm',
-      description: 'Run migrations',
+      name: "migrate" as const,
+      alias: "m",
+      description: "Run migrations",
       options: {
-        direction: option(
-          z.enum(['up', 'down']).default('up'),
-          { short: 'd', description: 'Migration direction' }
-        )
+        direction: option(z.enum(["up", "down"]).default("up"), {
+          short: "d",
+          description: "Migration direction",
+        }),
       },
       handler: async ({ flags, shell }) => {
-        await shell`bun run db:migrate ${flags.direction}`
-      }
+        await shell`bun run db:migrate ${flags.direction}`;
+      },
     }),
     defineCommand({
-      name: 'seed' as const,
-      description: 'Seed database',
+      name: "seed" as const,
+      description: "Seed database",
       handler: async ({ shell }) => {
-        await shell`bun run db:seed`
-      }
-    })
-  ]
-})
+        await shell`bun run db:seed`;
+      },
+    }),
+  ],
+});
 ```
 
 ## Handler Context
@@ -194,89 +198,93 @@ export default defineGroup({
 The handler receives a context object with these properties:
 
 ```typescript
-interface HandlerArgs<TFlags = Record<string, unknown>, TStore = {}, TCommandName extends string = string> {
+interface HandlerArgs<
+  TFlags = Record<string, unknown>,
+  TStore = {},
+  TCommandName extends string = string,
+> {
   // Parsed and validated option values
-  flags: TFlags
+  flags: TFlags;
 
   // Non-flag arguments
-  positional: string[]
+  positional: string[];
 
   // Bun Shell template tag
-  shell: typeof Bun.$
+  shell: typeof Bun.$;
 
   // Environment variables
-  env: typeof process.env
+  env: typeof process.env;
 
   // Current working directory
-  cwd: string
+  cwd: string;
 
   // Interactive prompts
   prompt: {
-    text(message: string, options?: PromptOptions): Promise<string>
-    confirm(message: string, options?: ConfirmOptions): Promise<boolean>
-    select<T>(message: string, options: SelectOptions<T>): Promise<T>
-    password(message: string, options?: PromptOptions): Promise<string>
-    multiselect<T>(message: string, options: MultiSelectOptions<T>): Promise<T[]>
-    pager(content: string, options?: PagerOptions): Promise<void>
-  }
+    text(message: string, options?: PromptOptions): Promise<string>;
+    confirm(message: string, options?: ConfirmOptions): Promise<boolean>;
+    select<T>(message: string, options: SelectOptions<T>): Promise<T>;
+    password(message: string, options?: PromptOptions): Promise<string>;
+    multiselect<T>(message: string, options: MultiSelectOptions<T>): Promise<T[]>;
+    pager(content: string, options?: PagerOptions): Promise<void>;
+  };
 
   // Progress spinner factory
   spinner: (text?: string) => {
-    start(text?: string): void
-    stop(text?: string): void
-    succeed(text?: string): void
-    fail(text?: string): void
-    warn(text?: string): void
-    info(text?: string): void
-    update(text: string): void
-  }
+    start(text?: string): void;
+    stop(text?: string): void;
+    succeed(text?: string): void;
+    fail(text?: string): void;
+    warn(text?: string): void;
+    info(text?: string): void;
+    update(text: string): void;
+  };
 
   // Terminal colors
-  colors: typeof import('@bunli/utils').colors
+  colors: typeof import("@bunli/utils").colors;
 
   // Terminal information
   terminal: {
-    width: number
-    height: number
-    isInteractive: boolean
-    isCI: boolean
-    supportsColor: boolean
-    supportsMouse: boolean
-  }
+    width: number;
+    height: number;
+    isInteractive: boolean;
+    isCI: boolean;
+    supportsColor: boolean;
+    supportsMouse: boolean;
+  };
 
   // Runtime information
   runtime: {
-    startTime: number
-    args: string[]
-    command: string
-    outputFormat: OutputFormat
-  }
+    startTime: number;
+    args: string[];
+    command: string;
+    outputFormat: OutputFormat;
+  };
 
   // Abort signal for cancellation
-  signal: AbortSignal
+  signal: AbortSignal;
 
   // Image/TUI rendering options
   image: {
-    mode: 'off' | 'auto' | 'on'
-    protocol: 'auto' | 'kitty'
-    width?: number
-    height?: number
-  }
+    mode: "off" | "auto" | "on";
+    protocol: "auto" | "kitty";
+    width?: number;
+    height?: number;
+  };
 
   // Output format (json, yaml, toon, md)
-  format: OutputFormat
+  format: OutputFormat;
 
   // Whether format was explicitly set via flag
-  formatExplicit: boolean
+  formatExplicit: boolean;
 
   // Whether running in an AI agent context
-  agent: boolean
+  agent: boolean;
 
   // Write formatted output
-  output: (data: unknown) => void
+  output: (data: unknown) => void;
 
   // Plugin context (when using plugins)
-  context?: CommandContext<Record<string, unknown>>
+  context?: CommandContext<Record<string, unknown>>;
 }
 ```
 
@@ -300,13 +308,13 @@ handler: async ({
   formatExplicit,
   agent,
   output,
-  context
+  context,
 }) => {
   // Access parsed flags
-  console.log(`Port: ${flags.port}`)
+  console.log(`Port: ${flags.port}`);
 
   // Use positional arguments
-  const [file] = positional
+  const [file] = positional;
 
   // Check terminal capabilities
   if (terminal.supportsMouse) {
@@ -316,35 +324,35 @@ handler: async ({
   // Check if in AI agent context
   if (agent) {
     // Provide structured output for AI
-    output({ status: 'building', progress: 50 })
+    output({ status: "building", progress: 50 });
   }
 
   // Use format for structured output
   if (formatExplicit) {
-    output({ status: 'done', result: 'value' })
+    output({ status: "done", result: "value" });
   }
 
   // Run shell commands with template syntax
-  const result = await shell`ls -la ${file}`.text()
+  const result = await shell`ls -la ${file}`.text();
 
   // Check environment
-  if (env.NODE_ENV === 'production') {
-    const confirm = await prompt.confirm('Deploy to production?')
-    if (!confirm) return
+  if (env.NODE_ENV === "production") {
+    const confirm = await prompt.confirm("Deploy to production?");
+    if (!confirm) return;
   }
 
   // Show progress
-  const spin = spinner('Building...')
-  spin.start()
-  await shell`bun run build`
-  spin.succeed('Build complete!')
+  const spin = spinner("Building...");
+  spin.start();
+  await shell`bun run build`;
+  spin.succeed("Build complete!");
 
   // Colored output
-  console.log(colors.green('✓ Success'))
+  console.log(colors.green("✓ Success"));
 
   // Access timing from runtime
-  const duration = Date.now() - runtime.startTime
-}
+  const duration = Date.now() - runtime.startTime;
+};
 ```
 
 ## TUI Command Options
@@ -371,18 +379,18 @@ export default defineCommand({
 ```typescript
 interface CommandTuiOptions {
   renderer?: {
-    bufferMode?: 'alternate' | 'standard'
-    exitOnCtrlC?: boolean
-    targetFps?: number
-    enableMouseMovement?: boolean
-    useMouse?: boolean
-  }
+    bufferMode?: "alternate" | "standard";
+    exitOnCtrlC?: boolean;
+    targetFps?: number;
+    enableMouseMovement?: boolean;
+    useMouse?: boolean;
+  };
   image?: {
-    mode?: 'off' | 'auto' | 'on'
-    protocol?: 'auto' | 'kitty'
-    width?: number
-    height?: number
-  }
+    mode?: "off" | "auto" | "on";
+    protocol?: "auto" | "kitty";
+    width?: number;
+    height?: number;
+  };
 }
 ```
 
@@ -393,20 +401,14 @@ Options are validated automatically before the handler runs:
 ```typescript
 // This command requires a valid port number
 export default defineCommand({
-  name: 'serve' as const,
+  name: "serve" as const,
   options: {
-    port: option(
-      z.coerce.number()
-        .int()
-        .min(1)
-        .max(65535),
-      { description: 'Port number' }
-    )
+    port: option(z.coerce.number().int().min(1).max(65535), { description: "Port number" }),
   },
   handler: async ({ flags }) => {
     // flags.port is guaranteed to be 1-65535
-  }
-})
+  },
+});
 
 // Invalid input shows error:
 // $ my-cli serve --port 70000
@@ -421,13 +423,13 @@ Commands can be defined without handlers when they only contain subcommands:
 
 ```typescript
 export default defineGroup({
-  name: 'tools' as const,
-  description: 'Development tools',
+  name: "tools" as const,
+  description: "Development tools",
   commands: [
     // Subcommands here
-  ]
+  ],
   // No handler - shows help when called directly
-})
+});
 ```
 
 ## Using Plugin Context
@@ -437,39 +439,39 @@ When using plugins, commands can access the type-safe plugin store:
 ```typescript
 // With plugins configured in createCLI
 const cli = await createCLI({
-  plugins: [
-    aiAgentPlugin(),
-    timingPlugin()
-  ] as const
-})
+  plugins: [aiAgentPlugin(), timingPlugin()] as const,
+});
 
 // In your command:
 export default defineCommand({
-  name: 'build' as const,
-  description: 'Build the project',
+  name: "build" as const,
+  description: "Build the project",
   handler: async ({ flags, context, colors }) => {
     // Access plugin store with full type safety
     if (context?.store.isAIAgent) {
       // Provide structured output for AI
-      console.log(JSON.stringify({
-        status: 'building',
-        agents: context.store.aiAgents
-      }))
+      console.log(
+        JSON.stringify({
+          status: "building",
+          agents: context.store.aiAgents,
+        }),
+      );
     } else {
       // Human-friendly output
-      console.log(colors.blue('Building project...'))
+      console.log(colors.blue("Building project..."));
     }
 
     // Access timing data from plugin
     if (context?.store.startTime) {
-      console.log(`Started at: ${new Date(context.store.startTime)}`)
+      console.log(`Started at: ${new Date(context.store.startTime)}`);
     }
-  }
-})
+  },
+});
 ```
 
 <Callout type="tip">
-  Use `defineCommand` for the best TypeScript experience. It provides complete type inference from your option schemas to your handler implementation.
+  Use `defineCommand` for the best TypeScript experience. It provides complete type inference from
+  your option schemas to your handler implementation.
 </Callout>
 
 ## Best Practices

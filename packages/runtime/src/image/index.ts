@@ -1,6 +1,10 @@
-export { detectImageCapability, type DetectImageCapabilityInput } from './capability.js'
-export { resolveImageRenderMode, shouldFailOnImageMiss, type ResolveImageRenderModeInput } from './mode.js'
-export { renderImage } from './render.js'
+export { detectImageCapability, type DetectImageCapabilityInput } from "./capability.js";
+export {
+  resolveImageRenderMode,
+  shouldFailOnImageMiss,
+  type ResolveImageRenderModeInput,
+} from "./mode.js";
+export { renderImage } from "./render.js";
 export type {
   ImageCapability,
   ImageMimeType,
@@ -10,6 +14,6 @@ export type {
   ImageRenderReason,
   RenderImageInput,
   RenderImageOptions,
-  RenderImageResult
-} from './types.js'
-export { ImageRenderError } from './types.js'
+  RenderImageResult,
+} from "./types.js";
+export { ImageRenderError } from "./types.js";

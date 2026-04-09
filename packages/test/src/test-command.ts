@@ -1,292 +1,303 @@
-import type { Command, CLI, Options } from '@bunli/core'
-import type { TestOptions, TestResult, MockHandlerArgs, ShellPromise } from './types.js'
-import { createCLI, validateValue } from '@bunli/core'
+import type { Command, CLI, Options } from "@bunli/core";
+import { createCLI, validateValue } from "@bunli/core";
+
+import type { TestOptions, TestResult, MockHandlerArgs, ShellPromise } from "./types.js";
 
 export async function testCommand<TOptions extends Options = Options>(
   command: Command<TOptions>,
-  options: TestOptions = {}
+  options: TestOptions = {},
 ): Promise<TestResult> {
-  const startTime = performance.now()
-  
+  const startTime = performance.now();
+
   // Capture output
-  const stdout: string[] = []
-  const stderr: string[] = []
-  let exitCode = 0
-  let error: Error | undefined
-  
+  const stdout: string[] = [];
+  const stderr: string[] = [];
+  let exitCode = 0;
+  let error: Error | undefined;
+
   // Setup stdin mock
-  const stdinLines = Array.isArray(options.stdin) 
+  const stdinLines = Array.isArray(options.stdin)
     ? [...options.stdin]
-    : options.stdin 
-    ? [options.stdin]
-    : []
-  
+    : options.stdin
+      ? [options.stdin]
+      : [];
+
   // Setup mock prompts map
-  const mockPromptsMap = options.mockPrompts || {}
-  const promptResponsesUsed = new Map<string, number>()
-  
+  const mockPromptsMap = options.mockPrompts || {};
+  const promptResponsesUsed = new Map<string, number>();
+
   // Create mock prompt
   const mockPrompt = Object.assign(
     async (message: string, options?: any): Promise<any> => {
-      stdout.push(message)
-      
+      stdout.push(message);
+
       // Check if we have a mock response for this prompt
-      let response: string
+      let response: string;
       if (mockPromptsMap[message]) {
-        const responses = mockPromptsMap[message]
-        const usedCount = promptResponsesUsed.get(message) || 0
-        
+        const responses = mockPromptsMap[message];
+        const usedCount = promptResponsesUsed.get(message) || 0;
+
         if (Array.isArray(responses)) {
-          response = responses[usedCount] ?? responses[responses.length - 1] ?? ''
-          promptResponsesUsed.set(message, usedCount + 1)
+          response = responses[usedCount] ?? responses[responses.length - 1] ?? "";
+          promptResponsesUsed.set(message, usedCount + 1);
         } else {
-          response = responses ?? ''
+          response = responses ?? "";
         }
       } else {
-        response = stdinLines.shift() || ''
+        response = stdinLines.shift() || "";
       }
-      
-      stdout.push(response)
-      
+
+      stdout.push(response);
+
       // Handle schema validation if provided
       if (options?.schema) {
-        const result = await options.schema['~standard'].validate(response)
+        const result = await options.schema["~standard"].validate(response);
         if (result.issues) {
           // Simulate validation error output
-          stderr.push('[red]Invalid input:[/red]')
+          stderr.push("[red]Invalid input:[/red]");
           for (const issue of result.issues) {
-            stderr.push(`[dim]  • ${issue.message}[/dim]`)
+            stderr.push(`[dim]  • ${issue.message}[/dim]`);
           }
           // Check if we have more responses to try
-          const hasMoreMockResponses = mockPromptsMap[message] && Array.isArray(mockPromptsMap[message]) && 
-            (promptResponsesUsed.get(message) || 0) < mockPromptsMap[message].length
-          const hasMoreStdin = stdinLines.length > 0
-          
+          const hasMoreMockResponses =
+            mockPromptsMap[message] &&
+            Array.isArray(mockPromptsMap[message]) &&
+            (promptResponsesUsed.get(message) || 0) < mockPromptsMap[message].length;
+          const hasMoreStdin = stdinLines.length > 0;
+
           if (hasMoreMockResponses || hasMoreStdin) {
-            return mockPrompt(message, options) // Retry with next input
+            return mockPrompt(message, options); // Retry with next input
           }
           // If no more inputs, return undefined like real prompt would
-          return undefined
+          return undefined;
         }
-        return result.value
+        return result.value;
       }
-      
+
       // Handle custom validation
       if (options?.validate) {
-        const validationResult = options.validate(response)
+        const validationResult = options.validate(response);
         if (validationResult !== true) {
-          const errorMsg = typeof validationResult === 'string' ? validationResult : 'Invalid input'
-          stderr.push(`✗ ${errorMsg}`)
+          const errorMsg =
+            typeof validationResult === "string" ? validationResult : "Invalid input";
+          stderr.push(`✗ ${errorMsg}`);
           // Retry if more input available
           if (stdinLines.length > 0) {
-            return mockPrompt(message, options)
+            return mockPrompt(message, options);
           }
         }
       }
-      
-      return response
+
+      return response;
     },
     {
       confirm: async (message: string, opts?: any) => {
-        stdout.push(message)
-        
-        let response: string
+        stdout.push(message);
+
+        let response: string;
         if (mockPromptsMap[message]) {
-          const responses = mockPromptsMap[message]
-          const usedCount = promptResponsesUsed.get(message) || 0
-          
+          const responses = mockPromptsMap[message];
+          const usedCount = promptResponsesUsed.get(message) || 0;
+
           if (Array.isArray(responses)) {
-            response = responses[usedCount] ?? responses[responses.length - 1] ?? ''
-            promptResponsesUsed.set(message, usedCount + 1)
+            response = responses[usedCount] ?? responses[responses.length - 1] ?? "";
+            promptResponsesUsed.set(message, usedCount + 1);
           } else {
-            response = responses ?? ''
+            response = responses ?? "";
           }
         } else {
-          response = stdinLines.shift() || ''
+          response = stdinLines.shift() || "";
         }
-        
-        stdout.push(response)
-        const normalized = response.toLowerCase().trim()
-        return normalized === 'y' || normalized === 'yes' || (opts?.default && normalized === '')
+
+        stdout.push(response);
+        const normalized = response.toLowerCase().trim();
+        return normalized === "y" || normalized === "yes" || (opts?.default && normalized === "");
       },
-      select: async <T = string>(message: string, selectOptions: { options: any[], default?: T, hint?: string }) => {
-        stdout.push(message)
+      select: async <T = string>(
+        message: string,
+        selectOptions: { options: any[]; default?: T; hint?: string },
+      ) => {
+        stdout.push(message);
         selectOptions.options.forEach((choice, i) => {
-          const label = typeof choice === 'object' ? choice.label : choice
-          stdout.push(`  ${i + 1}. ${label}`)
-        })
-        
-        let response: string
+          const label = typeof choice === "object" ? choice.label : choice;
+          stdout.push(`  ${i + 1}. ${label}`);
+        });
+
+        let response: string;
         if (mockPromptsMap[message]) {
-          const responses = mockPromptsMap[message]
-          const usedCount = promptResponsesUsed.get(message) || 0
-          
+          const responses = mockPromptsMap[message];
+          const usedCount = promptResponsesUsed.get(message) || 0;
+
           if (Array.isArray(responses)) {
-            response = responses[usedCount] ?? responses[responses.length - 1] ?? ''
-            promptResponsesUsed.set(message, usedCount + 1)
+            response = responses[usedCount] ?? responses[responses.length - 1] ?? "";
+            promptResponsesUsed.set(message, usedCount + 1);
           } else {
-            response = responses ?? ''
+            response = responses ?? "";
           }
         } else {
-          response = stdinLines.shift() || '1'
+          response = stdinLines.shift() || "1";
         }
-        
-        stdout.push(`> ${response}`)
-        const index = parseInt(response) - 1
-        const choice = selectOptions.options[index] || selectOptions.options[0]
-        return (typeof choice === 'object' ? choice.value : choice) as T
+
+        stdout.push(`> ${response}`);
+        const index = parseInt(response) - 1;
+        const choice = selectOptions.options[index] || selectOptions.options[0];
+        return (typeof choice === "object" ? choice.value : choice) as T;
       },
       password: async (message: string, options?: any): Promise<any> => {
-        stdout.push(message)
-        
-        let response: string
+        stdout.push(message);
+
+        let response: string;
         if (mockPromptsMap[message]) {
-          const responses = mockPromptsMap[message]
-          const usedCount = promptResponsesUsed.get(message) || 0
-          
+          const responses = mockPromptsMap[message];
+          const usedCount = promptResponsesUsed.get(message) || 0;
+
           if (Array.isArray(responses)) {
-            response = responses[usedCount] ?? responses[responses.length - 1] ?? ''
-            promptResponsesUsed.set(message, usedCount + 1)
+            response = responses[usedCount] ?? responses[responses.length - 1] ?? "";
+            promptResponsesUsed.set(message, usedCount + 1);
           } else {
-            response = responses ?? ''
+            response = responses ?? "";
           }
         } else {
-          response = stdinLines.shift() || ''
+          response = stdinLines.shift() || "";
         }
-        
-        stdout.push('*'.repeat(response.length))
-        
+
+        stdout.push("*".repeat(response.length));
+
         // Handle schema validation if provided
         if (options?.schema) {
-          const result = await options.schema['~standard'].validate(response)
+          const result = await options.schema["~standard"].validate(response);
           if (result.issues) {
-            stderr.push('[red]Invalid input:[/red]')
+            stderr.push("[red]Invalid input:[/red]");
             for (const issue of result.issues) {
-              stderr.push(`[dim]  • ${issue.message}[/dim]`)
+              stderr.push(`[dim]  • ${issue.message}[/dim]`);
             }
             // Check if we have more responses to try
-            const hasMoreMockResponses = mockPromptsMap[message] && Array.isArray(mockPromptsMap[message]) && 
-              (promptResponsesUsed.get(message) || 0) < mockPromptsMap[message].length
-            const hasMoreStdin = stdinLines.length > 0
-            
+            const hasMoreMockResponses =
+              mockPromptsMap[message] &&
+              Array.isArray(mockPromptsMap[message]) &&
+              (promptResponsesUsed.get(message) || 0) < mockPromptsMap[message].length;
+            const hasMoreStdin = stdinLines.length > 0;
+
             if (hasMoreMockResponses || hasMoreStdin) {
-              return mockPrompt.password(message, options) // Retry with next input
+              return mockPrompt.password(message, options); // Retry with next input
             }
-            return undefined
+            return undefined;
           }
-          return result.value
+          return result.value;
         }
-        
-        return response
+
+        return response;
       },
       multiselect: async <T = string>(message: string, selectOptions: { options: any[] }) => {
-        stdout.push(message)
+        stdout.push(message);
         selectOptions.options.forEach((choice, i) => {
-          const label = typeof choice === 'object' ? choice.label : choice
-          stdout.push(`  [ ] ${i + 1}. ${label}`)
-        })
-        
-        let response: string
+          const label = typeof choice === "object" ? choice.label : choice;
+          stdout.push(`  [ ] ${i + 1}. ${label}`);
+        });
+
+        let response: string;
         if (mockPromptsMap[message]) {
-          const responses = mockPromptsMap[message]
-          const usedCount = promptResponsesUsed.get(message) || 0
-          
+          const responses = mockPromptsMap[message];
+          const usedCount = promptResponsesUsed.get(message) || 0;
+
           if (Array.isArray(responses)) {
-            response = responses[usedCount] ?? responses[responses.length - 1] ?? ''
-            promptResponsesUsed.set(message, usedCount + 1)
+            response = responses[usedCount] ?? responses[responses.length - 1] ?? "";
+            promptResponsesUsed.set(message, usedCount + 1);
           } else {
-            response = responses ?? ''
+            response = responses ?? "";
           }
         } else {
-          response = stdinLines.shift() || ''
+          response = stdinLines.shift() || "";
         }
-        
-        stdout.push(`> ${response}`)
-        const indices = response.split(',').map(s => parseInt(s.trim()) - 1)
+
+        stdout.push(`> ${response}`);
+        const indices = response.split(",").map((s) => parseInt(s.trim()) - 1);
         return indices
-          .filter(i => i >= 0 && i < selectOptions.options.length)
-          .map(i => {
-            const choice = selectOptions.options[i]
-            return (typeof choice === 'object' ? choice.value : choice) as T
-          })
-      }
-    }
-  )
-  
+          .filter((i) => i >= 0 && i < selectOptions.options.length)
+          .map((i) => {
+            const choice = selectOptions.options[i];
+            return (typeof choice === "object" ? choice.value : choice) as T;
+          });
+      },
+    },
+  );
+
   // Create mock spinner
   const mockSpinner = (text?: string) => {
-    if (text) stdout.push(`⠋ ${text}`)
+    if (text) stdout.push(`⠋ ${text}`);
     return {
       start: (text?: string) => {
-        if (text) stdout.push(`⠋ ${text}`)
+        if (text) stdout.push(`⠋ ${text}`);
       },
       stop: (text?: string) => {
-        if (text) stdout.push(text)
+        if (text) stdout.push(text);
       },
       succeed: (text?: string) => {
-        stdout.push(`✅ ${text || 'Done'}`)
+        stdout.push(`✅ ${text || "Done"}`);
       },
       fail: (text?: string) => {
-        stdout.push(`❌ ${text || 'Failed'}`)
+        stdout.push(`❌ ${text || "Failed"}`);
       },
       warn: (text?: string) => {
-        stdout.push(`⚠️  ${text || 'Warning'}`)
+        stdout.push(`⚠️  ${text || "Warning"}`);
       },
       info: (text?: string) => {
-        stdout.push(`ℹ️  ${text || 'Info'}`)
+        stdout.push(`ℹ️  ${text || "Info"}`);
       },
       update: (text: string) => {
-        stdout.push(`⠋ ${text}`)
-      }
-    }
-  }
-  
+        stdout.push(`⠋ ${text}`);
+      },
+    };
+  };
+
   // Create mock shell
-  const mockShellCommands = options.mockShellCommands || {}
-  
+  const mockShellCommands = options.mockShellCommands || {};
+
   const mockShell = (strings: TemplateStringsArray, ...values: any[]) => {
-    const command = strings.reduce((acc, str, i) => {
-      return acc + str + (values[i] || '')
-    }, '').trim()
-    
-    stdout.push(`$ ${command}`)
-    
-    const promise = Promise.resolve() as ShellPromise
-    
+    const command = strings
+      .reduce((acc, str, i) => {
+        return acc + str + (values[i] || "");
+      }, "")
+      .trim();
+
+    stdout.push(`$ ${command}`);
+
+    const promise = Promise.resolve() as ShellPromise;
+
     promise.text = async () => {
       // Check mock commands first
       if (mockShellCommands[command]) {
-        return mockShellCommands[command]
+        return mockShellCommands[command];
       }
-      
+
       // Default mock responses
-      if (command.includes('git branch --show-current')) {
-        return 'main\n'
+      if (command.includes("git branch --show-current")) {
+        return "main\n";
       }
-      if (command.includes('git status')) {
-        return 'nothing to commit, working tree clean\n'
+      if (command.includes("git status")) {
+        return "nothing to commit, working tree clean\n";
       }
-      return ''
-    }
-    
+      return "";
+    };
+
     promise.json = async () => {
       // Check if we have a mock response that looks like JSON
       if (mockShellCommands[command]) {
         try {
-          return JSON.parse(mockShellCommands[command])
+          return JSON.parse(mockShellCommands[command]);
         } catch {
           // Not JSON, return empty object
-          return {} as any
+          return {} as any;
         }
       }
-      return {} as any
-    }
-    
-    promise.quiet = () => promise
-    
-    return promise
-  }
-  
+      return {} as any;
+    };
+
+    promise.quiet = () => promise;
+
+    return promise;
+  };
+
   // Mock colors
   const mockColors = {
     red: (text: string) => `[red]${text}[/red]`,
@@ -321,38 +332,38 @@ export async function testCommand<TOptions extends Options = Options>(
     brightMagenta: (text: string) => `[brightMagenta]${text}[/brightMagenta]`,
     brightWhite: (text: string) => `[brightWhite]${text}[/brightWhite]`,
     reset: (text: string) => `[reset]${text}[/reset]`,
-    strip: (text: string) => text.replace(/\[[^\]]+\]/g, '')
-  }
-  
-  // Override console methods
-  const originalLog = console.log
-  const originalError = console.error
-  
-  console.log = (...args: any[]) => {
-    stdout.push(args.join(' '))
-  }
-  
-  console.error = (...args: any[]) => {
-    stderr.push(args.join(' '))
-  }
-  
-  try {
-    const rawFlags = options.flags || {}
-    const resolvedFlags: Record<string, unknown> = { ...rawFlags }
+    strip: (text: string) => text.replace(/\[[^\]]+\]/g, ""),
+  };
 
-    const commandOptions = command.options
+  // Override console methods
+  const originalLog = console.log;
+  const originalError = console.error;
+
+  console.log = (...args: any[]) => {
+    stdout.push(args.join(" "));
+  };
+
+  console.error = (...args: any[]) => {
+    stderr.push(args.join(" "));
+  };
+
+  try {
+    const rawFlags = options.flags || {};
+    const resolvedFlags: Record<string, unknown> = { ...rawFlags };
+
+    const commandOptions = command.options;
     if (commandOptions) {
       for (const name in commandOptions) {
-        const opt = commandOptions[name]
-        if (!opt) continue
+        const opt = commandOptions[name];
+        if (!opt) continue;
         const value = Object.prototype.hasOwnProperty.call(rawFlags, name)
           ? rawFlags[name]
-          : undefined
+          : undefined;
 
         resolvedFlags[name] = await validateValue(value, opt.schema, {
           option: name,
-          command: command.name
-        })
+          command: command.name,
+        });
       }
     }
 
@@ -372,119 +383,118 @@ export async function testCommand<TOptions extends Options = Options>(
         isInteractive: false,
         isCI: true,
         supportsColor: false,
-        supportsMouse: false
+        supportsMouse: false,
       },
       runtime: {
         startTime: Date.now(),
         args: options.args || [],
         command: command.name,
-        outputFormat: 'json'
+        outputFormat: "json",
       },
       signal: new AbortController().signal,
       image: {
-        mode: 'auto',
-        protocol: 'auto'
+        mode: "auto",
+        protocol: "auto",
       },
-      format: 'json' as const,
+      format: "json" as const,
       formatExplicit: false,
       agent: true,
       output: (data: unknown) => {
-        const formatted = JSON.stringify(data, null, 2)
-        stdout.push(formatted)
-      }
-    }
-    
+        const formatted = JSON.stringify(data, null, 2);
+        stdout.push(formatted);
+      },
+    };
+
     // Execute command handler
     if (command.handler) {
-      await command.handler(handlerArgs as any)
+      await command.handler(handlerArgs as any);
     }
-    
-    exitCode = options.exitCode || 0
+
+    exitCode = options.exitCode || 0;
   } catch (err) {
-    error = err as Error
-    exitCode = 1
-    stderr.push(error.message)
+    error = err as Error;
+    exitCode = 1;
+    stderr.push(error.message);
   } finally {
     // Restore console methods
-    console.log = originalLog
-    console.error = originalError
+    console.log = originalLog;
+    console.error = originalError;
   }
-  
-  const duration = performance.now() - startTime
-  
+
+  const duration = performance.now() - startTime;
+
   return {
-    stdout: stdout.join('\n'),
-    stderr: stderr.join('\n'),
+    stdout: stdout.join("\n"),
+    stderr: stderr.join("\n"),
     exitCode,
     duration,
-    error
-  }
+    error,
+  };
 }
 
 export async function testCLI(
   setupCLI: (cli: CLI) => void,
   argv: string[],
-  options: Omit<TestOptions, 'args'> = {}
+  options: Omit<TestOptions, "args"> = {},
 ): Promise<TestResult> {
-  const startTime = performance.now()
-  
+  const startTime = performance.now();
+
   // Capture output
-  const stdout: string[] = []
-  const stderr: string[] = []
-  let exitCode = 0
-  let error: Error | undefined
-  
+  const stdout: string[] = [];
+  const stderr: string[] = [];
+  let exitCode = 0;
+  let error: Error | undefined;
+
   // Override console methods
-  const originalLog = console.log
-  const originalError = console.error
-  const originalExit = process.exit
-  
+  const originalLog = console.log;
+  const originalError = console.error;
+  const originalExit = process.exit;
+
   console.log = (...args: any[]) => {
-    stdout.push(args.join(' '))
-  }
-  
+    stdout.push(args.join(" "));
+  };
+
   console.error = (...args: any[]) => {
-    stderr.push(args.join(' '))
-  }
-  
-  ;(process.exit as any) = (code?: number) => {
-    exitCode = code || 0
-    throw new Error(`Process exited with code ${exitCode}`)
-  }
-  
+    stderr.push(args.join(" "));
+  };
+
+  (process.exit as any) = (code?: number) => {
+    exitCode = code || 0;
+    throw new Error(`Process exited with code ${exitCode}`);
+  };
+
   try {
     // Create and setup CLI
     const cli = await createCLI({
-      name: 'test-cli',
-      version: '1.0.0',
-      description: 'Test CLI'
-    })
-    
-    setupCLI(cli)
-    
+      name: "test-cli",
+      version: "1.0.0",
+      description: "Test CLI",
+    });
+
+    setupCLI(cli);
+
     // Run CLI with arguments
-    await cli.run(argv)
-    
+    await cli.run(argv);
   } catch (err: any) {
-    if (!err.message.startsWith('Process exited with code')) {
-      error = err
-      exitCode = 1
-      stderr.push(error?.message || 'Unknown error')
+    if (!err.message.startsWith("Process exited with code")) {
+      error = err;
+      exitCode = 1;
+      stderr.push(error?.message || "Unknown error");
     }
   } finally {
     // Restore methods
-    console.log = originalLog
-    console.error = originalError
-    process.exit = originalExit
+    console.log = originalLog;
+    console.error = originalError;
+    process.exit = originalExit;
   }
-  
-  const duration = performance.now() - startTime
-  
+
+  const duration = performance.now() - startTime;
+
   return {
-    stdout: stdout.join('\n'),
-    stderr: stderr.join('\n'),
+    stdout: stdout.join("\n"),
+    stderr: stderr.join("\n"),
     exitCode,
     duration,
-    error
-  }
+    error,
+  };
 }

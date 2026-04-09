@@ -10,24 +10,24 @@ In command handlers, prefer injected spinner utilities:
 
 ```typescript
 handler: async ({ spinner }) => {
-  const s = spinner("Building...")
+  const s = spinner("Building...");
   // ...
-}
+};
 ```
 
 ## API
 
 ```typescript
-const s = spinner({ text: "Loading..." })
+const s = spinner({ text: "Loading..." });
 
-s.start()               // Start animation
-s.start("New text")     // Start with text
-s.stop()                // Stop and clear
-s.succeed("Done!")      // Success line
-s.fail("Error!")        // Failure line
-s.warn("Warning!")      // Warning line
-s.info("Info!")         // Info line
-s.update("Updated")     // Update text while spinning
+s.start(); // Start animation
+s.start("New text"); // Start with text
+s.stop(); // Stop and clear
+s.succeed("Done!"); // Success line
+s.fail("Error!"); // Failure line
+s.warn("Warning!"); // Warning line
+s.info("Info!"); // Info line
+s.update("Updated"); // Update text while spinning
 ```
 
 Passing a string to `spinner("Loading...")` is shorthand for `{ text: "Loading..." }`.
@@ -37,10 +37,10 @@ If `text` is provided, the spinner auto-starts.
 
 ```typescript
 interface SpinnerOptions {
-  text?: string
-  animation?: SpinnerAnimation
-  showTimer?: boolean
-  intervalMs?: number
+  text?: string;
+  animation?: SpinnerAnimation;
+  showTimer?: boolean;
+  intervalMs?: number;
 }
 ```
 
@@ -49,12 +49,12 @@ interface SpinnerOptions {
 ## Basic usage
 
 ```typescript
-const s = spinner({ text: "Installing...", showTimer: true })
+const s = spinner({ text: "Installing...", showTimer: true });
 
 try {
-  await install()
-  s.succeed("Installed!")
+  await install();
+  s.succeed("Installed!");
 } catch {
-  s.fail("Failed!")
+  s.fail("Failed!");
 }
 ```

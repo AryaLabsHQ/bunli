@@ -1,4 +1,4 @@
-import { $ } from 'bun'
+import { $ } from "bun";
 
 /**
  * CI helper used by `changesets/action` for the "Version Packages" PR.
@@ -8,10 +8,10 @@ import { $ } from 'bun'
  */
 async function main() {
   // Ensure Changesets runs non-interactively in CI.
-  await $`CI=1 bunx changeset version`
+  await $`CI=1 bunx changeset version`;
 
   // Intentionally allow lockfile changes here; the Version Packages PR should include bun.lockb updates.
-  await $`bun install`
+  await $`bun install`;
 }
 
-await main()
+await main();

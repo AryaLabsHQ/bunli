@@ -8,10 +8,10 @@ Creates `commands.gen.ts` with full type inference from command definitions in `
 
 ## WHERE TO LOOK
 
-| Task | Location |
-|------|----------|
+| Task            | Location           |
+| --------------- | ------------------ |
 | Generator logic | `src/generator.ts` |
-| Command parsing | `src/parser.ts` |
+| Command parsing | `src/parser.ts`    |
 
 ## PATTERNS
 

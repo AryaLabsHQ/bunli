@@ -22,8 +22,8 @@ export {
   type CommandRegistry,
   type CommandRegistryProviderProps,
   type RuntimeCommand,
-  type CommandPaletteItem
-} from './runtime/index.js'
+  type CommandPaletteItem,
+} from "./runtime/index.js";
 
 export {
   ThemeProvider,
@@ -72,5 +72,5 @@ export {
   type DialogManager,
   type DialogOpenOptions,
   type DialogProviderProps,
-  type DialogRenderContext
-} from './components/index.js'
+  type DialogRenderContext,
+} from "./components/index.js";

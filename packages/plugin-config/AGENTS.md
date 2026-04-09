@@ -8,19 +8,21 @@ Loads configuration from JSON files and merges them into the CLI config.
 
 ## WHERE TO LOOK
 
-| Task | Location |
-|------|----------|
+| Task        | Location       |
+| ----------- | -------------- |
 | Main plugin | `src/index.ts` |
 
 ## PATTERNS
 
 ```typescript
-import { configMergerPlugin } from '@bunli/plugin-config'
+import { configMergerPlugin } from "@bunli/plugin-config";
 
-plugins: [configMergerPlugin({
-  sources: ['./config.json'],
-  mergeStrategy: 'deep'
-})]
+plugins: [
+  configMergerPlugin({
+    sources: ["./config.json"],
+    mergeStrategy: "deep",
+  }),
+];
 ```
 
 ## DEFAULT SOURCES

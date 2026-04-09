@@ -1,13 +1,4 @@
 {
   "title": "Packages",
-  "pages": [
-    "index",
-    "create-bunli",
-    "core",
-    "utils",
-    "test",
-    "cli",
-    "generator",
-    "plugins"
-  ]
+  "pages": ["index", "create-bunli", "core", "utils", "test", "cli", "generator", "plugins"]
 }

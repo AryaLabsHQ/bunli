@@ -1,79 +1,82 @@
 #!/usr/bin/env bun
-import { $ } from 'bun'
+import { $ } from "bun";
 
-const packageJson = await Bun.file(new URL('../package.json', import.meta.url)).json() as {
-  dependencies?: Record<string, string>
-}
-const runtimeExternals = Object.keys(packageJson.dependencies ?? {})
+const packageJson = (await Bun.file(new URL("../package.json", import.meta.url)).json()) as {
+  dependencies?: Record<string, string>;
+};
+const runtimeExternals = Object.keys(packageJson.dependencies ?? {});
 
-console.log('🔨 Building bunli CLI...')
+console.log("🔨 Building bunli CLI...");
 
 // Clean dist directory
-await $`rm -rf dist`
-await $`mkdir -p dist`
+await $`rm -rf dist`;
+await $`mkdir -p dist`;
 
 // Build the CLI using Bun's compile feature if requested
-const useCompile = process.argv.includes('--compile')
+const useCompile = process.argv.includes("--compile");
 
 if (useCompile) {
-  console.log('📦 Creating standalone executable...')
-  
+  console.log("📦 Creating standalone executable...");
+
   // Compile to standalone executable
   const compileArgs = [
-    'build',
-    './src/cli.ts',
-    '--compile',
-    '--outfile', './dist/bunli',
-    '--minify'
-  ]
-  
-  const compileResult = await $`bun ${compileArgs}`
-  
+    "build",
+    "./src/cli.ts",
+    "--compile",
+    "--outfile",
+    "./dist/bunli",
+    "--minify",
+  ];
+
+  const compileResult = await $`bun ${compileArgs}`;
+
   if (compileResult.exitCode !== 0) {
-    console.error('❌ Compilation failed')
-    process.exit(1)
+    console.error("❌ Compilation failed");
+    process.exit(1);
   }
 } else {
   // Traditional build for npm distribution
   const result = await Bun.build({
-    entrypoints: ['./src/cli.ts'],
-    outdir: './dist',
-    target: 'bun',
-    format: 'esm',
+    entrypoints: ["./src/cli.ts"],
+    outdir: "./dist",
+    target: "bun",
+    format: "esm",
     minify: true,
-    external: runtimeExternals
-  })
+    external: runtimeExternals,
+  });
 
   if (!result.success) {
-    console.error('❌ Build failed:', result.logs)
-    process.exit(1)
+    console.error("❌ Build failed:", result.logs);
+    process.exit(1);
   }
 
   // Make CLI executable
-  const cliContent = await Bun.file('./dist/cli.js').text()
+  const cliContent = await Bun.file("./dist/cli.js").text();
   // Only add shebang if it doesn't already have one
-  const finalContent = cliContent.startsWith('#!') ? cliContent : `#!/usr/bin/env bun\n${cliContent}`
-  await Bun.write('./dist/cli.js', finalContent)
-  await $`chmod +x dist/cli.js`
+  const finalContent = cliContent.startsWith("#!")
+    ? cliContent
+    : `#!/usr/bin/env bun\n${cliContent}`;
+  await Bun.write("./dist/cli.js", finalContent);
+  await $`chmod +x dist/cli.js`;
 }
 
 // Build library
 const libResult = await Bun.build({
-  entrypoints: ['./src/index.ts'],
-  outdir: './dist',
-  target: 'bun',
-  format: 'esm',
+  entrypoints: ["./src/index.ts"],
+  outdir: "./dist",
+  target: "bun",
+  format: "esm",
   minify: false,
-  external: runtimeExternals
-})
+  external: runtimeExternals,
+});
 
 if (!libResult.success) {
-  console.error('❌ Library build failed:', libResult.logs)
-  process.exit(1)
+  console.error("❌ Library build failed:", libResult.logs);
+  process.exit(1);
 }
 
-console.log('✅ Build complete!')
+console.log("✅ Build complete!");
 
 // Show build stats
-const stats = await $`du -sh dist`.text()
-console.log(`📦 Output size: ${stats.trim()}`)
+const stats = await $`du -sh dist`.text();
+console.log(`📦 Output size: ${stats.trim()}`);

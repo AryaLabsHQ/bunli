@@ -1,15 +1,16 @@
 #!/usr/bin/env bun
-import { createCLI } from '@bunli/core'
-import buildCommand from './commands/build.js'
-import deployCommand from './commands/deploy.js'
-import setupCommand from './commands/setup.js'
-import testCommand from './commands/test.js'
+import { createCLI } from "@bunli/core";
 
-const cli = await createCLI()
+import buildCommand from "./commands/build.js";
+import deployCommand from "./commands/deploy.js";
+import setupCommand from "./commands/setup.js";
+import testCommand from "./commands/test.js";
 
-cli.command(buildCommand)
-cli.command(testCommand)
-cli.command(deployCommand)
-cli.command(setupCommand)
+const cli = await createCLI();
 
-await cli.run()
+cli.command(buildCommand);
+cli.command(testCommand);
+cli.command(deployCommand);
+cli.command(setupCommand);
+
+await cli.run();

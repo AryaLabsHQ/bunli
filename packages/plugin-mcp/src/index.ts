@@ -58,33 +58,33 @@
 // ─────────────────────────────────────────────────────────
 // Builder API (primary for CLI codegen)
 // ─────────────────────────────────────────────────────────
-export { CommandBuilder, Commands } from './builder.js'
+export { CommandBuilder, Commands } from "./builder.js";
 
 // ─────────────────────────────────────────────────────────
 // Runtime API (for plugin usage)
 // ─────────────────────────────────────────────────────────
-export { createCommandsFromMCPTools, extractCommandMetadata } from './converter.js'
-export type { MCPCommandMetadata } from './converter.js'
+export { createCommandsFromMCPTools, extractCommandMetadata } from "./converter.js";
+export type { MCPCommandMetadata } from "./converter.js";
 
 // Plugin wrapper
-export { mcpPlugin, default } from './plugin.js'
+export { mcpPlugin, default } from "./plugin.js";
 
 // Type generation
-export { generateMCPTypes } from './codegen.js'
+export { generateMCPTypes } from "./codegen.js";
 
 // ─────────────────────────────────────────────────────────
 // Utilities (for custom implementations)
 // ─────────────────────────────────────────────────────────
 
 // Schema conversion
-export { jsonSchemaToZodSchema, extractSchemaMetadata } from './schema-to-zod.js'
-export type { SchemaConversionOptions, SchemaMetadata } from './schema-to-zod.js'
+export { jsonSchemaToZodSchema, extractSchemaMetadata } from "./schema-to-zod.js";
+export type { SchemaConversionOptions, SchemaMetadata } from "./schema-to-zod.js";
 export {
   SchemaConversionError,
   ConvertToolsError,
   GenerateMCPTypesError,
-  McpToolsProviderError
-} from './errors.js'
+  McpToolsProviderError,
+} from "./errors.js";
 
 // Naming utilities
 export {
@@ -93,8 +93,8 @@ export {
   toFlagName,
   toPascalCase,
   toCamelCase,
-  escapeString
-} from './utils.js'
+  escapeString,
+} from "./utils.js";
 
 // ─────────────────────────────────────────────────────────
 // Types
@@ -110,5 +110,5 @@ export type {
   GenerateTypesOptions,
   GeneratedMCPCommandMeta,
   JSONSchema7,
-  JSONSchema7Type
-} from './types.js'
+  JSONSchema7Type,
+} from "./types.js";

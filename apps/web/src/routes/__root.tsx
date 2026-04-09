@@ -2,7 +2,9 @@ import { HeadContent, Outlet, Scripts, createRootRoute } from "@tanstack/react-r
 import { RootProvider } from "fumadocs-ui/provider/tanstack";
 import { useEffect } from "react";
 import { Toaster } from "sonner";
+
 import { ThemeProvider } from "../lib/theme-provider.js";
+
 import appCss from "../styles.css?url";
 
 const DEFAULT_SITE_URL = "https://bunli.dev";

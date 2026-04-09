@@ -14,9 +14,7 @@
           "description": "Number of search results to return (default: 5)"
         }
       },
-      "required": [
-        "companyName"
-      ],
+      "required": ["companyName"],
       "additionalProperties": false,
       "$schema": "http://json-schema.org/draft-07/schema#"
     }
@@ -39,9 +37,7 @@
           "description": "Number of tokens to return (1000-50000). Default is 5000 tokens. Adjust this value based on how much context you need - use lower values for focused queries and higher values for comprehensive documentation."
         }
       },
-      "required": [
-        "query"
-      ],
+      "required": ["query"],
       "additionalProperties": false,
       "$schema": "http://json-schema.org/draft-07/schema#"
     }
@@ -58,10 +54,7 @@
         },
         "livecrawl": {
           "type": "string",
-          "enum": [
-            "fallback",
-            "preferred"
-          ],
+          "enum": ["fallback", "preferred"],
           "description": "Live crawl mode - 'fallback': use live crawling as backup if cached content unavailable, 'preferred': prioritize live crawling (default: 'fallback')"
         },
         "numResults": {
@@ -74,17 +67,11 @@
         },
         "type": {
           "type": "string",
-          "enum": [
-            "auto",
-            "fast",
-            "deep"
-          ],
+          "enum": ["auto", "fast", "deep"],
           "description": "Search type - 'auto': balanced search (default), 'fast': quick results, 'deep': comprehensive search"
         }
       },
-      "required": [
-        "query"
-      ],
+      "required": ["query"],
       "additionalProperties": false,
       "$schema": "http://json-schema.org/draft-07/schema#"
     }

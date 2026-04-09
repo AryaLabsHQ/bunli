@@ -61,22 +61,16 @@ Build for all platforms at once:
 
 ```typescript
 // bunli.config.ts
-import { defineConfig } from '@bunli/core'
+import { defineConfig } from "@bunli/core";
 
 export default defineConfig({
   build: {
-    targets: [
-      'darwin-arm64',
-      'darwin-x64', 
-      'linux-arm64',
-      'linux-x64',
-      'windows-x64'
-    ],
+    targets: ["darwin-arm64", "darwin-x64", "linux-arm64", "linux-x64", "windows-x64"],
     // Optional: create `dist/<target>.tar.gz` archives (for manual distribution).
     // If you're using bunli-releaser, keep this disabled (it expects per-target output dirs).
-    compress: true
-  }
-})
+    compress: true,
+  },
+});
 ```
 
 ```bash
@@ -84,6 +78,7 @@ bunli build --targets all
 ```
 
 This creates:
+
 ```
 dist/
 ├── darwin-arm64/
@@ -99,6 +94,7 @@ dist/
 ```
 
 With compression enabled, also:
+
 ```
 dist/
 ├── darwin-arm64.tar.gz
@@ -133,16 +129,16 @@ Reduce executable size:
 // bunli.config.ts
 export default defineConfig({
   build: {
-    targets: ['native'], // or specific platforms
+    targets: ["native"], // or specific platforms
     minify: true,
     external: [
       // Exclude large optional dependencies
-      'sharp',
-      'sqlite3',
-      '@prisma/client'
-    ]
-  }
-})
+      "sharp",
+      "sqlite3",
+      "@prisma/client",
+    ],
+  },
+});
 ```
 
 ### Generated Files in Distribution
@@ -152,23 +148,25 @@ When using type generation, the generated `.bunli/commands.gen.ts` file is autom
 ```typescript
 // bunli.config.ts
 export default defineConfig({
-  name: 'my-cli',
-  version: '1.0.0',
+  name: "my-cli",
+  version: "1.0.0",
   build: {
-    entry: './src/index.ts',
-    outdir: './dist'
-  }
-})
+    entry: "./src/index.ts",
+    outdir: "./dist",
+  },
+});
 ```
 
 The generated types are:
+
 - **Included in builds** - Automatically bundled with your CLI
 - **Type-safe at runtime** - Full TypeScript definitions available
 - **Optimized for production** - Minified and tree-shaken
 - **Cross-platform compatible** - Works on all target platforms
 
 <Callout type="info">
-  Generated type files are automatically included in your distribution builds. No additional configuration needed.
+  Generated type files are automatically included in your distribution builds. No additional
+  configuration needed.
 </Callout>
 
 ### Code Signing (macOS)
@@ -197,15 +195,18 @@ For standalone binaries, checksums, and Homebrew updates, the recommended path i
 `bunli-releaser` GitHub Action.
 
 Official starter template:
+
 - [AryaLabsHQ/bunli-starter-template](https://github.com/AryaLabsHQ/bunli-starter-template)
 
 It will:
+
 - Build cross-platform standalone binaries from a single Ubuntu runner
 - Upload stable, per-target archives plus `checksums.txt` (sha256) to the GitHub Release for the tag
 - Update a Homebrew tap formula (macOS/Linux only)
 
 <Callout type="warning">
-  If you use `bunli-releaser`, keep `build.compress` disabled in `bunli.config.ts`. The action expects per-target build output directories.
+  If you use `bunli-releaser`, keep `build.compress` disabled in `bunli.config.ts`. The action
+  expects per-target build output directories.
 </Callout>
 
 ```yaml
@@ -245,11 +246,13 @@ jobs:
 ```
 
 Published assets use stable naming:
+
 - Unix: `${name}-${version}-${os}-${arch}.tar.gz`
 - Windows: `${name}-${version}-${os}-${arch}.zip`
 - `checksums.txt` (sha256)
 
 Notes:
+
 - v1 only supports tags in the format `vX.Y.Z` (strict).
 - Existing release asset handling defaults to `existing-assets: "fail"`.
 - Use `existing-assets: "skip"` to allow reruns without re-uploading already existing assets.
@@ -266,9 +269,7 @@ Distribute via npm for easy installation:
   "bin": {
     "my-cli": "./dist/index.js"
   },
-  "files": [
-    "dist/"
-  ],
+  "files": ["dist/"],
   "scripts": {
     "prepublishOnly": "bunli build"
   }
@@ -316,11 +317,11 @@ class MyCli < Formula
       sha256 "jkl012..."
     end
   end
-  
+
   def install
     bin.install "my-cli"
   end
-  
+
   test do
     system "#{bin}/my-cli", "--version"
   end
@@ -433,9 +434,7 @@ jobs:
           # existing-assets: "fail" # or "skip"
 ```
 
-<Callout type="warning">
-  Keep `build.compress` disabled when using `bunli-releaser`.
-</Callout>
+<Callout type="warning">Keep `build.compress` disabled when using `bunli-releaser`.</Callout>
 
 ### Using bunli release (npm + tags)
 
@@ -466,15 +465,15 @@ When npm publishing is enabled, `--dry` runs `npm publish --dry-run`.
 // bunli.config.ts
 export default defineConfig({
   release: {
-    npm: true,               // Publish to npm
-    github: true,            // Create a GitHub Release entry (notes only; no assets)
-    tagFormat: 'v{{version}}', // Git tag format used for both git + GitHub tags
+    npm: true, // Publish to npm
+    github: true, // Create a GitHub Release entry (notes only; no assets)
+    tagFormat: "v{{version}}", // Git tag format used for both git + GitHub tags
     binary: {
-      packageNameFormat: '{{name}}-{{platform}}',
-      shimPath: 'bin/run.mjs'
-    }
-  }
-})
+      packageNameFormat: "{{name}}-{{platform}}",
+      shimPath: "bin/run.mjs",
+    },
+  },
+});
 ```
 
 ### Release Workflow
@@ -537,6 +536,7 @@ echo "my-cli installed successfully!"
 ```
 
 Users install with:
+
 ```bash
 curl -fsSL https://example.com/install.sh | sh
 ```
@@ -555,18 +555,19 @@ Follow semantic versioning (semver):
 
 ```typescript
 // src/index.ts
-import { createCLI } from '@bunli/core'
-import pkg from '../package.json' with { type: 'json' }
+import { createCLI } from "@bunli/core";
+import pkg from "../package.json" with { type: "json" };
 
 const cli = await createCLI({
-  name: 'my-cli',
+  name: "my-cli",
   version: pkg.version, // Automatically shows with --version
-  description: 'My awesome CLI'
-})
+  description: "My awesome CLI",
+});
 ```
 
 <Callout type="info">
-  For compiled binaries, prefer embedding the version (like importing `package.json` as above) rather than reading a runtime env var.
+  For compiled binaries, prefer embedding the version (like importing `package.json` as above)
+  rather than reading a runtime env var.
 </Callout>
 
 ### Update Notifications
@@ -577,12 +578,12 @@ Notify users of new versions using the npm registry API:
 // src/utils/check-update.ts
 export async function checkForUpdates(currentVersion: string, packageName: string) {
   try {
-    const res = await fetch(`https://registry.npmjs.org/${packageName}/latest`)
-    const data = await res.json() as { version: string }
-    const latest = data.version
+    const res = await fetch(`https://registry.npmjs.org/${packageName}/latest`);
+    const data = (await res.json()) as { version: string };
+    const latest = data.version;
     if (latest !== currentVersion) {
-      console.log(`\n  Update available: ${currentVersion} → ${latest}`)
-      console.log(`  Run: npm update -g ${packageName}\n`)
+      console.log(`\n  Update available: ${currentVersion} → ${latest}`);
+      console.log(`  Run: npm update -g ${packageName}\n`);
     }
   } catch {
     // Ignore update check failures
@@ -605,26 +606,30 @@ export async function checkForUpdates(currentVersion: string, packageName: strin
 ### Common Issues
 
 **Binary not executable:**
+
 ```bash
 chmod +x ./my-cli
 ```
 
 **Missing dependencies:**
+
 ```bash
 # Bundle all dependencies
 bunli build --targets native
 ```
 
 **Large binary size:**
+
 ```bash
 # Enable optimizations
 bunli build --targets native --minify --bytecode
 ```
 
 **Platform-specific issues:**
+
 ```typescript
 // Handle platform differences
-if (process.platform === 'win32') {
+if (process.platform === "win32") {
   // Windows-specific code
 }
 ```

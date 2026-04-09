@@ -3,7 +3,7 @@ title: option
 description: Create command options with schema validation
 ---
 
-import { Callout } from 'fumadocs-ui/components/callout';
+import { Callout } from "fumadocs-ui/components/callout";
 
 Creates a command option with schema validation and metadata.
 
@@ -13,12 +13,12 @@ Creates a command option with schema validation and metadata.
 function option<S extends StandardSchemaV1>(
   schema: S,
   metadata?: {
-    short?: string
-    description?: string
-    repeatable?: boolean
-    argumentKind?: 'flag' | 'value'
-  }
-): CLIOption<S>
+    short?: string;
+    description?: string;
+    repeatable?: boolean;
+    argumentKind?: "flag" | "value";
+  },
+): CLIOption<S>;
 ```
 
 ## Parameters
@@ -30,6 +30,7 @@ A Standard Schema v1 compatible schema (Zod, Valibot, etc.) that validates and t
 ### metadata (optional)
 
 Additional metadata for the option:
+
 - `short` - Short alias for the option (string, e.g. `-e`)
 - `description` - Help text shown in --help output
 - `repeatable` - Collect repeated flag occurrences and validate them as an array
@@ -44,63 +45,51 @@ A `CLIOption` object that can be used in command definitions.
 ### Basic Options
 
 ```typescript
-import { option } from '@bunli/core'
-import { z } from 'zod'
+import { option } from "@bunli/core";
+import { z } from "zod";
 
 // String option with default
-const name = option(
-  z.string().default('world'),
-  { description: 'Name to greet' }
-)
+const name = option(z.string().default("world"), { description: "Name to greet" });
 
 // Number with validation
-const port = option(
-  z.coerce.number().int().min(1).max(65535).default(3000),
-  { short: 'p', description: 'Port number' }
-)
+const port = option(z.coerce.number().int().min(1).max(65535).default(3000), {
+  short: "p",
+  description: "Port number",
+});
 
 // Boolean flag
-const verbose = option(
-  z.coerce.boolean().default(false),
-  { short: 'v', description: 'Enable verbose output' }
-)
+const verbose = option(z.coerce.boolean().default(false), {
+  short: "v",
+  description: "Enable verbose output",
+});
 
 // Enum option
-const env = option(
-  z.enum(['dev', 'staging', 'prod']),
-  { short: 'e', description: 'Target environment' }
-)
+const env = option(z.enum(["dev", "staging", "prod"]), {
+  short: "e",
+  description: "Target environment",
+});
 ```
 
 ### Using in Commands
 
 ```typescript
-import { defineCommand, option } from '@bunli/core'
-import { z } from 'zod'
+import { defineCommand, option } from "@bunli/core";
+import { z } from "zod";
 
 export default defineCommand({
-  name: 'serve',
-  description: 'Start the server',
+  name: "serve",
+  description: "Start the server",
   options: {
-    port: option(
-      z.coerce.number().default(3000),
-      { short: 'p', description: 'Port to listen on' }
-    ),
-    host: option(
-      z.string().default('localhost'),
-      { short: 'h', description: 'Host to bind to' }
-    ),
-    secure: option(
-      z.coerce.boolean().default(false),
-      { short: 's', description: 'Use HTTPS' }
-    )
+    port: option(z.coerce.number().default(3000), { short: "p", description: "Port to listen on" }),
+    host: option(z.string().default("localhost"), { short: "h", description: "Host to bind to" }),
+    secure: option(z.coerce.boolean().default(false), { short: "s", description: "Use HTTPS" }),
   },
   handler: async ({ flags }) => {
     // flags.port: number
     // flags.host: string
     // flags.secure: boolean
-  }
-})
+  },
+});
 ```
 
 ## Schema Types
@@ -111,13 +100,13 @@ Use `z.coerce` for automatic type conversion from command-line strings:
 
 ```typescript
 // Coerce string to number
-option(z.coerce.number())  // "123" → 123
+option(z.coerce.number()); // "123" → 123
 
 // Coerce string to boolean
-option(z.coerce.boolean()) // "true" → true, "false" → false
+option(z.coerce.boolean()); // "true" → true, "false" → false
 
 // Coerce string to date
-option(z.coerce.date())    // "2024-01-01" → Date object
+option(z.coerce.date()); // "2024-01-01" → Date object
 ```
 
 ### Transformations
@@ -127,34 +116,35 @@ Transform input values with custom logic:
 ```typescript
 // Parse JSON
 const config = option(
-  z.string().transform(val => JSON.parse(val)),
-  { description: 'JSON configuration' }
-)
+  z.string().transform((val) => JSON.parse(val)),
+  { description: "JSON configuration" },
+);
 
 // Convert to uppercase
 const env = option(
-  z.string().transform(val => val.toUpperCase()),
-  { description: 'Environment name' }
-)
+  z.string().transform((val) => val.toUpperCase()),
+  { description: "Environment name" },
+);
 
 // Parse comma-separated values
 const tags = option(
-  z.string().transform(val => val.split(',')),
-  { description: 'Comma-separated tags' }
-)
+  z.string().transform((val) => val.split(",")),
+  { description: "Comma-separated tags" },
+);
 
 // Parse file size with units
 const size = option(
-  z.string()
+  z
+    .string()
     .regex(/^\d+[kmg]b?$/i)
-    .transform(val => {
-      const match = val.match(/^(\d+)([kmg])b?$/i)!
-      const [, num, unit] = match
-      const multipliers = { k: 1024, m: 1024**2, g: 1024**3 }
-      return parseInt(num) * multipliers[unit.toLowerCase()]
+    .transform((val) => {
+      const match = val.match(/^(\d+)([kmg])b?$/i)!;
+      const [, num, unit] = match;
+      const multipliers = { k: 1024, m: 1024 ** 2, g: 1024 ** 3 };
+      return parseInt(num) * multipliers[unit.toLowerCase()];
     }),
-  { description: 'Size limit (e.g., 512k, 1g)' }
-)
+  { description: "Size limit (e.g., 512k, 1g)" },
+);
 ```
 
 ### Complex Schemas
@@ -162,33 +152,33 @@ const size = option(
 ```typescript
 // Object validation
 const server = option(
-  z.string()
-    .transform(val => JSON.parse(val))
-    .pipe(z.object({
-      host: z.string(),
-      port: z.number(),
-      secure: z.boolean().optional()
-    })),
-  { description: 'Server config as JSON' }
-)
+  z
+    .string()
+    .transform((val) => JSON.parse(val))
+    .pipe(
+      z.object({
+        host: z.string(),
+        port: z.number(),
+        secure: z.boolean().optional(),
+      }),
+    ),
+  { description: "Server config as JSON" },
+);
 
 // Array with validation
 const ignore = option(
-  z.string()
-    .transform(val => val.split(','))
+  z
+    .string()
+    .transform((val) => val.split(","))
     .pipe(z.array(z.string().min(1))),
-  { description: 'Comma-separated ignore patterns' }
-)
+  { description: "Comma-separated ignore patterns" },
+);
 
 // Union types
 const output = option(
-  z.union([
-    z.literal('json'),
-    z.literal('yaml'),
-    z.literal('toml')
-  ]).default('json'),
-  { description: 'Output format' }
-)
+  z.union([z.literal("json"), z.literal("yaml"), z.literal("toml")]).default("json"),
+  { description: "Output format" },
+);
 ```
 
 ## Validation
@@ -197,12 +187,13 @@ Schemas are validated automatically when commands run:
 
 ```typescript
 const port = option(
-  z.coerce.number()
-    .int('Port must be an integer')
-    .min(1, 'Port must be at least 1')
-    .max(65535, 'Port must be at most 65535'),
-  { short: 'p', description: 'Port number' }
-)
+  z.coerce
+    .number()
+    .int("Port must be an integer")
+    .min(1, "Port must be at least 1")
+    .max(65535, "Port must be at most 65535"),
+  { short: "p", description: "Port number" },
+);
 
 // $ my-cli serve --port abc
 // Validation errors:
@@ -224,28 +215,16 @@ const port = option(
 
 ```typescript
 // Required option (no default)
-const input = option(
-  z.string(),
-  { description: 'Input file' }
-)
+const input = option(z.string(), { description: "Input file" });
 
 // Optional with default
-const output = option(
-  z.string().default('./output'),
-  { description: 'Output directory' }
-)
+const output = option(z.string().default("./output"), { description: "Output directory" });
 
 // Truly optional (can be undefined)
-const config = option(
-  z.string().optional(),
-  { description: 'Config file path' }
-)
+const config = option(z.string().optional(), { description: "Config file path" });
 
 // Nullable option
-const template = option(
-  z.string().nullable().default(null),
-  { description: 'Template name' }
-)
+const template = option(z.string().nullable().default(null), { description: "Template name" });
 ```
 
 ## Standard Schema Support
@@ -254,20 +233,21 @@ The `option` function accepts any Standard Schema v1 compatible schema:
 
 ```typescript
 // Using Zod
-import { z } from 'zod'
-option(z.string())
+import { z } from "zod";
+option(z.string());
 
 // Using Valibot
-import * as v from 'valibot'
-option(v.pipe(v.string(), v.minLength(1)))
+import * as v from "valibot";
+option(v.pipe(v.string(), v.minLength(1)));
 
 // Any Standard Schema v1 library
-import { schema } from 'any-standard-schema-lib'
-option(schema.string())
+import { schema } from "any-standard-schema-lib";
+option(schema.string());
 ```
 
 <Callout type="important">
-  **All options must have a schema**. There are no "raw" options in Bunli - this ensures type safety and consistent validation across your CLI.
+  **All options must have a schema**. There are no "raw" options in Bunli - this ensures type safety
+  and consistent validation across your CLI.
 </Callout>
 
 ## Best Practices
@@ -288,49 +268,43 @@ option(schema.string())
 const file = option(
   z.string().refine(
     (val) => existsSync(val),
-    (val) => ({ message: `File not found: ${val}` })
+    (val) => ({ message: `File not found: ${val}` }),
   ),
-  { description: 'Input file path' }
-)
+  { description: "Input file path" },
+);
 ```
 
 ### URLs
 
 ```typescript
-const url = option(
-  z.string().url('Must be a valid URL'),
-  { description: 'API endpoint' }
-)
+const url = option(z.string().url("Must be a valid URL"), { description: "API endpoint" });
 ```
 
 ### Environment Variables
 
 ```typescript
-const apiKey = option(
-  z.string().default(process.env.API_KEY || ''),
-  { description: 'API key (or set API_KEY env var)' }
-)
+const apiKey = option(z.string().default(process.env.API_KEY || ""), {
+  description: "API key (or set API_KEY env var)",
+});
 ```
 
 ### Multiple Values
 
 ```typescript
 // From repeated flags: --tag foo --tag bar
-const tags = option(
-  z.array(z.string()).default([]),
-  {
-    description: 'Tags (can be used multiple times)',
-    repeatable: true
-  }
-)
+const tags = option(z.array(z.string()).default([]), {
+  description: "Tags (can be used multiple times)",
+  repeatable: true,
+});
 
 // From comma-separated: --tags foo,bar,baz
 const tags = option(
-  z.string()
-    .transform(val => val.split(',').map(s => s.trim()))
+  z
+    .string()
+    .transform((val) => val.split(",").map((s) => s.trim()))
     .pipe(z.array(z.string())),
-  { description: 'Comma-separated tags' }
-)
+  { description: "Comma-separated tags" },
+);
 ```
 
 ## See Also

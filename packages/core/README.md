@@ -11,27 +11,25 @@ bun add @bunli/core
 ## Quick Start
 
 ```typescript
-import { defineCommand, option } from '@bunli/core'
-import { z } from 'zod'
+import { defineCommand, option } from "@bunli/core";
+import { z } from "zod";
 
 export default defineCommand({
-  name: 'greet',
-  description: 'A friendly greeting',
+  name: "greet",
+  description: "A friendly greeting",
   options: {
-    name: option(
-      z.string().min(1),
-      { description: 'Name to greet', short: 'n' }
-    ),
-    excited: option(
-      z.coerce.boolean().default(false),
-      { description: 'Add excitement', short: 'e', argumentKind: 'flag' }
-    )
+    name: option(z.string().min(1), { description: "Name to greet", short: "n" }),
+    excited: option(z.coerce.boolean().default(false), {
+      description: "Add excitement",
+      short: "e",
+      argumentKind: "flag",
+    }),
   },
   handler: async ({ flags }) => {
-    const greeting = `Hello, ${flags.name}${flags.excited ? '!' : '.'}`
-    console.log(greeting)
-  }
-})
+    const greeting = `Hello, ${flags.name}${flags.excited ? "!" : "."}`;
+    console.log(greeting);
+  },
+});
 ```
 
 ## Features
@@ -50,15 +48,15 @@ export default defineCommand({
 Define commands with automatic type inference:
 
 ```typescript
-import { defineCommand } from '@bunli/core'
+import { defineCommand } from "@bunli/core";
 
 export default defineCommand({
-  name: 'build',
-  description: 'Build the project',
+  name: "build",
+  description: "Build the project",
   handler: async () => {
-    console.log('Building...')
-  }
-})
+    console.log("Building...");
+  },
+});
 ```
 
 ### Options
@@ -66,28 +64,26 @@ export default defineCommand({
 Use the `option` helper with Standard Schema validation:
 
 ```typescript
-import { defineCommand, option } from '@bunli/core'
-import { z } from 'zod'
+import { defineCommand, option } from "@bunli/core";
+import { z } from "zod";
 
 export default defineCommand({
-  name: 'deploy',
-  description: 'Deploy the application',
+  name: "deploy",
+  description: "Deploy the application",
   options: {
-    env: option(
-      z.enum(['dev', 'staging', 'prod']),
-      { description: 'Target environment' }
-    ),
-    force: option(
-      z.coerce.boolean().default(false),
-      { description: 'Force deployment', short: 'f', argumentKind: 'flag' }
-    )
+    env: option(z.enum(["dev", "staging", "prod"]), { description: "Target environment" }),
+    force: option(z.coerce.boolean().default(false), {
+      description: "Force deployment",
+      short: "f",
+      argumentKind: "flag",
+    }),
   },
   handler: async ({ flags }) => {
     // TypeScript knows:
     // flags.env is 'dev' | 'staging' | 'prod'
     // flags.force is boolean
-  }
-})
+  },
+});
 ```
 
 ### Multi-Command CLIs
@@ -95,37 +91,37 @@ export default defineCommand({
 Create complex CLIs with multiple commands:
 
 ```typescript
-import { createCLI, defineCommand } from '@bunli/core'
+import { createCLI, defineCommand } from "@bunli/core";
 
 const build = defineCommand({
-  name: 'build',
-  description: 'Build the project',
-  handler: async () => {}
-})
+  name: "build",
+  description: "Build the project",
+  handler: async () => {},
+});
 
 const deploy = defineCommand({
-  name: 'deploy',
-  description: 'Deploy the project',
-  handler: async () => {}
-})
+  name: "deploy",
+  description: "Deploy the project",
+  handler: async () => {},
+});
 
 const test = defineCommand({
-  name: 'test',
-  description: 'Run tests',
-  handler: async () => {}
-})
+  name: "test",
+  description: "Run tests",
+  handler: async () => {},
+});
 
 const cli = await createCLI({
-  name: 'my-tool',
-  version: '1.0.0',
-  description: 'My awesome CLI tool',
-})
+  name: "my-tool",
+  version: "1.0.0",
+  description: "My awesome CLI tool",
+});
 
-cli.command(build)
-cli.command(deploy)
-cli.command(test)
+cli.command(build);
+cli.command(deploy);
+cli.command(test);
 
-await cli.run()
+await cli.run();
 ```
 
 ### TUI Renderer Buffer Mode
@@ -133,18 +129,19 @@ await cli.run()
 When using `command.render`, configure buffer behavior via `tui.renderer.bufferMode`:
 
 ```typescript
-import { defineConfig } from '@bunli/core'
+import { defineConfig } from "@bunli/core";
 
 export default defineConfig({
   tui: {
     renderer: {
-      bufferMode: 'alternate' // or 'standard'
-    }
-  }
-})
+      bufferMode: "alternate", // or 'standard'
+    },
+  },
+});
 ```
 
 Default policy:
+
 - `'standard'` by default
 - set `'alternate'` explicitly for fullscreen/blocking terminal flows
 
@@ -161,13 +158,15 @@ Creates a typed option with schema validation.
 For boolean-style flags, set `argumentKind: 'flag'`.
 
 ```typescript
-verbose: option(
-  z.boolean().default(false),
-  { short: 'v', description: 'Verbose output', argumentKind: 'flag' }
-)
+verbose: option(z.boolean().default(false), {
+  short: "v",
+  description: "Verbose output",
+  argumentKind: "flag",
+});
 ```
 
 Flag parsing contract:
+
 - `--verbose` sets the value to `true`
 - `--verbose=true` and `--verbose=false` are both valid
 - `--verbose build` does not consume `build`; it remains positional
@@ -189,47 +188,47 @@ Bunli provides a powerful plugin system with compile-time type safety:
 ### Basic Plugin
 
 ```typescript
-import type { BunliPlugin } from '@bunli/core/plugin'
+import type { BunliPlugin } from "@bunli/core/plugin";
 
 interface MyPluginStore {
-  apiKey: string
-  isAuthenticated: boolean
+  apiKey: string;
+  isAuthenticated: boolean;
 }
 
 const myPlugin: BunliPlugin<MyPluginStore> = {
-  name: 'my-plugin',
-  version: '1.0.0',
-  
+  name: "my-plugin",
+  version: "1.0.0",
+
   // Define the plugin's store
   store: {
-    apiKey: '',
-    isAuthenticated: false
+    apiKey: "",
+    isAuthenticated: false,
   },
-  
+
   // Lifecycle hooks
   setup(context) {
     // One-time initialization
-    context.updateConfig({ description: 'Enhanced by my plugin' })
+    context.updateConfig({ description: "Enhanced by my plugin" });
   },
-  
+
   configResolved(config) {
     // Called after all configuration is resolved
   },
-  
+
   beforeCommand(context) {
     // Called before each command - context.store is type-safe!
-    const apiKey = process.env.API_KEY || ''
-    context.setStoreValue('apiKey', apiKey)
-    context.setStoreValue('isAuthenticated', apiKey.length > 0)
+    const apiKey = process.env.API_KEY || "";
+    context.setStoreValue("apiKey", apiKey);
+    context.setStoreValue("isAuthenticated", apiKey.length > 0);
   },
-  
+
   afterCommand(context) {
     // Called after each command with results
     if (context.error) {
-      console.error('Command failed:', context.error)
+      console.error("Command failed:", context.error);
     }
-  }
-}
+  },
+};
 ```
 
 ### Plugin Factory
@@ -237,67 +236,64 @@ const myPlugin: BunliPlugin<MyPluginStore> = {
 Use `createPlugin` for better ergonomics:
 
 ```typescript
-import { createPlugin } from '@bunli/core/plugin'
+import { createPlugin } from "@bunli/core/plugin";
 
 type AuthOptions = {
-  provider: 'github' | 'gitlab'
-}
+  provider: "github" | "gitlab";
+};
 
 type User = {
-  name: string
-}
+  name: string;
+};
 
 type AuthStore = {
-  token: string
-  user: User | null
-}
+  token: string;
+  user: User | null;
+};
 
 async function loadToken() {
-  return 'token'
+  return "token";
 }
 
 async function fetchUser(_token: string): Promise<User> {
-  return { name: 'octocat' }
+  return { name: "octocat" };
 }
 
 export const authPlugin = createPlugin<AuthOptions, AuthStore>((options) => ({
   name: `auth-${options.provider}`,
   store: {
-    token: '',
-    user: null
+    token: "",
+    user: null,
   },
   async beforeCommand(context) {
-    const token = await loadToken()
-    context.setStoreValue('token', token)
-    context.setStoreValue('user', await fetchUser(token))
-  }
-}))
+    const token = await loadToken();
+    context.setStoreValue("token", token);
+    context.setStoreValue("user", await fetchUser(token));
+  },
+}));
 ```
 
 ### Using Plugins with Type Safety
 
 ```typescript
 const cli = await createCLI({
-  name: 'my-cli',
-  version: '1.0.0',
-  plugins: [
-    authPlugin({ provider: 'github' }),
-    myPlugin
-  ]
-})
+  name: "my-cli",
+  version: "1.0.0",
+  plugins: [authPlugin({ provider: "github" }), myPlugin],
+});
 
 // In your commands, the store is fully typed!
 cli.command({
-  name: 'deploy',
-  description: 'Deploy the application',
+  name: "deploy",
+  description: "Deploy the application",
   handler: async ({ context }) => {
     // TypeScript knows about all plugin stores!
-    if (!context || !context.getStoreValue('isAuthenticated')) {
-      throw new Error('Not authenticated')
+    if (!context || !context.getStoreValue("isAuthenticated")) {
+      throw new Error("Not authenticated");
     }
-    console.log(`Deploying as ${context.getStoreValue('user')?.name}`)
-  }
-})
+    console.log(`Deploying as ${context.getStoreValue("user")?.name}`);
+  },
+});
 ```
 
 ### Plugin Development Utilities
@@ -305,40 +301,40 @@ cli.command({
 Bunli provides utilities for plugin development and testing:
 
 ```typescript
-import { 
-  createTestPlugin, 
-  composePlugins, 
+import {
+  createTestPlugin,
+  composePlugins,
   testPluginHooks,
-  assertPluginBehavior 
-} from '@bunli/core/plugin'
+  assertPluginBehavior,
+} from "@bunli/core/plugin";
 
 // Create a test plugin
 const testPlugin = createTestPlugin(
-  { count: 0, message: '' },
+  { count: 0, message: "" },
   {
     beforeCommand(context) {
-      const count = context.getStoreValue('count')
-      context.setStoreValue('count', count + 1)
-      console.log(`Count: ${context.getStoreValue('count')}`)
-    }
-  }
-)
+      const count = context.getStoreValue("count");
+      context.setStoreValue("count", count + 1);
+      console.log(`Count: ${context.getStoreValue("count")}`);
+    },
+  },
+);
 
 // Compose multiple plugins
 const composedPlugin = composePlugins(
   testPlugin,
-  createTestPlugin({ enabled: true }, { name: 'metrics' })
-)
+  createTestPlugin({ enabled: true }, { name: "metrics" }),
+);
 
 // Test plugin behavior
 const results = await testPluginHooks(testPlugin, {
-  config: { name: 'test-cli', version: '1.0.0' },
-  store: { count: 0, message: 'test' }
-})
+  config: { name: "test-cli", version: "1.0.0" },
+  store: { count: 0, message: "test" },
+});
 
 assertPluginBehavior(results, {
-  beforeCommandShouldSucceed: true
-})
+  beforeCommandShouldSucceed: true,
+});
 ```
 
 ### Module Augmentation
@@ -346,10 +342,10 @@ assertPluginBehavior(results, {
 Plugins can extend Bunli's interfaces:
 
 ```typescript
-declare module '@bunli/core/plugin' {
+declare module "@bunli/core/plugin" {
   interface EnvironmentInfo {
-    isCI: boolean
-    ciProvider?: string
+    isCI: boolean;
+    ciProvider?: string;
   }
 }
 ```
@@ -360,51 +356,51 @@ Bunli automatically generates type-safe helpers for your commands. These are aut
 
 ```typescript
 const cli = await createCLI({
-  name: 'my-cli',
-  version: '1.0.0',
-  generated: true  // Auto-load generated types
-})
+  name: "my-cli",
+  version: "1.0.0",
+  generated: true, // Auto-load generated types
+});
 ```
 
 #### Available Helpers
 
 ```typescript
-import { 
-  listCommands, 
-  getCommandApi, 
+import {
+  listCommands,
+  getCommandApi,
   getTypedFlags,
   validateCommand,
   findCommandByName,
   findCommandsByDescription,
-  getCommandNames
-} from './.bunli/commands.gen'
+  getCommandNames,
+} from "./.bunli/commands.gen";
 
 // List all available commands
-const commands = listCommands()
+const commands = listCommands();
 // Result: ['build', 'dev', 'test', ...]
 
 // Get command metadata
-const buildMeta = getCommandApi('build')
-console.log(buildMeta.description) // "Build the project"
-console.log(buildMeta.options)     // { outdir: {...}, watch: {...} }
+const buildMeta = getCommandApi("build");
+console.log(buildMeta.description); // "Build the project"
+console.log(buildMeta.options); // { outdir: {...}, watch: {...} }
 
 // Get typed flags for a command
-const flags = getTypedFlags('build')
+const flags = getTypedFlags("build");
 // flags.outdir is typed as string | undefined
 // flags.watch is typed as boolean | undefined
 
 // Validate command arguments at runtime
-const result = validateCommand('build', { outdir: 'dist', watch: true })
+const result = validateCommand("build", { outdir: "dist", watch: true });
 if (result.success) {
-  console.log('Valid arguments:', result.data)
+  console.log("Valid arguments:", result.data);
 } else {
-  console.error('Validation errors:', result.errors)
+  console.error("Validation errors:", result.errors);
 }
 
 // Find commands by name or description
-const buildCmd = findCommandByName('build')
-const devCommands = findCommandsByDescription('development')
-const allNames = getCommandNames()
+const buildCmd = findCommandByName("build");
+const devCommands = findCommandsByDescription("development");
+const allNames = getCommandNames();
 ```
 
 #### IDE Auto-Import Support
@@ -426,8 +422,8 @@ Then use auto-imports:
 
 ```typescript
 // These will show up in IDE auto-complete
-import { listCommands } from '~commands/helpers'
-import { getCommandApi } from '~commands/api'
+import { listCommands } from "~commands/helpers";
+import { getCommandApi } from "~commands/api";
 ```
 
 <Callout type="tip">
@@ -439,44 +435,43 @@ import { getCommandApi } from '~commands/api'
 Bunli provides runtime validation utilities for dynamic type checking:
 
 ```typescript
-import { 
-  validateValue, 
-  validateValues, 
+import {
+  validateValue,
+  validateValues,
   isValueOfType,
   createValidator,
-  createBatchValidator 
-} from '@bunli/core'
-import { z } from 'zod'
+  createBatchValidator,
+} from "@bunli/core";
+import { z } from "zod";
 
 // Validate a single value
-const result = await validateValue(
-  'hello', 
-  z.string().min(1), 
-  { option: 'message', command: 'greet' }
-)
+const result = await validateValue("hello", z.string().min(1), {
+  option: "message",
+  command: "greet",
+});
 
 // Validate multiple values
 const validated = await validateValues(
-  { name: 'John', age: 25 },
-  { 
-    name: z.string(), 
-    age: z.number() 
+  { name: "John", age: 25 },
+  {
+    name: z.string(),
+    age: z.number(),
   },
-  'user'
-)
+  "user",
+);
 
 // Check value types
-const value: unknown = 'hello'
-if (isValueOfType(value, 'string')) {
-  console.log('Value is a string')
+const value: unknown = "hello";
+if (isValueOfType(value, "string")) {
+  console.log("Value is a string");
 }
 
 // Create reusable validators
-const nameValidator = createValidator(z.string().min(1))
+const nameValidator = createValidator(z.string().min(1));
 const userValidator = createBatchValidator({
   name: z.string(),
-  age: z.number()
-})
+  age: z.number(),
+});
 ```
 
 ## Type Utilities
@@ -485,44 +480,49 @@ Bunli exports advanced TypeScript type utilities for complex type manipulation, 
 
 ```typescript
 import type {
-  UnionToIntersection, 
-  MergeAll, 
+  UnionToIntersection,
+  MergeAll,
   Expand,
   DeepPartial,
   Constrain,
-  IsAny
-} from '@bunli/core'
+  IsAny,
+} from "@bunli/core";
 ```
 
 ### Key Utilities
 
 **UnionToIntersection** - Convert union types to intersection types:
+
 ```typescript
-type Example = UnionToIntersection<{ a: string } | { b: number }>
+type Example = UnionToIntersection<{ a: string } | { b: number }>;
 // Result: { a: string } & { b: number }
 ```
 
 **MergeAll** - Merge multiple object types:
+
 ```typescript
-type Example = MergeAll<[{ a: string }, { b: number }, { c: boolean }]>
+type Example = MergeAll<[{ a: string }, { b: number }, { c: boolean }]>;
 // Result: { a: string; b: number; c: boolean }
 ```
 
 **Expand** - Expand complex types for better IntelliSense:
+
 ```typescript
-type Example = Expand<{ nested: { deep: { value: string } } }>
+type Example = Expand<{ nested: { deep: { value: string } } }>;
 // Shows full type structure in IDE
 ```
 
 **DeepPartial** - Make all properties optional recursively:
+
 ```typescript
-type Example = DeepPartial<{ user: { name: string; age: number } }>
+type Example = DeepPartial<{ user: { name: string; age: number } }>;
 // Result: { user?: { name?: string; age?: number } }
 ```
 
 **Constrain** - Constrain types with fallback:
+
 ```typescript
-type Example = Constrain<string, 'a' | 'b' | 'c', 'a'>
+type Example = Constrain<string, "a" | "b" | "c", "a">;
 // Result: 'a' | 'b' | 'c' (or 'a' if string doesn't match)
 ```
 
@@ -531,18 +531,16 @@ type Example = Constrain<string, 'a' | 'b' | 'c', 'a'>
 These utilities work particularly well with generated command types:
 
 ```typescript
-import { getCommandApi, listCommands } from './commands.gen'
-import { UnionToIntersection, MergeAll } from '@bunli/core'
+import { getCommandApi, listCommands } from "./commands.gen";
+import { UnionToIntersection, MergeAll } from "@bunli/core";
 
 // Get all command options as a union
 type AllCommandOptions = UnionToIntersection<
-  ReturnType<typeof getCommandApi>[keyof CommandRegistry]['options']
->
+  ReturnType<typeof getCommandApi>[keyof CommandRegistry]["options"]
+>;
 
 // Merge all command metadata
-type AllCommands = MergeAll<
-  Array<{ name: string; description: string }>
->
+type AllCommands = MergeAll<Array<{ name: string; description: string }>>;
 ```
 
 <Callout type="tip">

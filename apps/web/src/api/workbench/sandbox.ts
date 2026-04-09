@@ -3,6 +3,7 @@ import {
   type ExecutionSession,
   type Sandbox as CloudflareSandbox,
 } from "@cloudflare/sandbox";
+
 import {
   DEFAULT_SOURCE_FILE,
   getWorkbenchFilePath,
@@ -51,10 +52,7 @@ function getWorkbenchSandbox(env: Env, sandboxId: string): CloudflareSandbox {
   });
 }
 
-async function ensureSessionWorkspace(
-  session: ExecutionSession,
-  env?: Env
-): Promise<void> {
+async function ensureSessionWorkspace(session: ExecutionSession, env?: Env): Promise<void> {
   const workspace = getWorkbenchWorkspace(env);
   const srcDir = getWorkbenchSrcDir(env);
   const filePath = getWorkbenchFilePath(env);
@@ -70,7 +68,7 @@ async function ensureSessionWorkspace(
 
 async function resolveSession(
   sandbox: CloudflareSandbox,
-  sessionId: string
+  sessionId: string,
 ): Promise<ExecutionSession | null> {
   try {
     return await sandbox.getSession(sessionId);
@@ -79,10 +77,7 @@ async function resolveSession(
   }
 }
 
-export async function deleteWorkbenchSession(
-  env: Env,
-  ids: WorkbenchIdentity
-): Promise<boolean> {
+export async function deleteWorkbenchSession(env: Env, ids: WorkbenchIdentity): Promise<boolean> {
   const sandbox = getWorkbenchSandbox(env, ids.sandboxId);
   const existingSession = await resolveSession(sandbox, ids.sessionId);
   if (!existingSession) {
@@ -96,7 +91,7 @@ export async function deleteWorkbenchSession(
 export async function getOrCreateWorkbenchSession(
   env: Env,
   ids: WorkbenchIdentity,
-  options: WorkbenchSessionOptions = {}
+  options: WorkbenchSessionOptions = {},
 ): Promise<WorkbenchSessionResult> {
   const sandbox = getWorkbenchSandbox(env, ids.sandboxId);
 
@@ -115,7 +110,7 @@ export async function getOrCreateWorkbenchSession(
     if (!allowed.ok) {
       throw new WorkbenchRateLimitError(
         "Session creation rate limit exceeded",
-        allowed.retryAfterMs
+        allowed.retryAfterMs,
       );
     }
   }
@@ -141,7 +136,7 @@ export async function getOrCreateWorkbenchSession(
           sandboxId: ids.sandboxId,
           sessionId: ids.sessionId,
           error: getErrorMessage(preferredError),
-        }
+        },
       );
 
       createdSession = await sandbox.createSession({

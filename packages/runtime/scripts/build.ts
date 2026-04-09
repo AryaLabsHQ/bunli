@@ -1,20 +1,21 @@
 #!/usr/bin/env bun
 
-import { $ } from 'bun'
-import { join } from 'path'
+import { join } from "path";
 
-const rootDir = join(import.meta.dir, '..')
+import { $ } from "bun";
 
-await $`rm -rf ${rootDir}/dist`
+const rootDir = join(import.meta.dir, "..");
 
-console.log('🔨 Building types...')
+await $`rm -rf ${rootDir}/dist`;
+
+console.log("🔨 Building types...");
 try {
-  await $`cd ${rootDir} && tsc`
+  await $`cd ${rootDir} && tsc`;
 } catch {
-  console.warn('⚠️  TypeScript compilation had errors, but continuing build...')
+  console.warn("⚠️  TypeScript compilation had errors, but continuing build...");
 }
 
-console.log('📦 Preparing distribution...')
-await $`mkdir -p ${rootDir}/dist`
+console.log("📦 Preparing distribution...");
+await $`mkdir -p ${rootDir}/dist`;
 
-console.log('✅ Build complete!')
+console.log("✅ Build complete!");

@@ -31,6 +31,7 @@ bunli dev -- --help
 ```
 
 Development options:
+
 - `--entry, -e` - Entry file (defaults to auto-detect)
 - `--watch, -w` - Watch for changes (default: true)
 - `--inspect, -i` - Enable debugger
@@ -82,12 +83,14 @@ bunli generate --output ./types/commands.gen.ts
 ```
 
 Generate options:
+
 - `--entry, -e` - CLI entry file used for command discovery
 - `--directory` - Optional fallback command source directory
 - `--output, -o` - Output file path (default: ./.bunli/commands.gen.ts)
 - `--watch, -w` - Watch for changes and regenerate
 
 The generator creates type-safe command definitions with:
+
 - Autocomplete for command names and options
 - Type safety at compile time
 - IntelliSense for command metadata
@@ -125,6 +128,7 @@ bunli init --git false --install false
 ```
 
 Init options:
+
 - `--name, -n` - Project name
 - `--template, -t` - Project template (basic/advanced/monorepo)
 - `--dir, -d` - Directory to create project in
@@ -151,6 +155,7 @@ bunli test --all
 ```
 
 Test options:
+
 - `--pattern, -p` - Test file patterns
 - `--watch, -w` - Watch for changes
 - `--coverage, -c` - Generate coverage report
@@ -186,6 +191,7 @@ bunli release --github=true
 ```
 
 Release options:
+
 - `--version, -v` - Version to release (patch/minor/major/x.y.z)
 - `--tag, -t` - Git tag format
 - `--npm` - Publish to npm (`--npm=false` to disable)
@@ -199,6 +205,7 @@ Note: `bunli release` supports npm package release flows, including binary packa
 use the `bunli-releaser` GitHub Action.
 
 Resume behavior notes:
+
 - On failed non-dry runs, Bunli writes checkpoint state to `.bunli/release-state.json`.
 - Next `bunli release` auto-resumes from that state (with an interactive prompt in TTY shells).
 - Side-effectful steps (git tag/push, npm publish, GitHub release) are probed and skipped when already complete.
@@ -235,6 +242,7 @@ bunli build --targets all
 ```
 
 Supported platforms:
+
 - `darwin-arm64` - macOS Apple Silicon
 - `darwin-x64` - macOS Intel
 - `linux-arm64` - Linux ARM64
@@ -246,40 +254,41 @@ Supported platforms:
 Create a `bunli.config.ts` file in your project root:
 
 ```typescript
-import { defineConfig } from 'bunli'
+import { defineConfig } from "bunli";
 
 export default defineConfig({
-  name: 'my-cli',
-  version: '1.0.0',
+  name: "my-cli",
+  version: "1.0.0",
 
   commands: {
-    entry: './src/cli.ts',
-    directory: './src/commands' // optional fallback hint
+    entry: "./src/cli.ts",
+    directory: "./src/commands", // optional fallback hint
   },
-  
+
   build: {
-    entry: './src/cli.ts',
-    outdir: './dist',
-    targets: ['darwin-arm64', 'linux-x64'],  // Compile for these platforms
-    compress: true,  // Compress multi-platform builds
+    entry: "./src/cli.ts",
+    outdir: "./dist",
+    targets: ["darwin-arm64", "linux-x64"], // Compile for these platforms
+    compress: true, // Compress multi-platform builds
     minify: true,
-    external: ['some-native-module']
+    external: ["some-native-module"],
   },
-  
+
   dev: {
     watch: true,
-    inspect: false
+    inspect: false,
   },
 
   tui: {
     renderer: {
-      bufferMode: 'alternate' // or 'standard'
-    }
-  }
-})
+      bufferMode: "alternate", // or 'standard'
+    },
+  },
+});
 ```
 
 Default `tui.renderer.bufferMode` policy:
+
 - `'standard'` by default
 - set `'alternate'` explicitly for fullscreen/blocking terminal flows
 

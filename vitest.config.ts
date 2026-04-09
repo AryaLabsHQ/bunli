@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitest/config'
+import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
@@ -7,8 +7,8 @@ export default defineConfig({
     include: [],
     typecheck: {
       enabled: true,
-      include: ['packages/*/test/**/*.test-d.ts'],
-      tsconfig: './tsconfig.typetest.json',
+      include: ["packages/*/test/**/*.test-d.ts"],
+      tsconfig: "./tsconfig.typetest.json",
     },
   },
-})
+});

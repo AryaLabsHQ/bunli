@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+
 import {
   buildWorkbenchExecCommand,
   getPresetCommand,
@@ -14,16 +15,14 @@ describe("workbench constants", () => {
     };
 
     expect(getWorkbenchFilePath(env)).toBe("/tmp/workbench/src/index.ts");
-    expect(getPresetCommand("framework", env)).toBe(
-      "bun run /tmp/workbench/src/index.ts"
-    );
+    expect(getPresetCommand("framework", env)).toBe("bun run /tmp/workbench/src/index.ts");
     expect(getWorkbenchSandboxNetwork(env)).toBe("on");
   });
 
   test("renders a shell command with a closed emit_frame function", () => {
     const command = buildWorkbenchExecCommand("framework", "run-1", "token-1");
 
-    expect(command).toContain("\"$1\"; }");
+    expect(command).toContain('"$1"; }');
     expect(command).toContain("\ntrap ");
   });
 });

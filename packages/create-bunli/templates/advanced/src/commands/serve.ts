@@ -1,113 +1,107 @@
-import { defineCommand, option } from '@bunli/core'
-import { z } from 'zod'
-import { loadConfig } from '../utils/config.js'
+import { defineCommand, option } from "@bunli/core";
+import { z } from "zod";
+
+import { loadConfig } from "../utils/config.js";
 
 const serveCommand = defineCommand({
-  name: 'serve',
-  description: 'Start a development server',
+  name: "serve",
+  description: "Start a development server",
   options: {
-    port: option(
-      z.coerce.number().int().min(1).max(65535).default(3000),
-      {
-        short: 'p',
-        description: 'Port to listen on'
-      }
-    ),
-    host: option(
-      z.string().default('localhost'),
-      {
-        short: 'h',
-        description: 'Host to bind to'
-      }
-    ),
-    open: option(
-      z.boolean().default(true),
-      {
-        description: 'Open browser on start',
-        argumentKind: 'flag'
-      }
-    )
+    port: option(z.coerce.number().int().min(1).max(65535).default(3000), {
+      short: "p",
+      description: "Port to listen on",
+    }),
+    host: option(z.string().default("localhost"), {
+      short: "h",
+      description: "Host to bind to",
+    }),
+    open: option(z.boolean().default(true), {
+      description: "Open browser on start",
+      argumentKind: "flag",
+    }),
   },
   handler: async ({ flags, colors, spinner, shell }) => {
-    const spin = spinner('Starting server...')
-    spin.start()
-    
+    const spin = spinner("Starting server...");
+    spin.start();
+
     try {
       // Load config
-      const config = await loadConfig()
-      
+      const config = await loadConfig();
+
       // Merge flags with config
-      const port = flags.port || config.server?.port || 3000
-      const host = flags.host || config.server?.host || 'localhost'
-      const shouldOpen = flags.open ?? config.server?.open ?? true
-      
+      const port = flags.port || config.server?.port || 3000;
+      const host = flags.host || config.server?.host || "localhost";
+      const shouldOpen = flags.open ?? config.server?.open ?? true;
+
       // Create server
       const server = Bun.serve({
         port,
         hostname: host,
         fetch(req) {
-          const url = new URL(req.url)
-          
+          const url = new URL(req.url);
+
           // Simple router
-          if (url.pathname === '/') {
+          if (url.pathname === "/") {
             return new Response(getHomePage(), {
-              headers: { 'Content-Type': 'text/html' }
-            })
+              headers: { "Content-Type": "text/html" },
+            });
           }
-          
-          if (url.pathname === '/api/status') {
+
+          if (url.pathname === "/api/status") {
             return Response.json({
-              status: 'ok',
-              version: '0.1.0',
-              uptime: process.uptime()
-            })
+              status: "ok",
+              version: "0.1.0",
+              uptime: process.uptime(),
+            });
           }
-          
-          return new Response('Not Found', { status: 404 })
-        }
-      })
-      
-      spin.succeed(`Server running at http://${host}:${port}`)
-      
+
+          return new Response("Not Found", { status: 404 });
+        },
+      });
+
+      spin.succeed(`Server running at http://${host}:${port}`);
+
       // Open browser
       if (shouldOpen) {
-        const openSpin = spinner('Opening browser...')
-        openSpin.start()
-        
+        const openSpin = spinner("Opening browser...");
+        openSpin.start();
+
         try {
-          const url = `http://${host === '0.0.0.0' ? 'localhost' : host}:${port}`
-          
+          const url = `http://${host === "0.0.0.0" ? "localhost" : host}:${port}`;
+
           // Platform-specific open commands
-          const openCommand = process.platform === 'darwin' ? 'open' :
-                            process.platform === 'win32' ? 'start' :
-                            'xdg-open'
-          
-          await shell`${openCommand} ${url}`.quiet()
-          openSpin.succeed('Browser opened')
+          const openCommand =
+            process.platform === "darwin"
+              ? "open"
+              : process.platform === "win32"
+                ? "start"
+                : "xdg-open";
+
+          await shell`${openCommand} ${url}`.quiet();
+          openSpin.succeed("Browser opened");
         } catch {
-          openSpin.fail('Failed to open browser')
+          openSpin.fail("Failed to open browser");
         }
       }
-      
+
       // Keep server running
-      console.log()
-      console.log(colors.dim('Press Ctrl+C to stop the server'))
-      
+      console.log();
+      console.log(colors.dim("Press Ctrl+C to stop the server"));
+
       // Handle shutdown
-      process.on('SIGINT', () => {
-        console.log()
-        console.log(colors.yellow('Shutting down server...'))
-        server.stop()
-        process.exit(0)
-      })
-      
+      process.on("SIGINT", () => {
+        console.log();
+        console.log(colors.yellow("Shutting down server..."));
+        server.stop();
+        process.exit(0);
+      });
     } catch (error) {
-      spin.fail('Failed to start server')
-      console.error(colors.red(String(error)))
-      process.exit(1)
+      spin.fail("Failed to start server");
+      console.error(colors.red(String(error)));
+      process.exit(1);
     }
-  }
-})
+  },
+});
 
 function getHomePage(): string {
   return `
@@ -173,7 +167,7 @@ function getHomePage(): string {
   </div>
 </body>
 </html>
-  `.trim()
+  `.trim();
 }
 
-export default serveCommand
+export default serveCommand;

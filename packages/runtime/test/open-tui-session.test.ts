@@ -1,57 +1,56 @@
-import { describe, expect, test } from 'bun:test'
-import { __openTuiSessionInternalsForTests } from '../src/prompt/runtime/open-tui-session.js'
+import { describe, expect, test } from "bun:test";
 
-type DestroyHandler = () => void
-type KeypressHandler = (event: unknown) => void
+import { __openTuiSessionInternalsForTests } from "../src/prompt/runtime/open-tui-session.js";
+
+type DestroyHandler = () => void;
+type KeypressHandler = (event: unknown) => void;
 
 type StubRenderer = {
-  isDestroyed: boolean
-  prependInputHandlers: Array<(sequence: string) => boolean>
-  onCalls: Array<{ event: string; handler: DestroyHandler }>
-  offCalls: Array<{ event: string; handler: DestroyHandler }>
+  isDestroyed: boolean;
+  prependInputHandlers: Array<(sequence: string) => boolean>;
+  onCalls: Array<{ event: string; handler: DestroyHandler }>;
+  offCalls: Array<{ event: string; handler: DestroyHandler }>;
   keyInput: {
-    on(event: string, handler: KeypressHandler): void
-    off(event: string, handler: KeypressHandler): void
-  }
-  currentRenderBuffer: { clear(): void }
-  nextRenderBuffer: { clear(): void }
-  requestRenderCalls: number
-  idleCalls: number
-  destroyCalls: number
-  prependInputHandler(handler: (sequence: string) => boolean): void
-  on(event: string, handler: DestroyHandler): void
-  off(event: string, handler: DestroyHandler): void
-  emitDestroy(): void
-  requestRender(): void
-  idle(): Promise<void>
-  destroy(): void
-}
+    on(event: string, handler: KeypressHandler): void;
+    off(event: string, handler: KeypressHandler): void;
+  };
+  currentRenderBuffer: { clear(): void };
+  nextRenderBuffer: { clear(): void };
+  requestRenderCalls: number;
+  idleCalls: number;
+  destroyCalls: number;
+  prependInputHandler(handler: (sequence: string) => boolean): void;
+  on(event: string, handler: DestroyHandler): void;
+  off(event: string, handler: DestroyHandler): void;
+  emitDestroy(): void;
+  requestRender(): void;
+  idle(): Promise<void>;
+  destroy(): void;
+};
 
 type StubRoot = {
-  renderCalls: number
-  unmountCalls: number
-  render(node: unknown): void
-  unmount(): void
-}
+  renderCalls: number;
+  unmountCalls: number;
+  render(node: unknown): void;
+  unmount(): void;
+};
 
 function createStubRoot(): StubRoot {
   return {
     renderCalls: 0,
     unmountCalls: 0,
     render() {
-      this.renderCalls += 1
+      this.renderCalls += 1;
     },
     unmount() {
-      this.unmountCalls += 1
-    }
-  }
+      this.unmountCalls += 1;
+    },
+  };
 }
 
-function createStubRenderer(
-  destroyEvent: string
-): StubRenderer {
-  const destroyHandlers = new Set<DestroyHandler>()
-  const keypressHandlers = new Set<KeypressHandler>()
+function createStubRenderer(destroyEvent: string): StubRenderer {
+  const destroyHandlers = new Set<DestroyHandler>();
+  const keypressHandlers = new Set<KeypressHandler>();
   const renderer: StubRenderer = {
     isDestroyed: false,
     prependInputHandlers: [],
@@ -59,145 +58,145 @@ function createStubRenderer(
     offCalls: [],
     keyInput: {
       on(event, handler) {
-        if (event === 'keypress') {
-          keypressHandlers.add(handler)
+        if (event === "keypress") {
+          keypressHandlers.add(handler);
         }
       },
       off(event, handler) {
-        if (event === 'keypress') {
-          keypressHandlers.delete(handler)
+        if (event === "keypress") {
+          keypressHandlers.delete(handler);
         }
-      }
+      },
     },
     currentRenderBuffer: {
-      clear() {}
+      clear() {},
     },
     nextRenderBuffer: {
-      clear() {}
+      clear() {},
     },
     requestRenderCalls: 0,
     idleCalls: 0,
     destroyCalls: 0,
     prependInputHandler(handler) {
-      this.prependInputHandlers.push(handler)
+      this.prependInputHandlers.push(handler);
     },
     on(event, handler) {
-      this.onCalls.push({ event, handler })
+      this.onCalls.push({ event, handler });
       if (event === destroyEvent) {
-        destroyHandlers.add(handler)
+        destroyHandlers.add(handler);
       }
     },
     off(event, handler) {
-      this.offCalls.push({ event, handler })
+      this.offCalls.push({ event, handler });
       if (event === destroyEvent) {
-        destroyHandlers.delete(handler)
+        destroyHandlers.delete(handler);
       }
     },
     emitDestroy() {
-      this.isDestroyed = true
+      this.isDestroyed = true;
       for (const handler of [...destroyHandlers]) {
-        handler()
+        handler();
       }
     },
     requestRender() {
-      this.requestRenderCalls += 1
+      this.requestRenderCalls += 1;
     },
     async idle() {
-      this.idleCalls += 1
+      this.idleCalls += 1;
     },
     destroy() {
-      this.destroyCalls += 1
-      this.emitDestroy()
-    }
-  }
+      this.destroyCalls += 1;
+      this.emitDestroy();
+    },
+  };
 
-  return renderer
+  return renderer;
 }
 
-describe('OpenTUI prompt session runtime', () => {
-  test('removes renderer destroy listener after prompt settles normally', async () => {
-    const destroyEvent = 'destroy'
-    const renderer = createStubRenderer(destroyEvent)
-    const root = createStubRoot()
+describe("OpenTUI prompt session runtime", () => {
+  test("removes renderer destroy listener after prompt settles normally", async () => {
+    const destroyEvent = "destroy";
+    const renderer = createStubRenderer(destroyEvent);
+    const root = createStubRoot();
 
     const session = __openTuiSessionInternalsForTests.createOpenTuiRendererSessionWithDependencies({
       createRenderer: (async () => renderer as never) as never,
       createReactRoot: (() => root as never) as never,
-      destroyEvent
-    })
+      destroyEvent,
+    });
 
     const value = await session.runPrompt<string>({
       render(resolve) {
-        resolve('ready')
-        return null
-      }
-    })
+        resolve("ready");
+        return null;
+      },
+    });
 
-    expect(value).toBe('ready')
-    expect(renderer.onCalls.length).toBe(1)
-    expect(renderer.offCalls.length).toBe(1)
-    expect(renderer.onCalls[0]?.handler).toBe(renderer.offCalls[0]?.handler)
-    expect(root.unmountCalls).toBe(1)
+    expect(value).toBe("ready");
+    expect(renderer.onCalls.length).toBe(1);
+    expect(renderer.offCalls.length).toBe(1);
+    expect(renderer.onCalls[0]?.handler).toBe(renderer.offCalls[0]?.handler);
+    expect(root.unmountCalls).toBe(1);
 
-    await session.dispose()
-  })
+    await session.dispose();
+  });
 
-  test('reinstalls raw cancel input handler after renderer recreation', async () => {
-    const destroyEvent = 'destroy'
-    const renderer1 = createStubRenderer(destroyEvent)
-    const renderer2 = createStubRenderer(destroyEvent)
-    const roots = [createStubRoot(), createStubRoot()]
-    let createRendererCalls = 0
+  test("reinstalls raw cancel input handler after renderer recreation", async () => {
+    const destroyEvent = "destroy";
+    const renderer1 = createStubRenderer(destroyEvent);
+    const renderer2 = createStubRenderer(destroyEvent);
+    const roots = [createStubRoot(), createStubRoot()];
+    let createRendererCalls = 0;
 
     const session = __openTuiSessionInternalsForTests.createOpenTuiRendererSessionWithDependencies({
       createRenderer: (async () => {
-        createRendererCalls += 1
-        if (createRendererCalls === 1) return renderer1 as never
-        return renderer2 as never
+        createRendererCalls += 1;
+        if (createRendererCalls === 1) return renderer1 as never;
+        return renderer2 as never;
       }) as never,
       createReactRoot: (() => (roots.shift() ?? createStubRoot()) as never) as never,
-      destroyEvent
-    })
+      destroyEvent,
+    });
 
-    await session.initialize()
-    expect(createRendererCalls).toBe(1)
-    expect(renderer1.prependInputHandlers.length).toBe(1)
+    await session.initialize();
+    expect(createRendererCalls).toBe(1);
+    expect(renderer1.prependInputHandlers.length).toBe(1);
 
-    renderer1.isDestroyed = true
-    await session.initialize()
+    renderer1.isDestroyed = true;
+    await session.initialize();
 
-    expect(createRendererCalls).toBe(2)
-    expect(renderer2.prependInputHandlers.length).toBe(1)
+    expect(createRendererCalls).toBe(2);
+    expect(renderer2.prependInputHandlers.length).toBe(1);
 
-    await session.dispose()
-  })
+    await session.dispose();
+  });
 
-  test('uses the latest OpenTUI prompt renderer configuration', async () => {
-    const destroyEvent = 'destroy'
-    const renderer = createStubRenderer(destroyEvent)
-    const root = createStubRoot()
-    let rendererConfig: Record<string, unknown> | undefined
+  test("uses the latest OpenTUI prompt renderer configuration", async () => {
+    const destroyEvent = "destroy";
+    const renderer = createStubRenderer(destroyEvent);
+    const root = createStubRoot();
+    let rendererConfig: Record<string, unknown> | undefined;
 
     const session = __openTuiSessionInternalsForTests.createOpenTuiRendererSessionWithDependencies({
       createRenderer: (async (config) => {
-        rendererConfig = config as Record<string, unknown>
-        return renderer as never
+        rendererConfig = config as Record<string, unknown>;
+        return renderer as never;
       }) as never,
       createReactRoot: (() => root as never) as never,
-      destroyEvent
-    })
+      destroyEvent,
+    });
 
-    await session.initialize()
+    await session.initialize();
 
     expect(rendererConfig).toMatchObject({
-      screenMode: 'main-screen',
-      consoleMode: 'disabled',
-      externalOutputMode: 'passthrough',
+      screenMode: "main-screen",
+      consoleMode: "disabled",
+      externalOutputMode: "passthrough",
       exitOnCtrlC: false,
       targetFps: 30,
-      useMouse: false
-    })
+      useMouse: false,
+    });
 
-    await session.dispose()
-  })
-})
+    await session.dispose();
+  });
+});

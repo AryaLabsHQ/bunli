@@ -5,12 +5,12 @@
 Bunli uses `@standard-schema/spec` for validation with full type inference.
 
 ```typescript
-import { option } from "@bunli/core"
-import { z } from "zod"
+import { option } from "@bunli/core";
+import { z } from "zod";
 
 const opts = {
-  name: option(z.string(), { description: "Your name" })
-}
+  name: option(z.string(), { description: "Your name" }),
+};
 
 // Option schemas are inferred into handler `flags` types automatically.
 ```
@@ -22,11 +22,11 @@ const opts = {
 ```typescript
 // .bunli/commands.gen.ts (auto-generated)
 export interface RegisteredCommands {
-  hello: Command<{ name: typeof nameOption }, {}, "hello">
+  hello: Command<{ name: typeof nameOption }, {}, "hello">;
 }
 
 // Type-safe execution
-cli.execute("hello", { name: "World" })
+cli.execute("hello", { name: "World" });
 ```
 
 ## Module augmentation
@@ -34,7 +34,7 @@ cli.execute("hello", { name: "World" })
 ```typescript
 declare module "@bunli/core" {
   interface RegisteredCommands {
-    mycmd: typeof myCommand
+    mycmd: typeof myCommand;
   }
 }
 ```
@@ -42,21 +42,22 @@ declare module "@bunli/core" {
 ## Handler type inference
 
 ```typescript
-type Handler<TFlags, TStore, TCommandName> =
-  (args: HandlerArgs<TFlags, TStore, TCommandName>) => void | Promise<void>
+type Handler<TFlags, TStore, TCommandName> = (
+  args: HandlerArgs<TFlags, TStore, TCommandName>,
+) => void | Promise<void>;
 
 interface HandlerArgs<TFlags, TStore, TCommandName> {
-  flags: TFlags
-  positional: string[]
-  shell: typeof Bun.$
-  env: typeof process.env
-  cwd: string
-  prompt: import("@bunli/runtime/prompt").PromptApi
-  spinner: import("@bunli/runtime/prompt").PromptSpinnerFactory
-  colors: typeof import("@bunli/utils").colors
-  terminal: TerminalInfo
-  runtime: RuntimeInfo
-  signal: AbortSignal
-  context?: import("@bunli/core/plugin").CommandContext<Record<string, unknown>>
+  flags: TFlags;
+  positional: string[];
+  shell: typeof Bun.$;
+  env: typeof process.env;
+  cwd: string;
+  prompt: import("@bunli/runtime/prompt").PromptApi;
+  spinner: import("@bunli/runtime/prompt").PromptSpinnerFactory;
+  colors: typeof import("@bunli/utils").colors;
+  terminal: TerminalInfo;
+  runtime: RuntimeInfo;
+  signal: AbortSignal;
+  context?: import("@bunli/core/plugin").CommandContext<Record<string, unknown>>;
 }
 ```

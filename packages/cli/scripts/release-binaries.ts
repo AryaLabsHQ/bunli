@@ -4,69 +4,63 @@
  * Used for GitHub releases
  */
 
-import { $ } from 'bun'
+import { $ } from "bun";
 
-const rawVersion = process.argv[2] || 'latest'
-const version = normalizeVersion(rawVersion)
-const platforms = [
-  'darwin-arm64',
-  'darwin-x64',
-  'linux-arm64',
-  'linux-x64',
-  'windows-x64'
-]
+const rawVersion = process.argv[2] || "latest";
+const version = normalizeVersion(rawVersion);
+const platforms = ["darwin-arm64", "darwin-x64", "linux-arm64", "linux-x64", "windows-x64"];
 
-console.log(`🚀 Building bunli ${version} for all platforms...\n`)
+console.log(`🚀 Building bunli ${version} for all platforms...\n`);
 
-const outdir = './release'
+const outdir = "./release";
 
 // Clean release directory
-await $`rm -rf ${outdir}`
-await $`mkdir -p ${outdir}`
+await $`rm -rf ${outdir}`;
+await $`mkdir -p ${outdir}`;
 
 // Build for each platform
 for (const platform of platforms) {
-  console.log(`📦 Building for ${platform}...`)
-  
-  const isWindows = platform.includes('windows')
-  const ext = isWindows ? '.exe' : ''
-  const filename = `bunli${ext}`
-  
+  console.log(`📦 Building for ${platform}...`);
+
+  const isWindows = platform.includes("windows");
+  const ext = isWindows ? ".exe" : "";
+  const filename = `bunli${ext}`;
+
   try {
-    await $`bun build ./src/cli.ts --compile --target bun-${platform} --outfile ${outdir}/${platform}/${filename} --minify`
-    
+    await $`bun build ./src/cli.ts --compile --target bun-${platform} --outfile ${outdir}/${platform}/${filename} --minify`;
+
     // Create tarball
-    await $`cd ${outdir} && tar -czf bunli-${version}-${platform}.tar.gz ${platform}`
-    await $`rm -rf ${outdir}/${platform}`
-    
-    console.log(`✅ Built bunli-${version}-${platform}.tar.gz`)
+    await $`cd ${outdir} && tar -czf bunli-${version}-${platform}.tar.gz ${platform}`;
+    await $`rm -rf ${outdir}/${platform}`;
+
+    console.log(`✅ Built bunli-${version}-${platform}.tar.gz`);
   } catch (error) {
-    console.error(`❌ Failed to build for ${platform}:`, error)
+    console.error(`❌ Failed to build for ${platform}:`, error);
   }
 }
 
 // Create checksums
-console.log('\n📝 Generating checksums...')
-await $`cd ${outdir} && shasum -a 256 *.tar.gz > checksums.txt`
+console.log("\n📝 Generating checksums...");
+await $`cd ${outdir} && shasum -a 256 *.tar.gz > checksums.txt`;
 
-console.log('\n✨ Release binaries ready in ./release/')
-console.log('Files:')
-const files = await $`ls -la ${outdir}`.text()
-console.log(files)
+console.log("\n✨ Release binaries ready in ./release/");
+console.log("Files:");
+const files = await $`ls -la ${outdir}`.text();
+console.log(files);
 
 function normalizeVersion(input: string): string {
-  const trimmed = (input || '').trim()
-  if (!trimmed) return 'latest'
+  const trimmed = (input || "").trim();
+  if (!trimmed) return "latest";
 
-  if (trimmed.includes('@')) {
-    const parts = trimmed.split('@')
-    const last = parts[parts.length - 1]
-    return last || trimmed
+  if (trimmed.includes("@")) {
+    const parts = trimmed.split("@");
+    const last = parts[parts.length - 1];
+    return last || trimmed;
   }
 
-  if (trimmed.startsWith('v') && trimmed.length > 1) {
-    return trimmed.slice(1)
+  if (trimmed.startsWith("v") && trimmed.length > 1) {
+    return trimmed.slice(1);
   }
 
-  return trimmed
+  return trimmed;
 }

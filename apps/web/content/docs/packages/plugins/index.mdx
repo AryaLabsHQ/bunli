@@ -48,17 +48,14 @@ bun add @bunli/plugin-skills
 ## Quick Start
 
 ```typescript
-import { createCLI } from '@bunli/core'
-import { configMergerPlugin } from '@bunli/plugin-config'
-import { aiAgentPlugin } from '@bunli/plugin-ai-detect'
+import { createCLI } from "@bunli/core";
+import { configMergerPlugin } from "@bunli/plugin-config";
+import { aiAgentPlugin } from "@bunli/plugin-ai-detect";
 
 const cli = await createCLI({
-  name: 'my-cli',
-  plugins: [
-    configMergerPlugin(),
-    aiAgentPlugin({ verbose: true })
-  ] as const
-})
+  name: "my-cli",
+  plugins: [configMergerPlugin(), aiAgentPlugin({ verbose: true })] as const,
+});
 ```
 
 ## Creating Custom Plugins

@@ -11,40 +11,39 @@ Bunli automatically loads configuration from `bunli.config.ts` when you call `cr
 
 ```typescript
 // cli.ts - No config needed!
-import { createCLI } from '@bunli/core'
-import build from './commands/build.js'
-import test from './commands/test.js'
+import { createCLI } from "@bunli/core";
+import build from "./commands/build.js";
+import test from "./commands/test.js";
 
-const cli = await createCLI()  // Automatically loads bunli.config.ts
+const cli = await createCLI(); // Automatically loads bunli.config.ts
 
-cli.command(build)
-cli.command(test)
+cli.command(build);
+cli.command(test);
 
-await cli.run()
+await cli.run();
 ```
 
 ```typescript
 // bunli.config.ts - All configuration here
-import { defineConfig } from '@bunli/core'
+import { defineConfig } from "@bunli/core";
 
 export default defineConfig({
-  name: 'my-cli',
-  version: '1.0.0',
-  description: 'My awesome CLI tool',
+  name: "my-cli",
+  version: "1.0.0",
+  description: "My awesome CLI tool",
   commands: {
-    entry: './cli.ts',
-    directory: './commands' // optional fallback hint
+    entry: "./cli.ts",
+    directory: "./commands", // optional fallback hint
   },
-  plugins: []
-})
+  plugins: [],
+});
 ```
 
 <Callout type="tip">
-  **Benefits of automatic loading:**
-  - **Single source of truth** - Configuration lives in one place
-  - **No duplication** - Don't repeat name, version, description in cli.ts
-  - **Consistent** - Same config used by `bunli` CLI commands and runtime
-  - **Type-safe** - Full TypeScript support with `defineConfig`
+  **Benefits of automatic loading:** - **Single source of truth** - Configuration lives in one place
+  - **No duplication** - Don't repeat name, version, description in cli.ts - **Consistent** - Same
+  config used by `bunli` CLI commands and runtime - **Type-safe** - Full TypeScript support with
+  `defineConfig`
 </Callout>
 
 ## Configuration Override
@@ -53,16 +52,14 @@ You can override specific settings for runtime-specific needs:
 
 ```typescript
 // cli.ts - Override plugins with runtime options
-import { createCLI } from '@bunli/core'
-import { configMergerPlugin } from '@bunli/plugin-config'
+import { createCLI } from "@bunli/core";
+import { configMergerPlugin } from "@bunli/plugin-config";
 
 const cli = await createCLI({
-  plugins: [
-    configMergerPlugin({ sources: ['.myrc.json'] })
-  ] as const
-})
+  plugins: [configMergerPlugin({ sources: [".myrc.json"] })] as const,
+});
 
-await cli.run()
+await cli.run();
 ```
 
 The override merges with the loaded config (override values win).
@@ -72,32 +69,32 @@ The override merges with the loaded config (override values win).
 Create a `bunli.config.ts` file in your project root:
 
 ```typescript
-import { defineConfig } from '@bunli/core'
+import { defineConfig } from "@bunli/core";
 
 export default defineConfig({
-  name: 'my-cli',
-  version: '1.0.0',
-  description: 'My awesome CLI tool',
-  
+  name: "my-cli",
+  version: "1.0.0",
+  description: "My awesome CLI tool",
+
   // Command discovery options
   commands: {
-    entry: './cli.ts',
-    directory: './commands' // optional
+    entry: "./cli.ts",
+    directory: "./commands", // optional
   },
-  
+
   // Build configuration
   build: {
-    entry: './cli.ts',
-    outdir: './dist',
-    targets: ['native'],  // Example target
-    compress: false,      // Default: false
-    minify: false,        // Default: false
-    sourcemap: true       // Default: true
+    entry: "./cli.ts",
+    outdir: "./dist",
+    targets: ["native"], // Example target
+    compress: false, // Default: false
+    minify: false, // Default: false
+    sourcemap: true, // Default: true
   },
-  
+
   // Plugins (optional, defaults to [])
-  plugins: []
-})
+  plugins: [],
+});
 ```
 
 ## Configuration Options
@@ -107,14 +104,14 @@ export default defineConfig({
 ```typescript
 export default defineConfig({
   // CLI name (defaults to package.json name)
-  name: 'my-cli',
-  
+  name: "my-cli",
+
   // Version (defaults to package.json version)
-  version: '1.0.0',
-  
+  version: "1.0.0",
+
   // Description for help text
-  description: 'A powerful CLI tool'
-})
+  description: "A powerful CLI tool",
+});
 ```
 
 ### Command Configuration
@@ -123,12 +120,12 @@ export default defineConfig({
 export default defineConfig({
   commands: {
     // CLI entry used for command discovery/codegen
-    entry: './cli.ts',
+    entry: "./cli.ts",
 
     // Optional fallback directory scanner
-    directory: './commands'
-  }
-})
+    directory: "./commands",
+  },
+});
 ```
 
 <Callout type="warning">
@@ -141,13 +138,13 @@ export default defineConfig({
 export default defineConfig({
   build: {
     // Entry point (default: auto-detected)
-    entry: './cli.ts',
+    entry: "./cli.ts",
 
     // Output directory (default: './dist')
-    outdir: './dist',
+    outdir: "./dist",
 
     // Target platforms (default: [])
-    targets: ['native'],  // Native for current platform
+    targets: ["native"], // Native for current platform
     // or specific platforms:
     // targets: ['darwin-arm64', 'linux-x64', 'windows-x64'],
 
@@ -155,15 +152,15 @@ export default defineConfig({
     compress: false,
 
     // External dependencies (not bundled)
-    external: ['sqlite3', 'sharp'],
+    external: ["sqlite3", "sharp"],
 
     // Minify output (default: false)
     minify: false,
 
     // Generate sourcemaps (default: true)
-    sourcemap: true
-  }
-})
+    sourcemap: true,
+  },
+});
 ```
 
 ### Development Configuration
@@ -178,9 +175,9 @@ export default defineConfig({
     inspect: true,
 
     // Inspector port
-    port: 9229
-  }
-})
+    port: 9229,
+  },
+});
 ```
 
 ### TUI Configuration
@@ -192,20 +189,20 @@ export default defineConfig({
   tui: {
     renderer: {
       // Use alternate screen buffer (default: 'standard')
-      bufferMode: 'alternate'  // or 'standard'
+      bufferMode: "alternate", // or 'standard'
     },
     image: {
       // Image protocol mode (default: 'auto')
-      mode: 'auto',           // 'off' | 'auto' | 'on'
+      mode: "auto", // 'off' | 'auto' | 'on'
       // Image protocol (default: 'auto')
-      protocol: 'kitty',      // 'auto' | 'kitty'
+      protocol: "kitty", // 'auto' | 'kitty'
       // Default image width
       width: 800,
       // Default image height
-      height: 600
-    }
-  }
-})
+      height: 600,
+    },
+  },
+});
 ```
 
 ### Help Configuration
@@ -213,9 +210,9 @@ export default defineConfig({
 ```typescript
 export default defineConfig({
   help: {
-    renderer: myCustomRenderer  // Custom HelpRenderer function (any type accepted)
-  }
-})
+    renderer: myCustomRenderer, // Custom HelpRenderer function (any type accepted)
+  },
+});
 ```
 
 ### Type Generation
@@ -224,23 +221,24 @@ Type generation is **automatically enabled** in all Bunli projects for enhanced 
 
 ```typescript
 export default defineConfig({
-  name: 'my-cli',
-  version: '1.0.0',
-})
+  name: "my-cli",
+  version: "1.0.0",
+});
 ```
 
 **Default Behavior:**
 
-| Setting | Default | Description |
-|---------|---------|-------------|
-| **Auto-Generation** | `true` | Always enabled |
-| **Command Entry** | `build.entry` or auto-detected | CLI entry used for command discovery |
-| **Output File** | `./.bunli/commands.gen.ts` | Generated types location |
-| **Watch Mode** | `true` in dev | Regenerate on file changes |
-| **Plugins** | `[]` | Empty array by default |
+| Setting             | Default                        | Description                          |
+| ------------------- | ------------------------------ | ------------------------------------ |
+| **Auto-Generation** | `true`                         | Always enabled                       |
+| **Command Entry**   | `build.entry` or auto-detected | CLI entry used for command discovery |
+| **Output File**     | `./.bunli/commands.gen.ts`     | Generated types location             |
+| **Watch Mode**      | `true` in dev                  | Regenerate on file changes           |
+| **Plugins**         | `[]`                           | Empty array by default               |
 
 <Callout type="info">
-  Type generation is automatically integrated with `bunli dev` and `bunli build` commands. Learn more in the [Type Generation Guide](/docs/guides/type-generation).
+  Type generation is automatically integrated with `bunli dev` and `bunli build` commands. Learn
+  more in the [Type Generation Guide](/docs/guides/type-generation).
 </Callout>
 
 ### Test Configuration
@@ -249,15 +247,15 @@ export default defineConfig({
 export default defineConfig({
   test: {
     // Test file patterns
-    pattern: ['**/*.test.ts', '**/*.spec.ts'],
+    pattern: ["**/*.test.ts", "**/*.spec.ts"],
 
     // Coverage reporting
     coverage: true,
 
     // Watch mode
-    watch: false
-  }
-})
+    watch: false,
+  },
+});
 ```
 
 ### Release Configuration
@@ -272,18 +270,18 @@ export default defineConfig({
     github: true,
 
     // Git tag format
-    tagFormat: 'v{{version}}',
+    tagFormat: "v{{version}}",
 
     // Use conventional commits
     conventionalCommits: true,
 
     // Optional: npm binary package mode
     binary: {
-      packageNameFormat: '{{name}}-{{platform}}',
-      shimPath: 'bin/run.mjs'
-    }
-  }
-})
+      packageNameFormat: "{{name}}-{{platform}}",
+      shimPath: "bin/run.mjs",
+    },
+  },
+});
 ```
 
 ### Workspace Configuration
@@ -294,18 +292,18 @@ For monorepos:
 export default defineConfig({
   workspace: {
     // Package locations
-    packages: ['packages/*', 'apps/*'],
-    
+    packages: ["packages/*", "apps/*"],
+
     // Shared configuration
     shared: {
       typescript: true,
-      eslint: true
+      eslint: true,
     },
-    
+
     // Version strategy
-    versionStrategy: 'independent' // or 'fixed'
-  }
-})
+    versionStrategy: "independent", // or 'fixed'
+  },
+});
 ```
 
 ## Environment-Specific Config
@@ -314,15 +312,15 @@ Use environment variables or conditions:
 
 ```typescript
 export default defineConfig({
-  name: 'my-cli',
+  name: "my-cli",
   build: {
-    minify: process.env.NODE_ENV === 'production',
-    sourcemap: process.env.DEBUG === 'true',
-    targets: process.env.CI 
-      ? ['darwin-arm64', 'linux-x64', 'windows-x64']
-      : [process.platform + '-' + process.arch]
-  }
-})
+    minify: process.env.NODE_ENV === "production",
+    sourcemap: process.env.DEBUG === "true",
+    targets: process.env.CI
+      ? ["darwin-arm64", "linux-x64", "windows-x64"]
+      : [process.platform + "-" + process.arch],
+  },
+});
 ```
 
 ## Extending Configuration
@@ -334,22 +332,22 @@ Share configuration across projects:
 export const baseConfig = {
   build: {
     minify: true,
-    compress: true
-  }
-}
+    compress: true,
+  },
+};
 
 // bunli.config.ts
-import { defineConfig } from '@bunli/core'
-import { baseConfig } from './base.config.js'
+import { defineConfig } from "@bunli/core";
+import { baseConfig } from "./base.config.js";
 
 export default defineConfig({
   ...baseConfig,
-  name: 'my-cli',
+  name: "my-cli",
   build: {
     ...baseConfig.build,
-    entry: './src/index.ts'
-  }
-})
+    entry: "./src/index.ts",
+  },
+});
 ```
 
 ## Platform-Specific Builds
@@ -358,20 +356,20 @@ Configure different settings per platform:
 
 ```typescript
 const platforms = {
-  'darwin-arm64': {
-    external: ['fsevents']
+  "darwin-arm64": {
+    external: ["fsevents"],
   },
-  'windows-x64': {
-    external: ['node-gyp']
-  }
-}
+  "windows-x64": {
+    external: ["node-gyp"],
+  },
+};
 
 export default defineConfig({
   build: {
     targets: Object.keys(platforms),
     // Platform-specific externals handled by build process
-  }
-})
+  },
+});
 ```
 
 ## Configuration Schema
@@ -383,56 +381,74 @@ const configSchema = z.object({
   name: z.string().optional(),
   version: z.string().optional(),
   description: z.string().optional(),
-  commands: z.object({
-    entry: z.string().optional(),
-    directory: z.string().optional(),
-    generateReport: z.boolean().optional()
-  }).optional(),
-  build: z.object({
-    entry: z.string().or(z.array(z.string())).optional(),
-    outdir: z.string().optional(),
-    targets: z.array(z.string()).optional(),
-    compress: z.boolean().optional(),
-    external: z.array(z.string()).optional(),
-    minify: z.boolean().optional(),
-    sourcemap: z.boolean().optional()
-  }).optional(),
-  dev: z.object({
-    watch: z.boolean().optional(),
-    inspect: z.boolean().optional(),
-    port: z.number().optional()
-  }).optional(),
-  test: z.object({
-    pattern: z.string().or(z.array(z.string())).optional(),
-    coverage: z.boolean().optional(),
-    watch: z.boolean().optional()
-  }).optional(),
-  workspace: z.object({
-    packages: z.array(z.string()).optional(),
-    shared: z.unknown().optional(),
-    versionStrategy: z.enum(['fixed', 'independent']).optional()
-  }).optional(),
-  release: z.object({
-    npm: z.boolean().optional(),
-    github: z.boolean().optional(),
-    tagFormat: z.string().optional(),
-    conventionalCommits: z.boolean().optional(),
-    binary: z.object({
-      packageNameFormat: z.string().optional(),
-      shimPath: z.string().optional()
-    }).optional()
-  }).optional(),
+  commands: z
+    .object({
+      entry: z.string().optional(),
+      directory: z.string().optional(),
+      generateReport: z.boolean().optional(),
+    })
+    .optional(),
+  build: z
+    .object({
+      entry: z.string().or(z.array(z.string())).optional(),
+      outdir: z.string().optional(),
+      targets: z.array(z.string()).optional(),
+      compress: z.boolean().optional(),
+      external: z.array(z.string()).optional(),
+      minify: z.boolean().optional(),
+      sourcemap: z.boolean().optional(),
+    })
+    .optional(),
+  dev: z
+    .object({
+      watch: z.boolean().optional(),
+      inspect: z.boolean().optional(),
+      port: z.number().optional(),
+    })
+    .optional(),
+  test: z
+    .object({
+      pattern: z.string().or(z.array(z.string())).optional(),
+      coverage: z.boolean().optional(),
+      watch: z.boolean().optional(),
+    })
+    .optional(),
+  workspace: z
+    .object({
+      packages: z.array(z.string()).optional(),
+      shared: z.unknown().optional(),
+      versionStrategy: z.enum(["fixed", "independent"]).optional(),
+    })
+    .optional(),
+  release: z
+    .object({
+      npm: z.boolean().optional(),
+      github: z.boolean().optional(),
+      tagFormat: z.string().optional(),
+      conventionalCommits: z.boolean().optional(),
+      binary: z
+        .object({
+          packageNameFormat: z.string().optional(),
+          shimPath: z.string().optional(),
+        })
+        .optional(),
+    })
+    .optional(),
   plugins: z.array(z.unknown()).optional(),
-  tui: z.object({
-    renderer: z.object({ bufferMode: z.enum(['alternate', 'standard']).optional() }).optional(),
-    image: z.object({
-      mode: z.enum(['off', 'auto', 'on']).optional(),
-      protocol: z.enum(['auto', 'kitty']).optional(),
-      width: z.number().optional(),
-      height: z.number().optional()
-    }).optional()
-  }).optional()
-})
+  tui: z
+    .object({
+      renderer: z.object({ bufferMode: z.enum(["alternate", "standard"]).optional() }).optional(),
+      image: z
+        .object({
+          mode: z.enum(["off", "auto", "on"]).optional(),
+          protocol: z.enum(["auto", "kitty"]).optional(),
+          width: z.number().optional(),
+          height: z.number().optional(),
+        })
+        .optional(),
+    })
+    .optional(),
+});
 ```
 
 ## Loading Configuration

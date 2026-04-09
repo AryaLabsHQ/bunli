@@ -1,4 +1,4 @@
-import { ShellCompDirective } from './t.js'
+import { ShellCompDirective } from "./t.js";
 
 export function generate(name: string, exec: string) {
   return `#compdef ${name}
@@ -215,5 +215,5 @@ _${name}() {
 if [ "\${funcstack[1]}" = "_${name}" ]; then
     _${name}
 fi
-`
+`;
 }

@@ -13,11 +13,11 @@ bun add @bunli/plugin-completions
 ## Setup
 
 ```ts
-import { defineConfig } from '@bunli/core'
-import { completionsPlugin } from '@bunli/plugin-completions'
+import { defineConfig } from "@bunli/core";
+import { completionsPlugin } from "@bunli/plugin-completions";
 
 export default defineConfig({
-  name: 'my-cli',
+  name: "my-cli",
   plugins: [
     completionsPlugin({
       // generatedPath: '.bunli/commands.gen.ts',
@@ -25,9 +25,9 @@ export default defineConfig({
       // executable: 'my-cli',
       // includeAliases: true,
       // includeGlobalFlags: true
-    })
-  ]
-})
+    }),
+  ],
+});
 ```
 
 You must have `.bunli/commands.gen.ts` available (run `bunli generate`, or enable codegen in your build).

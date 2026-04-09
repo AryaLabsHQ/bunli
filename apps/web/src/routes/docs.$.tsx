@@ -1,9 +1,10 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
+import { useFumadocsLoader } from "fumadocs-core/source/client";
 import { DocsLayout } from "fumadocs-ui/layouts/docs";
 import { DocsBody, DocsDescription, DocsPage, DocsTitle } from "fumadocs-ui/layouts/docs/page";
-import { useFumadocsLoader } from "fumadocs-core/source/client";
 import type { ComponentType } from "react";
+
 import browserCollections from "../../.source/browser";
 import { docsLayoutOptions } from "../lib/layout";
 import { mdxComponents } from "../lib/mdx";
@@ -53,7 +54,11 @@ function DocsRouteComponent() {
   const Content = docsClientLoader.getComponent(data.path) as unknown as ComponentType;
 
   return (
-    <DocsLayout tree={pageTree} {...docsLayoutOptions()} containerProps={{ className: "bunli-docs" }}>
+    <DocsLayout
+      tree={pageTree}
+      {...docsLayoutOptions()}
+      containerProps={{ className: "bunli-docs" }}
+    >
       <Content />
     </DocsLayout>
   );

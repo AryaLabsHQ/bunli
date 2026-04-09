@@ -4,17 +4,17 @@
 
 ## WHERE TO LOOK
 
-| Task | Location |
-|------|----------|
-| Build command | `src/commands/build.ts` |
-| Dev command | `src/commands/dev.ts` |
-| Test command | `src/commands/test.ts` |
-| Init command | `src/commands/init.ts` |
-| Release command | `src/commands/release.ts` |
-| Type generation command | `src/commands/generate.ts` |
-| Diagnostic command | `src/commands/doctor.ts` |
-| Shell completions command | `src/commands/shell.ts` |
-| CLI utilities | `src/utils/` |
+| Task                      | Location                   |
+| ------------------------- | -------------------------- |
+| Build command             | `src/commands/build.ts`    |
+| Dev command               | `src/commands/dev.ts`      |
+| Test command              | `src/commands/test.ts`     |
+| Init command              | `src/commands/init.ts`     |
+| Release command           | `src/commands/release.ts`  |
+| Type generation command   | `src/commands/generate.ts` |
+| Diagnostic command        | `src/commands/doctor.ts`   |
+| Shell completions command | `src/commands/shell.ts`    |
+| CLI utilities             | `src/utils/`               |
 
 ## COMMANDS
 

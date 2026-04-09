@@ -10,28 +10,28 @@ Create engaging CLI experiences with interactive prompts, confirmations, and sel
 Bunli provides several built-in prompt utilities through the handler context:
 
 ```typescript
-import { PromptCancelledError } from '@bunli/runtime/prompt'
+import { PromptCancelledError } from "@bunli/runtime/prompt";
 
 export default defineCommand({
   handler: async ({ prompt }) => {
     // Text input
-    const name = await prompt('What is your name?')
+    const name = await prompt("What is your name?");
 
     // Confirmation
-    const confirmed = await prompt.confirm('Continue?')
+    const confirmed = await prompt.confirm("Continue?");
 
     // Selection
-    const choice = await prompt.select('Choose an option', {
+    const choice = await prompt.select("Choose an option", {
       options: [
-        { label: 'Option A', value: 'a' },
-        { label: 'Option B', value: 'b' }
-      ]
-    })
+        { label: "Option A", value: "a" },
+        { label: "Option B", value: "b" },
+      ],
+    });
 
     // Password input
-    const password = await prompt.password('Enter password:')
-  }
-})
+    const password = await prompt.password("Enter password:");
+  },
+});
 ```
 
 Bunli prompt primitives are provided by `@bunli/runtime/prompt`, and the handler `prompt` utility exposes lifecycle helpers like `intro/outro/note/cancel`:
@@ -39,11 +39,11 @@ Bunli prompt primitives are provided by `@bunli/runtime/prompt`, and the handler
 ```typescript
 export default defineCommand({
   handler: async ({ prompt }) => {
-    prompt.intro('Setup')
-    const name = await prompt.text('Name:')
-    prompt.outro('Done')
-  }
-})
+    prompt.intro("Setup");
+    const name = await prompt.text("Name:");
+    prompt.outro("Done");
+  },
+});
 ```
 
 ## Clack Mental Model Mapping
@@ -52,27 +52,27 @@ If you're migrating from `@clack/prompts`, use this quick mapping:
 
 ```typescript
 // clack mental model -> @bunli/runtime/prompt
-intro('Setup')                     // -> prompt.intro('Setup')
-outro('Done')                      // -> prompt.outro('Done')
-log.info('message')                // -> prompt.log.info('message')
-const ok = await confirm('Continue?') // -> await prompt.confirm('Continue?')
+intro("Setup"); // -> prompt.intro('Setup')
+outro("Done"); // -> prompt.outro('Done')
+log.info("message"); // -> prompt.log.info('message')
+const ok = await confirm("Continue?"); // -> await prompt.confirm('Continue?')
 
 // Choice-based prompts use object options in Bunli:
-const env = await prompt.select('Environment', {
+const env = await prompt.select("Environment", {
   options: [
-    { label: 'Development', value: 'dev' },
-    { label: 'Production', value: 'prod' }
+    { label: "Development", value: "dev" },
+    { label: "Production", value: "prod" },
   ],
-  default: 'dev'
-})
+  default: "dev",
+});
 
-const features = await prompt.multiselect('Features', {
+const features = await prompt.multiselect("Features", {
   options: [
-    { label: 'Testing', value: 'testing' },
-    { label: 'Docker', value: 'docker' }
+    { label: "Testing", value: "testing" },
+    { label: "Docker", value: "docker" },
   ],
-  initialValues: ['testing']
-})
+  initialValues: ["testing"],
+});
 ```
 
 ## Alternate-Buffer Dialog Flows
@@ -80,26 +80,26 @@ const features = await prompt.multiselect('Features', {
 For richer TUI flows in `render()` paths, use `@bunli/tui/interactive` dialog primitives:
 
 ```tsx
-import { useDialogManager, DialogDismissedError } from '@bunli/runtime/app'
+import { useDialogManager, DialogDismissedError } from "@bunli/runtime/app";
 
 function DeployScreen() {
-  const dialogs = useDialogManager()
+  const dialogs = useDialogManager();
 
   async function deploy() {
     try {
       const env = await dialogs.choose({
-        title: 'Target environment',
+        title: "Target environment",
         options: [
-          { label: 'Development', value: 'dev', section: 'General' },
-          { label: 'Staging', value: 'staging', section: 'General' },
-          { label: 'Production', value: 'prod', section: 'Protected', disabled: true }
-        ]
-      })
+          { label: "Development", value: "dev", section: "General" },
+          { label: "Staging", value: "staging", section: "General" },
+          { label: "Production", value: "prod", section: "Protected", disabled: true },
+        ],
+      });
 
       const confirmed = await dialogs.confirm({
-        title: 'Confirm deploy',
-        message: `Deploy to ${env}?`
-      })
+        title: "Confirm deploy",
+        message: `Deploy to ${env}?`,
+      });
 
       if (confirmed) {
         // run deploy
@@ -111,16 +111,18 @@ function DeployScreen() {
     }
   }
 
-  return <box />
+  return <box />;
 }
 ```
 
 `choose` semantics:
+
 - Disabled options are skipped for selection/navigation.
 - `initialIndex` is normalized to the nearest enabled option.
 - Dialog rejects when no enabled options exist.
 
 Keyboard defaults:
+
 - `confirm`: `Left/h/y`, `Right/l/n`, `Tab`, `Enter`
 - `choose`: `Up/k`, `Down/j`, `Enter`
 
@@ -130,22 +132,22 @@ Keyboard defaults:
 
 ```typescript
 export default defineCommand({
-  name: 'init',
+  name: "init",
   handler: async ({ prompt, colors }) => {
-    const projectName = await prompt('Project name:', {
-      default: 'my-project',
+    const projectName = await prompt("Project name:", {
+      default: "my-project",
       validate: (value) => {
-        if (!value) return 'Project name is required'
+        if (!value) return "Project name is required";
         if (!/^[a-z0-9-]+$/.test(value)) {
-          return 'Project name can only contain lowercase letters, numbers, and dashes'
+          return "Project name can only contain lowercase letters, numbers, and dashes";
         }
-        return true
-      }
-    })
+        return true;
+      },
+    });
 
-    console.log(colors.green('✓'), `Creating project: ${projectName}`)
-  }
-})
+    console.log(colors.green("✓"), `Creating project: ${projectName}`);
+  },
+});
 ```
 
 ### Multi-line Input
@@ -154,47 +156,47 @@ Note: Bunli's `prompt()` currently captures a single line of input.
 
 ```typescript
 export default defineCommand({
-  name: 'note',
+  name: "note",
   handler: async ({ prompt }) => {
-    const content = await prompt('Enter your note (Ctrl+D to finish):', {
-      multiline: true
-    })
+    const content = await prompt("Enter your note (Ctrl+D to finish):", {
+      multiline: true,
+    });
 
-    console.log('Note saved with', content.split('\n').length, 'lines')
-  }
-})
+    console.log("Note saved with", content.split("\n").length, "lines");
+  },
+});
 ```
 
 ### Input with Validation
 
 ```typescript
 export default defineCommand({
-  name: 'register',
+  name: "register",
   handler: async ({ prompt }) => {
-    const email = await prompt('Email address:', {
+    const email = await prompt("Email address:", {
       validate: (value) => {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(value)) {
-          return 'Please enter a valid email address'
+          return "Please enter a valid email address";
         }
-        return true
-      }
-    })
+        return true;
+      },
+    });
 
-    const ageStr = await prompt('Age:', {
+    const ageStr = await prompt("Age:", {
       validate: (value) => {
-        const num = parseInt(value, 10)
-        if (isNaN(num)) return 'Please enter a number'
-        if (num < 18) return 'You must be 18 or older'
-        if (num > 150) return 'Please enter a valid age'
-        return true
-      }
-    })
+        const num = parseInt(value, 10);
+        if (isNaN(num)) return "Please enter a number";
+        if (num < 18) return "You must be 18 or older";
+        if (num > 150) return "Please enter a valid age";
+        return true;
+      },
+    });
 
-    const age = parseInt(ageStr, 10)
-    console.log(`Registered: ${email}, age ${age}`)
-  }
-})
+    const age = parseInt(ageStr, 10);
+    console.log(`Registered: ${email}, age ${age}`);
+  },
+});
 ```
 
 ## Confirmation Prompts
@@ -203,61 +205,56 @@ export default defineCommand({
 
 ```typescript
 export default defineCommand({
-  name: 'delete',
+  name: "delete",
   handler: async ({ prompt, colors, positional }) => {
-    const [file] = positional
+    const [file] = positional;
 
-    const confirmed = await prompt.confirm(
-      `Are you sure you want to delete ${file}?`,
-      { default: false }
-    )
+    const confirmed = await prompt.confirm(`Are you sure you want to delete ${file}?`, {
+      default: false,
+    });
 
     if (confirmed) {
-      console.log(colors.red('✗'), `Deleted ${file}`)
+      console.log(colors.red("✗"), `Deleted ${file}`);
     } else {
-      console.log(colors.yellow('⚠'), 'Operation cancelled')
+      console.log(colors.yellow("⚠"), "Operation cancelled");
     }
-  }
-})
+  },
+});
 ```
 
 ### Dangerous Operations
 
 ```typescript
 export default defineCommand({
-  name: 'deploy',
+  name: "deploy",
   options: {
-    env: option(z.enum(['dev', 'staging', 'production']))
+    env: option(z.enum(["dev", "staging", "production"])),
   },
   handler: async ({ flags, prompt, colors }) => {
-    if (flags.env === 'production') {
-      console.log(colors.yellow('⚠ WARNING: Deploying to production!'))
+    if (flags.env === "production") {
+      console.log(colors.yellow("⚠ WARNING: Deploying to production!"));
 
-      const confirmed = await prompt.confirm(
-        'This will affect live users. Continue?',
-        { default: false }
-      )
+      const confirmed = await prompt.confirm("This will affect live users. Continue?", {
+        default: false,
+      });
 
       if (!confirmed) {
-        console.log('Deployment cancelled')
-        process.exit(0)
+        console.log("Deployment cancelled");
+        process.exit(0);
       }
 
       // Double confirmation for critical operations
-      const reallyConfirmed = await prompt.confirm(
-        'Are you REALLY sure?',
-        { default: false }
-      )
+      const reallyConfirmed = await prompt.confirm("Are you REALLY sure?", { default: false });
 
       if (!reallyConfirmed) {
-        console.log('Deployment cancelled')
-        process.exit(0)
+        console.log("Deployment cancelled");
+        process.exit(0);
       }
     }
 
-    console.log(`Deploying to ${flags.env}...`)
-  }
-})
+    console.log(`Deploying to ${flags.env}...`);
+  },
+});
 ```
 
 ## Selection Prompts
@@ -266,95 +263,98 @@ export default defineCommand({
 
 ```typescript
 export default defineCommand({
-  name: 'create',
+  name: "create",
   handler: async ({ prompt, colors }) => {
-    const projectType = await prompt.select('What type of project?', {
+    const projectType = await prompt.select("What type of project?", {
       options: [
-        { value: 'web', label: 'Web Application' },
-        { value: 'api', label: 'REST API' },
-        { value: 'cli', label: 'CLI Tool' },
-        { value: 'lib', label: 'Library' }
-      ]
-    })
+        { value: "web", label: "Web Application" },
+        { value: "api", label: "REST API" },
+        { value: "cli", label: "CLI Tool" },
+        { value: "lib", label: "Library" },
+      ],
+    });
 
-    const framework = await prompt.select('Choose a framework:', {
-      options: projectType === 'web' ? [
-        { value: 'next', label: 'Next.js' },
-        { value: 'remix', label: 'Remix' },
-        { value: 'astro', label: 'Astro' }
-      ] : [
-        { value: 'hono', label: 'Hono' },
-        { value: 'elysia', label: 'Elysia' },
-        { value: 'express', label: 'Express' }
-      ]
-    })
+    const framework = await prompt.select("Choose a framework:", {
+      options:
+        projectType === "web"
+          ? [
+              { value: "next", label: "Next.js" },
+              { value: "remix", label: "Remix" },
+              { value: "astro", label: "Astro" },
+            ]
+          : [
+              { value: "hono", label: "Hono" },
+              { value: "elysia", label: "Elysia" },
+              { value: "express", label: "Express" },
+            ],
+    });
 
-    console.log(colors.green('✓'), `Creating ${projectType} with ${framework}`)
-  }
-})
+    console.log(colors.green("✓"), `Creating ${projectType} with ${framework}`);
+  },
+});
 ```
 
 ### Multi-Selection
 
 ```typescript
 export default defineCommand({
-  name: 'install',
+  name: "install",
   handler: async ({ prompt, spinner }) => {
-    const features = await prompt.multiselect('Select features to install:', {
+    const features = await prompt.multiselect("Select features to install:", {
       options: [
-        { value: 'auth', label: 'Authentication' },
-        { value: 'db', label: 'Database' },
-        { value: 'email', label: 'Email Service' },
-        { value: 'storage', label: 'File Storage' },
-        { value: 'cache', label: 'Caching Layer' },
-        { value: 'queue', label: 'Job Queue' }
+        { value: "auth", label: "Authentication" },
+        { value: "db", label: "Database" },
+        { value: "email", label: "Email Service" },
+        { value: "storage", label: "File Storage" },
+        { value: "cache", label: "Caching Layer" },
+        { value: "queue", label: "Job Queue" },
       ],
-      initialValues: ['auth', 'db'],
+      initialValues: ["auth", "db"],
       min: 1,
-      max: 4
-    })
+      max: 4,
+    });
 
-    const spin = spinner('Installing features...')
-    spin.start()
+    const spin = spinner("Installing features...");
+    spin.start();
 
     for (const feature of features) {
-      spin.update(`Installing ${feature}...`)
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      spin.update(`Installing ${feature}...`);
+      await new Promise((resolve) => setTimeout(resolve, 1000));
     }
 
-    spin.succeed(`Installed ${features.length} features`)
-  }
-})
+    spin.succeed(`Installed ${features.length} features`);
+  },
+});
 ```
 
 ## Password Prompts
 
 ```typescript
 export default defineCommand({
-  name: 'login',
+  name: "login",
   handler: async ({ prompt, colors }) => {
-    const username = await prompt('Username:')
+    const username = await prompt("Username:");
 
-    const password = await prompt.password('Password:', {
+    const password = await prompt.password("Password:", {
       validate: (value) => {
         if (value.length < 8) {
-          return 'Password must be at least 8 characters'
+          return "Password must be at least 8 characters";
         }
-        return true
-      }
-    })
+        return true;
+      },
+    });
 
     // For sensitive operations, confirm password
-    const confirmPassword = await prompt.password('Confirm password:')
+    const confirmPassword = await prompt.password("Confirm password:");
 
     if (password !== confirmPassword) {
-      console.log(colors.red('✗'), 'Passwords do not match')
-      process.exit(1)
+      console.log(colors.red("✗"), "Passwords do not match");
+      process.exit(1);
     }
 
-    console.log(colors.green('✓'), 'Login successful')
-  }
-})
+    console.log(colors.green("✓"), "Login successful");
+  },
+});
 ```
 
 ## Complex Interactive Flows
@@ -363,158 +363,158 @@ export default defineCommand({
 
 ```typescript
 export default defineCommand({
-  name: 'setup',
+  name: "setup",
   handler: async ({ prompt, colors, spinner }) => {
-    console.log(colors.blue('Welcome to the setup wizard!\n'))
+    console.log(colors.blue("Welcome to the setup wizard!\n"));
 
     // Step 1: Basic Info
-    const projectName = await prompt('Project name:', {
-      default: 'my-app'
-    })
+    const projectName = await prompt("Project name:", {
+      default: "my-app",
+    });
 
-    const description = await prompt('Project description:', {
-      default: 'A Bunli CLI application'
-    })
+    const description = await prompt("Project description:", {
+      default: "A Bunli CLI application",
+    });
 
     // Step 2: Configuration
-    const useTypeScript = await prompt.confirm('Use TypeScript?', {
-      default: true
-    })
+    const useTypeScript = await prompt.confirm("Use TypeScript?", {
+      default: true,
+    });
 
-    const features = await prompt.multiselect('Select features:', {
+    const features = await prompt.multiselect("Select features:", {
       options: [
-        { value: 'tests', label: 'Testing framework' },
-        { value: 'lint', label: 'Linting' },
-        { value: 'format', label: 'Code formatting' },
-        { value: 'git', label: 'Git repository' },
-        { value: 'ci', label: 'CI/CD pipeline' }
+        { value: "tests", label: "Testing framework" },
+        { value: "lint", label: "Linting" },
+        { value: "format", label: "Code formatting" },
+        { value: "git", label: "Git repository" },
+        { value: "ci", label: "CI/CD pipeline" },
       ],
-      initialValues: ['tests', 'lint', 'format', 'git']
-    })
+      initialValues: ["tests", "lint", "format", "git"],
+    });
 
     // Step 3: Advanced Options
-    let database = null
-    if (await prompt.confirm('Configure database?')) {
-      database = await prompt.select('Database type:', {
+    let database = null;
+    if (await prompt.confirm("Configure database?")) {
+      database = await prompt.select("Database type:", {
         options: [
-          { value: 'sqlite', label: 'SQLite' },
-          { value: 'postgres', label: 'PostgreSQL' },
-          { value: 'mysql', label: 'MySQL' },
-          { value: 'mongodb', label: 'MongoDB' }
-        ]
-      })
+          { value: "sqlite", label: "SQLite" },
+          { value: "postgres", label: "PostgreSQL" },
+          { value: "mysql", label: "MySQL" },
+          { value: "mongodb", label: "MongoDB" },
+        ],
+      });
     }
 
     // Step 4: Confirmation
-    console.log('\n' + colors.blue('Configuration Summary:'))
-    console.log(`  Name: ${projectName}`)
-    console.log(`  Description: ${description}`)
-    console.log(`  TypeScript: ${useTypeScript ? 'Yes' : 'No'}`)
-    console.log(`  Features: ${features.join(', ')}`)
+    console.log("\n" + colors.blue("Configuration Summary:"));
+    console.log(`  Name: ${projectName}`);
+    console.log(`  Description: ${description}`);
+    console.log(`  TypeScript: ${useTypeScript ? "Yes" : "No"}`);
+    console.log(`  Features: ${features.join(", ")}`);
     if (database) {
-      console.log(`  Database: ${database}`)
+      console.log(`  Database: ${database}`);
     }
 
-    const proceed = await prompt.confirm('\nProceed with setup?', {
-      default: true
-    })
+    const proceed = await prompt.confirm("\nProceed with setup?", {
+      default: true,
+    });
 
     if (!proceed) {
-      console.log(colors.yellow('Setup cancelled'))
-      process.exit(0)
+      console.log(colors.yellow("Setup cancelled"));
+      process.exit(0);
     }
 
     // Step 5: Execute Setup
-    const spin = spinner('Setting up project...')
-    spin.start()
+    const spin = spinner("Setting up project...");
+    spin.start();
 
     // Simulate setup steps
     const steps = [
-      'Creating project structure',
-      'Installing dependencies',
-      'Configuring tools',
-      'Initializing git repository'
-    ]
+      "Creating project structure",
+      "Installing dependencies",
+      "Configuring tools",
+      "Initializing git repository",
+    ];
 
     for (const step of steps) {
-      spin.update(step + '...')
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      spin.update(step + "...");
+      await new Promise((resolve) => setTimeout(resolve, 1000));
     }
 
-    spin.succeed('Project setup complete!')
-    console.log(colors.green('\n✓'), `cd ${projectName} && bunli dev`)
-  }
-})
+    spin.succeed("Project setup complete!");
+    console.log(colors.green("\n✓"), `cd ${projectName} && bunli dev`);
+  },
+});
 ```
 
 ### Interactive Configuration Editor
 
 ```typescript
 export default defineCommand({
-  name: 'config',
+  name: "config",
   handler: async ({ prompt, colors }) => {
-    const action = await prompt.select('What would you like to do?', {
+    const action = await prompt.select("What would you like to do?", {
       options: [
-        { value: 'view', label: 'View current configuration' },
-        { value: 'edit', label: 'Edit configuration' },
-        { value: 'reset', label: 'Reset to defaults' }
-      ]
-    })
+        { value: "view", label: "View current configuration" },
+        { value: "edit", label: "Edit configuration" },
+        { value: "reset", label: "Reset to defaults" },
+      ],
+    });
 
-    if (action === 'edit') {
-      const section = await prompt.select('Which section to edit?', {
+    if (action === "edit") {
+      const section = await prompt.select("Which section to edit?", {
         options: [
-          { value: 'general', label: 'General Settings' },
-          { value: 'api', label: 'API Configuration' },
-          { value: 'advanced', label: 'Advanced Options' }
-        ]
-      })
+          { value: "general", label: "General Settings" },
+          { value: "api", label: "API Configuration" },
+          { value: "advanced", label: "Advanced Options" },
+        ],
+      });
 
       switch (section) {
-        case 'general':
-          const theme = await prompt.select('Color theme:', {
+        case "general":
+          const theme = await prompt.select("Color theme:", {
             options: [
-              { value: 'auto', label: 'Auto (system)' },
-              { value: 'light', label: 'Light' },
-              { value: 'dark', label: 'Dark' }
-            ]
-          })
+              { value: "auto", label: "Auto (system)" },
+              { value: "light", label: "Light" },
+              { value: "dark", label: "Dark" },
+            ],
+          });
 
-          const verbose = await prompt.confirm('Enable verbose logging?')
+          const verbose = await prompt.confirm("Enable verbose logging?");
 
-          console.log(colors.green('✓'), 'Settings updated')
-          break
+          console.log(colors.green("✓"), "Settings updated");
+          break;
 
-        case 'api':
-          const endpoint = await prompt('API endpoint:', {
-            default: 'https://api.example.com',
+        case "api":
+          const endpoint = await prompt("API endpoint:", {
+            default: "https://api.example.com",
             validate: (value) => {
               try {
-                new URL(value)
-                return true
+                new URL(value);
+                return true;
               } catch {
-                return 'Please enter a valid URL'
+                return "Please enter a valid URL";
               }
-            }
-          })
+            },
+          });
 
-          const timeout = await prompt('Request timeout (seconds):', {
-            default: '30',
+          const timeout = await prompt("Request timeout (seconds):", {
+            default: "30",
             validate: (value) => {
-              const num = parseInt(value, 10)
+              const num = parseInt(value, 10);
               if (isNaN(num) || num <= 0) {
-                return 'Please enter a positive number'
+                return "Please enter a positive number";
               }
-              return true
-            }
-          })
+              return true;
+            },
+          });
 
-          console.log(colors.green('✓'), 'API configuration updated')
-          break
+          console.log(colors.green("✓"), "API configuration updated");
+          break;
       }
     }
-  }
-})
+  },
+});
 ```
 
 ## Prompt Options
@@ -524,25 +524,25 @@ export default defineCommand({
 ```typescript
 interface PromptOptions {
   // Default value
-  default?: string
+  default?: string;
 
   // Validation function
-  validate?: (value: string) => boolean | string
+  validate?: (value: string) => boolean | string;
 
   // Zod/Standard Schema validation
-  schema?: StandardSchemaV1
+  schema?: StandardSchemaV1;
 
   // Placeholder text
-  placeholder?: string
+  placeholder?: string;
 
   // Multi-line input
-  multiline?: boolean
+  multiline?: boolean;
 
   // Character limit
-  charLimit?: number
+  charLimit?: number;
 
   // Display height
-  height?: number
+  height?: number;
 }
 ```
 
@@ -552,13 +552,13 @@ interface PromptOptions {
 interface SelectOptions<T> {
   // Available options
   options: Array<{
-    value: T
-    label: string
-    hint?: string
-  }>
+    value: T;
+    label: string;
+    hint?: string;
+  }>;
 
   // Default selected value
-  default?: T
+  default?: T;
 }
 ```
 
@@ -577,17 +577,17 @@ interface SelectOptions<T> {
 export default defineCommand({
   handler: async ({ prompt, colors }) => {
     try {
-      const input = await prompt('Enter value:')
+      const input = await prompt("Enter value:");
       // Process input
     } catch (error) {
       if (error instanceof PromptCancelledError) {
-        console.log(colors.yellow('\nOperation cancelled'))
-        process.exit(0)
+        console.log(colors.yellow("\nOperation cancelled"));
+        process.exit(0);
       }
-      throw error
+      throw error;
     }
-  }
-})
+  },
+});
 ```
 
 ## Type-Safe Interactive Prompts
@@ -596,82 +596,79 @@ When using type generation, you can create type-safe interactive prompts that le
 
 ```typescript
 // Generated in .bunli/commands.gen.ts
-import { getCommandApi, listCommands } from './commands.gen'
+import { getCommandApi, listCommands } from "./commands.gen";
 
 // Get command metadata for dynamic prompts
-const commands = listCommands()
-const setupApi = getCommandApi('setup')
+const commands = listCommands();
+const setupApi = getCommandApi("setup");
 
 // Use command options for dynamic prompt generation
-const availablePresets = Object.keys(setupApi.options.preset?.options || {})
-const projectTypes = Object.keys(setupApi.options.type?.options || {})
+const availablePresets = Object.keys(setupApi.options.preset?.options || {});
+const projectTypes = Object.keys(setupApi.options.type?.options || {});
 
 // Type-safe interactive command execution
 async function runInteractiveCommand(commandName: string, options: any) {
-  const command = getCommandApi(commandName as any)
+  const command = getCommandApi(commandName as any);
 
   // Validate options against command schema
   for (const [key, value] of Object.entries(options)) {
     if (command.options[key]) {
       // Type-safe option validation
-      console.log(`Setting ${key}: ${value}`)
+      console.log(`Setting ${key}: ${value}`);
     }
   }
 }
 ```
 
 This enables:
+
 - **Dynamic prompt generation** from command metadata
 - **Type-safe option validation** in interactive flows
 - **Command discovery** for building wizards
 - **IntelliSense** for command-specific options
 
 <Callout type="tip">
-  Generated types work perfectly with interactive commands, providing type safety for dynamic prompt generation and option validation.
+  Generated types work perfectly with interactive commands, providing type safety for dynamic prompt
+  generation and option validation.
 </Callout>
 
 ## Testing Interactive Commands
 
 ```typescript
-import { test, expect } from 'bun:test'
-import { testCommand } from '@bunli/test'
+import { test, expect } from "bun:test";
+import { testCommand } from "@bunli/test";
 
-test('interactive setup', async () => {
+test("interactive setup", async () => {
   const result = await testCommand(setupCommand, {
-    args: ['setup'],
-    stdin: [
-      'my-project',
-      'y',
-      'tests,git',
-      'y'
-    ]
-  })
+    args: ["setup"],
+    stdin: ["my-project", "y", "tests,git", "y"],
+  });
 
-  expect(result.exitCode).toBe(0)
-  expect(result.stdout).toContain('Project setup complete')
-})
+  expect(result.exitCode).toBe(0);
+  expect(result.stdout).toContain("Project setup complete");
+});
 ```
 
 For more control over prompt mocking, use the `mockPromptResponses` helper:
 
 ```typescript
-import { test, expect } from 'bun:test'
-import { testCommand, mockPromptResponses } from '@bunli/test'
+import { test, expect } from "bun:test";
+import { testCommand, mockPromptResponses } from "@bunli/test";
 
-test('interactive setup with mockPromptResponses', async () => {
+test("interactive setup with mockPromptResponses", async () => {
   const result = await testCommand(setupCommand, {
-    args: ['setup'],
+    args: ["setup"],
     ...mockPromptResponses({
-      'Project name:': 'my-project',
-      'Use TypeScript?': true,
-      'Select features:': ['tests', 'git'],
-      'Proceed with setup?': true
-    })
-  })
+      "Project name:": "my-project",
+      "Use TypeScript?": true,
+      "Select features:": ["tests", "git"],
+      "Proceed with setup?": true,
+    }),
+  });
 
-  expect(result.exitCode).toBe(0)
-  expect(result.stdout).toContain('Project setup complete')
-})
+  expect(result.exitCode).toBe(0);
+  expect(result.stdout).toContain("Project setup complete");
+});
 ```
 
 ## Next Steps

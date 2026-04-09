@@ -1,115 +1,107 @@
-import { defineCommand, option } from '@bunli/core'
-import { z } from 'zod'
-import { loadConfig } from '../utils/config.js'
-import { validateFiles } from '../utils/validator.js'
-import { glob } from '../utils/glob.js'
+import { defineCommand, option } from "@bunli/core";
+import { z } from "zod";
+
+import { loadConfig } from "../utils/config.js";
+import { glob } from "../utils/glob.js";
+import { validateFiles } from "../utils/validator.js";
 
 const validateCommand = defineCommand({
-  name: 'validate',
-  description: 'Validate files against defined rules',
+  name: "validate",
+  description: "Validate files against defined rules",
   options: {
-    config: option(
-      z.string().optional(),
-      {
-        short: 'c',
-        description: 'Path to config file'
-      }
-    ),
-    fix: option(
-      z.boolean().default(false),
-      {
-        short: 'f',
-        description: 'Auto-fix issues',
-        argumentKind: 'flag'
-      }
-    ),
-    cache: option(
-      z.boolean().default(true),
-      {
-        description: 'Enable caching',
-        argumentKind: 'flag'
-      }
-    )
+    config: option(z.string().optional(), {
+      short: "c",
+      description: "Path to config file",
+    }),
+    fix: option(z.boolean().default(false), {
+      short: "f",
+      description: "Auto-fix issues",
+      argumentKind: "flag",
+    }),
+    cache: option(z.boolean().default(true), {
+      description: "Enable caching",
+      argumentKind: "flag",
+    }),
   },
   handler: async ({ positional, flags, colors, spinner }) => {
-    const spin = spinner('Loading configuration...')
-    spin.start()
+    const spin = spinner("Loading configuration...");
+    spin.start();
 
     try {
-      const config = await loadConfig(flags.config)
-      spin.succeed('Configuration loaded')
+      const config = await loadConfig(flags.config);
+      spin.succeed("Configuration loaded");
 
-      const patterns = positional.length > 0 ? positional : config.include || ['src/**/*.{js,ts}']
+      const patterns = positional.length > 0 ? positional : config.include || ["src/**/*.{js,ts}"];
 
-      const fileSpin = spinner('Resolving files...')
-      fileSpin.start()
+      const fileSpin = spinner("Resolving files...");
+      fileSpin.start();
 
       const files = await glob(patterns, {
         include: config.include,
-        exclude: config.exclude
-      })
+        exclude: config.exclude,
+      });
 
-      fileSpin.succeed(`Found ${files.length} files to validate`)
+      fileSpin.succeed(`Found ${files.length} files to validate`);
 
       if (files.length === 0) {
-        console.log(colors.yellow('No files matched the pattern'))
-        return
+        console.log(colors.yellow("No files matched the pattern"));
+        return;
       }
 
-      const validateSpin = spinner('Validating files...')
-      validateSpin.start()
+      const validateSpin = spinner("Validating files...");
+      validateSpin.start();
 
       const results = await validateFiles(files, {
         rules: config.rules,
         fix: flags.fix,
-        cache: flags.cache && config.cache?.enabled
-      })
+        cache: flags.cache && config.cache?.enabled,
+      });
 
-      validateSpin.stop()
+      validateSpin.stop();
 
-      let hasErrors = false
+      let hasErrors = false;
 
       for (const result of results) {
         if (result.errors.length > 0 || result.warnings.length > 0) {
-          console.log()
-          console.log(colors.bold(result.file))
+          console.log();
+          console.log(colors.bold(result.file));
 
           for (const error of result.errors) {
-            console.log(colors.red(`  ✗ ${error.line}:${error.column} ${error.message}`))
-            hasErrors = true
+            console.log(colors.red(`  ✗ ${error.line}:${error.column} ${error.message}`));
+            hasErrors = true;
           }
 
           for (const warning of result.warnings) {
-            console.log(colors.yellow(`  ⚠ ${warning.line}:${warning.column} ${warning.message}`))
+            console.log(colors.yellow(`  ⚠ ${warning.line}:${warning.column} ${warning.message}`));
           }
         }
       }
 
-      const totalErrors = results.reduce((sum, r) => sum + r.errors.length, 0)
-      const totalWarnings = results.reduce((sum, r) => sum + r.warnings.length, 0)
+      const totalErrors = results.reduce((sum, r) => sum + r.errors.length, 0);
+      const totalWarnings = results.reduce((sum, r) => sum + r.warnings.length, 0);
 
-      console.log()
+      console.log();
       if (totalErrors === 0 && totalWarnings === 0) {
-        console.log(colors.green('✅ All files passed validation!'))
+        console.log(colors.green("✅ All files passed validation!"));
       } else {
-        console.log(colors.bold('Summary:'))
+        console.log(colors.bold("Summary:"));
         if (totalErrors > 0) {
-          console.log(colors.red(`  ${totalErrors} error${totalErrors !== 1 ? 's' : ''}`))
+          console.log(colors.red(`  ${totalErrors} error${totalErrors !== 1 ? "s" : ""}`));
         }
         if (totalWarnings > 0) {
-          console.log(colors.yellow(`  ${totalWarnings} warning${totalWarnings !== 1 ? 's' : ''}`))
+          console.log(colors.yellow(`  ${totalWarnings} warning${totalWarnings !== 1 ? "s" : ""}`));
         }
 
         if (hasErrors) {
-          process.exit(1)
+          process.exit(1);
         }
       }
     } catch (error) {
-      spin.fail('Validation failed')
-      console.error(colors.red(String(error)))
-      process.exit(1)
+      spin.fail("Validation failed");
+      console.error(colors.red(String(error)));
+      process.exit(1);
     }
-  }
-})
+  },
+});
 
-export default validateCommand
+export default validateCommand;

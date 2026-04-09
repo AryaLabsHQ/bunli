@@ -24,32 +24,32 @@ Then create your entry point:
 
 ```typescript
 // cli.ts
-import { createCLI } from "@bunli/core"
-import { defineCommand, option } from "@bunli/core"
-import { z } from "zod"
+import { createCLI } from "@bunli/core";
+import { defineCommand, option } from "@bunli/core";
+import { z } from "zod";
 
 const hello = defineCommand({
   name: "hello",
   description: "Print a greeting",
   options: {
     name: option(z.string().default("World"), { short: "n", description: "Name to greet" }),
-    count: option(z.coerce.number().default(1), { short: "c", description: "Number of times" })
+    count: option(z.coerce.number().default(1), { short: "c", description: "Number of times" }),
   },
   handler: ({ flags, signal }) => {
-    if (signal.aborted) return
+    if (signal.aborted) return;
     for (let i = 0; i < flags.count; i++) {
-      console.log(`Hello, ${flags.name}!`)
+      console.log(`Hello, ${flags.name}!`);
     }
-  }
-})
+  },
+});
 
 const cli = await createCLI({
   name: "my-cli",
   version: "0.1.0",
-})
+});
 
-cli.command(hello)
-await cli.run()
+cli.command(hello);
+await cli.run();
 ```
 
 Run with: `bun run cli.ts`
@@ -57,6 +57,7 @@ Run with: `bun run cli.ts`
 ## Package Versions
 
 Find current versions:
+
 ```bash
 npm view @bunli/core      # Latest version
 npm view @bunli/utils    # Latest version
@@ -161,48 +162,55 @@ Buffer Mode?
 ## Product Index
 
 ### Core
-| Topic | Reference |
-|-------|-----------|
-| Command definition | `references/core/commands.md` |
-| Type safety patterns | `references/core/types.md` |
+
+| Topic                | Reference                     |
+| -------------------- | ----------------------------- |
+| Command definition   | `references/core/commands.md` |
+| Type safety patterns | `references/core/types.md`    |
 
 ### Plugin System
-| Topic | Reference |
-|-------|-----------|
-| Plugin architecture | `references/plugin/system.md` |
-| Built-in plugins | `references/plugin/built-ins.md` |
+
+| Topic               | Reference                        |
+| ------------------- | -------------------------------- |
+| Plugin architecture | `references/plugin/system.md`    |
+| Built-in plugins    | `references/plugin/built-ins.md` |
 
 ### CLI Commands
-| Topic | Reference |
-|-------|-----------|
-| CLI commands | `references/cli/commands.md` |
+
+| Topic               | Reference                    |
+| ------------------- | ---------------------------- |
+| CLI commands        | `references/cli/commands.md` |
 | Project scaffolding | `references/cli/scaffold.md` |
 
 ### Utilities
-| Topic | Reference |
-|-------|-----------|
-| Prompts | `references/utils/prompts.md` |
+
+| Topic    | Reference                     |
+| -------- | ----------------------------- |
+| Prompts  | `references/utils/prompts.md` |
 | Spinners | `references/utils/spinner.md` |
-| Colors | `references/utils/colors.md` |
+| Colors   | `references/utils/colors.md`  |
 
 ### TUI
-| Topic | Reference |
-|-------|-----------|
-| Components | `references/tui/components.md` |
-| OpenTUI (advanced) | Use `opentui` skill |
+
+| Topic              | Reference                      |
+| ------------------ | ------------------------------ |
+| Components         | `references/tui/components.md` |
+| OpenTUI (advanced) | Use `opentui` skill            |
 
 ### OpenTUI Integration
-| Topic | Reference |
-|-------|-----------|
+
+| Topic               | Reference                             |
+| ------------------- | ------------------------------------- |
 | When to use OpenTUI | See "Relationship with OpenTUI" below |
 
 ## Core Concepts
 
 ### CLI Structure
+
 ```typescript
 // my-cli/src/commands/hello.ts
-import { defineCommand, option } from "@bunli/core"
-import { z } from "zod"
+import { defineCommand, option } from "@bunli/core";
+import { z } from "zod";
 
 export const hello = defineCommand({
   name: "hello",
@@ -210,57 +218,59 @@ export const hello = defineCommand({
   options: {
     name: option(z.string().default("World"), {
       short: "n",
-      description: "Name to greet"
-    })
+      description: "Name to greet",
+    }),
   },
   handler: ({ flags }) => {
-    console.log(`Hello, ${flags.name}!`)
-  }
-})
+    console.log(`Hello, ${flags.name}!`);
+  },
+});
 ```
 
 ### Plugin Creation
+
 ```typescript
-import { createPlugin } from "@bunli/core/plugin"
+import { createPlugin } from "@bunli/core/plugin";
 
 const myPlugin = createPlugin({
   name: "my-plugin",
   store: { count: 0 },
   setup(context) {
-    context.registerCommand(myCommand)
+    context.registerCommand(myCommand);
   },
   beforeCommand(ctx) {
-    ctx.store.count++
-  }
-})
+    ctx.store.count++;
+  },
+});
 ```
 
 ### Using Prompts
+
 ```typescript
 handler: async ({ prompt }) => {
-  const name = await prompt("What is your name?")
-  const proceed = await prompt.confirm("Continue?")
+  const name = await prompt("What is your name?");
+  const proceed = await prompt.confirm("Continue?");
   const framework = await prompt.select("Choose framework", {
     options: [
       { label: "React", value: "react" },
       { label: "Vue", value: "vue" },
-      { label: "Svelte", value: "svelte" }
-    ]
-  })
-}
+      { label: "Svelte", value: "svelte" },
+    ],
+  });
+};
 ```
 
 ## Key Packages
 
-| Package | Purpose |
-|---------|---------|
-| `@bunli/core` | CLI framework (defineCommand, option, createCLI) |
-| `@bunli/utils` | Colors and validation utilities |
-| `@bunli/runtime/prompt` | Prompt and spinner APIs |
-| `@bunli/tui` | Terminal UI components |
-| `bunli` | CLI for building CLIs |
-| `create-bunli` | Project scaffolding |
-| `@bunli/generator` | Type generation from commands |
+| Package                 | Purpose                                          |
+| ----------------------- | ------------------------------------------------ |
+| `@bunli/core`           | CLI framework (defineCommand, option, createCLI) |
+| `@bunli/utils`          | Colors and validation utilities                  |
+| `@bunli/runtime/prompt` | Prompt and spinner APIs                          |
+| `@bunli/tui`            | Terminal UI components                           |
+| `bunli`                 | CLI for building CLIs                            |
+| `create-bunli`          | Project scaffolding                              |
+| `@bunli/generator`      | Type generation from commands                    |
 
 ## Built-in Plugins
 
@@ -274,6 +284,7 @@ handler: async ({ prompt }) => {
 Bunli uses **OpenTUI** as its terminal rendering engine. Understanding when to use each:
 
 ### Use Bunli (this skill) for:
+
 - Building CLI applications with commands and options
 - Plugin architecture (auth, config, completions)
 - Type-safe CLI with Zod validation
@@ -282,6 +293,7 @@ Bunli uses **OpenTUI** as its terminal rendering engine. Understanding when to u
 - Publishing CLI to npm
 
 ### Use OpenTUI skill when:
+
 - Building standalone terminal applications (not a CLI with subcommands)
 - Need advanced animation with timeline, keyframes, easing functions
 - Want full Flexbox/Yoga layout control
@@ -293,16 +305,17 @@ Bunli uses **OpenTUI** as its terminal rendering engine. Understanding when to u
 
 ```typescript
 // Bunli TUI uses OpenTUI under the hood
-import { Form, SchemaForm } from "@bunli/tui"      // Bunli's React components
+import { Form, SchemaForm } from "@bunli/tui"; // Bunli's React components
 // prompt is provided via handler args by Bunli         // Prompt + spinner runtime
-import { useTimeline } from "@bunli/tui"          // Re-exported from opentui
+import { useTimeline } from "@bunli/tui"; // Re-exported from opentui
 
 // Drop down to OpenTUI for advanced control
-import { h, Box, Text, instantiate } from "@opentui/core"
-import { createCliRenderer } from "@opentui/core"
+import { h, Box, Text, instantiate } from "@opentui/core";
+import { createCliRenderer } from "@opentui/core";
 ```
 
 **Package relationship:**
+
 - `@bunli/tui` wraps `@opentui/react`
 - Bunli auto-wires the OpenTUI renderer runtime for `render` commands
 - `@bunli/runtime/prompt` provides prompt + spinner APIs used in handlers
@@ -310,6 +323,7 @@ import { createCliRenderer } from "@opentui/core"
 - Renderer options map to OpenTUI renderer settings
 
 **When to combine:**
+
 1. Start with Bunli for CLI structure
 2. Use `@bunli/tui` for common patterns (forms, wizards)
 3. Drop to OpenTUI when you need custom components, advanced animation, or full control

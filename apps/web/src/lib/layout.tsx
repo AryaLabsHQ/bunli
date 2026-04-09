@@ -1,5 +1,6 @@
-import type { SVGProps } from "react";
 import type { BaseLayoutProps } from "fumadocs-ui/layouts/shared";
+import type { SVGProps } from "react";
+
 import { ThemeSwitcher } from "../components/theme-switcher.js";
 
 function GitHubIcon(props: SVGProps<SVGSVGElement>) {

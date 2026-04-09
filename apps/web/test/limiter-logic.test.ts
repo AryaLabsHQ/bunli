@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+
 import {
   DEFAULT_LIMITS,
   applyAbortRun,
@@ -44,7 +45,7 @@ describe("workbench limiter logic", () => {
         nowMs + index,
         DEFAULT_LIMITS,
         `run-${index}`,
-        `token-${index}`
+        `token-${index}`,
       );
       expect(started.ok).toBe(true);
 
@@ -52,7 +53,7 @@ describe("workbench limiter logic", () => {
         started.state,
         nowMs + index + 1,
         `run-${index}`,
-        `token-${index}`
+        `token-${index}`,
       );
       expect(finished.ok).toBe(true);
       state = finished.state;
@@ -93,7 +94,7 @@ describe("workbench limiter logic", () => {
       nowMs,
       DEFAULT_LIMITS,
       "run-1",
-      "token-1"
+      "token-1",
     );
 
     expect(started.ok).toBe(false);

@@ -1,10 +1,10 @@
 {
   "name": "@{{name}}/utils",
   "version": "0.1.0",
-  "type": "module",
   "description": "Shared utilities for {{name}}",
-  "author": "{{author}}",
   "license": "MIT",
+  "author": "{{author}}",
+  "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {

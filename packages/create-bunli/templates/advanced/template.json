@@ -35,10 +35,6 @@
     }
   ],
   "files": {
-    "exclude": [
-      "node_modules/**",
-      ".git/**",
-      "template.json"
-    ]
+    "exclude": ["node_modules/**", ".git/**", "template.json"]
   }
 }

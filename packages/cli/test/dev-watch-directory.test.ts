@@ -1,75 +1,76 @@
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
-import { mkdirSync } from 'node:fs'
-import path from 'node:path'
-import { resolveWatchDirectory } from '../src/commands/dev.js'
-import { createTempFixtureDir, removeTempFixtureDir } from './helpers/temp-dir.js'
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { mkdirSync } from "node:fs";
+import path from "node:path";
 
-describe('resolveWatchDirectory', () => {
-  const originalCwd = process.cwd()
-  let fixtureDir = ''
+import { resolveWatchDirectory } from "../src/commands/dev.js";
+import { createTempFixtureDir, removeTempFixtureDir } from "./helpers/temp-dir.js";
+
+describe("resolveWatchDirectory", () => {
+  const originalCwd = process.cwd();
+  let fixtureDir = "";
 
   beforeEach(() => {
-    fixtureDir = createTempFixtureDir('bunli-dev-watch')
-    process.chdir(fixtureDir)
-  })
+    fixtureDir = createTempFixtureDir("bunli-dev-watch");
+    process.chdir(fixtureDir);
+  });
 
   afterEach(() => {
-    process.chdir(originalCwd)
+    process.chdir(originalCwd);
     if (fixtureDir) {
-      removeTempFixtureDir(fixtureDir)
+      removeTempFixtureDir(fixtureDir);
     }
-  })
+  });
 
-  test('prefers configured commands.directory', () => {
-    mkdirSync(path.join(fixtureDir, 'custom', 'commands'), { recursive: true })
-    const entryPath = path.join(fixtureDir, 'cli.ts')
+  test("prefers configured commands.directory", () => {
+    mkdirSync(path.join(fixtureDir, "custom", "commands"), { recursive: true });
+    const entryPath = path.join(fixtureDir, "cli.ts");
 
-    const resolved = resolveWatchDirectory(entryPath, './custom/commands')
+    const resolved = resolveWatchDirectory(entryPath, "./custom/commands");
 
-    expect(resolved).toBe(path.join(fixtureDir, 'custom', 'commands'))
-  })
+    expect(resolved).toBe(path.join(fixtureDir, "custom", "commands"));
+  });
 
-  test('falls back to ./commands for root-level entry files', () => {
-    mkdirSync(path.join(fixtureDir, 'commands'), { recursive: true })
-    const entryPath = path.join(fixtureDir, 'cli.ts')
+  test("falls back to ./commands for root-level entry files", () => {
+    mkdirSync(path.join(fixtureDir, "commands"), { recursive: true });
+    const entryPath = path.join(fixtureDir, "cli.ts");
 
-    const resolved = resolveWatchDirectory(entryPath)
+    const resolved = resolveWatchDirectory(entryPath);
 
-    expect(resolved).toBe(path.join(fixtureDir, 'commands'))
-  })
+    expect(resolved).toBe(path.join(fixtureDir, "commands"));
+  });
 
-  test('falls back to ./src/commands when ./commands is absent', () => {
-    mkdirSync(path.join(fixtureDir, 'src', 'commands'), { recursive: true })
-    const entryPath = path.join(fixtureDir, 'cli.ts')
+  test("falls back to ./src/commands when ./commands is absent", () => {
+    mkdirSync(path.join(fixtureDir, "src", "commands"), { recursive: true });
+    const entryPath = path.join(fixtureDir, "cli.ts");
 
-    const resolved = resolveWatchDirectory(entryPath)
+    const resolved = resolveWatchDirectory(entryPath);
 
-    expect(resolved).toBe(path.join(fixtureDir, 'src', 'commands'))
-  })
+    expect(resolved).toBe(path.join(fixtureDir, "src", "commands"));
+  });
 
-  test('falls back to ./src when entry is root-level and commands directories are absent', () => {
-    mkdirSync(path.join(fixtureDir, 'src'), { recursive: true })
-    const entryPath = path.join(fixtureDir, 'cli.ts')
+  test("falls back to ./src when entry is root-level and commands directories are absent", () => {
+    mkdirSync(path.join(fixtureDir, "src"), { recursive: true });
+    const entryPath = path.join(fixtureDir, "cli.ts");
 
-    const resolved = resolveWatchDirectory(entryPath)
+    const resolved = resolveWatchDirectory(entryPath);
 
-    expect(resolved).toBe(path.join(fixtureDir, 'src'))
-  })
+    expect(resolved).toBe(path.join(fixtureDir, "src"));
+  });
 
-  test('returns entry directory when entry is nested and no other defaults exist', () => {
-    mkdirSync(path.join(fixtureDir, 'app', 'cli'), { recursive: true })
-    const entryPath = path.join(fixtureDir, 'app', 'cli', 'entry.ts')
+  test("returns entry directory when entry is nested and no other defaults exist", () => {
+    mkdirSync(path.join(fixtureDir, "app", "cli"), { recursive: true });
+    const entryPath = path.join(fixtureDir, "app", "cli", "entry.ts");
 
-    const resolved = resolveWatchDirectory(entryPath)
+    const resolved = resolveWatchDirectory(entryPath);
 
-    expect(resolved).toBe(path.join(fixtureDir, 'app', 'cli'))
-  })
+    expect(resolved).toBe(path.join(fixtureDir, "app", "cli"));
+  });
 
-  test('returns null when no safe fallback directory exists', () => {
-    const entryPath = path.join(fixtureDir, 'cli.ts')
+  test("returns null when no safe fallback directory exists", () => {
+    const entryPath = path.join(fixtureDir, "cli.ts");
 
-    const resolved = resolveWatchDirectory(entryPath)
+    const resolved = resolveWatchDirectory(entryPath);
 
-    expect(resolved).toBeNull()
-  })
-})
+    expect(resolved).toBeNull();
+  });
+});

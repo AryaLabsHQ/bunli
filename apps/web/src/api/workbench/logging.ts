@@ -5,6 +5,6 @@ export function logWorkbenchEvent(event: string, payload: Record<string, unknown
       category: "workbench",
       event,
       ...payload,
-    })
+    }),
   );
 }

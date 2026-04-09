@@ -5,30 +5,30 @@
       "npm": "@ai-sdk/anthropic",
       "options": {
         "baseURL": "https://api.minimax.io/anthropic/v1",
-        "apiKey": "{env:MINIMAX_API_KEY}"
+        "apiKey": "{env:MINIMAX_API_KEY}",
       },
       "models": {
         "MiniMax-M2.7": {
-          "name": "MiniMax-M2.7"
-        }
-      }
+          "name": "MiniMax-M2.7",
+        },
+      },
     },
     "fireworks-ai": {
       "options": {
-        "apiKey": "{env:FIREWORKS_API_KEY}"
+        "apiKey": "{env:FIREWORKS_API_KEY}",
       },
       "models": {
         "accounts/fireworks/routers/kimi-k2p5-turbo": {
-          "name": "Kimi K2.5 Turbo"
-        }
-      }
-    }
+          "name": "Kimi K2.5 Turbo",
+        },
+      },
+    },
   },
   "permission": {
     "bash": "allow",
     "edit": "allow",
     "write": "allow",
-    "agent": "allow"
+    "agent": "allow",
   },
-  "default_agent": "documentation"
+  "default_agent": "documentation",
 }

@@ -11,29 +11,29 @@ bun add @bunli/plugin-ai-detect
 ## Usage
 
 ```typescript
-import { createCLI } from '@bunli/core'
-import { aiAgentPlugin } from '@bunli/plugin-ai-detect'
+import { createCLI } from "@bunli/core";
+import { aiAgentPlugin } from "@bunli/plugin-ai-detect";
 
 const cli = await createCLI({
-  name: 'my-cli',
-  version: '1.0.0',
+  name: "my-cli",
+  version: "1.0.0",
   plugins: [
     aiAgentPlugin({
-      verbose: true // Log when AI agents are detected
-    })
-  ]
-})
+      verbose: true, // Log when AI agents are detected
+    }),
+  ],
+});
 
 // In your commands, you can access the detection results
 cli.command({
-  name: 'info',
+  name: "info",
   handler: async ({ context }) => {
     if (context?.store.isAIAgent) {
-      console.log('Running in AI agent:', context.store.aiAgents.join(', '))
-      console.log('Detected env vars:', context.store.aiAgentEnvVars.join(', '))
+      console.log("Running in AI agent:", context.store.aiAgents.join(", "));
+      console.log("Detected env vars:", context.store.aiAgentEnvVars.join(", "));
     }
-  }
-})
+  },
+});
 ```
 
 ## Options
@@ -43,19 +43,19 @@ interface AIDetectPluginOptions {
   /**
    * Additional custom AI agents to detect
    */
-  customAgents?: AIAgentInfo[]
-  
+  customAgents?: AIAgentInfo[];
+
   /**
    * Whether to log detection results
    * Default: false
    */
-  verbose?: boolean
+  verbose?: boolean;
 }
 
 interface AIAgentInfo {
-  name: string
-  envVars: string[]
-  detect: (env: NodeJS.ProcessEnv) => boolean
+  name: string;
+  envVars: string[];
+  detect: (env: NodeJS.ProcessEnv) => boolean;
 }
 ```
 
@@ -74,17 +74,17 @@ You can add detection for additional AI agents:
 aiAgentPlugin({
   customAgents: [
     {
-      name: 'github-copilot',
-      envVars: ['GITHUB_COPILOT_ENABLED'],
-      detect: (env) => !!env.GITHUB_COPILOT_ENABLED
+      name: "github-copilot",
+      envVars: ["GITHUB_COPILOT_ENABLED"],
+      detect: (env) => !!env.GITHUB_COPILOT_ENABLED,
     },
     {
-      name: 'my-custom-ai',
-      envVars: ['MY_AI_ACTIVE', 'MY_AI_VERSION'],
-      detect: (env) => env.MY_AI_ACTIVE === 'true'
-    }
-  ]
-})
+      name: "my-custom-ai",
+      envVars: ["MY_AI_ACTIVE", "MY_AI_VERSION"],
+      detect: (env) => env.MY_AI_ACTIVE === "true",
+    },
+  ],
+});
 ```
 
 ## Store Properties
@@ -94,13 +94,13 @@ The plugin provides the following typed properties in the command context store:
 ```typescript
 interface AIDetectStore {
   /** Whether any AI agent was detected */
-  isAIAgent: boolean
-  
+  isAIAgent: boolean;
+
   /** List of detected AI agent names */
-  aiAgents: string[]
-  
+  aiAgents: string[];
+
   /** Environment variables that triggered detection */
-  aiAgentEnvVars: string[]
+  aiAgentEnvVars: string[];
 }
 ```
 
@@ -111,8 +111,8 @@ The plugin also extends the environment info:
 ```typescript
 // These properties are added to context.env
 interface EnvironmentInfo {
-  isAIAgent: boolean
-  aiAgents: string[]
+  isAIAgent: boolean;
+  aiAgents: string[];
 }
 ```
 

@@ -1,1 +1,1 @@
-export { gallerySections } from './registry/index.js'
+export { gallerySections } from "./registry/index.js";

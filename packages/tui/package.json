@@ -2,6 +2,20 @@
   "name": "@bunli/tui",
   "version": "0.6.0",
   "description": "Terminal User Interface plugin for Bunli CLI framework",
+  "keywords": [
+    "bunli",
+    "cli",
+    "interactive",
+    "terminal",
+    "tui",
+    "ui"
+  ],
+  "license": "MIT",
+  "author": "Bunli Contributors",
+  "files": [
+    "dist",
+    "src"
+  ],
   "type": "module",
   "main": "src/index.ts",
   "exports": {
@@ -50,19 +64,5 @@
   "peerDependencies": {
     "@opentui/core": "catalog:",
     "react": "catalog:"
-  },
-  "files": [
-    "dist",
-    "src"
-  ],
-  "keywords": [
-    "bunli",
-    "cli",
-    "tui",
-    "terminal",
-    "ui",
-    "interactive"
-  ],
-  "author": "Bunli Contributors",
-  "license": "MIT"
+  }
 }

@@ -27,6 +27,7 @@ bun cli.ts setup --preset standard
 ## Commands
 
 ### `build` - Project Building
+
 Demonstrates advanced validation and data transformation:
 
 ```bash
@@ -41,6 +42,7 @@ bun cli.ts build -v "NODE_ENV=production,API_URL=https://api.example.com"
 ```
 
 **Features:**
+
 - Environment validation (dev/staging/prod)
 - JSON configuration parsing with error handling
 - Memory limit parsing (512m, 2g, etc.)
@@ -48,6 +50,7 @@ bun cli.ts build -v "NODE_ENV=production,API_URL=https://api.example.com"
 - Watch mode for development
 
 ### `test` - Test Execution
+
 Shows complex validation patterns and conditional logic:
 
 ```bash
@@ -62,6 +65,7 @@ bun cli.ts test --watch --verbose
 ```
 
 **Features:**
+
 - Regex pattern validation
 - Coverage threshold enforcement
 - Environment variable parsing and validation
@@ -69,6 +73,7 @@ bun cli.ts test --watch --verbose
 - Verbose output control
 
 ### `deploy` - Deployment Workflow
+
 Interactive deployment with progress tracking:
 
 ```bash
@@ -88,6 +93,7 @@ bun cli.ts deploy --spinner line
 ```
 
 **Features:**
+
 - Multi-step progress indicators
 - Step skipping with validation
 - Selectable spinner variants (`braille`, `dots`, `line`)
@@ -96,6 +102,7 @@ bun cli.ts deploy --spinner line
 - Post-deployment options
 
 ### `setup` - Project Setup Wizard
+
 Comprehensive setup wizard with presets:
 
 ```bash
@@ -109,6 +116,7 @@ bun cli.ts setup --preset full
 ```
 
 **Features:**
+
 - Multi-step interactive wizard
 - Input validation with custom messages
 - Preset configurations
@@ -123,60 +131,60 @@ bun cli.ts setup --preset full
 ```typescript
 // Custom validation with refine
 env: option(
-  z.string()
-    .refine((val) => {
-      const vars = val.split(',')
-      return vars.every(v => v.includes('=') && v.split('=').length === 2)
-    }, 'Environment variables must be in format KEY=VALUE,KEY2=VALUE2')
-)
+  z.string().refine((val) => {
+    const vars = val.split(",");
+    return vars.every((v) => v.includes("=") && v.split("=").length === 2);
+  }, "Environment variables must be in format KEY=VALUE,KEY2=VALUE2"),
+);
 
 // Data transformation
 memory: option(
-  z.string()
-    .regex(/^\d+[kmg]?$/i, 'Memory must be a number with optional unit')
+  z
+    .string()
+    .regex(/^\d+[kmg]?$/i, "Memory must be a number with optional unit")
     .transform((val) => {
-      const num = parseInt(val)
-      const unit = val.slice(-1).toLowerCase()
-      const multipliers = { k: 1024, m: 1024 * 1024, g: 1024 * 1024 * 1024 }
-      return num * (multipliers[unit as keyof typeof multipliers] || 1)
-    })
-)
+      const num = parseInt(val);
+      const unit = val.slice(-1).toLowerCase();
+      const multipliers = { k: 1024, m: 1024 * 1024, g: 1024 * 1024 * 1024 };
+      return num * (multipliers[unit as keyof typeof multipliers] || 1);
+    }),
+);
 ```
 
 ### Interactive Patterns
 
 ```typescript
 // Confirmation with default
-const confirmed = await prompt.confirm('Continue?', { default: false })
+const confirmed = await prompt.confirm("Continue?", { default: false });
 
 // Multiselect with options
-const features = await prompt.multiselect('Features:', {
+const features = await prompt.multiselect("Features:", {
   options: [
-    { value: 'testing', label: 'Testing', hint: 'Jest setup' },
-    { value: 'linting', label: 'Linting', hint: 'ESLint config' }
+    { value: "testing", label: "Testing", hint: "Jest setup" },
+    { value: "linting", label: "Linting", hint: "ESLint config" },
   ],
-  initialValues: ['testing']
-})
+  initialValues: ["testing"],
+});
 
 // Text input with validation
-const name = await prompt.text('Project name:', {
-  validate: (val) => val.length >= 2 || 'Name too short'
-})
+const name = await prompt.text("Project name:", {
+  validate: (val) => val.length >= 2 || "Name too short",
+});
 
 // Prompt lifecycle helpers
-prompt.intro('Project Setup Wizard')
-const telemetry = await prompt.confirm('Enable anonymous setup analytics?', { default: false })
-prompt.outro('Setup complete')
+prompt.intro("Project Setup Wizard");
+const telemetry = await prompt.confirm("Enable anonymous setup analytics?", { default: false });
+prompt.outro("Setup complete");
 ```
 
 ### Progress Indicators
 
 ```typescript
-const spin = spinner('Building project...')
-spin.update('Validating configuration...')
-spin.succeed('Build completed!')
+const spin = spinner("Building project...");
+spin.update("Validating configuration...");
+spin.succeed("Build completed!");
 // or
-spin.fail('Build failed')
+spin.fail("Build failed");
 ```
 
 ## Development
@@ -195,6 +203,7 @@ bun run build
 ## Next Steps
 
 Ready for more complex patterns? Try the **[git-tool](../git-tool/README.md)** example to learn about:
+
 - Nested command organization
 - External tool integration
 - Command aliases and shortcuts

@@ -5,13 +5,14 @@
  * Provides dynamic command registration from MCP tool schemas.
  */
 
-import { createPlugin } from '@bunli/core/plugin'
-import type { BunliPlugin } from '@bunli/core/plugin'
-import { Result } from 'better-result'
-import type { McpPluginOptions, McpPluginStore, MCPToolGroup } from './types.js'
-import { createCommandsFromMCPTools } from './converter.js'
-import { generateMCPTypes } from './codegen.js'
-import { McpToolsProviderError } from './errors.js'
+import { createPlugin } from "@bunli/core/plugin";
+import type { BunliPlugin } from "@bunli/core/plugin";
+import { Result } from "better-result";
+
+import { generateMCPTypes } from "./codegen.js";
+import { createCommandsFromMCPTools } from "./converter.js";
+import { McpToolsProviderError } from "./errors.js";
+import type { McpPluginOptions, McpPluginStore, MCPToolGroup } from "./types.js";
 
 /**
  * Create MCP plugin for dynamic command registration
@@ -41,14 +42,14 @@ import { McpToolsProviderError } from './errors.js'
  * ```
  */
 export function mcpPlugin<TStore = Record<string, unknown>>(
-  options: McpPluginOptions<TStore>
+  options: McpPluginOptions<TStore>,
 ): BunliPlugin<McpPluginStore> {
   return createPlugin<McpPluginStore>({
-    name: '@bunli/plugin-mcp',
-    version: '0.1.0',
+    name: "@bunli/plugin-mcp",
+    version: "0.1.0",
 
     store: {
-      commands: []
+      commands: [],
     },
 
     async setup(context) {
@@ -57,79 +58,76 @@ export function mcpPlugin<TStore = Record<string, unknown>>(
         try: async () => options.toolsProvider(context),
         catch: (cause) =>
           new McpToolsProviderError({
-            message: 'Failed to fetch MCP tools from toolsProvider',
-            cause
-          })
-      })
+            message: "Failed to fetch MCP tools from toolsProvider",
+            cause,
+          }),
+      });
       if (Result.isError(toolGroupsResult)) {
-        context.logger.warn(toolGroupsResult.error.message)
-        return
+        context.logger.warn(toolGroupsResult.error.message);
+        return;
       }
-      const toolGroups: MCPToolGroup[] = toolGroupsResult.value
+      const toolGroups: MCPToolGroup[] = toolGroupsResult.value;
 
       // Track registered commands
-      const registeredCommands: McpPluginStore['commands'] = []
+      const registeredCommands: McpPluginStore["commands"] = [];
 
       // Convert and register commands for each group
       for (const { namespace, tools } of toolGroups) {
         if (!tools || tools.length === 0) {
-          context.logger.debug(`No tools found for namespace: ${namespace}`)
-          continue
+          context.logger.debug(`No tools found for namespace: ${namespace}`);
+          continue;
         }
 
         // Convert tools to commands
         const commandsResult = createCommandsFromMCPTools<TStore>(tools, {
           namespace,
-          createHandler: (toolName) => options.createHandler(namespace, toolName)
-        })
+          createHandler: (toolName) => options.createHandler(namespace, toolName),
+        });
         if (Result.isError(commandsResult)) {
-          context.logger.warn(commandsResult.error.message)
-          continue
+          context.logger.warn(commandsResult.error.message);
+          continue;
         }
-        const commands = commandsResult.value
+        const commands = commandsResult.value;
 
         // Register each command
         for (const cmd of commands) {
-          context.registerCommand(cmd)
+          context.registerCommand(cmd);
           registeredCommands.push({
             namespace,
-            toolName: cmd.name.includes(':')
-              ? cmd.name.split(':').slice(1).join(':')
-              : cmd.name,
-            commandName: cmd.name
-          })
+            toolName: cmd.name.includes(":") ? cmd.name.split(":").slice(1).join(":") : cmd.name,
+            commandName: cmd.name,
+          });
         }
 
         context.logger.debug(
-          `Registered ${commands.length} MCP commands for namespace: ${namespace}`
-        )
+          `Registered ${commands.length} MCP commands for namespace: ${namespace}`,
+        );
       }
 
       // Optional type generation
       if (options.sync && toolGroups.length > 0) {
-        const outputDir = typeof options.sync === 'object'
-          ? options.sync.outputDir || '.bunli'
-          : '.bunli'
+        const outputDir =
+          typeof options.sync === "object" ? options.sync.outputDir || ".bunli" : ".bunli";
 
         const typegenResult = await generateMCPTypes({
           tools: toolGroups,
-          outputDir
-        })
+          outputDir,
+        });
         if (Result.isError(typegenResult)) {
-          context.logger.warn(typegenResult.error.message)
+          context.logger.warn(typegenResult.error.message);
         } else {
-          context.logger.debug(`Generated MCP types in ${outputDir}`)
+          context.logger.debug(`Generated MCP types in ${outputDir}`);
         }
       }
 
       context.logger.info(
-        `MCP plugin loaded ${registeredCommands.length} commands from ${toolGroups.length} server(s)`
-      )
-    }
-  })
+        `MCP plugin loaded ${registeredCommands.length} commands from ${toolGroups.length} server(s)`,
+      );
+    },
+  });
 }
 
 /**
  * Default export for convenience
  */
-export default mcpPlugin
+export default mcpPlugin;

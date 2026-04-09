@@ -17,6 +17,7 @@ This example demonstrates advanced CLI patterns:
 ## Commands
 
 ### `branch` - Branch Management
+
 ```bash
 bun run cli.ts branch --name feature/new-feature
 bun run cli.ts branch --name feature/new-feature --switch
@@ -24,12 +25,14 @@ bun run cli.ts branch --name feature/old-feature --delete
 ```
 
 Branch management with git integration:
+
 - Create new branches with `--name` flag
 - Switch between branches with `--switch` flag
 - Delete branches with `--delete` flag
 - Force operations with `--force` flag
 
 ### `pr` - Pull Request Management
+
 ```bash
 bun run cli.ts pr --title "Add new feature" --draft
 bun run cli.ts pr --title "Fix bug" --base develop --head feature-branch
@@ -37,6 +40,7 @@ bun run cli.ts pr --title "Update docs" --reviewers "alice,bob"
 ```
 
 Pull request workflow automation:
+
 - Create PRs with `--title` and optional `--description`
 - Specify `--base` and `--head` branches
 - Create draft PRs with `--draft`
@@ -44,6 +48,7 @@ Pull request workflow automation:
 - Interactive prompts for uncommitted changes
 
 ### `sync` - Repository Synchronization
+
 ```bash
 bun run cli.ts sync --remote origin --branch main
 bun run cli.ts sync --rebase --prune
@@ -51,6 +56,7 @@ bun run cli.ts sync --rebase --prune
 ```
 
 Sync with remote repositories:
+
 - Pull latest changes
 - Push local commits (via interactive prompt)
 - Rebase on upstream
@@ -58,6 +64,7 @@ Sync with remote repositories:
 - Handle merge conflicts
 
 ### `status` - Enhanced Git Status
+
 ```bash
 bun run cli.ts status --detailed
 bun run cli.ts status --branches --remote
@@ -65,6 +72,7 @@ bun run cli.ts status --history 10
 ```
 
 Enhanced git status with additional information:
+
 - Detailed status with `--detailed`
 - Branch information with `--branches`
 - Remote tracking with `--remote`
@@ -77,56 +85,57 @@ Enhanced git status with additional information:
 The git-tool uses flat commands with options instead of nested subcommands:
 
 ```typescript
-import { defineCommand, option } from '@bunli/core'
-import { z } from 'zod'
+import { defineCommand, option } from "@bunli/core";
+import { z } from "zod";
 
 export const branchCommand = defineCommand({
-  name: 'branch' as const,
-  description: 'Create, switch, or manage branches',
-  alias: 'br',
+  name: "branch" as const,
+  description: "Create, switch, or manage branches",
+  alias: "br",
   options: {
     name: option(
-      z.string()
-        .min(1, 'Branch name cannot be empty')
-        .regex(/^[a-zA-Z0-9._/-]+$/, 'Invalid branch name format'),
-      { short: 'n', description: 'Branch name' }
+      z
+        .string()
+        .min(1, "Branch name cannot be empty")
+        .regex(/^[a-zA-Z0-9._/-]+$/, "Invalid branch name format"),
+      { short: "n", description: "Branch name" },
     ),
-    base: option(
-      z.string().default('main'),
-      { short: 'b', description: 'Base branch to create from' }
-    ),
-    switch: option(
-      z.coerce.boolean().default(false),
-      { short: 's', description: 'Switch to the branch after creating' }
-    ),
-    delete: option(
-      z.coerce.boolean().default(false),
-      { short: 'd', description: 'Delete the branch' }
-    ),
-    force: option(
-      z.coerce.boolean().default(false),
-      { short: 'f', description: 'Force the operation' }
-    )
+    base: option(z.string().default("main"), {
+      short: "b",
+      description: "Base branch to create from",
+    }),
+    switch: option(z.coerce.boolean().default(false), {
+      short: "s",
+      description: "Switch to the branch after creating",
+    }),
+    delete: option(z.coerce.boolean().default(false), {
+      short: "d",
+      description: "Delete the branch",
+    }),
+    force: option(z.coerce.boolean().default(false), {
+      short: "f",
+      description: "Force the operation",
+    }),
   },
   handler: async ({ flags, colors, spinner, shell }) => {
-    const spin = spinner('Working with branches...')
-    
+    const spin = spinner("Working with branches...");
+
     try {
       if (flags.delete) {
-        spin.update(`Deleting branch '${flags.name}'...`)
-        await shell`git branch ${flags.force ? '-D' : '-d'} ${flags.name}`
-        spin.succeed(`Deleted branch '${flags.name}'`)
+        spin.update(`Deleting branch '${flags.name}'...`);
+        await shell`git branch ${flags.force ? "-D" : "-d"} ${flags.name}`;
+        spin.succeed(`Deleted branch '${flags.name}'`);
       } else {
-        spin.update(`Creating branch '${flags.name}' from '${flags.base}'...`)
-        await shell`git checkout -b ${flags.name} ${flags.base}`
-        spin.succeed(`Created branch '${flags.name}'`)
+        spin.update(`Creating branch '${flags.name}' from '${flags.base}'...`);
+        await shell`git checkout -b ${flags.name} ${flags.base}`;
+        spin.succeed(`Created branch '${flags.name}'`);
       }
     } catch (error) {
-      spin.fail('Branch operation failed')
-      console.error(colors.red(String(error)))
+      spin.fail("Branch operation failed");
+      console.error(colors.red(String(error)));
     }
-  }
-})
+  },
+});
 ```
 
 ### 2. External Tool Integration
@@ -135,81 +144,79 @@ The `shell` utility is provided via handler arguments, not imported:
 
 ```typescript
 handler: async ({ shell, colors, spinner }) => {
-  const spin = spinner('Fetching latest changes...')
+  const spin = spinner("Fetching latest changes...");
 
   try {
     // Pull latest changes
-    await shell`git pull origin main`
+    await shell`git pull origin main`;
 
     // Push local commits
-    await shell`git push origin main`
+    await shell`git push origin main`;
 
-    spin.succeed('Repository synchronized')
+    spin.succeed("Repository synchronized");
   } catch (error) {
-    spin.fail('Sync failed')
-    console.error(colors.red(String(error)))
-    process.exit(1)
+    spin.fail("Sync failed");
+    console.error(colors.red(String(error)));
+    process.exit(1);
   }
-}
+};
 ```
 
 ### 3. Command Aliases
+
 ```typescript
 export const prCommand = defineCommand({
-  name: 'pr' as const,
-  alias: 'pull-request',
-  description: 'Create and manage pull requests',
+  name: "pr" as const,
+  alias: "pull-request",
+  description: "Create and manage pull requests",
   options: {
-    title: option(
-      z.string().min(1).max(100),
-      { short: 't', description: 'Pull request title' }
-    ),
-    description: option(
-      z.string().optional(),
-      { short: 'd', description: 'Pull request description' }
-    ),
-    base: option(
-      z.string().default('main'),
-      { short: 'b', description: 'Base branch to merge into' }
-    ),
-    draft: option(
-      z.coerce.boolean().default(false),
-      { description: 'Create as draft pull request' }
-    )
+    title: option(z.string().min(1).max(100), { short: "t", description: "Pull request title" }),
+    description: option(z.string().optional(), {
+      short: "d",
+      description: "Pull request description",
+    }),
+    base: option(z.string().default("main"), {
+      short: "b",
+      description: "Base branch to merge into",
+    }),
+    draft: option(z.coerce.boolean().default(false), {
+      description: "Create as draft pull request",
+    }),
   },
   handler: async ({ flags, colors, spinner, shell, prompt }) => {
     // ... implementation
-  }
-})
+  },
+});
 ```
 
 ### 4. Colored Output and Status
+
 ```typescript
 // colors is provided via handler args, not imported
 handler: async ({ shell, colors }) => {
   // Get git status
-  const statusOutput = await shell`git status --porcelain`
-  const lines = statusOutput.split('\n').filter(Boolean)
+  const statusOutput = await shell`git status --porcelain`;
+  const lines = statusOutput.split("\n").filter(Boolean);
 
   if (lines.length === 0) {
-    console.log(colors.green('✓ Working directory clean'))
-    return
+    console.log(colors.green("✓ Working directory clean"));
+    return;
   }
 
-  console.log(colors.cyan('Changes:'))
-  lines.forEach(line => {
-    const status = line.substring(0, 2)
-    const file = line.substring(3)
+  console.log(colors.cyan("Changes:"));
+  lines.forEach((line) => {
+    const status = line.substring(0, 2);
+    const file = line.substring(3);
 
-    if (status.includes('M')) {
-      console.log(colors.yellow(`  M ${file}`))
-    } else if (status.includes('A')) {
-      console.log(colors.green(`  A ${file}`))
-    } else if (status.includes('D')) {
-      console.log(colors.red(`  D ${file}`))
+    if (status.includes("M")) {
+      console.log(colors.yellow(`  M ${file}`));
+    } else if (status.includes("A")) {
+      console.log(colors.green(`  A ${file}`));
+    } else if (status.includes("D")) {
+      console.log(colors.red(`  D ${file}`));
     }
-  })
-}
+  });
+};
 ```
 
 ## Project Structure
@@ -255,29 +262,29 @@ Instead of nested subcommands, use flat commands with boolean and string options
 ```typescript
 // Single command with options for different operations
 export const branchCommand = defineCommand({
-  name: 'branch' as const,
-  description: 'Create, switch, or manage branches',
+  name: "branch" as const,
+  description: "Create, switch, or manage branches",
   options: {
-    name: option(z.string(), { short: 'n', description: 'Branch name' }),
-    switch: option(z.boolean().default(false), { short: 's', description: 'Switch to branch' }),
-    delete: option(z.boolean().default(false), { short: 'd', description: 'Delete branch' }),
-    force: option(z.boolean().default(false), { short: 'f', description: 'Force operation' })
+    name: option(z.string(), { short: "n", description: "Branch name" }),
+    switch: option(z.boolean().default(false), { short: "s", description: "Switch to branch" }),
+    delete: option(z.boolean().default(false), { short: "d", description: "Delete branch" }),
+    force: option(z.boolean().default(false), { short: "f", description: "Force operation" }),
   },
   handler: async ({ flags, shell, colors, spinner }) => {
-    const spin = spinner('Working with branches...')
-    
+    const spin = spinner("Working with branches...");
+
     if (flags.delete) {
-      await shell`git branch ${flags.force ? '-D' : '-d'} ${flags.name}`
-      spin.succeed(`Deleted branch '${flags.name}'`)
+      await shell`git branch ${flags.force ? "-D" : "-d"} ${flags.name}`;
+      spin.succeed(`Deleted branch '${flags.name}'`);
     } else {
-      await shell`git checkout -b ${flags.name}`
+      await shell`git checkout -b ${flags.name}`;
       if (flags.switch) {
-        await shell`git checkout ${flags.name}`
+        await shell`git checkout ${flags.name}`;
       }
-      spin.succeed(`Created branch '${flags.name}'`)
+      spin.succeed(`Created branch '${flags.name}'`);
     }
-  }
-})
+  },
+});
 ```
 
 ### 2. Inlined Shell Calls
@@ -286,44 +293,45 @@ Shell calls are inlined directly in command handlers rather than extracted to a 
 
 ```typescript
 handler: async ({ shell, colors, spinner }) => {
-  const spin = spinner('Checking repository...')
+  const spin = spinner("Checking repository...");
 
   // Inline git calls — no separate utils file needed
   try {
-    await shell`git rev-parse --git-dir`
+    await shell`git rev-parse --git-dir`;
   } catch {
-    spin.fail('Not a git repository')
-    console.error(colors.red('Not in a git repository'))
-    process.exit(1)
+    spin.fail("Not a git repository");
+    console.error(colors.red("Not in a git repository"));
+    process.exit(1);
   }
-}
+};
 ```
 
 ### 3. Error Handling
+
 ```typescript
 handler: async ({ shell, colors, spinner }) => {
-  const spin = spinner('Creating branch...')
-  
+  const spin = spinner("Creating branch...");
+
   try {
     // Validate git repository first
-    await shell`git rev-parse --git-dir`
-    
-    // Proceed with operation
-    await shell`git checkout -b feature-branch`
-    spin.succeed('Created branch: feature-branch')
-  } catch (error) {
-    spin.fail('Failed to create branch')
+    await shell`git rev-parse --git-dir`;
 
-    const msg = error instanceof Error ? error.message : String(error)
-    if (msg.includes('already exists')) {
-      console.error(colors.yellow('Branch already exists'))
+    // Proceed with operation
+    await shell`git checkout -b feature-branch`;
+    spin.succeed("Created branch: feature-branch");
+  } catch (error) {
+    spin.fail("Failed to create branch");
+
+    const msg = error instanceof Error ? error.message : String(error);
+    if (msg.includes("already exists")) {
+      console.error(colors.yellow("Branch already exists"));
     } else {
-      console.error(colors.red(msg))
+      console.error(colors.red(msg));
     }
 
-    process.exit(1)
+    process.exit(1);
   }
-}
+};
 ```
 
 ## External Tool Integration
@@ -336,46 +344,47 @@ The `shell` utility is provided via handler arguments:
 // shell comes from handler args, not imported
 handler: async ({ shell }) => {
   // Simple command execution — returns stdout
-  const { stdout } = await shell`git status`
-  console.log(stdout.toString())
+  const { stdout } = await shell`git status`;
+  console.log(stdout.toString());
 
   // Command with options
-  const { stdout: logOutput } = await shell`git log --oneline -10`
-  const commits = logOutput.toString().trim().split('\n').filter(Boolean)
+  const { stdout: logOutput } = await shell`git log --oneline -10`;
+  const commits = logOutput.toString().trim().split("\n").filter(Boolean);
 
   // Error handling
   try {
-    await shell`git push origin main`
+    await shell`git push origin main`;
   } catch (error) {
-    const msg = error instanceof Error ? error.message : String(error)
-    if (msg.includes('rejected')) {
-      console.error('Push rejected - need to pull first')
+    const msg = error instanceof Error ? error.message : String(error);
+    if (msg.includes("rejected")) {
+      console.error("Push rejected - need to pull first");
     }
   }
-}
+};
 ```
 
 ### 2. Command Validation
+
 ```typescript
 handler: async ({ shell, colors }) => {
   // Check if git is available
   try {
-    await shell`git --version`
+    await shell`git --version`;
   } catch {
-    console.error(colors.red('Git is not installed or not in PATH'))
-    process.exit(1)
+    console.error(colors.red("Git is not installed or not in PATH"));
+    process.exit(1);
   }
 
   // Check if we're in a git repository
   try {
-    await shell`git rev-parse --git-dir`
+    await shell`git rev-parse --git-dir`;
   } catch {
-    console.error(colors.red('Not in a git repository'))
-    process.exit(1)
+    console.error(colors.red("Not in a git repository"));
+    process.exit(1);
   }
 
   // Continue with git operations
-}
+};
 ```
 
 ## Key Takeaways

@@ -1,5 +1,5 @@
 ---
-title: '@bunli/plugin-skills'
+title: "@bunli/plugin-skills"
 description: Sync CLI commands as agent skill files for AI coding agents
 ---
 
@@ -24,21 +24,25 @@ bun add @bunli/plugin-skills
 ## Basic Usage
 
 ```typescript
-import { createCLI, defineCommand } from '@bunli/core'
-import { skillsPlugin } from '@bunli/plugin-skills'
+import { createCLI, defineCommand } from "@bunli/core";
+import { skillsPlugin } from "@bunli/plugin-skills";
 
 const cli = await createCLI({
-  name: 'my-cli',
-  plugins: [skillsPlugin()]
-})
+  name: "my-cli",
+  plugins: [skillsPlugin()],
+});
 
-cli.command(defineCommand({
-  name: 'build' as const,
-  description: 'Build the project',
-  handler: async ({ flags }) => { /* ... */ }
-}))
+cli.command(
+  defineCommand({
+    name: "build" as const,
+    description: "Build the project",
+    handler: async ({ flags }) => {
+      /* ... */
+    },
+  }),
+);
 
-await cli.run()
+await cli.run();
 ```
 
 Then in your project:
@@ -56,67 +60,69 @@ my-cli skills list
 The plugin supports these agents out of the box:
 
 ### Universal Agents
+
 Use `.agents/skills` as their skills directory:
 
-| Agent | Global Skills Dir |
-|-------|------------------|
-| Amp | `~/.config/agents/skills` |
-| Antigravity | `~/.gemini/antigravity/skills` |
-| Cline | `~/.agents/skills` |
-| Codex | `~/.codex/skills` |
-| Cursor | `~/.cursor/skills` |
-| Deep Agents | `~/.deepagents/agent/skills` |
-| Gemini CLI | `~/.gemini/skills` |
-| GitHub Copilot | `~/.copilot/skills` |
-| Kimi Code CLI | `~/.config/agents/skills` |
-| OpenCode | `~/.config/opencode/skills` |
-| Warp | `~/.agents/skills` |
+| Agent          | Global Skills Dir              |
+| -------------- | ------------------------------ |
+| Amp            | `~/.config/agents/skills`      |
+| Antigravity    | `~/.gemini/antigravity/skills` |
+| Cline          | `~/.agents/skills`             |
+| Codex          | `~/.codex/skills`              |
+| Cursor         | `~/.cursor/skills`             |
+| Deep Agents    | `~/.deepagents/agent/skills`   |
+| Gemini CLI     | `~/.gemini/skills`             |
+| GitHub Copilot | `~/.copilot/skills`            |
+| Kimi Code CLI  | `~/.config/agents/skills`      |
+| OpenCode       | `~/.config/opencode/skills`    |
+| Warp           | `~/.agents/skills`             |
 
 ### Non-Universal Agents
+
 Use agent-specific directories (plugin creates symlinks):
 
-| Agent | Global Skills Dir | Project Skills Dir |
-|-------|-------------------|-------------------|
-| AdaL | `~/.adal/skills` | `.adal/skills` |
-| Augment | `~/.augment/skills` | `.augment/skills` |
-| Claude Code | `~/.claude/skills` | `.claude/skills` |
-| CodeBuddy | `~/.codebuddy/skills` | `.codebuddy/skills` |
-| Command Code | `~/.commandcode/skills` | `.commandcode/skills` |
-| Continue | `~/.continue/skills` | `.continue/skills` |
-| Cortex Code | `~/.snowflake/cortex/skills` | `.cortex/skills` |
-| Crush | `~/.config/crush/skills` | `.crush/skills` |
-| Droid | `~/.factory/skills` | `.factory/skills` |
-| Goose | `~/.config/goose/skills` | `.goose/skills` |
-| iFlow CLI | `~/.iflow/skills` | `.iflow/skills` |
-| Junie | `~/.junie/skills` | `.junie/skills` |
-| Kilo Code | `~/.kilocode/skills` | `.kilocode/skills` |
-| Kiro CLI | `~/.kiro/skills` | `.kiro/skills` |
-| Kode | `~/.kode/skills` | `.kode/skills` |
-| MCPJam | `~/.mcpjam/skills` | `.mcpjam/skills` |
-| Mistral Vibe | `~/.vibe/skills` | `.vibe/skills` |
-| Mux | `~/.mux/skills` | `.mux/skills` |
-| Neovate | `~/.neovate/skills` | `.neovate/skills` |
-| OpenClaw | `~/.openclaw/skills` | `skills` |
-| OpenHands | `~/.openhands/skills` | `.openhands/skills` |
-| Pi | `~/.pi/agent/skills` | `.pi/skills` |
-| Pochi | `~/.pochi/skills` | `.pochi/skills` |
-| Qoder | `~/.qoder/skills` | `.qoder/skills` |
-| Qwen Code | `~/.qwen/skills` | `.qwen/skills` |
-| Roo Code | `~/.roo/skills` | `.roo/skills` |
-| Trae | `~/.trae/skills` | `.trae/skills` |
-| Trae CN | `~/.trae-cn/skills` | `.trae/skills` |
-| Windsurf | `~/.codeium/windsurf/skills` | `.windsurf/skills` |
-| Zencoder | `~/.zencoder/skills` | `.zencoder/skills` |
+| Agent        | Global Skills Dir            | Project Skills Dir    |
+| ------------ | ---------------------------- | --------------------- |
+| AdaL         | `~/.adal/skills`             | `.adal/skills`        |
+| Augment      | `~/.augment/skills`          | `.augment/skills`     |
+| Claude Code  | `~/.claude/skills`           | `.claude/skills`      |
+| CodeBuddy    | `~/.codebuddy/skills`        | `.codebuddy/skills`   |
+| Command Code | `~/.commandcode/skills`      | `.commandcode/skills` |
+| Continue     | `~/.continue/skills`         | `.continue/skills`    |
+| Cortex Code  | `~/.snowflake/cortex/skills` | `.cortex/skills`      |
+| Crush        | `~/.config/crush/skills`     | `.crush/skills`       |
+| Droid        | `~/.factory/skills`          | `.factory/skills`     |
+| Goose        | `~/.config/goose/skills`     | `.goose/skills`       |
+| iFlow CLI    | `~/.iflow/skills`            | `.iflow/skills`       |
+| Junie        | `~/.junie/skills`            | `.junie/skills`       |
+| Kilo Code    | `~/.kilocode/skills`         | `.kilocode/skills`    |
+| Kiro CLI     | `~/.kiro/skills`             | `.kiro/skills`        |
+| Kode         | `~/.kode/skills`             | `.kode/skills`        |
+| MCPJam       | `~/.mcpjam/skills`           | `.mcpjam/skills`      |
+| Mistral Vibe | `~/.vibe/skills`             | `.vibe/skills`        |
+| Mux          | `~/.mux/skills`              | `.mux/skills`         |
+| Neovate      | `~/.neovate/skills`          | `.neovate/skills`     |
+| OpenClaw     | `~/.openclaw/skills`         | `skills`              |
+| OpenHands    | `~/.openhands/skills`        | `.openhands/skills`   |
+| Pi           | `~/.pi/agent/skills`         | `.pi/skills`          |
+| Pochi        | `~/.pochi/skills`            | `.pochi/skills`       |
+| Qoder        | `~/.qoder/skills`            | `.qoder/skills`       |
+| Qwen Code    | `~/.qwen/skills`             | `.qwen/skills`        |
+| Roo Code     | `~/.roo/skills`              | `.roo/skills`         |
+| Trae         | `~/.trae/skills`             | `.trae/skills`        |
+| Trae CN      | `~/.trae-cn/skills`          | `.trae/skills`        |
+| Windsurf     | `~/.codeium/windsurf/skills` | `.windsurf/skills`    |
+| Zencoder     | `~/.zencoder/skills`         | `.zencoder/skills`    |
 
 ## Plugin Options
 
 ```typescript
 interface SkillsPluginOptions {
   /** CLI description for the generated skill files */
-  description?: string
+  description?: string;
 
   /** Additional custom agents beyond the built-in list */
-  agents?: Agent[]
+  agents?: Agent[];
 }
 ```
 
@@ -133,6 +139,7 @@ my-cli skills sync --force   # Force regeneration
 ```
 
 **Options:**
+
 - `--global, -g` - Install globally (default) or project-local
 - `--force, -f` - Force regeneration even if up to date
 
@@ -145,6 +152,7 @@ my-cli skills list
 ```
 
 Example output:
+
 ```
 Detected 3 agent(s):
 
@@ -163,24 +171,24 @@ Detected 3 agent(s):
 Add custom agent support:
 
 ```typescript
-import { skillsPlugin } from '@bunli/plugin-skills'
+import { skillsPlugin } from "@bunli/plugin-skills";
 
 const cli = await createCLI({
   plugins: [
     skillsPlugin({
-      description: 'My custom CLI tool',
+      description: "My custom CLI tool",
       agents: [
         {
-          name: 'MyAgent',
-          globalSkillsDir: '~/.myagent/skills',
-          projectSkillsDir: '.myagent/skills',
+          name: "MyAgent",
+          globalSkillsDir: "~/.myagent/skills",
+          projectSkillsDir: ".myagent/skills",
           universal: true,
-          detect: () => process.env.MY_AGENT_DETECTED === '1'
-        }
-      ]
-    })
-  ]
-})
+          detect: () => process.env.MY_AGENT_DETECTED === "1",
+        },
+      ],
+    }),
+  ],
+});
 ```
 
 ## Skill File Format
@@ -199,13 +207,14 @@ Build the project.
 
 ## Options
 
-| Flag | Type | Default | Description |
-|------|------|---------|-------------|
-| `--env, -e` | `union` | `dev` | Target environment |
-| `--watch, -w` | `boolean` | `false` | Watch mode |
+| Flag          | Type      | Default | Description        |
+| ------------- | --------- | ------- | ------------------ |
+| `--env, -e`   | `union`   | `dev`   | Target environment |
+| `--watch, -w` | `boolean` | `false` | Watch mode         |
 ```
 
 Each skill file includes:
+
 - **`name`** — slug format (`my-cli-build`)
 - **`description`** — from the command's description field
 - **Options table** — derived from the command's Zod option schemas

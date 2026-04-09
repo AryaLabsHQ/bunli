@@ -10,34 +10,34 @@
  * Returns empty array if stdin is a TTY.
  */
 export async function readStdinLines(delimiter?: string): Promise<string[]> {
-  if (process.stdin.isTTY) return []
+  if (process.stdin.isTTY) return [];
 
-  const chunks: Buffer[] = []
+  const chunks: Buffer[] = [];
   for await (const chunk of process.stdin) {
-    chunks.push(chunk)
+    chunks.push(chunk);
   }
 
-  const data = Buffer.concat(chunks).toString('utf-8')
-  if (data.length === 0) return []
+  const data = Buffer.concat(chunks).toString("utf-8");
+  if (data.length === 0) return [];
 
   if (delimiter !== undefined) {
-    return data.split(delimiter)
+    return data.split(delimiter);
   }
 
-  const normalized = data.replace(/\r\n/g, '\n')
-  const lines = normalized.split('\n')
-  if (normalized.endsWith('\n')) {
-    lines.pop()
+  const normalized = data.replace(/\r\n/g, "\n");
+  const lines = normalized.split("\n");
+  if (normalized.endsWith("\n")) {
+    lines.pop();
   }
-  return lines
+  return lines;
 }
 
 /**
  * Write result to stdout, stripping ANSI when piping to non-TTY.
  */
 export function writeStdout(value: string): void {
-  const output = process.stdout.isTTY ? value : stripAnsi(value)
-  process.stdout.write(output + '\n')
+  const output = process.stdout.isTTY ? value : stripAnsi(value);
+  process.stdout.write(output + "\n");
 }
 
 /**
@@ -45,7 +45,7 @@ export function writeStdout(value: string): void {
  */
 export function writeStdoutLines(values: string[]): void {
   for (const value of values) {
-    writeStdout(value)
+    writeStdout(value);
   }
 }
 
@@ -53,7 +53,7 @@ export function writeStdoutLines(values: string[]): void {
  * Strip ANSI escape codes from a string.
  */
 export function stripAnsi(str: string): string {
-  return str.replace(/\x1b\[[0-9;]*m/g, '')
+  return str.replace(/\x1b\[[0-9;]*m/g, "");
 }
 
 /** Exit codes matching gum conventions */
@@ -62,4 +62,4 @@ export const EXIT_CODES = {
   CANCEL: 1,
   TIMEOUT: 124,
   SIGINT: 130,
-} as const
+} as const;

@@ -1,5 +1,6 @@
-import { Hono } from "hono";
 import { createFromSource } from "fumadocs-core/search/server";
+import { Hono } from "hono";
+
 import { source } from "../lib/source";
 import { createAuth } from "./auth/auth";
 import { createWorkbenchRouter } from "./workbench/router";

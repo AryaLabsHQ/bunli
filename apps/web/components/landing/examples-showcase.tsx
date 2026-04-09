@@ -1,22 +1,22 @@
-'use client'
+"use client";
 
-import { useEffect, useRef, useState } from 'react'
-import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock'
+import { DynamicCodeBlock } from "fumadocs-ui/components/dynamic-codeblock";
+import { useEffect, useRef, useState } from "react";
 
 interface Example {
-  id: string
-  key: string
-  label: string
-  filename: string
-  code: string
+  id: string;
+  key: string;
+  label: string;
+  filename: string;
+  code: string;
 }
 
 const examples: Example[] = [
   {
-    id: 'command',
-    key: '1',
-    label: 'command',
-    filename: 'greet.ts',
+    id: "command",
+    key: "1",
+    label: "command",
+    filename: "greet.ts",
     code: `import { defineCommand, option } from '@bunli/core'
 import { z } from 'zod'
 
@@ -46,10 +46,10 @@ export default defineCommand({
 })`,
   },
   {
-    id: 'plugins',
-    key: '2',
-    label: 'plugins',
-    filename: 'config-plugin.ts',
+    id: "plugins",
+    key: "2",
+    label: "plugins",
+    filename: "config-plugin.ts",
     code: `import { createPlugin } from '@bunli/core/plugin'
 import { configMergerPlugin } from '@bunli/plugin-config'
 
@@ -68,10 +68,10 @@ const configPlugin = createPlugin({
 export default configPlugin`,
   },
   {
-    id: 'tui',
-    key: '3',
-    label: 'tui',
-    filename: 'tui-prompt.tsx',
+    id: "tui",
+    key: "3",
+    label: "tui",
+    filename: "tui-prompt.tsx",
     code: `import { defineCommand, option } from '@bunli/core'
 import { z } from 'zod'
 
@@ -98,10 +98,10 @@ export default defineCommand({
 })`,
   },
   {
-    id: 'testing',
-    key: '4',
-    label: 'testing',
-    filename: 'greet.test.ts',
+    id: "testing",
+    key: "4",
+    label: "testing",
+    filename: "greet.test.ts",
     code: `import { test, expect } from 'bun:test'
 import { testCommand } from '@bunli/test'
 import greet from './greet'
@@ -135,95 +135,93 @@ test('greet validates name', async () => {
   expect(result.exitCode).not.toBe(0)
 })`,
   },
-]
+];
 
 function shouldIgnoreHotkey(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) {
-    return false
+    return false;
   }
 
   if (target.closest('input, textarea, select, [contenteditable=""], [contenteditable="true"]')) {
-    return true
+    return true;
   }
 
-  return Boolean(target.closest('[role="textbox"], .monaco-editor'))
+  return Boolean(target.closest('[role="textbox"], .monaco-editor'));
 }
 
 export function ExamplesShowcase() {
-  const [isVisible, setIsVisible] = useState(false)
-  const [activeExample, setActiveExample] = useState(examples[0])
-  const sectionRef = useRef<HTMLElement>(null)
+  const [isVisible, setIsVisible] = useState(false);
+  const [activeExample, setActiveExample] = useState(examples[0]);
+  const sectionRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          setIsVisible(true)
-          observer.disconnect()
+          setIsVisible(true);
+          observer.disconnect();
         }
       },
-      { threshold: 0.1 }
-    )
+      { threshold: 0.1 },
+    );
 
     if (sectionRef.current) {
-      observer.observe(sectionRef.current)
+      observer.observe(sectionRef.current);
     }
 
-    return () => observer.disconnect()
-  }, [])
+    return () => observer.disconnect();
+  }, []);
 
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (shouldIgnoreHotkey(e.target)) {
-        return
+        return;
       }
 
-      const key = e.key
-      const example = examples.find((ex) => ex.key === key)
+      const key = e.key;
+      const example = examples.find((ex) => ex.key === key);
       if (example) {
-        setActiveExample(example)
+        setActiveExample(example);
       }
-    }
+    };
 
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [])
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   return (
     <section ref={sectionRef} className="relative py-24 md:py-32">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
         {/* Section header */}
         <div
           className={`mb-12 transition-all duration-500 ${
-            isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+            isVisible ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
           }`}
         >
-          <div className="font-mono text-terminal-muted text-sm mb-2">
-            <span className="text-accent">{'>'}</span> examples
+          <div className="text-terminal-muted mb-2 font-mono text-sm">
+            <span className="text-accent">{">"}</span> examples
           </div>
-          <h2 className="font-mono text-2xl md:text-3xl text-foreground">
-            see it in action
-          </h2>
+          <h2 className="text-foreground font-mono text-2xl md:text-3xl">see it in action</h2>
         </div>
 
         {/* Terminal with tabs */}
         <div
-          className={`bg-terminal border border-terminal-border transition-all duration-500 ${
-            isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+          className={`bg-terminal border-terminal-border border transition-all duration-500 ${
+            isVisible ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
           }`}
-          style={{ transitionDelay: '150ms' }}
+          style={{ transitionDelay: "150ms" }}
         >
           {/* Tab navigation */}
-          <div className="flex items-center border-b border-terminal-border overflow-x-auto">
+          <div className="border-terminal-border flex items-center overflow-x-auto border-b">
             {examples.map((example) => (
               <button
                 key={example.id}
                 onClick={() => setActiveExample(example)}
-                className={`font-mono text-xs px-4 py-3 transition-colors shrink-0 border-b-2 -mb-px ${
+                className={`-mb-px shrink-0 border-b-2 px-4 py-3 font-mono text-xs transition-colors ${
                   activeExample.id === example.id
-                    ? 'text-accent border-accent'
-                    : 'text-terminal-muted border-transparent hover:text-terminal-foreground'
+                    ? "text-accent border-accent"
+                    : "text-terminal-muted hover:text-terminal-foreground border-transparent"
                 }`}
               >
                 <span className="text-terminal-muted mr-1">[{example.key}]</span>
@@ -233,8 +231,8 @@ export function ExamplesShowcase() {
           </div>
 
           {/* Filename bar */}
-          <div className="flex items-center gap-3 px-4 py-2 border-b border-terminal-border bg-black/20">
-            <span className="font-mono text-xs text-terminal-muted">
+          <div className="border-terminal-border flex items-center gap-3 border-b bg-black/20 px-4 py-2">
+            <span className="text-terminal-muted font-mono text-xs">
               ~/examples/{activeExample.filename}
             </span>
           </div>
@@ -247,14 +245,14 @@ export function ExamplesShowcase() {
 
         {/* Keyboard hint */}
         <div
-          className={`mt-6 font-mono text-sm text-terminal-muted text-center transition-all duration-500 ${
-            isVisible ? 'opacity-100' : 'opacity-0'
+          className={`text-terminal-muted mt-6 text-center font-mono text-sm transition-all duration-500 ${
+            isVisible ? "opacity-100" : "opacity-0"
           }`}
-          style={{ transitionDelay: '300ms' }}
+          style={{ transitionDelay: "300ms" }}
         >
           press <span className="text-foreground">[1-4]</span> to switch examples
         </div>
       </div>
     </section>
-  )
+  );
 }

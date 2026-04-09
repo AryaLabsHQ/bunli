@@ -1,8 +1,33 @@
 {
   "name": "@bunli/core",
   "version": "0.9.0",
-  "type": "module",
   "description": "Minimal, type-safe CLI framework for Bun",
+  "keywords": [
+    "bun",
+    "bunli",
+    "cli",
+    "command-line",
+    "framework",
+    "type-safe",
+    "typescript"
+  ],
+  "homepage": "https://github.com/AryaLabsHQ/bunli#readme",
+  "bugs": {
+    "url": "https://github.com/AryaLabsHQ/bunli/issues"
+  },
+  "license": "MIT",
+  "author": "Arya Labs, Inc.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AryaLabsHQ/bunli.git",
+    "directory": "packages/core"
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "type": "module",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -31,48 +56,14 @@
       "import": "./src/manifest/index.ts"
     }
   },
-  "files": [
-    "dist",
-    "src",
-    "README.md"
-  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "bun scripts/build.ts && bun run tsgo",
     "test": "bun test",
     "typecheck": "tsgo --noEmit",
     "prepublishOnly": "bun run build"
-  },
-  "keywords": [
-    "cli",
-    "command-line",
-    "bun",
-    "typescript",
-    "framework",
-    "bunli",
-    "type-safe"
-  ],
-  "author": "Arya Labs, Inc.",
-  "license": "MIT",
-  "publishConfig": {
-    "access": "public"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/AryaLabsHQ/bunli.git",
-    "directory": "packages/core"
-  },
-  "bugs": {
-    "url": "https://github.com/AryaLabsHQ/bunli/issues"
-  },
-  "homepage": "https://github.com/AryaLabsHQ/bunli#readme",
-  "devDependencies": {
-    "@tsconfig/bun": "catalog:",
-    "@types/bun": "catalog:",
-    "@types/debug": "^4.1.13",
-    "typescript": "catalog:"
-  },
-  "engines": {
-    "bun": ">=1.0.0"
   },
   "dependencies": {
     "@bunli/runtime": "workspace:^",
@@ -84,5 +75,14 @@
     "debug": "catalog:",
     "yaml": "^2.8.2",
     "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@tsconfig/bun": "catalog:",
+    "@types/bun": "catalog:",
+    "@types/debug": "^4.1.13",
+    "typescript": "catalog:"
+  },
+  "engines": {
+    "bun": ">=1.0.0"
   }
 }

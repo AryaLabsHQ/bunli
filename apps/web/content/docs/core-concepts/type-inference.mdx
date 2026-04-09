@@ -18,26 +18,26 @@ When you define a command with `as const`, the handler automatically gets the co
 
 ```typescript
 export default defineCommand({
-  name: 'deploy' as const, // ← REQUIRED: 'as const' enables type inference
-  description: 'Deploy the application',
+  name: "deploy" as const, // ← REQUIRED: 'as const' enables type inference
+  description: "Deploy the application",
   options: {
-    env: option(z.enum(['dev', 'staging', 'prod']), {
-      description: 'Environment to deploy to'
+    env: option(z.enum(["dev", "staging", "prod"]), {
+      description: "Environment to deploy to",
     }),
     dryRun: option(z.boolean().default(false), {
-      description: 'Run without making changes'
-    })
+      description: "Run without making changes",
+    }),
   },
-  
+
   // ✨ NO TYPE ANNOTATION NEEDED! ✨
   // flags is automatically typed as { env: 'dev' | 'staging' | 'prod', dryRun: boolean }
   handler: async ({ flags }) => {
-    console.log(`Deploying to ${flags.env}`) // ← Full autocomplete!
+    console.log(`Deploying to ${flags.env}`); // ← Full autocomplete!
     if (flags.dryRun) {
-      console.log('Dry run mode')
+      console.log("Dry run mode");
     }
-  }
-})
+  },
+});
 ```
 
 ## Requirements
@@ -52,6 +52,7 @@ To use Bunli's automatic type inference, you need:
 ## Command Definition Pattern
 
 ### Correct Pattern
+
 ```typescript
 export default defineCommand({
   name: 'deploy' as const, // ✅ 'as const' required
@@ -63,6 +64,7 @@ export default defineCommand({
 ```
 
 ### Incorrect Pattern
+
 ```typescript
 export default defineCommand({
   name: 'deploy', // ❌ No 'as const' - no type inference
@@ -78,30 +80,30 @@ export default defineCommand({
 With generated types, you can execute commands programmatically with full type safety. The `execute()` method has three overloads:
 
 ```typescript
-import { createCLI } from '@bunli/core'
+import { createCLI } from "@bunli/core";
 
-const cli = await createCLI(config)
+const cli = await createCLI(config);
 
 // ✅ Overload 1: args-only form
-await cli.execute('deploy', ['--env', 'production', '--dry-run'])
+await cli.execute("deploy", ["--env", "production", "--dry-run"]);
 
 // ✅ Overload 2: typed options (requires RegisteredCommands augmentation)
-await cli.execute('deploy', {
-  env: 'production', // ← Autocomplete: 'dev' | 'staging' | 'prod'
-  dryRun: true       // ← Type: boolean
-})
+await cli.execute("deploy", {
+  env: "production", // ← Autocomplete: 'dev' | 'staging' | 'prod'
+  dryRun: true, // ← Type: boolean
+});
 
 // ✅ Overload 3: args + typed options
-await cli.execute('deploy', ['--dry-run'], {
-  env: 'production',
-  dryRun: true
-})
+await cli.execute("deploy", ["--dry-run"], {
+  env: "production",
+  dryRun: true,
+});
 
 // ❌ Type errors when using typed overloads!
-await cli.execute('deploy', {
-  env: 'invalid',  // ❌ Error: Type '"invalid"' is not assignable
-  dryRun: 'yes'    // ❌ Error: Type 'string' is not assignable to type 'boolean'
-})
+await cli.execute("deploy", {
+  env: "invalid", // ❌ Error: Type '"invalid"' is not assignable
+  dryRun: "yes", // ❌ Error: Type 'string' is not assignable to type 'boolean'
+});
 ```
 
 > **Note**: The type overloads (`execute<T extends keyof RegisteredCommands>`) provide compile-time safety for the options shape, but the `commandName` parameter accepts any `string` at runtime. Always validate command names before calling `execute()` in production code.
@@ -111,62 +113,59 @@ await cli.execute('deploy', {
 The generated store provides helper methods for command discovery. Import the generated store from the auto-generated `.bunli/commands.gen.ts`:
 
 ```typescript
-import { cli } from './.bunli/commands.gen'
+import { cli } from "./.bunli/commands.gen";
 
 // List all commands
-const commands = cli.list()
-console.log(`Total commands: ${commands.length}`)
+const commands = cli.list();
+console.log(`Total commands: ${commands.length}`);
 
 // Find a command by name
-const deploy = cli.findByName('deploy')
-console.log(deploy.metadata.description)
+const deploy = cli.findByName("deploy");
+console.log(deploy.metadata.description);
 
 // Get all command names
-const names = cli.getCommandNames()
+const names = cli.getCommandNames();
 
 // Type-checked flags for a command (requires RegisteredCommands augmentation)
-const flags = cli.getFlags('deploy')
+const flags = cli.getFlags("deploy");
 
 // Wrap with a CLI instance for typed execution
-const executor = cli.withCLI(myCLI)
-await executor.execute('deploy', { env: 'production', dryRun: true })
+const executor = cli.withCLI(myCLI);
+await executor.execute("deploy", { env: "production", dryRun: true });
 ```
 
 The generated store interface includes:
 
-| Method | Returns | Description |
-|--------|---------|-------------|
-| `list()` | `Array<{ name, command, metadata }>` | All registered commands |
-| `findByName(name)` | `{ name, command, metadata }` | Single command by name |
-| `findByDescription(term)` | `Array<{ name, command, metadata }>` | Search by description |
-| `getCommandNames()` | `string[]` | All command names |
-| `get(name)` | `Command` | Raw command object |
-| `getMetadata(name)` | `GeneratedCommandMeta` | Metadata for a command |
-| `getFlags(name)` | `Record<string, unknown>` | Default flag values from metadata |
-| `getFlagsMeta(name)` | `Record<string, GeneratedOptionMeta>` | Raw option metadata |
-| `validateCommand(name, flags)` | `{ success, data } \| { success, errors }` | Runtime flag validation |
-| `withCLI(cli)` | `GeneratedExecutor` | Executor wrapper |
+| Method                         | Returns                                    | Description                       |
+| ------------------------------ | ------------------------------------------ | --------------------------------- |
+| `list()`                       | `Array<{ name, command, metadata }>`       | All registered commands           |
+| `findByName(name)`             | `{ name, command, metadata }`              | Single command by name            |
+| `findByDescription(term)`      | `Array<{ name, command, metadata }>`       | Search by description             |
+| `getCommandNames()`            | `string[]`                                 | All command names                 |
+| `get(name)`                    | `Command`                                  | Raw command object                |
+| `getMetadata(name)`            | `GeneratedCommandMeta`                     | Metadata for a command            |
+| `getFlags(name)`               | `Record<string, unknown>`                  | Default flag values from metadata |
+| `getFlagsMeta(name)`           | `Record<string, GeneratedOptionMeta>`      | Raw option metadata               |
+| `validateCommand(name, flags)` | `{ success, data } \| { success, errors }` | Runtime flag validation           |
+| `withCLI(cli)`                 | `GeneratedExecutor`                        | Executor wrapper                  |
 
 ## Advanced Type Utilities
 
 Bunli exports helper type utilities from `@bunli/core` for extracting and manipulating command types:
 
 ```typescript
-import type {
-  CommandOptions,
-  RegisteredCommands,
-} from '@bunli/core'
+import type { CommandOptions, RegisteredCommands } from "@bunli/core";
 
 // Extract option type for a specific command
-type DeployFlags = CommandOptions<'deploy'>
+type DeployFlags = CommandOptions<"deploy">;
 // → { env: 'dev' | 'staging' | 'prod', dryRun: boolean }
 
 // All registered command names as a union
-type AllCommandNames = keyof RegisteredCommands
+type AllCommandNames = keyof RegisteredCommands;
 // → 'deploy' | 'build' | 'test' | ...
 
 // Extract options type for any registered command
-type CmdOpts<T extends keyof RegisteredCommands> = CommandOptions<T>
+type CmdOpts<T extends keyof RegisteredCommands> = CommandOptions<T>;
 ```
 
 ## Configuration
@@ -175,9 +174,9 @@ Enable type generation in your `bunli.config.ts`:
 
 ```typescript
 export default defineConfig({
-  name: 'my-cli',
-  version: '1.0.0',
-})
+  name: "my-cli",
+  version: "1.0.0",
+});
 ```
 
 ## Generated File Structure

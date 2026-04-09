@@ -25,10 +25,7 @@ mkdirSync(resolve(dest, "types"), { recursive: true });
 
 // --- Templates ---
 // Copy the tracked workbench template entrypoint that matches the execution model.
-cpSync(
-  resolve(workbenchTemplateDir, "src/index.ts"),
-  resolve(dest, "templates/index.ts")
-);
+cpSync(resolve(workbenchTemplateDir, "src/index.ts"), resolve(dest, "templates/index.ts"));
 
 // --- Type definitions ---
 // Copy core types for Monaco IntelliSense

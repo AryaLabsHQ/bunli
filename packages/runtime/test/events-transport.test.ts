@@ -1,43 +1,44 @@
-import { describe, expect, test } from 'bun:test'
-import { RuntimeEventSchema } from '../src/events.js'
-import { emitRuntimeEvent, type RuntimeTransport } from '../src/transport.js'
+import { describe, expect, test } from "bun:test";
 
-describe('@bunli/runtime events/transport', () => {
-  test('validates runtime events', () => {
+import { RuntimeEventSchema } from "../src/events.js";
+import { emitRuntimeEvent, type RuntimeTransport } from "../src/transport.js";
+
+describe("@bunli/runtime events/transport", () => {
+  test("validates runtime events", () => {
     const parsed = RuntimeEventSchema.safeParse({
-      type: 'runtime.renderer.started',
+      type: "runtime.renderer.started",
       timestamp: Date.now(),
-      bufferMode: 'standard'
-    })
+      bufferMode: "standard",
+    });
 
-    expect(parsed.success).toBe(true)
-  })
+    expect(parsed.success).toBe(true);
+  });
 
-  test('validates image runtime events', () => {
+  test("validates image runtime events", () => {
     const parsed = RuntimeEventSchema.safeParse({
-      type: 'runtime.image.render.result',
+      type: "runtime.image.render.result",
       timestamp: Date.now(),
       rendered: false,
-      protocol: 'none',
-      reason: 'capability-missing'
-    })
+      protocol: "none",
+      reason: "capability-missing",
+    });
 
-    expect(parsed.success).toBe(true)
-  })
+    expect(parsed.success).toBe(true);
+  });
 
-  test('emits validated events through transport', async () => {
-    const sent: unknown[] = []
+  test("emits validated events through transport", async () => {
+    const sent: unknown[] = [];
     const transport: RuntimeTransport = {
       send(event) {
-        sent.push(event)
-      }
-    }
+        sent.push(event);
+      },
+    };
 
     await emitRuntimeEvent(transport, {
-      type: 'runtime.renderer.destroyed',
-      timestamp: Date.now()
-    })
+      type: "runtime.renderer.destroyed",
+      timestamp: Date.now(),
+    });
 
-    expect(sent).toHaveLength(1)
-  })
-})
+    expect(sent).toHaveLength(1);
+  });
+});

@@ -4,12 +4,12 @@
 
 ## EXAMPLES
 
-| Example | Description |
-|---------|-------------|
-| `hello-world` | Minimal CLI |
-| `dev-server` | Development server with plugins |
-| `git-tool` | Git utilities |
-| `task-runner` | Task automation |
+| Example       | Description                     |
+| ------------- | ------------------------------- |
+| `hello-world` | Minimal CLI                     |
+| `dev-server`  | Development server with plugins |
+| `git-tool`    | Git utilities                   |
+| `task-runner` | Task automation                 |
 
 ## LEARNING PROGRESSION
 

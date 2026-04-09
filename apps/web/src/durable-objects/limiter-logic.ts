@@ -51,7 +51,11 @@ export function getWindowStartMs(nowMs: number, windowMs: number): number {
   return nowMs - (nowMs % windowMs);
 }
 
-function refreshCounter(counter: WindowCounter | undefined, nowMs: number, windowMs: number): WindowCounter {
+function refreshCounter(
+  counter: WindowCounter | undefined,
+  nowMs: number,
+  windowMs: number,
+): WindowCounter {
   const start = getWindowStartMs(nowMs, windowMs);
   if (!counter || counter.windowStartMs !== start) {
     return { windowStartMs: start, count: 0 };
@@ -63,7 +67,7 @@ function tryConsume(
   counter: WindowCounter | undefined,
   nowMs: number,
   windowMs: number,
-  limit: number
+  limit: number,
 ): { counter: WindowCounter; ok: boolean; retryAfterMs?: number } {
   const refreshed = refreshCounter(counter, nowMs, windowMs);
   if (refreshed.count >= limit) {
@@ -83,7 +87,7 @@ function tryConsume(
 function releaseCounter(
   counter: WindowCounter | undefined,
   nowMs: number,
-  windowMs: number
+  windowMs: number,
 ): { counter: WindowCounter | undefined; released: boolean } {
   if (!counter) {
     return { counter: undefined, released: false };
@@ -116,7 +120,7 @@ export function applyStartRun(
   nowMs: number,
   limits: LimiterLimits,
   runId: string,
-  completionToken: string
+  completionToken: string,
 ): LimiterDecision {
   const cleaned = cleanupExpiredInflight(state, nowMs);
 
@@ -180,7 +184,7 @@ export function applyFinishRun(
   state: LimiterState,
   nowMs: number,
   runId?: string,
-  completionToken?: string
+  completionToken?: string,
 ): LimiterDecision {
   const cleaned = cleanupExpiredInflight(state, nowMs);
   const active = cleaned.inflight;
@@ -219,11 +223,7 @@ export function applyFinishRun(
   };
 }
 
-export function applyAbortRun(
-  state: LimiterState,
-  nowMs: number,
-  runId?: string
-): LimiterDecision {
+export function applyAbortRun(state: LimiterState, nowMs: number, runId?: string): LimiterDecision {
   const cleaned = cleanupExpiredInflight(state, nowMs);
   const active = cleaned.inflight;
 
@@ -248,7 +248,7 @@ export function applyAbortRun(
 export function applyRollbackRun(
   state: LimiterState,
   nowMs: number,
-  runId?: string
+  runId?: string,
 ): LimiterDecision {
   const cleaned = cleanupExpiredInflight(state, nowMs);
   const active = cleaned.inflight;
@@ -279,7 +279,7 @@ export function applyRollbackRun(
 export function applyPtyConnect(
   state: LimiterState,
   nowMs: number,
-  limits: LimiterLimits
+  limits: LimiterLimits,
 ): LimiterDecision {
   const cleaned = cleanupExpiredInflight(state, nowMs);
 
@@ -317,7 +317,7 @@ export function applyPtyConnect(
 export function applySessionCreate(
   state: LimiterState,
   nowMs: number,
-  limits: LimiterLimits
+  limits: LimiterLimits,
 ): LimiterDecision {
   const cleaned = cleanupExpiredInflight(state, nowMs);
   const session = tryConsume(cleaned.sessionDay, nowMs, DAY_MS, limits.sessionDayLimit);
@@ -343,10 +343,7 @@ export function applySessionCreate(
   };
 }
 
-export function applyRollbackSessionCreate(
-  state: LimiterState,
-  nowMs: number
-): LimiterDecision {
+export function applyRollbackSessionCreate(state: LimiterState, nowMs: number): LimiterDecision {
   const cleaned = cleanupExpiredInflight(state, nowMs);
   const sessionDay = releaseCounter(cleaned.sessionDay, nowMs, DAY_MS);
 

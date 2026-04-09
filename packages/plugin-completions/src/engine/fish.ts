@@ -1,21 +1,16 @@
-import { ShellCompDirective } from './t.js'
+import { ShellCompDirective } from "./t.js";
 
 export function generate(name: string, exec: string): string {
   // Replace '-' and ':' with '_' for variable names
-  const nameForVar = name.replace(/[-:]/g, '_')
+  const nameForVar = name.replace(/[-:]/g, "_");
 
   // Shell completion directives
-  const ShellCompDirectiveError = ShellCompDirective.ShellCompDirectiveError
-  const ShellCompDirectiveNoSpace =
-    ShellCompDirective.ShellCompDirectiveNoSpace
-  const ShellCompDirectiveNoFileComp =
-    ShellCompDirective.ShellCompDirectiveNoFileComp
-  const ShellCompDirectiveFilterFileExt =
-    ShellCompDirective.ShellCompDirectiveFilterFileExt
-  const ShellCompDirectiveFilterDirs =
-    ShellCompDirective.ShellCompDirectiveFilterDirs
-  const ShellCompDirectiveKeepOrder =
-    ShellCompDirective.ShellCompDirectiveKeepOrder
+  const ShellCompDirectiveError = ShellCompDirective.ShellCompDirectiveError;
+  const ShellCompDirectiveNoSpace = ShellCompDirective.ShellCompDirectiveNoSpace;
+  const ShellCompDirectiveNoFileComp = ShellCompDirective.ShellCompDirectiveNoFileComp;
+  const ShellCompDirectiveFilterFileExt = ShellCompDirective.ShellCompDirectiveFilterFileExt;
+  const ShellCompDirectiveFilterDirs = ShellCompDirective.ShellCompDirectiveFilterDirs;
+  const ShellCompDirectiveKeepOrder = ShellCompDirective.ShellCompDirectiveKeepOrder;
 
   return `# fish completion for ${name} -*- shell-script -*-
 
@@ -251,5 +246,5 @@ complete -c ${name} -n '__${nameForVar}_clear_perform_completion_once_result'
 complete -c ${name} -n 'not __${nameForVar}_requires_order_preservation && __${nameForVar}_prepare_completions' -f -a '$__${nameForVar}_comp_results'
 # Otherwise we use the -k flag
 complete -k -c ${name} -n '__${nameForVar}_requires_order_preservation && __${nameForVar}_prepare_completions' -f -a '$__${nameForVar}_comp_results'
-`
+`;
 }

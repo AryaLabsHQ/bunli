@@ -23,6 +23,7 @@ bunx create-bunli my-cli --git=false --install=false
 ```
 
 Current limitation:
+
 - `file:` / `./` / `../` template inputs are detected as local, but current `create-bunli` flow rewrites local templates to bundled template paths. Treat local path templates as not reliably supported in this branch.
 
 ## create-bunli options
@@ -62,16 +63,16 @@ mkdir -p src/commands
 
 ```typescript
 // src/index.ts
-import { createCLI } from "@bunli/core"
-import { hello } from "./commands/hello.js"
+import { createCLI } from "@bunli/core";
+import { hello } from "./commands/hello.js";
 
 const cli = await createCLI({
   name: "my-cli",
-  version: "0.1.0"
-})
+  version: "0.1.0",
+});
 
-cli.command(hello)
-await cli.run()
+cli.command(hello);
+await cli.run();
 ```
 
 `createCLI` returns a `Promise`, and commands are registered explicitly via `cli.command(...)`.

@@ -1,20 +1,22 @@
-import { createPlugin } from '@bunli/core/plugin'
+import { createPlugin } from "@bunli/core/plugin";
 
 interface MetricsStore {
   metrics: {
     events: Array<{
-      name: string
-      timestamp: Date
-      data: Record<string, any>
-    }>
-    recordEvent: (name: string, data?: Record<string, any>) => void
-    getEvents: (name?: string) => Array<{ name: string; timestamp: Date; data: Record<string, any> }>
-    clearEvents: () => void
-  }
+      name: string;
+      timestamp: Date;
+      data: Record<string, any>;
+    }>;
+    recordEvent: (name: string, data?: Record<string, any>) => void;
+    getEvents: (
+      name?: string,
+    ) => Array<{ name: string; timestamp: Date; data: Record<string, any> }>;
+    clearEvents: () => void;
+  };
 }
 
 export const metricsPlugin = createPlugin<MetricsStore>({
-  name: 'metrics',
+  name: "metrics",
   store: {
     metrics: {
       events: [],
@@ -22,39 +24,39 @@ export const metricsPlugin = createPlugin<MetricsStore>({
         this.events.push({
           name,
           timestamp: new Date(),
-          data
-        })
-        
+          data,
+        });
+
         // Keep only last 100 events to prevent memory leaks
         if (this.events.length > 100) {
-          this.events = this.events.slice(-100)
+          this.events = this.events.slice(-100);
         }
       },
       getEvents(name?: string) {
         if (name) {
-          return this.events.filter(event => event.name === name)
+          return this.events.filter((event) => event.name === name);
         }
-        return [...this.events]
+        return [...this.events];
       },
       clearEvents() {
-        this.events = []
-      }
-    }
+        this.events = [];
+      },
+    },
   },
-  
+
   beforeCommand({ store, command }) {
     // Record command start
-    store.metrics.recordEvent('command_started', {
+    store.metrics.recordEvent("command_started", {
       command: command,
-      timestamp: new Date().toISOString()
-    })
+      timestamp: new Date().toISOString(),
+    });
   },
-  
+
   afterCommand({ store, command }) {
     // Record command completion
-    store.metrics.recordEvent('command_completed', {
+    store.metrics.recordEvent("command_completed", {
       command: command,
-      timestamp: new Date().toISOString()
-    })
-  }
-})
+      timestamp: new Date().toISOString(),
+    });
+  },
+});

@@ -9,10 +9,10 @@ Runtime prompt/renderer wiring lives in `@bunli/runtime/prompt` and `@bunli/runt
 
 ## WHERE TO LOOK
 
-| Task | Location |
-|------|----------|
-| Main exports | `src/index.ts` |
-| Components | `src/components/` |
+| Task         | Location          |
+| ------------ | ----------------- |
+| Main exports | `src/index.ts`    |
+| Components   | `src/components/` |
 
 ## PATTERNS
 
@@ -22,11 +22,14 @@ Use `@bunli/runtime/prompt` for prompt/spinner and `@bunli/runtime/app` for shar
 ## EXPORTS
 
 ### Hooks (from @opentui/react)
+
 - `useKeyboard`, `useRenderer`, `useTerminalDimensions`, `useTimeline`, `useOnResize`
 
 ### Types
+
 - `SyncBatcher`, `SyncBatcherOptions`
 - `SelectOption`, `KeyEvent`, `CliRendererConfig` (from `@opentui/core`)
 
 ### Styling (from @opentui/core)
+
 - `bold`, `fg`, `italic`, `t`, `TextAttributes`
