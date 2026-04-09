@@ -226,7 +226,7 @@ test('createTestCLI preserves global --version when a command defines a version 
     commands: [releaseCommand]
   })
 
-  const result = await testCli.run(['release', '--version'])
+  const result = await testCli.run(['release', '--version', '--format', 'json'])
 
   expect(result.exitCode).toBe(0)
   expect(result.stdout).toContain('"type": "version"')

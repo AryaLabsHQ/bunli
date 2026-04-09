@@ -1,11 +1,9 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import completionsDoctorCommand from '../src/commands/doctor/completions.js'
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { testCommand } from '../../test/src/index.ts'
-
-const repoRoot = path.resolve(import.meta.dir, '../../..')
-const tempBaseDir = path.join(repoRoot, '.tmp-bunli-doctor-e2e')
+import { createTempFixtureDir, removeTempFixtureDir } from './helpers/temp-dir.js'
 
 interface CliRunResult {
   exitCode: number
@@ -67,14 +65,13 @@ describe('doctor completions', () => {
   let fixtureDir = ''
 
   beforeEach(() => {
-    mkdirSync(tempBaseDir, { recursive: true })
-    fixtureDir = mkdtempSync(path.join(tempBaseDir, 'doctor-'))
+    fixtureDir = createTempFixtureDir('bunli-doctor-e2e')
     writeFixturePackageJson(fixtureDir)
   })
 
   afterEach(() => {
     if (fixtureDir) {
-      rmSync(fixtureDir, { recursive: true, force: true })
+      removeTempFixtureDir(fixtureDir)
     }
   })
 

@@ -1,10 +1,11 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
+import { linkFixturePackages } from './helpers/install-fixture.js'
+import { createTempFixtureDir, removeTempFixtureDir } from './helpers/temp-dir.js'
 
 const repoRoot = path.resolve(import.meta.dir, '../../..')
 const cliEntrypoint = path.join(repoRoot, 'packages/cli/src/cli.ts')
-const tempBaseDir = path.join(repoRoot, '.tmp-bunli-dev-e2e')
 
 interface CliRunResult {
   exitCode: number
@@ -70,13 +71,12 @@ describe('dev e2e - command entry precedence', () => {
   let fixtureDir = ''
 
   beforeEach(() => {
-    mkdirSync(tempBaseDir, { recursive: true })
-    fixtureDir = mkdtempSync(path.join(tempBaseDir, 'dev-'))
+    fixtureDir = createTempFixtureDir('bunli-dev-e2e')
   })
 
   afterEach(() => {
     if (fixtureDir) {
-      rmSync(fixtureDir, { recursive: true, force: true })
+      removeTempFixtureDir(fixtureDir)
     }
   })
 
@@ -91,6 +91,7 @@ describe('dev e2e - command entry precedence', () => {
     writeCommandFile(fixtureDir, 'src/commands/from-config.ts', 'from-config')
     writeEntryFile(fixtureDir, 'src/config-entry.ts', './commands/from-config.js')
     writeEntryFile(fixtureDir, 'src/fallback-entry.ts', './commands/from-config.js')
+    linkFixturePackages(fixtureDir, repoRoot, ['@bunli/core'])
 
     const result = await runCli(fixtureDir, ['dev', '--watch=false'])
     const combinedOutput = `${result.stdout}\n${result.stderr}`
@@ -116,6 +117,7 @@ describe('dev e2e - command entry precedence', () => {
     writeEntryFile(fixtureDir, 'src/config-entry.ts', './commands/from-config.js')
     writeEntryFile(fixtureDir, 'custom/entry-flag.ts', './commands/from-flag.js')
     writeEntryFile(fixtureDir, 'src/fallback-entry.ts', './commands/from-config.js')
+    linkFixturePackages(fixtureDir, repoRoot, ['@bunli/core'])
 
     const result = await runCli(fixtureDir, ['dev', '--watch=false', '--entry=custom/entry-flag.ts'])
     const combinedOutput = `${result.stdout}\n${result.stderr}`
@@ -138,6 +140,7 @@ describe('dev e2e - command entry precedence', () => {
     )
     writeCommandFile(fixtureDir, 'src/commands/from-build-entry.ts', 'from-build-entry')
     writeEntryFile(fixtureDir, 'src/build-entry.ts', './commands/from-build-entry.js')
+    linkFixturePackages(fixtureDir, repoRoot, ['@bunli/core'])
 
     const result = await runCli(fixtureDir, ['dev', '--watch=false'])
     const combinedOutput = `${result.stdout}\n${result.stderr}`
@@ -148,6 +151,24 @@ describe('dev e2e - command entry precedence', () => {
     expect(combinedOutput).toContain('Generated types for 1 commands')
     expect(existsSync(generatedPath)).toBe(true)
     expect(readFileSync(generatedPath, 'utf8')).toContain("'from-build-entry'")
+  })
+
+  test('fails with install guidance when project dependencies are missing', async () => {
+    writeBaseFixture(
+      fixtureDir,
+      `export default {
+  build: { entry: './src/build-entry.ts' }
+}\n`
+    )
+    writeCommandFile(fixtureDir, 'src/commands/from-build-entry.ts', 'from-build-entry')
+    writeEntryFile(fixtureDir, 'src/build-entry.ts', './commands/from-build-entry.js')
+
+    const result = await runCli(fixtureDir, ['dev', '--watch=false'])
+    const combinedOutput = `${result.stdout}\n${result.stderr}`
+
+    expect(result.exitCode).toBe(1)
+    expect(combinedOutput).toContain("Run 'bun install'")
+    expect(combinedOutput).toContain("before running 'bunli dev'")
   })
 
 })

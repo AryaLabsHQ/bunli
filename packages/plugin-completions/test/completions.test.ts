@@ -2,14 +2,13 @@ import { describe, test, expect, beforeEach, afterEach } from 'bun:test'
 import { createCLI } from '@bunli/core'
 import { completionsPlugin } from '../src/index.js'
 import { resolve } from 'node:path'
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import type { CompletionsPluginOptions } from '../src/types.js'
 import { buildRegistry } from '../src/tab/registry.js'
 import type { GeneratedCommandMeta } from '@bunli/core'
 
 const EXAMPLE_DIR = resolve(import.meta.dir, '../../../examples/task-runner')
-const REPO_ROOT = resolve(import.meta.dir, '../../..')
-const TEMP_BASE_DIR = resolve(REPO_ROOT, '.tmp-plugin-completions-tests')
 const SHELLS = ['bash', 'zsh', 'fish', 'powershell'] as const
 
 async function createTestCLI(overrides: CompletionsPluginOptions = {}) {
@@ -240,8 +239,7 @@ describe('completions/complete command (Tab protocol)', () => {
   })
 
   test('deep nested command paths resolve completion candidates across 3 levels', async () => {
-    mkdirSync(TEMP_BASE_DIR, { recursive: true })
-    const fixtureDir = mkdtempSync(resolve(TEMP_BASE_DIR, 'nested-'))
+    const fixtureDir = mkdtempSync(resolve(tmpdir(), 'bunli-plugin-completions-nested-'))
     try {
       const generatedDir = resolve(fixtureDir, '.bunli')
       mkdirSync(generatedDir, { recursive: true })
@@ -294,8 +292,7 @@ export const generated = {
   })
 
   test('group metadata commands are recursively reachable for subcommand and flag completions', async () => {
-    mkdirSync(TEMP_BASE_DIR, { recursive: true })
-    const fixtureDir = mkdtempSync(resolve(TEMP_BASE_DIR, 'nested-group-'))
+    const fixtureDir = mkdtempSync(resolve(tmpdir(), 'bunli-plugin-completions-group-'))
     try {
       const generatedDir = resolve(fixtureDir, '.bunli')
       mkdirSync(generatedDir, { recursive: true })

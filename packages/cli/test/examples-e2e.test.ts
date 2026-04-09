@@ -1,11 +1,12 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { cpSync, existsSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
+import { linkFixturePackages } from './helpers/install-fixture.js'
+import { createTempFixtureDir, removeTempFixtureDir } from './helpers/temp-dir.js'
 
 const repoRoot = path.resolve(import.meta.dir, '../../..')
 const cliEntrypoint = path.join(repoRoot, 'packages/cli/src/cli.ts')
 const taskRunnerExample = path.join(repoRoot, 'examples/task-runner')
-const tempBaseDir = path.join(repoRoot, '.tmp-bunli-e2e')
 
 interface CliRunResult {
   exitCode: number
@@ -61,19 +62,23 @@ describe('example e2e: task-runner with build.targets=[]', () => {
   let fixtureDir = ''
 
   beforeEach(async () => {
-    mkdirSync(tempBaseDir, { recursive: true })
-    fixtureDir = mkdtempSync(path.join(tempBaseDir, 'task-runner-'))
+    fixtureDir = createTempFixtureDir('bunli-example-e2e')
     cpSync(taskRunnerExample, fixtureDir, {
       recursive: true,
       filter: (source) => !source.split(path.sep).includes('node_modules'),
     })
     forceBundleMode(path.join(fixtureDir, 'bunli.config.ts'))
     await initGitRepository(fixtureDir)
+    linkFixturePackages(fixtureDir, repoRoot, [
+      '@bunli/core',
+      '@bunli/plugin-completions',
+      'zod',
+    ])
   })
 
   afterEach(() => {
     if (fixtureDir) {
-      rmSync(fixtureDir, { recursive: true, force: true })
+      removeTempFixtureDir(fixtureDir)
     }
   })
 

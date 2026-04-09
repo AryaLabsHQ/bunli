@@ -1,25 +1,22 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
-import { mkdirSync, mkdtempSync, rmSync } from 'node:fs'
+import { mkdirSync } from 'node:fs'
 import path from 'node:path'
 import { resolveWatchDirectory } from '../src/commands/dev.js'
-
-const repoRoot = path.resolve(import.meta.dir, '../../..')
-const tempBaseDir = path.join(repoRoot, '.tmp-bunli-dev-watch')
+import { createTempFixtureDir, removeTempFixtureDir } from './helpers/temp-dir.js'
 
 describe('resolveWatchDirectory', () => {
   const originalCwd = process.cwd()
   let fixtureDir = ''
 
   beforeEach(() => {
-    mkdirSync(tempBaseDir, { recursive: true })
-    fixtureDir = mkdtempSync(path.join(tempBaseDir, 'watch-'))
+    fixtureDir = createTempFixtureDir('bunli-dev-watch')
     process.chdir(fixtureDir)
   })
 
   afterEach(() => {
     process.chdir(originalCwd)
     if (fixtureDir) {
-      rmSync(fixtureDir, { recursive: true, force: true })
+      removeTempFixtureDir(fixtureDir)
     }
   })
 
