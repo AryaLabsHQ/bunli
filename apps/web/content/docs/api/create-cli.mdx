@@ -15,7 +15,7 @@ function createCLI<TPlugins extends readonly BunliPlugin[] = []>(
     plugins?: TPlugins
     generated?: string | boolean
   },
-  runtimeDeps?: CreateCLIRuntimeDeps
+  runtimeDeps: CreateCLIRuntimeDeps = {}
 ): Promise<CLI<MergeStores<TPlugins>>>
 ```
 
