@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { HomeLayout } from "fumadocs-ui/layouts/home";
-import { useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 
 import { CTASection } from "@/components/landing/cta-section";
 import { ExamplesShowcase } from "@/components/landing/examples-showcase";
@@ -8,8 +8,12 @@ import { FeaturesGrid } from "@/components/landing/features-grid";
 import { Hero } from "@/components/landing/hero";
 import { QuickStart } from "@/components/landing/quick-start";
 
-import { WorkbenchPage } from "../components/workbench/workbench-page";
 import { docsLayoutOptions } from "../lib/layout";
+
+const LazyWorkbenchPage = lazy(async () => {
+  const module = await import("../components/workbench/workbench-page");
+  return { default: module.WorkbenchPage };
+});
 
 export const Route = createFileRoute("/")({
   component: HomePage,
@@ -69,7 +73,11 @@ function WorkbenchDemo() {
           </p>
         </div>
 
-        {mounted ? <WorkbenchPage embedded /> : null}
+        {mounted ? (
+          <Suspense fallback={null}>
+            <LazyWorkbenchPage embedded />
+          </Suspense>
+        ) : null}
       </div>
     </section>
   );
