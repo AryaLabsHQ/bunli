@@ -12,9 +12,9 @@ export default defineConfig({
   build: {
     entry: './cli.ts',
     outdir: './dist',
-    // Multi-target standalone binaries + compressed archives
-    targets: ['darwin-arm64', 'darwin-x64'],
-    compress: true,
+    // Keep the example locally buildable on any machine by default.
+    targets: ['native'],
+    compress: false,
     minify: true,
     sourcemap: false
   },

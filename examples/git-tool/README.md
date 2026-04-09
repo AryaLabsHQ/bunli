@@ -24,6 +24,7 @@ bun cli.ts status --detailed
 - **Interactive prompts** for user decisions
 - **Colored output** for better UX
 - **Real-world Git workflows** developers actually use
+- **Native standalone builds** that work out of the box on the current machine
 
 ## Commands
 
@@ -198,6 +199,8 @@ bun run build
 # Run the built executable
 ./dist/cli status --detailed
 ```
+
+If you want multi-platform binaries for release packaging, change `build.targets` in [bunli.config.ts](/Users/aryasaatvik/Developer/bunli/examples/git-tool/bunli.config.ts) and install the matching optional OpenTUI platform packages before compiling.
 
 ## Real-World Usage
 
