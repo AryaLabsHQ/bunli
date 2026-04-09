@@ -1,5 +1,11 @@
 # create-bunli
 
+## 0.8.2
+
+### Patch Changes
+
+- 8676488: fix(create-bunli): replace monorepo-only `catalog:` dependency references in bundled templates with publishable versions so generated projects install correctly outside the Bunli workspace
+
 ## 0.8.1
 
 ### Patch Changes
