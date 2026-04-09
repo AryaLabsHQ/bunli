@@ -195,7 +195,7 @@
     },
     "packages/create-bunli": {
       "name": "create-bunli",
-      "version": "0.8.1",
+      "version": "0.8.2",
       "bin": {
         "create-bunli": "./dist/cli.js",
       },
