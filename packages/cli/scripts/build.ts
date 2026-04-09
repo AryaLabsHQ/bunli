@@ -1,6 +1,11 @@
 #!/usr/bin/env bun
 import { $ } from 'bun'
 
+const packageJson = await Bun.file(new URL('../package.json', import.meta.url)).json() as {
+  dependencies?: Record<string, string>
+}
+const runtimeExternals = Object.keys(packageJson.dependencies ?? {})
+
 console.log('🔨 Building bunli CLI...')
 
 // Clean dist directory
@@ -36,7 +41,7 @@ if (useCompile) {
     target: 'bun',
     format: 'esm',
     minify: true,
-    external: ['@bunli/core', '@bunli/utils', 'zod', 'glob']
+    external: runtimeExternals
   })
 
   if (!result.success) {
@@ -59,7 +64,7 @@ const libResult = await Bun.build({
   target: 'bun',
   format: 'esm',
   minify: false,
-  external: ['@bunli/core', '@bunli/utils', 'zod', 'glob']
+  external: runtimeExternals
 })
 
 if (!libResult.success) {
