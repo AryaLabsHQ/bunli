@@ -22,7 +22,7 @@
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.0",
-    "@tsconfig/bun": "catalog:",
+    "@tsconfig/bun": "1.0.10",
     "@types/bun": "latest",
     "turbo": "latest",
     "typescript": "^5.0.0"

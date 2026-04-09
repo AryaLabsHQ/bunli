@@ -20,7 +20,7 @@
     "clean": "rm -rf dist"
   },
   "devDependencies": {
-    "@tsconfig/bun": "catalog:",
+    "@tsconfig/bun": "1.0.10",
     "@types/bun": "latest",
     "typescript": "^5.0.0"
   }

@@ -26,7 +26,7 @@
   },
   "devDependencies": {
     "@bunli/test": "latest",
-    "@tsconfig/bun": "catalog:",
+    "@tsconfig/bun": "1.0.10",
     "@types/bun": "latest",
     "bunli": "latest",
     "typescript": "^5.0.0"

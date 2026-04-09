@@ -1,3 +1,6 @@
+import { readdir } from "node:fs/promises";
+import { join } from "node:path";
+
 import { test, expect } from "bun:test";
 
 import {
@@ -34,4 +37,34 @@ test("getBundledTemplatePath - returns correct paths", () => {
   const basicPath = getBundledTemplatePath("basic");
   expect(basicPath).toContain("templates/basic");
   expect(basicPath).toContain("create-bunli");
+});
+
+test("bundled templates do not contain workspace catalog dependencies", async () => {
+  const templatesRoot = join(import.meta.dir, "..", "templates");
+  const packageJsonPaths: string[] = [];
+
+  async function walk(dir: string) {
+    const entries = await readdir(dir, { withFileTypes: true });
+
+    for (const entry of entries) {
+      const entryPath = join(dir, entry.name);
+      if (entry.isDirectory()) {
+        await walk(entryPath);
+        continue;
+      }
+
+      if (entry.name === "package.json") {
+        packageJsonPaths.push(entryPath);
+      }
+    }
+  }
+
+  await walk(templatesRoot);
+
+  expect(packageJsonPaths.length).toBeGreaterThan(0);
+
+  for (const packageJsonPath of packageJsonPaths) {
+    const content = await Bun.file(packageJsonPath).text();
+    expect(content).not.toContain('"catalog:"');
+  }
 });
