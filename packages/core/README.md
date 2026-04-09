@@ -24,7 +24,7 @@ export default defineCommand({
     ),
     excited: option(
       z.coerce.boolean().default(false),
-      { description: 'Add excitement', short: 'e' }
+      { description: 'Add excitement', short: 'e', argumentKind: 'flag' }
     )
   },
   handler: async ({ flags }) => {
@@ -79,7 +79,7 @@ export default defineCommand({
     ),
     force: option(
       z.coerce.boolean().default(false),
-      { description: 'Force deployment', short: 'f' }
+      { description: 'Force deployment', short: 'f', argumentKind: 'flag' }
     )
   },
   handler: async ({ flags }) => {
@@ -157,6 +157,22 @@ Creates a command definition with full type inference.
 ### `option(schema, config)`
 
 Creates a typed option with schema validation.
+
+For boolean-style flags, set `argumentKind: 'flag'`.
+
+```typescript
+verbose: option(
+  z.boolean().default(false),
+  { short: 'v', description: 'Verbose output', argumentKind: 'flag' }
+)
+```
+
+Flag parsing contract:
+- `--verbose` sets the value to `true`
+- `--verbose=true` and `--verbose=false` are both valid
+- `--verbose build` does not consume `build`; it remains positional
+
+Use the default value schema if you want the flag to be optional and strongly typed in handlers.
 
 ### `createCLI(config)`
 
