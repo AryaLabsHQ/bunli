@@ -29,7 +29,12 @@ An array of typed plugin instances. When provided, the CLI's type signature incl
 
 ### configOverride (optional)
 
-Override specific configuration values or provide configuration inline.
+Override specific configuration values or provide configuration inline. The `generated` option defaults to `true` — set to `false` to disable type generation.
+
+**Note**: When providing a `plugins` array with typed plugins, pass it as a `const` tuple to preserve type information:
+```typescript
+plugins: [pluginA, pluginB] as const
+```
 
 ```typescript
 interface BunliConfigInput {
@@ -84,15 +89,7 @@ interface CLI<TStore = any> {
 
   // Execute a named command programmatically
   execute(commandName: string, args?: string[]): Promise<void>
-  execute<T extends keyof RegisteredCommands>(
-    commandName: T,
-    options: CommandOptions<T>
-  ): Promise<void>
-  execute<T extends keyof RegisteredCommands>(
-    commandName: T,
-    args: string[],
-    options: CommandOptions<T>
-  ): Promise<void>
+  execute(commandName: string, argsOrOptions?: string[] | Record<string, unknown>, options?: Record<string, unknown>): Promise<void>
 }
 ```
 

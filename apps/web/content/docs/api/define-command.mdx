@@ -212,24 +212,49 @@ interface HandlerArgs<TFlags = Record<string, unknown>, TStore = {}, TCommandNam
 
   // Interactive prompts
   prompt: {
+    // Default call signature (same as text)
+    <T = string>(message: string, options?: PromptOptions): Promise<T>
+    
+    // Text input
     text(message: string, options?: PromptOptions): Promise<string>
+    
+    // Confirmation prompt
     confirm(message: string, options?: ConfirmOptions): Promise<boolean>
+    
+    // Single selection
     select<T>(message: string, options: SelectOptions<T>): Promise<T>
+    
+    // Password (with masking)
     password(message: string, options?: PromptOptions): Promise<string>
+    
+    // Multiple selection
     multiselect<T>(message: string, options: MultiSelectOptions<T>): Promise<T[]>
+    
+    // Filter/paginate options
+    filter<T>(message: string, options: FilterOptions<T>): Promise<T | T[]>
+    
+    // Multi-step prompts
+    group<T extends Record<string, () => Promise<unknown>>>(steps: T): Promise<{ [K in keyof T]: Awaited<ReturnType<T[K]>> }>
+    
+    // Pager for long content
     pager(content: string, options?: PagerOptions): Promise<void>
+    
+    // Spinner factory
+    spinner: PromptSpinnerFactory
+    
+    // Informational prompts
+    intro(message: string): void
+    outro(message: string): void
+    note(message: string): void
+    log(message: string): void
+    
+    // Cancellation
+    cancel(message?: string): never
+    isCancel(error: unknown): boolean
   }
 
   // Progress spinner factory
-  spinner: (text?: string) => {
-    start(text?: string): void
-    stop(text?: string): void
-    succeed(text?: string): void
-    fail(text?: string): void
-    warn(text?: string): void
-    info(text?: string): void
-    update(text: string): void
-  }
+  spinner: PromptSpinnerFactory
 
   // Terminal colors
   colors: typeof import('@bunli/utils').colors
