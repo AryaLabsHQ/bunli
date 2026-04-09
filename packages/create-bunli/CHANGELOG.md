@@ -1,5 +1,13 @@
 # create-bunli
 
+## 0.8.1
+
+### Patch Changes
+
+- 02a7a1e: fix(cli): preserve positionals after boolean flags, improve installed-project errors, and republish create-bunli so scaffolding users pick up the latest fixes
+- Updated dependencies [02a7a1e]
+  - @bunli/core@0.9.1
+
 ## 0.8.0
 
 ### Minor Changes

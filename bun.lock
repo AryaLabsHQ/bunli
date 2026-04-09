@@ -152,7 +152,7 @@
     },
     "packages/cli": {
       "name": "bunli",
-      "version": "0.9.0",
+      "version": "0.9.1",
       "bin": {
         "bunli": "./dist/cli.js",
       },
@@ -174,7 +174,7 @@
     },
     "packages/core": {
       "name": "@bunli/core",
-      "version": "0.9.0",
+      "version": "0.9.1",
       "dependencies": {
         "@bunli/runtime": "workspace:^",
         "@bunli/utils": "workspace:^",
@@ -195,7 +195,7 @@
     },
     "packages/create-bunli": {
       "name": "create-bunli",
-      "version": "0.8.0",
+      "version": "0.8.1",
       "bin": {
         "create-bunli": "./dist/cli.js",
       },
@@ -301,7 +301,7 @@
     },
     "packages/runtime": {
       "name": "@bunli/runtime",
-      "version": "0.3.1",
+      "version": "0.3.2",
       "dependencies": {
         "@opentui/core": "catalog:",
         "@opentui/react": "catalog:",

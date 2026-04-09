@@ -1,6 +1,6 @@
 {
   "name": "bunli",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "description": "The Bunli CLI toolchain for developing, building, and distributing CLIs",
   "keywords": [
     "build-tool",

@@ -1,5 +1,11 @@
 # @bunli/runtime
 
+## 0.3.2
+
+### Patch Changes
+
+- 02a7a1e: fix(runtime): support the current OpenTUI renderer contract and stabilize prompt formatting across TTY and CI environments
+
 ## 0.3.1
 
 ### Patch Changes
