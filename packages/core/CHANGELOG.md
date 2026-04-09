@@ -1,10 +1,19 @@
 # @bunli/core
 
+## 0.9.1
+
+### Patch Changes
+
+- 02a7a1e: fix(cli): preserve positionals after boolean flags, improve installed-project errors, and republish create-bunli so scaffolding users pick up the latest fixes
+- Updated dependencies [02a7a1e]
+  - @bunli/runtime@0.3.2
+
 ## 0.9.0
 
 ### Minor Changes
 
 - 44bb5d0: Add follow-up fixes for config loading, repeatable flags, and machine-readable CLI output.
+
   - Let a complete inline `createCLI()` override win even when the on-disk Bunli config fails to load, while preserving `ConfigNotFoundError` and `ConfigLoadError` behavior for incomplete overrides.
   - Add `repeatable: true` option metadata in `@bunli/core` so repeated flags can accumulate into validated arrays.
   - Finish normalizing machine-readable core output by formatting built-in help, version, manifest, unknown-command, and validation error paths through the shared output system.

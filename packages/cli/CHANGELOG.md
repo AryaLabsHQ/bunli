@@ -1,5 +1,13 @@
 # bunli
 
+## 0.9.1
+
+### Patch Changes
+
+- 02a7a1e: fix(cli): preserve positionals after boolean flags, improve installed-project errors, and republish create-bunli so scaffolding users pick up the latest fixes
+- Updated dependencies [02a7a1e]
+  - @bunli/core@0.9.1
+
 ## 0.9.0
 
 ### Minor Changes
@@ -122,6 +130,7 @@
 ### Patch Changes
 
 - 5186a7d: feat: add binary release support for npm package publishing
+
   - Add release.binary config for per-platform npm packages
   - Generate ESM shim that dispatches to correct platform binary
   - Improve boolean flag handling (--flag=false form)
