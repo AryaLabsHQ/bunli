@@ -4,6 +4,7 @@ import { Generator } from '@bunli/generator'
 import { z } from 'zod'
 import { loadConfig } from '@bunli/core'
 import { findEntry } from '../utils/find-entry.js'
+import { getInstallRequiredMessage, hasInstalledProjectDependencies } from '../utils/install-check.js'
 import path from 'node:path'
 import { existsSync, statSync } from 'node:fs'
 import { watch } from 'node:fs/promises'
@@ -101,6 +102,10 @@ async function runDev(
   spinner: PromptSpinnerFactory,
   colors: Colors
 ): Promise<Result<void, DevCommandErrorType>> {
+    if (!hasInstalledProjectDependencies()) {
+      return failDev(getInstallRequiredMessage('dev'))
+    }
+
     const config = await loadConfig()
     const typedFlags = flags as {
       entry?: string

@@ -5,6 +5,7 @@ import { bunliCodegenPlugin } from '@bunli/generator/plugin'
 import { z } from 'zod'
 import { loadConfig } from '@bunli/core'
 import { findEntry } from '../utils/find-entry.js'
+import { getInstallRequiredMessage, hasInstalledProjectDependencies } from '../utils/install-check.js'
 import { $ } from 'bun'
 import path from 'node:path'
 import { createRequire } from 'node:module'
@@ -121,6 +122,10 @@ async function runBuild(
   spinner: PromptSpinnerFactory,
   colors: Colors
 ): Promise<Result<void, BuildCommandErrorType>> {
+  if (!hasInstalledProjectDependencies()) {
+    return failBuild(getInstallRequiredMessage('build'))
+  }
+
   const config = await loadConfig()
 
   const typedFlags = flags as {
