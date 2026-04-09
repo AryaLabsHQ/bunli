@@ -211,9 +211,11 @@ function stripAnsi(text: string): string {
   return text.replace(/\x1b\[[0-9;]*m/g, '')
 }
 
-const promptStyle: PromptStyle = {
-  useColor: shouldUseColor(),
-  symbols: resolvePromptSymbols(resolvePromptSymbolMode())
+function getPromptStyle(): PromptStyle {
+  return {
+    useColor: shouldUseColor(),
+    symbols: resolvePromptSymbols(resolvePromptSymbolMode())
+  }
 }
 
 function isCIEnvironment(): boolean {
@@ -302,8 +304,9 @@ function cancelAndThrow(message?: string): never {
 function renderSchemaIssues(error: unknown) {
   if (!(error instanceof SchemaError)) return
   console.error(formatErrorLine('Invalid input:'))
+  const style = getPromptStyle()
   for (const issue of error.issues) {
-    console.error(`  ${dim(promptStyle, '-')} ${issue.message}`)
+    console.error(`  ${dim(style, '-')} ${issue.message}`)
   }
   console.error()
 }
@@ -317,7 +320,7 @@ async function askLine(message: string, defaultValue?: string): Promise<string |
   const onSigint = () => abortController.abort()
 
   const promptLabel = defaultValue !== undefined
-    ? `${formatQuestionLabel(message)} ${dim(promptStyle, `(${defaultValue})`)} `
+    ? `${formatQuestionLabel(message)} ${dim(getPromptStyle(), `(${defaultValue})`)} `
     : `${formatQuestionLabel(message)} `
 
   process.on('SIGINT', onSigint)
@@ -391,41 +394,49 @@ function clearStatusLine() {
 }
 
 function formatQuestionLabel(message: string): string {
+  const style = getPromptStyle()
   const leadingLineBreaks = message.match(/^(?:\r?\n)+/)?.[0] ?? ''
   const labelMessage = message.slice(leadingLineBreaks.length)
-  return `${leadingLineBreaks}${cyan(promptStyle, promptStyle.symbols.question)} ${bold(promptStyle, labelMessage)}`
+  return `${leadingLineBreaks}${cyan(style, style.symbols.question)} ${bold(style, labelMessage)}`
 }
 
 function formatErrorLine(message: string): string {
-  return `${red(promptStyle, promptStyle.symbols.error)} ${message}`
+  const style = getPromptStyle()
+  return `${red(style, style.symbols.error)} ${message}`
 }
 
 function formatSuccessLine(message: string): string {
-  return `${green(promptStyle, promptStyle.symbols.success)} ${message}`
+  const style = getPromptStyle()
+  return `${green(style, style.symbols.success)} ${message}`
 }
 
 function formatInfoLine(message: string): string {
-  return `${cyan(promptStyle, promptStyle.symbols.info)} ${message}`
+  const style = getPromptStyle()
+  return `${cyan(style, style.symbols.info)} ${message}`
 }
 
 function formatWarningLine(message: string): string {
-  return `${yellow(promptStyle, promptStyle.symbols.warning)} ${message}`
+  const style = getPromptStyle()
+  return `${yellow(style, style.symbols.warning)} ${message}`
 }
 
 function formatIntroLine(message: string): string {
-  const lead = cyan(promptStyle, promptStyle.symbols.introStart)
-  const body = bold(promptStyle, message)
-  const rail = dim(promptStyle, promptStyle.symbols.frameVertical)
+  const style = getPromptStyle()
+  const lead = cyan(style, style.symbols.introStart)
+  const body = bold(style, message)
+  const rail = dim(style, style.symbols.frameVertical)
   return `${lead}  ${body}\n${rail}`
 }
 
 function formatOutroLine(message: string): string {
-  const lead = green(promptStyle, promptStyle.symbols.outroEnd)
-  const body = bold(promptStyle, message)
+  const style = getPromptStyle()
+  const lead = green(style, style.symbols.outroEnd)
+  const body = bold(style, message)
   return `${lead}  ${body}`
 }
 
 function formatNoteLines(message: string, title?: string): string[] {
+  const style = getPromptStyle()
   const normalizedLines = message
     .split('\n')
     .map((line) => line.trimEnd())
@@ -465,7 +476,7 @@ function formatNoteLines(message: string, title?: string): string[] {
     : bodyLines
 
   if (!title) {
-    const vertical = dim(promptStyle, promptStyle.symbols.frameVertical)
+    const vertical = dim(style, style.symbols.frameVertical)
     return alignedBodyLines.map((line) => `${vertical}  ${line}`)
   }
 
@@ -480,13 +491,13 @@ function formatNoteLines(message: string, title?: string): string[] {
   const fill = Math.max(1, innerWidth - displayWidth(title) - 1)
 
   const topLine =
-    `${cyan(promptStyle, promptStyle.symbols.section)}  ${bold(promptStyle, title)} ` +
-    `${dim(promptStyle, promptStyle.symbols.frameHorizontal.repeat(fill))}` +
-    `${dim(promptStyle, promptStyle.symbols.frameTopRight)}`
-  const vertical = dim(promptStyle, promptStyle.symbols.frameVertical)
-  const horizontal = dim(promptStyle, promptStyle.symbols.frameHorizontal.repeat(innerWidth + 2))
+    `${cyan(style, style.symbols.section)}  ${bold(style, title)} ` +
+    `${dim(style, style.symbols.frameHorizontal.repeat(fill))}` +
+    `${dim(style, style.symbols.frameTopRight)}`
+  const vertical = dim(style, style.symbols.frameVertical)
+  const horizontal = dim(style, style.symbols.frameHorizontal.repeat(innerWidth + 2))
   const padLine = `${vertical} ${' '.repeat(innerWidth)} ${vertical}`
-  const footer = `${dim(promptStyle, promptStyle.symbols.frameBottomLeft)}${horizontal}${dim(promptStyle, promptStyle.symbols.frameBottomRight)}`
+  const footer = `${dim(style, style.symbols.frameBottomLeft)}${horizontal}${dim(style, style.symbols.frameBottomRight)}`
 
   return [
     topLine,
@@ -513,10 +524,11 @@ function renderSelectFrame<T>(args: {
   hint?: string
   tick?: number
 }): string[] {
+  const style = getPromptStyle()
   const lines: string[] = [
     formatQuestionLabel(args.message),
     dim(
-      promptStyle,
+      style,
       args.hint ?? `Use Up/Down, Enter to choose, 1-${Math.min(9, args.options.length)} for shortcuts`
     )
   ]
@@ -527,17 +539,17 @@ function renderSelectFrame<T>(args: {
     const active = index === args.selectedIndex
     const pointerSymbol = active
       ? (args.tick ?? 0) % 2 === 0
-        ? promptStyle.symbols.pointer
-        : promptStyle.symbols.pointerAlt
+        ? style.symbols.pointer
+        : style.symbols.pointerAlt
       : ' '
     const rail = active
-      ? cyan(promptStyle, promptStyle.symbols.rail)
-      : dim(promptStyle, promptStyle.symbols.rail)
-    const pointer = active ? cyan(promptStyle, pointerSymbol) : pointerSymbol
-    const numeric = dim(promptStyle, `${index + 1}.`)
-    const label = option.disabled ? dim(promptStyle, option.label) : option.label
-    const hint = option.hint ? dim(promptStyle, ` (${option.hint})`) : ''
-    const disabled = option.disabled ? dim(promptStyle, ' [disabled]') : ''
+      ? cyan(style, style.symbols.rail)
+      : dim(style, style.symbols.rail)
+    const pointer = active ? cyan(style, pointerSymbol) : pointerSymbol
+    const numeric = dim(style, `${index + 1}.`)
+    const label = option.disabled ? dim(style, option.label) : option.label
+    const hint = option.hint ? dim(style, ` (${option.hint})`) : ''
+    const disabled = option.disabled ? dim(style, ' [disabled]') : ''
     lines.push(`${rail} ${pointer} ${numeric} ${label}${hint}${disabled}`)
   }
 
@@ -552,10 +564,11 @@ function renderMultiSelectFrame<T>(args: {
   errorMessage?: string
   tick?: number
 }): string[] {
+  const style = getPromptStyle()
   const lines: string[] = [
     formatQuestionLabel(args.message),
     dim(
-      promptStyle,
+      style,
       `Use Up/Down, Space to toggle, Enter to submit, 1-${Math.min(9, args.options.length)} shortcuts`
     )
   ]
@@ -570,25 +583,25 @@ function renderMultiSelectFrame<T>(args: {
     const active = index === args.selectedIndex
     const pointerSymbol = active
       ? (args.tick ?? 0) % 2 === 0
-        ? promptStyle.symbols.pointer
-        : promptStyle.symbols.pointerAlt
+        ? style.symbols.pointer
+        : style.symbols.pointerAlt
       : ' '
     const rail = active
-      ? cyan(promptStyle, promptStyle.symbols.rail)
-      : dim(promptStyle, promptStyle.symbols.rail)
-    const pointer = active ? cyan(promptStyle, pointerSymbol) : pointerSymbol
+      ? cyan(style, style.symbols.rail)
+      : dim(style, style.symbols.rail)
+    const pointer = active ? cyan(style, pointerSymbol) : pointerSymbol
     const checkmark = args.selected.has(option.value)
-      ? green(promptStyle, promptStyle.symbols.selected)
-      : dim(promptStyle, promptStyle.symbols.unselected)
-    const numeric = dim(promptStyle, `${index + 1}.`)
-    const label = option.disabled ? dim(promptStyle, option.label) : option.label
-    const hint = option.hint ? dim(promptStyle, ` (${option.hint})`) : ''
-    const disabled = option.disabled ? dim(promptStyle, ' [disabled]') : ''
+      ? green(style, style.symbols.selected)
+      : dim(style, style.symbols.unselected)
+    const numeric = dim(style, `${index + 1}.`)
+    const label = option.disabled ? dim(style, option.label) : option.label
+    const hint = option.hint ? dim(style, ` (${option.hint})`) : ''
+    const disabled = option.disabled ? dim(style, ' [disabled]') : ''
     lines.push(`${rail} ${pointer} ${numeric} ${checkmark} ${label}${hint}${disabled}`)
   }
 
   const selectedSummary = buildSelectedSummary(args.selected, args.options)
-  lines.push(dim(promptStyle, `Selected: ${selectedSummary}`))
+  lines.push(dim(style, `Selected: ${selectedSummary}`))
   return lines
 }
 
@@ -864,16 +877,18 @@ async function askPasswordWithReveal(args: {
   message: string
   validate?: (value: string) => string | undefined
 }): Promise<string | Cancel> {
+  const style = getPromptStyle()
   process.stdout.write(`${formatQuestionLabel(args.message)}\n`)
-  process.stdout.write(`${dim(promptStyle, 'Press Ctrl+R to toggle reveal, Enter to submit, Esc to cancel')}\n`)
+  process.stdout.write(`${dim(style, 'Press Ctrl+R to toggle reveal, Enter to submit, Esc to cancel')}\n`)
 
   const chars: string[] = []
   let revealed = false
 
   const render = () => {
     const display = revealed ? chars.join('') : '*'.repeat(chars.length)
-    const mode = revealed ? dim(promptStyle, '(revealed)') : dim(promptStyle, '(hidden)')
-    writeStatusLine(`${cyan(promptStyle, promptStyle.symbols.pointer)} Password ${mode}: ${display}`)
+    const currentStyle = getPromptStyle()
+    const mode = revealed ? dim(currentStyle, '(revealed)') : dim(currentStyle, '(hidden)')
+    writeStatusLine(`${cyan(currentStyle, currentStyle.symbols.pointer)} Password ${mode}: ${display}`)
   }
 
   return withRawKeyboard(async (readKey) => {
@@ -2206,6 +2221,7 @@ export function createPromptSession(): PromptSession {
 
   const sessionNote: typeof note = (...args) => {
     const [message, title] = args
+    const style = getPromptStyle()
     const bodyLines = message
       .split('\n')
       .map((line) => line.trimEnd())
@@ -2225,12 +2241,12 @@ export function createPromptSession(): PromptSession {
         return
       }
 
-      appendHistory(['', `${promptStyle.symbols.section} ${section}`])
-      appendHistory(contentLines.map((line) => `${promptStyle.symbols.rail} ${line}`))
+      appendHistory(['', `${style.symbols.section} ${section}`])
+      appendHistory(contentLines.map((line) => `${style.symbols.rail} ${line}`))
       return
     }
 
-    appendHistory((bodyLines.length > 0 ? bodyLines : ['']).map((line) => `${promptStyle.symbols.rail} ${line}`))
+    appendHistory((bodyLines.length > 0 ? bodyLines : ['']).map((line) => `${style.symbols.rail} ${line}`))
   }
 
   const sessionCancel: typeof cancel = (...args) => {

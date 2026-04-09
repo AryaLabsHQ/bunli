@@ -20,6 +20,32 @@ import {
 describe('@bunli/runtime prompt adapters', () => {
   let restoreRuntime: (() => void) | null = null
   const stripAnsi = (value: string) => value.replace(/\x1b\[[0-9;]*m/g, '')
+  const withEnv = async <T>(
+    overrides: Record<string, string | undefined>,
+    run: () => Promise<T> | T
+  ): Promise<T> => {
+    const original = new Map<string, string | undefined>()
+    for (const [key, value] of Object.entries(overrides)) {
+      original.set(key, process.env[key])
+      if (value === undefined) {
+        delete process.env[key]
+      } else {
+        process.env[key] = value
+      }
+    }
+
+    try {
+      return await run()
+    } finally {
+      for (const [key, value] of original.entries()) {
+        if (value === undefined) {
+          delete process.env[key]
+        } else {
+          process.env[key] = value
+        }
+      }
+    }
+  }
 
   beforeEach(() => {
     restoreRuntime = null
@@ -174,25 +200,22 @@ describe('@bunli/runtime prompt adapters', () => {
   })
 
   test('returns fallbackValue when prompt is unavailable', async () => {
-    const value = await text('Name', {
-      mode: 'inline',
-      fallbackValue: 'fallback-user'
-    })
+    const value = await withEnv({ CI: '1' }, () =>
+      text('Name', {
+        mode: 'inline',
+        fallbackValue: 'fallback-user'
+      })
+    )
 
     expect(value).toBe('fallback-user')
   })
 
   test('throws when prompt is unavailable and no fallbackValue is provided', async () => {
-    const originalCI = process.env.CI
-    process.env.CI = '1'
-
-    try {
+    await withEnv({ CI: '1' }, async () => {
       await expect(text('Name', { mode: 'inline' })).rejects.toThrow(
         'Prompt requires an interactive terminal'
       )
-    } finally {
-      process.env.CI = originalCI
-    }
+    })
   })
 
   test('global OpenTUI singleton can be disposed and recreated safely', async () => {
@@ -331,27 +354,29 @@ describe('@bunli/runtime prompt adapters', () => {
   })
 
   test('note formatter renders titled multi-line blocks with prefixed body lines', () => {
-    const lines = __promptInternalsForTests.formatNoteLines(
-      'Name: hello\nType: library\nFramework: node',
-      'Configuration Summary'
-    )
+    return withEnv({ BUNLI_TUI_SYMBOLS: 'ascii' }, async () => {
+      const lines = __promptInternalsForTests.formatNoteLines(
+        'Name: hello\nType: library\nFramework: node',
+        'Configuration Summary'
+      )
 
-    const output = stripAnsi(lines.join('\n'))
-    expect(output).toContain('Configuration Summary')
-    expect(output).toMatch(/\|\s+Name\s+: hello/)
-    expect(output).toMatch(/\|\s+Type\s+: library/)
-    expect(output).toMatch(/\|\s+Framework\s+: node/)
-    expect(output).toMatch(/[╮+]/)
-    expect(output).toMatch(/[╯+]/)
+      const output = stripAnsi(lines.join('\n'))
+      expect(output).toContain('Configuration Summary')
+      expect(output).toMatch(/\|\s+Name\s+: hello/)
+      expect(output).toMatch(/\|\s+Type\s+: library/)
+      expect(output).toMatch(/\|\s+Framework\s+: node/)
+      expect(output).toMatch(/[╮+]/)
+      expect(output).toMatch(/[╯+]/)
 
-    const tableLines = output
-      .split('\n')
-      .filter((line) => line.startsWith('| ') && line.includes(':'))
-    const colonColumns = tableLines.map((line) => line.indexOf(':'))
-    expect(new Set(colonColumns).size).toBe(1)
+      const tableLines = output
+        .split('\n')
+        .filter((line) => line.startsWith('| ') && line.includes(':'))
+      const colonColumns = tableLines.map((line) => line.indexOf(':'))
+      expect(new Set(colonColumns).size).toBe(1)
 
-    const widths = lines.map((line) => displayWidth(stripAnsi(line)))
-    expect(new Set(widths).size).toBe(1)
+      const widths = lines.map((line) => displayWidth(stripAnsi(line)))
+      expect(new Set(widths).size).toBe(1)
+    })
   })
 
   test('renderSelectFrame marks active and disabled options', () => {
@@ -421,70 +446,76 @@ describe('@bunli/runtime prompt adapters', () => {
   })
 
   test('renderSelectFrame matches golden output shape', () => {
-    const output = stripAnsi(__promptInternalsForTests.renderSelectFrame({
-      message: 'Environment',
-      options: [
-        { label: 'Dev', value: 'dev' },
-        { label: 'Prod', value: 'prod', hint: 'danger', disabled: true }
-      ],
-      selectedIndex: 0
-    }).join('\n'))
+    return withEnv({ BUNLI_TUI_SYMBOLS: 'ascii' }, async () => {
+      const output = stripAnsi(__promptInternalsForTests.renderSelectFrame({
+        message: 'Environment',
+        options: [
+          { label: 'Dev', value: 'dev' },
+          { label: 'Prod', value: 'prod', hint: 'danger', disabled: true }
+        ],
+        selectedIndex: 0
+      }).join('\n'))
 
-    expect(output).toBe(
-      [
-        '? Environment',
-        'Use Up/Down, Enter to choose, 1-2 for shortcuts',
-        '| > 1. Dev',
-        '|   2. Prod (danger) [disabled]'
-      ].join('\n')
-    )
+      expect(output).toBe(
+        [
+          '? Environment',
+          'Use Up/Down, Enter to choose, 1-2 for shortcuts',
+          '| > 1. Dev',
+          '|   2. Prod (danger) [disabled]'
+        ].join('\n')
+      )
+    })
   })
 
   test('renderMultiSelectFrame matches golden output shape', () => {
-    const output = stripAnsi(__promptInternalsForTests.renderMultiSelectFrame({
-      message: 'Features',
-      options: [
-        { label: 'TypeScript', value: 'ts' },
-        { label: 'Docker', value: 'docker' }
-      ],
-      selectedIndex: 1,
-      selected: new Set(['docker']),
-      errorMessage: 'Select at least one option.'
-    }).join('\n'))
+    return withEnv({ BUNLI_TUI_SYMBOLS: 'ascii' }, async () => {
+      const output = stripAnsi(__promptInternalsForTests.renderMultiSelectFrame({
+        message: 'Features',
+        options: [
+          { label: 'TypeScript', value: 'ts' },
+          { label: 'Docker', value: 'docker' }
+        ],
+        selectedIndex: 1,
+        selected: new Set(['docker']),
+        errorMessage: 'Select at least one option.'
+      }).join('\n'))
 
-    expect(output).toBe(
-      [
-        '? Features',
-        'Use Up/Down, Space to toggle, Enter to submit, 1-2 shortcuts',
-        'ERR Select at least one option.',
-        '|   1. [ ] TypeScript',
-        '| > 2. [x] Docker',
-        'Selected: Docker'
-      ].join('\n')
-    )
+      expect(output).toBe(
+        [
+          '? Features',
+          'Use Up/Down, Space to toggle, Enter to submit, 1-2 shortcuts',
+          'ERR Select at least one option.',
+          '|   1. [ ] TypeScript',
+          '| > 2. [x] Docker',
+          'Selected: Docker'
+        ].join('\n')
+      )
+    })
   })
 
   test('renderSelectFrame alternates active pointer for subtle motion', () => {
-    const firstOutput = stripAnsi(__promptInternalsForTests.renderSelectFrame({
-      message: 'Environment',
-      options: [{ label: 'Dev', value: 'dev' }],
-      selectedIndex: 0,
-      tick: 0
-    }).join('\n'))
+    return withEnv({ BUNLI_TUI_SYMBOLS: 'ascii' }, async () => {
+      const firstOutput = stripAnsi(__promptInternalsForTests.renderSelectFrame({
+        message: 'Environment',
+        options: [{ label: 'Dev', value: 'dev' }],
+        selectedIndex: 0,
+        tick: 0
+      }).join('\n'))
 
-    const secondOutput = stripAnsi(__promptInternalsForTests.renderSelectFrame({
-      message: 'Environment',
-      options: [{ label: 'Dev', value: 'dev' }],
-      selectedIndex: 0,
-      tick: 1
-    }).join('\n'))
+      const secondOutput = stripAnsi(__promptInternalsForTests.renderSelectFrame({
+        message: 'Environment',
+        options: [{ label: 'Dev', value: 'dev' }],
+        selectedIndex: 0,
+        tick: 1
+      }).join('\n'))
 
-    const firstLine = firstOutput.split('\n')[2]
-    const secondLine = secondOutput.split('\n')[2]
+      const firstLine = firstOutput.split('\n')[2]
+      const secondLine = secondOutput.split('\n')[2]
 
-    expect(firstLine).toContain('| ')
-    expect(secondLine).toContain('| ')
-    expect(firstLine).not.toBe(secondLine)
+      expect(firstLine).toContain('| ')
+      expect(secondLine).toContain('| ')
+      expect(firstLine).not.toBe(secondLine)
+    })
   })
 
   test('symbol mode resolver honors explicit env override and non-tty fallback', () => {
