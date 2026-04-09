@@ -63,18 +63,34 @@ describe('parseArgs repeatable options', () => {
     expect(parsed.flags.flag).toEqual([true, false])
   })
 
-  test('rejects invalid explicit values for flag-kind booleans', async () => {
-    await expect(async () => {
-      await parseArgs(
-        ['--publish', 'maybe'],
-        {
-          publish: option(z.boolean().default(false), {
-            argumentKind: 'flag',
-          }),
-        },
-        'release'
-      )
-    }).toThrow(/Invalid option 'publish'/)
+  test('treats non-boolean adjacent tokens as positional for flag-kind booleans', async () => {
+    const parsed = await parseArgs(
+      ['--publish', 'maybe'],
+      {
+        publish: option(z.boolean().default(false), {
+          argumentKind: 'flag',
+        }),
+      },
+      'release'
+    )
+
+    expect(parsed.flags.publish).toBe(true)
+    expect(parsed.positional).toEqual(['maybe'])
+  })
+
+  test('does not consume positional tokens for flag-kind booleans unless the value is explicit', async () => {
+    const parsed = await parseArgs(
+      ['--help', 'build'],
+      {
+        help: option(z.boolean().default(false), {
+          argumentKind: 'flag',
+        }),
+      },
+      'bunli'
+    )
+
+    expect(parsed.flags.help).toBe(true)
+    expect(parsed.positional).toEqual(['build'])
   })
 
   test('keeps last-write-wins semantics for non-repeatable options', async () => {

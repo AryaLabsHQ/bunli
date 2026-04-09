@@ -52,11 +52,20 @@ export async function parseArgs(
 
       // Get the value (inline, next arg, or 'true' for boolean-like flags)
       let value: string | undefined = inlineValue
-      if (value === undefined && i + 1 < args.length && !args[i + 1]?.startsWith('-')) {
+      const option = options[name]
+      if (
+        value === undefined &&
+        i + 1 < args.length &&
+        !args[i + 1]?.startsWith('-') &&
+        (
+          option.argumentKind !== 'flag' ||
+          args[i + 1] === 'true' ||
+          args[i + 1] === 'false'
+        )
+      ) {
         value = args[++i]
       }
-      
-      const option = options[name]
+
       if (!option) continue
       const parsedValue = value ?? (option.argumentKind === 'flag' ? 'true' : undefined)
 
@@ -78,7 +87,15 @@ export async function parseArgs(
 
         // Get the next argument as value if available
         let value: string | undefined
-        if (i + 1 < args.length && !args[i + 1]?.startsWith('-')) {
+        if (
+          i + 1 < args.length &&
+          !args[i + 1]?.startsWith('-') &&
+          (
+            option.argumentKind !== 'flag' ||
+            args[i + 1] === 'true' ||
+            args[i + 1] === 'false'
+          )
+        ) {
           value = args[++i]
         }
         const parsedValue = value ?? (option.argumentKind === 'flag' ? 'true' : undefined)
