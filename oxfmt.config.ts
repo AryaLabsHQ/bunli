@@ -12,5 +12,5 @@ export default defineConfig({
     functions: ["cn", "cva", "clsx"],
   },
   sortPackageJson: {},
-  ignorePatterns: ["**/dist"],
+  ignorePatterns: ["**/dist", "**/routeTree.gen.ts"],
 });

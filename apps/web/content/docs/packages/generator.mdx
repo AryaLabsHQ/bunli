@@ -199,9 +199,7 @@ interface GeneratedStore<TModules, TMeta> {
   findByName<Name extends keyof TModules>(
     name: Name,
   ): { name: Name; command: TModules[Name]; metadata: TMeta[Name] };
-  findByDescription(
-    searchTerm: string,
-  ): Array<{
+  findByDescription(searchTerm: string): Array<{
     name: keyof TModules;
     command: TModules[keyof TModules];
     metadata: TMeta[keyof TModules];
