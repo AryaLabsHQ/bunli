@@ -225,6 +225,50 @@ const myPlugin = createPlugin<Options, MyStore>((options) => ({
 }));
 ```
 
+### createTestPlugin
+
+Create a test plugin for development and testing purposes. Useful when writing tests for plugin hooks.
+
+```typescript
+function createTestPlugin<TStore = {}>(
+  store: TStore,
+  hooks: Partial<BunliPlugin<TStore>>,
+): BunliPlugin<TStore>
+```
+
+**Example:**
+
+```typescript
+const testPlugin = createTestPlugin(
+  { count: 0, message: "" },
+  {
+    beforeCommand(context) {
+      context.store.count++;
+    },
+  },
+);
+```
+
+### composePlugins
+
+Compose multiple plugins into a single plugin, merging their stores.
+
+```typescript
+function composePlugins<T extends BunliPlugin[]>(
+  ...plugins: T
+): BunliPlugin<MergeStores<T>>
+```
+
+**Example:**
+
+```typescript
+const composedPlugin = composePlugins(
+  authPlugin({ provider: "github" }),
+  loggingPlugin({ level: "debug" }),
+  metricsPlugin({ enabled: true }),
+);
+```
+
 ## Type Utilities
 
 ### StoreOf\<P\>

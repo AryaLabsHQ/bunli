@@ -49,7 +49,9 @@ interface BunliConfig {
 
   // Development configuration
   dev?: {
+    /** Enable file watching for auto-rebuild (default: false) */
     watch?: boolean;
+    /** Enable Node.js debugger (default: false) */
     inspect?: boolean;
     port?: number;
   };
@@ -58,6 +60,7 @@ interface BunliConfig {
   test?: {
     pattern?: string | string[];
     coverage?: boolean;
+    /** Enable test file watching (default: false) */
     watch?: boolean;
   };
 

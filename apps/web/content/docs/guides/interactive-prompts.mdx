@@ -357,6 +357,49 @@ export default defineCommand({
 });
 ```
 
+## Filter Prompts
+
+Filter through a list of items interactively:
+
+```typescript
+export default defineCommand({
+  name: "search",
+  handler: async ({ prompt }) => {
+    const results = await prompt.filter("Select items to install:", {
+      options: [
+        { value: "auth", label: "Authentication" },
+        { value: "db", label: "Database" },
+        { value: "email", label: "Email Service" },
+        { value: "storage", label: "File Storage" },
+        { value: "cache", label: "Caching Layer" },
+        { value: "queue", label: "Job Queue" },
+      ],
+    });
+
+    console.log(`Selected: ${results.join(", ")}`);
+  },
+});
+```
+
+## Pager
+
+Display content in a scrollable pager:
+
+```typescript
+export default defineCommand({
+  name: "logs",
+  handler: async ({ prompt }) => {
+    await prompt.pager(`
+      [2024-01-15 10:23:45] INFO: Server started on port 3000
+      [2024-01-15 10:23:46] DEBUG: Loading configuration...
+      [2024-01-15 10:23:47] INFO: Connected to database
+      [2024-01-15 10:23:48] WARN: Deprecated API endpoint called
+      [2024-01-15 10:23:49] ERROR: Failed to send email
+    `);
+  },
+});
+```
+
 ## Complex Interactive Flows
 
 ### Setup Wizard
