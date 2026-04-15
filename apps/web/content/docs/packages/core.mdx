@@ -177,6 +177,31 @@ interface HandlerArgs<T> {
 
   // Plugin context (when using plugins)
   context?: CommandContext<Record<string, unknown>>;
+
+  // Terminal information
+  terminal: TerminalInfo;
+
+  // Runtime information
+  runtime: RuntimeInfo;
+
+  // Cooperative cancellation signal for interrupt handling
+  signal: AbortSignal;
+
+  // Resolved terminal image preview configuration
+  image: ResolvedTuiImageOptions;
+
+  // Output format information
+  /** The resolved output format (e.g. 'toon', 'json', 'yaml', 'md'). */
+  format: OutputFormat;
+
+  /** Whether the user explicitly passed --format. */
+  formatExplicit: boolean;
+
+  /** Whether the consumer is an agent (stdout is not a TTY). */
+  agent: boolean;
+
+  /** Format and write structured data to stdout. */
+  output: (data: unknown) => void;
 }
 ```
 
