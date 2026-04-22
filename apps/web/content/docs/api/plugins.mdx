@@ -184,13 +184,13 @@ Type-safe plugin factory. Acts as a thin type helper — it returns the plugin a
 - **Factory form**: `createPlugin(factory)` — infers `TOptions` and `TStore` from the factory function's parameter and return type
 
 ```typescript
-// Direct plugin overload
-function createPlugin<TStore = {}>(plugin: BunliPlugin<TStore>): BunliPlugin<TStore>;
-
-// Factory overload
+// Factory overload (first overload)
 function createPlugin<TOptions, TStore = {}>(
   factory: (options: TOptions) => BunliPlugin<TStore>,
 ): (options: TOptions) => BunliPlugin<TStore>;
+
+// Direct plugin overload
+function createPlugin<TStore = {}>(plugin: BunliPlugin<TStore>): BunliPlugin<TStore>;
 ```
 
 **Examples:**

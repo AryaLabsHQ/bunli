@@ -1,13 +1,15 @@
 ---
 title: "@bunli/runtime"
-description: Runtime renderer and prompt primitives for Bunli TUI applications
+description: "Runtime renderer and prompt primitives for Bunli CLI"
 ---
 
 import { Callout } from "fumadocs-ui/components/callout";
 
-## Overview
+`@bunli/runtime` provides terminal runtime wiring extracted from `@bunli/tui`. It contains the event system, transport types, and renderer options used by Bunli's interactive terminal features.
 
-`@bunli/runtime` provides terminal UI rendering capabilities and interactive prompt primitives for Bunli CLI applications. It is primarily used internally by `@bunli/tui` but also exports types and utilities used by command handlers.
+<Callout type="info">
+  For UI components and hooks, see [`@bunli/tui`](/docs/packages/tui). Import render/prompt APIs from explicit subpaths like `@bunli/runtime/prompt`.
+</Callout>
 
 ## Installation
 
@@ -15,102 +17,194 @@ import { Callout } from "fumadocs-ui/components/callout";
 bun add @bunli/runtime
 ```
 
-<Callout type="info">
-  Most users won't directly use `@bunli/runtime`. The prompt API is available through the handler
-  context's `prompt` property, and TUI components are provided by `@bunli/tui`.
-</Callout>
+## Event System
 
-## Subpath Exports
+`@bunli/runtime` provides a typed event system for runtime observability:
 
-The package has 8 subpath exports:
-
-| Export                     | Purpose                                                                |
-| -------------------------- | ---------------------------------------------------------------------- |
-| `@bunli/runtime`           | Root - type re-exports only                                            |
-| `@bunli/runtime/app`       | React context providers (RuntimeProvider, RouteStore, CommandRegistry) |
-| `@bunli/runtime/renderer`  | TUI renderer (runTuiRender for full-screen TUI apps)                   |
-| `@bunli/runtime/prompt`    | Prompt primitives (text, select, confirm, etc.)                        |
-| `@bunli/runtime/options`   | TuiRenderOptions and OpenTuiRendererOptions                            |
-| `@bunli/runtime/events`    | Runtime event schemas                                                  |
-| `@bunli/runtime/transport` | RuntimeTransport interface                                             |
-| `@bunli/runtime/image`     | Image capability detection and rendering                               |
-
-## Root Exports (Types Only)
-
-The root package only exports TypeScript types:
+### Event Types
 
 ```typescript
 import type {
-  OpenTuiRendererOptions,
-  TuiRenderOptions,
-  RuntimeTransport,
-  RuntimeTransportObserver,
+  RuntimeRendererStartedEvent,
+  RuntimeRendererMissingRenderEvent,
+  RuntimeRendererDestroyedEvent,
+  RuntimeImageRenderAttemptEvent,
+  RuntimeImageRenderResultEvent,
+  RuntimePromptStartedEvent,
+  RuntimePromptCancelledEvent,
+  RuntimeTransportErrorEvent,
   RuntimeEvent,
   RuntimeEventType,
 } from "@bunli/runtime";
 ```
 
-## Runtime Events
+**Renderer Events:**
 
-Runtime events for telemetry and debugging:
+- `RuntimeRendererStartedEvent` — Renderer has started
+- `RuntimeRendererMissingRenderEvent` — Render function not provided
+- `RuntimeRendererDestroyedEvent` — Renderer was destroyed
+- `RuntimeImageRenderAttemptEvent` — Image render was attempted
+- `RuntimeImageRenderResultEvent` — Image render completed
 
-```typescript
-type RuntimeEvent =
-  | RuntimeRendererStartedEvent
-  | RuntimeRendererMissingRenderEvent
-  | RuntimeRendererDestroyedEvent
-  | RuntimeImageRenderAttemptEvent
-  | RuntimeImageRenderResultEvent
-  | RuntimePromptStartedEvent
-  | RuntimePromptCancelledEvent
-  | RuntimeTransportErrorEvent;
-```
+**Prompt Events:**
 
-## TUI Options
+- `RuntimePromptStartedEvent` — Prompt session started
+- `RuntimePromptCancelledEvent` — Prompt was cancelled
 
-```typescript
-interface TuiRenderOptions {
-  exitOnCtrlC?: boolean;
-  targetFps?: number;
-  enableMouseMovement?: boolean;
-  useMouse?: boolean;
-  bufferMode?: "alternate" | "standard";
-}
-```
+**Transport Events:**
 
-## Image Rendering
+- `RuntimeTransportErrorEvent` — Transport layer error occurred
 
-Check terminal image capabilities:
+### Event Schema
+
+All events are validated via Zod schemas:
 
 ```typescript
-import { detectImageCapability, renderImage } from "@bunli/runtime/image";
+import { RuntimeRendererStartedEventSchema } from "@bunli/runtime";
 
-// Detect what image protocols the terminal supports
-const capability = detectImageCapability();
-// { supported: true, protocol: 'kitty' }
-
-// Render an image
-const result = await renderImage(imageData, {
-  protocol: "kitty",
-  width: 800,
+// Validate an event
+const event = RuntimeRendererStartedEventSchema.parse({
+  type: "runtime.renderer.started",
+  timestamp: Date.now(),
+  bufferMode: "alternate",
 });
 ```
 
-## Transport
+## Transport System
 
-Custom transport for runtime events:
+### `RuntimeTransport`
+
+The transport interface for runtime communication:
+
+```typescript
+import type { RuntimeTransport, RuntimeTransportObserver } from "@bunli/runtime";
+```
+
+**Interface:**
 
 ```typescript
 interface RuntimeTransport {
-  send(event: RuntimeEvent): void | Promise<void>;
-}
+  /** Send data through the transport */
+  send(data: unknown): void;
 
-interface RuntimeTransportObserver {
-  onTransportError?(error: Error): void;
+  /** Subscribe to transport events */
+  subscribe(observer: RuntimeTransportObserver): void;
+
+  /** Close the transport */
+  close(): void;
 }
 ```
 
-## See Also
+### `RuntimeTransportObserver`
 
-- [@bunli/tui](/docs/packages/tui) - Full TUI component library
-- [TUI Gallery](/docs/guides/tui-gallery) - Runnable component examples
+Observer for transport events:
+
+```typescript
+interface RuntimeTransportObserver {
+  onSend?(data: unknown): void;
+  onError?(error: Error): void;
+  onClose?(): void;
+}
+```
+
+## Renderer Options
+
+### `TuiRenderOptions`
+
+Options for TUI rendering:
+
+```typescript
+import type { TuiRenderOptions } from "@bunli/runtime";
+```
+
+**Properties:**
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `exitOnCtrlC` | `boolean` | `true` | Exit on Ctrl+C |
+| `targetFps` | `number` | `30` | Target frames per second |
+| `enableMouseMovement` | `boolean` | `true` | Enable mouse movement tracking |
+| `useMouse` | `boolean` | `false` | Enable mouse interaction |
+| `bufferMode` | `"alternate" \| "standard"` | `"standard"` | Terminal buffer mode |
+| `[key: string]` | `unknown` | — | Additional options |
+
+### `OpenTuiRendererOptions`
+
+Resolved renderer options:
+
+```typescript
+import type { OpenTuiRendererOptions } from "@bunli/runtime";
+```
+
+**Properties:**
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `exitOnCtrlC` | `boolean` | Exit on Ctrl+C |
+| `targetFps` | `number` | Target frames per second |
+| `enableMouseMovement` | `boolean` | Enable mouse movement tracking |
+| `useMouse` | `boolean` | Enable mouse interaction |
+| `useAlternateScreen` | `boolean` | Use alternate screen buffer |
+| `bufferMode` | `"alternate" \| "standard"` | Terminal buffer mode |
+
+## Usage
+
+### Observing Renderer Events
+
+```typescript
+import { createPlugin } from "@bunli/core/plugin";
+import type { RuntimeEventType } from "@bunli/runtime";
+
+export const runtimeDebugPlugin = createPlugin({
+  name: "runtime-debug",
+  setup(context) {
+    context.logger.info("Runtime debug plugin initialized");
+  },
+  beforeCommand(context) {
+    // Log runtime events
+    context.logger.debug(`Command: ${context.command}`);
+  },
+});
+```
+
+### Custom Transport
+
+```typescript
+import type { RuntimeTransport, RuntimeTransportObserver } from "@bunli/runtime";
+
+class MyTransport implements RuntimeTransport {
+  send(data: unknown) {
+    // Send data
+  }
+
+  subscribe(observer: RuntimeTransportObserver) {
+    // Subscribe to events
+  }
+
+  close() {
+    // Close transport
+  }
+}
+```
+
+## Subpath Imports
+
+For specific functionality, import from explicit subpaths:
+
+```typescript
+// Renderer options
+import type { TuiRenderOptions } from "@bunli/runtime/options";
+
+// Events
+import type { RuntimeEvent } from "@bunli/runtime/events";
+
+// Transport
+import type { RuntimeTransport } from "@bunli/runtime/transport";
+
+// Prompt (includes prompt runtime primitives)
+import { prompt } from "@bunli/runtime/prompt";
+```
+
+<Callout type="warning">
+  The root export (`@bunli/runtime`) is intentionally minimal. Use explicit subpath imports for specific APIs.
+</Callout>
