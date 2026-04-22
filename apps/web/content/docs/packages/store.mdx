@@ -1,7 +1,11 @@
 ---
 title: "@bunli/store"
-description: Typed file-backed persistence for Bunli CLI apps
+description: "Persistent typed store for Bunli CLI configuration and state"
 ---
+
+import { Callout } from "fumadocs-ui/components/callout";
+
+`@bunli/store` provides a typed file-backed persistence layer for CLI applications. It offers Zod-like field definitions with automatic validation, JSON persistence, and seamless integration with Bunli's plugin system.
 
 ## Installation
 
@@ -9,51 +13,72 @@ description: Typed file-backed persistence for Bunli CLI apps
 bun add @bunli/store
 ```
 
-## Overview
-
-`@bunli/store` is a typed file-backed persistence layer for CLI applications. It provides:
-
-- **Atomic writes** - Uses temp file + rename pattern for safe writes
-- **Type coercion** - Automatically converts string values to numbers/booleans
-- **Field validation** - Custom validator functions per field
-- **Default values** - Fields with sensible defaults
-- **XDG support** - Works with standard XDG base directory paths
-
-## Basic Usage
+## Quick Start
 
 ```typescript
 import { createStore } from "@bunli/store";
-import { configDir } from "@bunli/utils";
 
-// Define a typed config store
-const store = createStore({
-  dirPath: configDir("my-cli"),
-  name: "settings",
+// Define your store schema
+const configStore = createStore({
+  path: "./.mycli",
   fields: {
-    theme: { type: "string", default: "dark" },
-    port: { type: "number", default: 3000 },
-    verbose: { type: "boolean", default: false },
+    apiKey: { type: "string" },
+    debug: { type: "boolean", default: false },
+    maxRetries: { type: "number", default: 3 },
+    allowedHosts: { type: "string", array: true },
   },
 });
 
-// Read current config
-const config = await store.read();
-// { theme: 'dark', port: 3000, verbose: false }
+// Read values
+const apiKey = configStore.get("apiKey");
+const debug = configStore.get("debug");
 
-// Update the entire config
-await store.write({ theme: "light", port: 8080, verbose: true });
+// Update values
+configStore.update({ apiKey: "new-key", debug: true });
+```
 
-// Patch specific fields
-await store.patch({ port: 9000 });
+## API
 
-// Update using a function
-await store.update((current) => ({
-  ...current,
-  port: current.port + 1,
-}));
+### `createStore`
 
-// Reset to defaults (deletes the file)
-await store.reset();
+Creates a typed store instance.
+
+```typescript
+function createStore<TFields extends FieldsDef>(
+  options: StoreOptions<TFields>
+): StoreInstance<TFields>
+```
+
+**Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `options` | `StoreOptions<TFields>` | Store configuration including path and field definitions |
+
+**Returns:** A `StoreInstance<TFields>` with `get`, `update`, and `reset` methods.
+
+### StoreInstance
+
+```typescript
+interface StoreInstance<TFields extends FieldsDef> {
+  /** Get a field value */
+  get<K extends keyof TFields>(key: K): InferStoreConfig<TFields>[K];
+
+  /** Get all field values */
+  getAll(): InferStoreConfig<TFields>;
+
+  /** Update one or more fields */
+  update(updates: Partial<InferStoreConfig<TFields>>): void;
+
+  /** Reset all fields to defaults */
+  reset(): void;
+
+  /** Field definitions */
+  fields: TFields;
+
+  /** Store file path */
+  path: string;
+}
 ```
 
 ## Field Types
@@ -61,134 +86,48 @@ await store.reset();
 ### Scalar Fields
 
 ```typescript
-const store = createStore({
-  dirPath: "./data",
-  fields: {
-    name: { type: "string", default: "unnamed" },
-    count: { type: "number", default: 0 },
-    enabled: { type: "boolean", default: false },
-  },
-});
+// String field
+{ type: "string" }
+
+// String with default
+{ type: "string", default: "hello" }
+
+// Number field
+{ type: "number" }
+
+// Boolean field
+{ type: "boolean", default: false }
 ```
 
 ### Array Fields
 
 ```typescript
-const store = createStore({
-  dirPath: "./data",
-  fields: {
-    tags: { type: "string", array: true, default: [] },
-    scores: { type: "number", array: true, default: [0, 0] },
-  },
-});
+// Array of strings
+{ type: "string", array: true }
 
-await store.patch({ tags: ["a", "b", "c"] });
-// TypeScript knows tags is string[]
+// Array with default
+{ type: "string", array: true, default: ["a", "b"] }
+
+// Array of numbers
+{ type: "number", array: true }
+
+// Array of booleans
+{ type: "boolean", array: true }
 ```
 
-### Field Validation
+### Field Options
 
-```typescript
-const store = createStore({
-  dirPath: "./data",
-  fields: {
-    port: {
-      type: "number",
-      default: 3000,
-      validate: (value) => {
-        if (value < 1 || value > 65535) {
-          throw new Error("Port must be between 1 and 65535");
-        }
-      },
-    },
-    email: {
-      type: "string",
-      validate: (value) => {
-        if (!value.includes("@")) {
-          throw new Error("Invalid email address");
-        }
-      },
-    },
-  },
-});
-```
-
-### Field Descriptions
-
-```typescript
-const store = createStore({
-  dirPath: "./data",
-  fields: {
-    theme: {
-      type: "string",
-      default: "dark",
-      description: "Color theme to use",
-    },
-  },
-});
-```
-
-## Store Options
-
-```typescript
-interface StoreOptions<F extends FieldsDef> {
-  /** Directory path for the store file */
-  dirPath: string;
-
-  /** Store file name (without .json). Default: 'config' */
-  name?: string;
-
-  /** Field definitions */
-  fields: F;
-
-  /** Remove unknown fields on read. Default: true */
-  pruneUnknown?: boolean;
-}
-```
-
-## Store Instance
-
-```typescript
-interface StoreInstance<TConfig> {
-  /** Read and validate config from disk */
-  read(): Promise<TConfig>;
-
-  /** Overwrite entire config */
-  write(config: NoInfer<TConfig>): Promise<void>;
-
-  /** Update via a transformation function */
-  update(updater: (current: TConfig) => NoInfer<TConfig>): Promise<void>;
-
-  /** Shallow merge partial config */
-  patch(partial: Partial<NoInfer<TConfig>>): Promise<void>;
-
-  /** Delete config file (resets to defaults) */
-  reset(): Promise<void>;
-}
-```
-
-## Type Inference
-
-`createStore` automatically infers the config type from field definitions:
-
-```typescript
-const store = createStore({
-  dirPath: "./data",
-  fields: {
-    name: { type: "string", default: "unnamed" },
-    count: { type: "number", default: 0 },
-  },
-});
-
-// config is typed as { name: string; count: number }
-const config = await store.read();
-config.name; // string
-config.count; // number
-```
+| Option | Type | Description |
+|--------|------|-------------|
+| `type` | `"string" \| "number" \| "boolean"` | Field value type |
+| `array` | `boolean` | Whether field is an array |
+| `default` | `T \| readonly T[]` | Default value |
+| `description` | `string` | Human-readable description |
+| `validate` | `(value: T) => void \| Promise<void>` | Custom validation function |
 
 ## Error Handling
 
-All errors extend `TaggedError` from `better-result`:
+`@bunli/store` throws typed errors for different failure scenarios:
 
 ```typescript
 import {
@@ -199,106 +138,90 @@ import {
 } from "@bunli/store";
 
 try {
-  const config = await store.read();
+  configStore.update({ apiKey: "new-key" });
 } catch (error) {
   if (error instanceof StoreReadError) {
-    console.error(`Failed to read: ${error.path}`, error.cause);
+    console.error("Failed to read store file");
+  } else if (error instanceof StoreWriteError) {
+    console.error("Failed to write store file");
   } else if (error instanceof StoreParseError) {
-    console.error(`Malformed JSON: ${error.path}`);
+    console.error("Store file is corrupted");
   } else if (error instanceof StoreValidationError) {
-    console.error(`Validation failed for ${error.field}:`, error.message);
+    console.error("Invalid field value");
   }
 }
 ```
 
-### Error Classes
+## Usage with Plugins
 
-| Class                  | Description                    |
-| ---------------------- | ------------------------------ |
-| `StoreReadError`       | Failed to read the store file  |
-| `StoreWriteError`      | Failed to write the store file |
-| `StoreParseError`      | JSON parse error in store file |
-| `StoreValidationError` | Field validation failed        |
-
-## Using with XDG Directories
+Stores integrate with Bunli's plugin system for sharing state:
 
 ```typescript
+import { createPlugin } from "@bunli/core/plugin";
 import { createStore } from "@bunli/store";
-import { configDir, dataDir, stateDir } from "@bunli/utils";
 
-// Store in config directory (for settings)
-const settings = createStore({
-  dirPath: configDir("my-cli"),
-  name: "settings",
-  fields: { theme: { type: "string", default: "dark" } },
+const configStore = createStore({
+  path: "./.mycli",
+  fields: {
+    verbose: { type: "boolean", default: false },
+  },
 });
 
-// Store in data directory (for application data)
-const cache = createStore({
-  dirPath: dataDir("my-cli"),
-  name: "cache",
-  fields: { entries: { type: "string", array: true, default: [] } },
-});
-
-// Store in state directory (for transient state)
-const session = createStore({
-  dirPath: stateDir("my-cli"),
-  name: "session",
-  fields: { lastRun: { type: "number" } },
+export const configPlugin = createPlugin({
+  name: "config",
+  store: { configStore },
+  setup(context) {
+    // Access store via plugin store
+    const verbose = context.store.configStore.get("verbose");
+  },
 });
 ```
 
-## Atomic Writes
+<Callout type="info">
+  Store instances are immutable after creation. To change the storage path or fields, create a new store instance.
+</Callout>
 
-The store uses atomic writes for safety:
+## Type Utilities
 
-1. Writes to a temp file (`.store-<uuid>.tmp`)
-2. Creates parent directories if needed
-3. Renames temp file to final location
+### `InferStoreConfig<TFields>`
 
-This means:
-
-- No partial writes on crash
-- No read during write
-- Safe on network filesystems
-
-## Best Practices
-
-### Use Defaults
-
-Always provide defaults for optional fields:
+Extract the inferred configuration type from field definitions:
 
 ```typescript
-fields: {
-  port: { type: 'number', default: 3000 },
-  timeout: { type: 'number', default: 5000 }
+import type { InferStoreConfig, FieldsDef } from "@bunli/store";
+
+type MyConfig = InferStoreConfig<{
+  apiKey: { type: "string" };
+  debug: { type: "boolean" };
+}>;
+
+// Results in:
+// { apiKey: string; debug: boolean }
+```
+
+### `FieldDef`
+
+The base field definition interface:
+
+```typescript
+interface FieldDef<V> {
+  description?: string;
+  validate?: (value: V) => void | Promise<void>;
 }
 ```
 
-### Validate Early
+### `FieldsDef`
+
+A record of field definitions:
 
 ```typescript
-fields: {
-  email: {
-    type: 'string',
-    validate: (v) => {
-      if (!v.includes('@')) throw new Error('Invalid email')
-    }
-  }
-}
+type FieldsDef = Record<string, FieldDef>;
 ```
 
-### Use `patch` for User Settings
+### `ValueType`
+
+The supported value types:
 
 ```typescript
-// Good: Only update what user changed
-await store.patch({ theme: "light" });
-
-// Avoid: Overwrites everything
-await store.write({ theme: "light", port: 3000, verbose: false });
+type ValueType = "string" | "number" | "boolean";
 ```
-
-## See Also
-
-- [XDG Utilities](/docs/packages/utils) - `configDir`, `dataDir`, `stateDir` helpers
-- [Configuration](/docs/core-concepts/configuration) - Bunli config system
