@@ -442,6 +442,26 @@ export default defineCommand({
 - **`'all'`** — Display output to both humans (TTY) and agents (piped)
 - **`'agent-only'`** — Suppress output in TTY mode; only emit for piped/agent consumers
 
+### Default Format
+
+Commands can specify a default output format that applies when `--format` is not explicitly set:
+
+```typescript
+export default defineCommand({
+  name: "status",
+  description: "Show status information",
+  defaultFormat: "toon", // 'json' | 'yaml' | 'toon' | 'md'
+  handler: async ({ output }) => {
+    output({ status: "ok", uptime: process.uptime() });
+  },
+});
+```
+
+- **`'json'`** — JSON output (default for most commands)
+- **`'yaml'`** — YAML output
+- **`'toon'`** — Human-readable toon format
+- **`'md'`** — Markdown output
+
 Bunli provides automatic error handling with formatted output:
 
 ```typescript

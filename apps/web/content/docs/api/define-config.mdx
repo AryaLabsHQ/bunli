@@ -89,6 +89,10 @@ interface BunliConfig {
   tui?: {
     renderer?: {
       bufferMode?: "alternate" | "standard";
+      exitOnCtrlC?: boolean;
+      targetFps?: number;
+      enableMouseMovement?: boolean;
+      useMouse?: boolean;
     };
     image?: {
       mode?: "off" | "auto" | "on";
@@ -226,6 +230,10 @@ Configure production builds:
 Configure the terminal UI rendering (for commands using the `render()` path):
 
 - `renderer.bufferMode` - `'alternate'` (full-screen) or `'standard'` (scrollback-friendly, default)
+- `renderer.exitOnCtrlC` - Exit TUI on Ctrl+C
+- `renderer.targetFps` - Target frame rate for TUI rendering
+- `renderer.enableMouseMovement` - Enable mouse movement tracking
+- `renderer.useMouse` - Enable mouse support
 - `image.mode` - `'off'`, `'auto'` (default), or `'on'` — controls terminal image preview
 - `image.protocol` - `'auto'` (default) or `'kitty'` — image protocol to use
 - `image.width` / `image.height` - Terminal cell dimensions for image layout

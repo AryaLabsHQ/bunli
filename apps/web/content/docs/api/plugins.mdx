@@ -29,14 +29,14 @@ interface BunliPlugin<TStore = {}> {
   configResolved?(config: ResolvedConfig): void | Promise<void>;
 
   /** Before command hook - Called before command execution */
-  beforeCommand?(context: CommandContext<TStore>): void | Promise<void>;
+  beforeCommand?(context: CommandContext<any>): void | Promise<void>;
 
   /**
    * Pre-run hook - Called immediately before the command handler executes.
    * Receives an ExecutionState for sharing per-run data between plugins.
    * Lifecycle: setup → configResolved → beforeCommand → preRun → [handler] → postRun → afterCommand
    */
-  preRun?(context: CommandContext<TStore>, state: ExecutionState): void | Promise<void>;
+  preRun?(context: CommandContext<any>, state: ExecutionState): void | Promise<void>;
 
   /**
    * Post-run hook - Called immediately after the command handler completes.
@@ -44,12 +44,12 @@ interface BunliPlugin<TStore = {}> {
    * Lifecycle: setup → configResolved → beforeCommand → preRun → [handler] → postRun → afterCommand
    */
   postRun?(
-    context: CommandContext<TStore> & CommandResult,
+    context: CommandContext<any> & CommandResult,
     state: ExecutionState,
   ): void | Promise<void>;
 
   /** After command hook - Called after command execution */
-  afterCommand?(context: CommandContext<TStore> & CommandResult): void | Promise<void>;
+  afterCommand?(context: CommandContext<any> & CommandResult): void | Promise<void>;
 }
 ```
 
@@ -223,6 +223,18 @@ const myPlugin = createPlugin<Options, MyStore>((options) => ({
     console.log(`${options.prefix}: ${context.store.count}`);
   },
 }));
+
+## ExecutionState
+
+Per-run ephemeral state container shared across plugin hooks via `preRun` and `postRun`.
+
+```typescript
+class ExecutionState {
+  get<T = unknown>(key: string): T | undefined;
+  set<T = unknown>(key: string, value: T): void;
+  has(key: string): boolean;
+  delete(key: string): boolean;
+}
 ```
 
 ## Type Utilities

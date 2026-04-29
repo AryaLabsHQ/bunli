@@ -10,8 +10,6 @@ Create engaging CLI experiences with interactive prompts, confirmations, and sel
 Bunli provides several built-in prompt utilities through the handler context:
 
 ```typescript
-import { PromptCancelledError } from "@bunli/runtime/prompt";
-
 export default defineCommand({
   handler: async ({ prompt }) => {
     // Text input
@@ -30,18 +28,6 @@ export default defineCommand({
 
     // Password input
     const password = await prompt.password("Enter password:");
-  },
-});
-```
-
-Bunli prompt primitives are provided by `@bunli/runtime/prompt`, and the handler `prompt` utility exposes lifecycle helpers like `intro/outro/note/cancel`:
-
-```typescript
-export default defineCommand({
-  handler: async ({ prompt }) => {
-    prompt.intro("Setup");
-    const name = await prompt.text("Name:");
-    prompt.outro("Done");
   },
 });
 ```
