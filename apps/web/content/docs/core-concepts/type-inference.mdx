@@ -77,77 +77,61 @@ export default defineCommand({
 
 ## Type-Safe Command Execution
 
-With generated types, you can execute commands programmatically with full type safety. The `execute()` method has three overloads:
+With generated types, you can execute commands programmatically. The `execute()` method accepts a command name and optional string array of arguments:
 
 ```typescript
 import { createCLI } from "@bunli/core";
 
 const cli = await createCLI(config);
 
-// ✅ Overload 1: args-only form
+// Execute with args array
 await cli.execute("deploy", ["--env", "production", "--dry-run"]);
 
-// ✅ Overload 2: typed options (requires RegisteredCommands augmentation)
-await cli.execute("deploy", {
-  env: "production", // ← Autocomplete: 'dev' | 'staging' | 'prod'
-  dryRun: true, // ← Type: boolean
-});
-
-// ✅ Overload 3: args + typed options
-await cli.execute("deploy", ["--dry-run"], {
-  env: "production",
-  dryRun: true,
-});
-
-// ❌ Type errors when using typed overloads!
-await cli.execute("deploy", {
-  env: "invalid", // ❌ Error: Type '"invalid"' is not assignable
-  dryRun: "yes", // ❌ Error: Type 'string' is not assignable to type 'boolean'
-});
+// Execute with options object (for commands with typed options)
+await cli.execute("deploy", { env: "production", dryRun: true });
 ```
 
-> **Note**: The type overloads (`execute<T extends keyof RegisteredCommands>`) provide compile-time safety for the options shape, but the `commandName` parameter accepts any `string` at runtime. Always validate command names before calling `execute()` in production code.
+> **Note**: The options form provides type-safe options for registered commands, but the `commandName` parameter accepts any `string` at runtime. Always validate command names before calling `execute()` in production code.
 
 ## Command Discovery
 
-The generated store provides helper methods for command discovery. Import the generated store from the auto-generated `.bunli/commands.gen.ts`:
+The generated file provides helper functions for command discovery. Import from the auto-generated `.bunli/commands.gen.ts`:
 
 ```typescript
-import { cli } from "./.bunli/commands.gen";
+import { cli, listCommands, getCommandApi, findCommandByName, getCommandNames } from "./.bunli/commands.gen";
 
 // List all commands
 const commands = cli.list();
 console.log(`Total commands: ${commands.length}`);
 
-// Find a command by name
-const deploy = cli.findByName("deploy");
-console.log(deploy.metadata.description);
+// Get command metadata by name
+const deployApi = getCommandApi("deploy");
 
-// Get all command names
-const names = cli.getCommandNames();
+// Find a command by name (returns metadata)
+const deploy = findCommandByName("deploy");
 
-// Type-checked flags for a command (requires RegisteredCommands augmentation)
-const flags = cli.getFlags("deploy");
+// Get all command names as a readonly array
+const names = getCommandNames();
 
-// Wrap with a CLI instance for typed execution
+// Execute via CLI wrapper
 const executor = cli.withCLI(myCLI);
 await executor.execute("deploy", { env: "production", dryRun: true });
 ```
 
-The generated store interface includes:
+The generated store includes:
 
-| Method                         | Returns                                    | Description                       |
-| ------------------------------ | ------------------------------------------ | --------------------------------- |
-| `list()`                       | `Array<{ name, command, metadata }>`       | All registered commands           |
-| `findByName(name)`             | `{ name, command, metadata }`              | Single command by name            |
-| `findByDescription(term)`      | `Array<{ name, command, metadata }>`       | Search by description             |
-| `getCommandNames()`            | `string[]`                                 | All command names                 |
-| `get(name)`                    | `Command`                                  | Raw command object                |
-| `getMetadata(name)`            | `GeneratedCommandMeta`                     | Metadata for a command            |
-| `getFlags(name)`               | `Record<string, unknown>`                  | Default flag values from metadata |
-| `getFlagsMeta(name)`           | `Record<string, GeneratedOptionMeta>`      | Raw option metadata               |
-| `validateCommand(name, flags)` | `{ success, data } \| { success, errors }` | Runtime flag validation           |
-| `withCLI(cli)`                 | `GeneratedExecutor`                        | Executor wrapper                  |
+| Export                        | Returns                                    | Description                       |
+| ----------------------------- | ------------------------------------------ | --------------------------------- |
+| `cli.list()`                  | `Array<{ name, command, metadata }>`       | All registered commands           |
+| `cli.get(name)`               | `Command`                                  | Raw command object                |
+| `cli.getMetadata(name)`       | `GeneratedCommandMeta`                     | Metadata for a command            |
+| `cli.getFlags(name)`          | `CommandOptions`                           | Flag types for a command          |
+| `cli.getFlagsMeta(name)`      | `Record<string, GeneratedOptionMeta>`      | Raw option metadata               |
+| `cli.withCLI(cli)`            | `Executor`                                 | CLI wrapper for execution         |
+| `findCommandByName(name)`     | `GeneratedCommandMeta`                     | Find command metadata by name     |
+| `getCommandNames()`           | `readonly string[]`                        | All command names                 |
+| `getCommandApi(name)`         | `GeneratedCommandMeta`                     | Get command metadata               |
+| `listCommands()`              | `string[]`                                 | List all command names            |
 
 ## Advanced Type Utilities
 
@@ -184,8 +168,8 @@ export default defineConfig({
 The `.bunli/commands.gen.ts` file contains:
 
 - `commands` — the command objects themselves (named exports for each command)
-- `metadata` — command metadata including descriptions, options, aliases
-- `cli` — a `GeneratedStore` instance with `list()`, `findByName()`, `getCommandNames()`, `get()`, `getMetadata()`, `getFlags()`, `withCLI()` methods
+- `commandMeta` — command metadata including descriptions, options, aliases
+- `cli` — a `GeneratedCLI` instance with `list()`, `get()`, `getMetadata()`, `getFlags()`, `withCLI()` methods
 - `register(cli?)` — registers commands with a CLI instance
 
 ## See Also

@@ -59,11 +59,11 @@ Context available during the setup phase.
 
 ```typescript
 interface PluginContext {
-  /** Current configuration (readonly snapshot; use updateConfig to accumulate changes) */
-  readonly config: BunliConfigInput;
+  /** Current configuration (being built; use updateConfig to accumulate changes) */
+  config: BunliConfigInput;
 
-  /** Accumulate partial configuration changes (config is immutable — changes are merged separately) */
-  updateConfig(partial: Partial<BunliConfigInput>): void;
+  /** Update configuration with additional values */
+  updateConfig(partial: BunliConfigInput): void;
 
   /** Register a new command */
   registerCommand(command: CommandDefinition): void;
