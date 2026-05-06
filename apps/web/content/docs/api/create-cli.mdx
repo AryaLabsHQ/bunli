@@ -85,15 +85,6 @@ interface CLI<TStore = any> {
 
   // Execute a named command programmatically
   execute(commandName: string, args?: string[]): Promise<void>;
-  execute<T extends keyof RegisteredCommands>(
-    commandName: T,
-    options: CommandOptions<T>,
-  ): Promise<void>;
-  execute<T extends keyof RegisteredCommands>(
-    commandName: T,
-    args: string[],
-    options: CommandOptions<T>,
-  ): Promise<void>;
 }
 ```
 
@@ -171,17 +162,11 @@ const cli = await createCLI({
 
 cli.command(myCommand);
 
-// Execute with positional args only
+// Execute with args only
 await cli.execute("my-command", ["--flag", "value"]);
 
-// Execute with typed options (requires generated types)
-await cli.execute("deploy", { env: "production", dryRun: true });
-
-// Execute with both args and options
-await cli.execute("deploy", ["--env", "production"], { dryRun: true });
-
-// Nested commands use slash syntax
-await cli.execute("git/push", { remote: "origin", branch: "main" });
+// Execute with options
+await cli.execute("deploy", { env: "production" });
 ```
 
 ## Automatic Features

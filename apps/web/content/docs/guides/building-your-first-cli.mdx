@@ -239,12 +239,11 @@ Build your CLI for distribution:
 # Build for current platform
 bunli build
 
-# Build for all platforms
-bunli build --targets all
-
-# Build a standalone executable for your platform
-bunli build --targets native
+# Build with custom entry point
+bunli build --entry ./src/cli.ts
 ```
+
+Build targets are configured in `bunli.config.ts`, not via CLI flags.
 
 ## Adding Tests
 
