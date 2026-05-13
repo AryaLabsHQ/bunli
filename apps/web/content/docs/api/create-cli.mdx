@@ -13,7 +13,6 @@ Creates a new CLI instance with automatic configuration loading from `bunli.conf
 function createCLI<TPlugins extends readonly BunliPlugin[] = []>(
   configOverride?: BunliConfigInput & {
     plugins?: TPlugins;
-    generated?: string | boolean;
   },
   runtimeDeps?: CreateCLIRuntimeDeps,
 ): Promise<CLI<MergeStores<TPlugins>>>;

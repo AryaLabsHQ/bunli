@@ -166,6 +166,45 @@ Detected 3 agent(s):
     ~/.agents/skills
 ```
 
+## Utility Functions
+
+The package exports several utility functions for programmatic use:
+
+### detectAgents
+
+Detects AI coding agents installed on the system:
+
+```typescript
+import { detectAgents } from "@bunli/plugin-skills";
+
+const agents = await detectAgents();
+// Returns Agent[] with name, globalSkillsDir, projectSkillsDir for each found agent
+```
+
+### syncSkills
+
+Manually trigger a skill sync:
+
+```typescript
+import { syncSkills } from "@bunli/plugin-skills";
+
+const result = await syncSkills({
+  global: true,  // Install globally (default) or project-local
+  force: false,  // Skip check for up-to-date
+});
+// Returns SyncResult with synced count, errors, etc.
+```
+
+### builtinAgents
+
+Pre-configured agent list (40+ agents):
+
+```typescript
+import { builtinAgents } from "@bunli/plugin-skills";
+
+// Array of all supported agents with their skill directories
+```
+
 ## Custom Agents
 
 Add custom agent support:

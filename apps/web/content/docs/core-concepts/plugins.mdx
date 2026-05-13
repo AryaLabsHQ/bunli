@@ -136,6 +136,13 @@ beforeCommand(context) {
 The `preRun` hook runs immediately before the command handler executes. It receives an `ExecutionState` for sharing per-run data between plugins:
 
 ```typescript
+interface ExecutionState {
+  get<T>(key: string): T | undefined;
+  set<T>(key: string, value: T): void;
+  has(key: string): boolean;
+  delete(key: string): void;
+}
+
 preRun(context, state) {
   // Store start time in execution state (shared with postRun)
   state.set('startTime', Date.now())
@@ -153,7 +160,8 @@ postRun(context, state) {
   if (startTime) {
     console.log(`Command took ${Date.now() - startTime}ms`)
   }
-  console.log(`Command result: ${context.result}`)
+  // context.result contains the command result
+  // context.store contains the plugin store
 }
 ```
 
