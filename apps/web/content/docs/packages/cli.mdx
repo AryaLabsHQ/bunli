@@ -6,6 +6,17 @@ description: "CLI toolchain for developing, building, testing, and distributing 
 import { Tabs, Tab } from "fumadocs-ui/components/tabs";
 import { Callout } from "fumadocs-ui/components/callout";
 
+## Package vs Binary
+
+The `@bunli/cli` npm package exports configuration helpers and utilities for use in `bunli.config.ts`:
+
+```typescript
+import { defineConfig, loadConfig } from "@bunli/cli";
+import { findEntry } from "@bunli/cli";
+```
+
+The `bunli` CLI binary (installed via `bun add -g bunli`) provides the commands listed below (`bunli dev`, `bunli build`, etc.). These are entry points executed via the binary, not imports from the package.
+
 ## Installation
 
 <Tabs groupId="package-manager" defaultValue="bun">

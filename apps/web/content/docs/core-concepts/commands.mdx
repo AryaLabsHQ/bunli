@@ -358,6 +358,30 @@ export default defineCommand({
       </Tab>
     </Tabs>
 
+## defineGroup
+
+`defineGroup` creates a non-runnable command container that groups subcommands together. Unlike `defineCommand`, a group has no `handler` or `render` — it only exists to organize related commands under a shared namespace:
+
+```typescript
+import { defineGroup } from "@bunli/core";
+
+export default defineGroup({
+  name: "db" as const,
+  description: "Database operations",
+  commands: [migrate, seed]
+});
+```
+
+**When to use `defineGroup`:**
+- Organizing related commands (e.g., `my-cli db migrate`, `my-cli db seed`)
+- Creating command namespaces without needing a parent handler
+- Grouping commands that share a plugin store
+
+**Key differences from `defineCommand`:**
+- `defineGroup` has no `handler` or `render` — it's purely structural
+- `defineGroup` can have an `outputPolicy` and `defaultFormat` (inherited by subcommands unless overridden)
+- Subcommands in a group don't inherit the parent's plugin store — they use the same store type when passed to `createCLI`
+
 ## Command Aliases
 
 Add shortcuts for frequently used commands:
@@ -441,6 +465,28 @@ export default defineCommand({
 
 - **`'all'`** — Display output to both humans (TTY) and agents (piped)
 - **`'agent-only'`** — Suppress output in TTY mode; only emit for piped/agent consumers
+
+### Default Format
+
+Commands can specify a default output format that overrides the global default:
+
+```typescript
+export default defineCommand({
+  name: "status",
+  description: "Show system status",
+  defaultFormat: "json", // 'json' | 'yaml' | 'toon' | 'md'
+  handler: async ({ output, flags }) => {
+    output(getStatusData());
+  },
+});
+```
+
+- **`'json'`** — JSON output
+- **`'yaml'`** — YAML output
+- **`'toon'`** — Human-readable table format
+- **`'md'`** — Markdown format
+
+When `defaultFormat` is set on a command, it overrides the global `format` setting for that command unless the user explicitly passes `--format` on the CLI.
 
 Bunli provides automatic error handling with formatted output:
 

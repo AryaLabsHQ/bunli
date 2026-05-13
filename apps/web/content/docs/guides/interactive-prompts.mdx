@@ -40,7 +40,7 @@ Bunli prompt primitives are provided by `@bunli/runtime/prompt`, and the handler
 export default defineCommand({
   handler: async ({ prompt }) => {
     prompt.intro("Setup");
-    const name = await prompt.text("Name:");
+    const name = await prompt("Name:");
     prompt.outro("Done");
   },
 });

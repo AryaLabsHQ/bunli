@@ -35,16 +35,17 @@ The command definition object.
 
 ```typescript
 // RunnableCommand requires at least handler OR render (or both)
-type RunnableCommand<TOptions = Options, TStore = {}> =
-  | (BaseRunnableCommand<TOptions, TStore> & { handler: Handler<TOptions, TStore> })
-  | (BaseRunnableCommand<TOptions, TStore> & { render: RenderFunction<TOptions, TStore> })
-  | (BaseRunnableCommand<TOptions, TStore> & {
-      handler: Handler<TOptions, TStore>;
-      render: RenderFunction<TOptions, TStore>;
+type RunnableCommand<TOptions = Options, TStore = {}, TName extends string = string> =
+  | (CommandLeaf<TOptions, TStore, TName> & { handler: Handler<InferOptions<TOptions>, TStore, TName> })
+  | (CommandLeaf<TOptions, TStore, TName> & { render: RenderFunction<InferOptions<TOptions>, TStore> })
+  | (CommandLeaf<TOptions, TStore, TName> & {
+      handler: Handler<InferOptions<TOptions>, TStore, TName>;
+      render: RenderFunction<InferOptions<TOptions>, TStore>;
     });
 
-interface BaseRunnableCommand<TOptions = Options, TStore = {}> {
-  name: string;
+// Base command interface for shared properties
+interface BaseCommand<TOptions = Options, TStore = {}, TName extends string = string> {
+  name: TName;
   description: string;
   alias?: string | string[];
   options?: TOptions;
@@ -52,6 +53,14 @@ interface BaseRunnableCommand<TOptions = Options, TStore = {}> {
   tui?: CommandTuiOptions;
   outputPolicy?: OutputPolicy;
   defaultFormat?: OutputFormat;
+}
+
+// Command leaf - a runnable command (not a group)
+interface CommandLeaf<TOptions = Options, TStore = {}, TName extends string = string> extends BaseCommand<TOptions, TStore, TName> {
+  options?: TOptions;
+  handler?: Handler<InferOptions<TOptions>, TStore, TName>;
+  render?: RenderFunction<InferOptions<TOptions>, TStore>;
+  commands?: undefined;
 }
 ```
 
@@ -286,6 +295,11 @@ interface HandlerArgs<
   // Plugin context (when using plugins)
   context?: CommandContext<Record<string, unknown>>;
 }
+
+// Accessor methods available on CommandContext for plugin store access:
+// context.getStoreValue(key) - Get a typed value from the plugin store
+// context.setStoreValue(key, value) - Set a value in the plugin store
+// context.hasStoreValue(key) - Check if a key exists in the plugin store
 ```
 
 ### Using Handler Context
