@@ -153,6 +153,21 @@ const code = template
   .replace("{{REGISTRATIONS}}", builder.registrations());
 ```
 
+### Builder Methods
+
+The `Commands` builder provides a fluent API for transforming MCP tools into CLI command code:
+
+| Method | Description |
+|--------|-------------|
+| `from(tools)` | Create a builder from an array of MCP tools |
+| `.namespace(ns)` | Set a namespace prefix for command names (e.g., `exa:web-search`) |
+| `.timeout(ms)` | Set default timeout in milliseconds (default: 60000) |
+| `.includeRawOption(bool)` | Include `--raw` option for passing raw JSON arguments |
+| `.includeTimeoutOption(bool)` | Include `--timeout` option |
+| `.includeOutputOption(bool)` | Include `--output` option for output format |
+| `.commands()` | Generate command definitions as a string |
+| `.registrations()` | Generate command registration code |
+
 ## Schema Utilities
 
 Convert JSON schemas to Zod schemas:
@@ -187,6 +202,7 @@ Available utilities:
 - `toPascalCase` - Convert to PascalCase
 - `toCommandName` - Convert MCP name to CLI command name
 - `toFlagName` - Convert to flag name format
+- `escapeString` - Escape string for code generation
 
 ## Error Handling
 

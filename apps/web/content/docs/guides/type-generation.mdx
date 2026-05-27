@@ -81,10 +81,6 @@ function validateCommand<Name extends GeneratedNames>(
   name: Name,
   flags: Record<string, unknown>,
 ): ValidationResult;
-
-// Find commands by name or description
-function findCommandByName<Name extends GeneratedNames>(name: Name): CommandInfo;
-function findCommandsByDescription(searchTerm: string): CommandInfo[];
 ```
 
 ## IDE Integration Features

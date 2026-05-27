@@ -126,6 +126,40 @@ interface SkillsPluginOptions {
 }
 ```
 
+## Programmatic API
+
+For programmatic access to agent detection and skill generation:
+
+```typescript
+import {
+  builtinAgents,
+  detectAgents,
+  generateSkillFile,
+  generateCommandSkill,
+  syncSkills,
+} from "@bunli/plugin-skills";
+
+// Get all supported agents (built-in + custom)
+const allAgents = builtinAgents;
+
+// Detect which agents are installed on the system
+const detected = detectAgents();
+
+// Generate skill file content for a command
+const skill = generateCommandSkill({
+  name: "build",
+  description: "Build the project",
+  command: "my-cli build",
+  schema: { /* Zod schema */ },
+});
+
+// Sync skills for detected agents
+const result = await syncSkills({
+  commands: [/* command definitions */],
+  global: true,
+});
+```
+
 ## Commands
 
 ### skills sync

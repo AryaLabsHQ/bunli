@@ -305,11 +305,6 @@ export const myPlugin = createPlugin({
   afterCommand({ store, command }) {
     console.log(`Command ${command} completed`);
   },
-
-  // Called when command throws an error
-  onError({ store, error, command }) {
-    console.error(`Command ${command} failed:`, error.message);
-  },
 });
 ```
 
