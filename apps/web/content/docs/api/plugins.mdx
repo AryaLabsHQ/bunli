@@ -137,6 +137,26 @@ interface CommandResult {
 }
 ```
 
+### ExecutionState
+
+Per-run state shared between `preRun` and `postRun` hooks. Allows plugins to pass data through a command execution.
+
+```typescript
+class ExecutionState {
+  /** Get a value from the execution state */
+  get<T = unknown>(key: string): T | undefined;
+
+  /** Set a value in the execution state */
+  set<T = unknown>(key: string, value: T): void;
+
+  /** Check if a key exists */
+  has(key: string): boolean;
+
+  /** Delete a key */
+  delete(key: string): boolean;
+}
+```
+
 ### PathInfo
 
 System path information.

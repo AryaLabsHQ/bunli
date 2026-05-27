@@ -46,6 +46,7 @@ interface BunliConfigInput {
   dev?: DevConfig;
   test?: TestConfig;
   release?: ReleaseConfig;
+  generated?: string | boolean;
   tui?: {
     renderer?: {
       bufferMode?: "alternate" | "standard";
