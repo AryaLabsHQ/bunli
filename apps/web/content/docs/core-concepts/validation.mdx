@@ -192,6 +192,10 @@ export default defineCommand({
 // mycli --features auth,payments,notifications
 ```
 
+<Callout type="warning">
+  **Interaction with defaults**: When `repeatable: true` is combined with a default value (e.g., `z.array(z.string()).default([])`), the `repeatable` flag replaces the default rather than accumulating to it. If you need accumulation, handle the default in your handler logic.
+</Callout>
+
 ## Error Messages
 
 Validation errors are automatically formatted and displayed:

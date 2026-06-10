@@ -44,7 +44,7 @@ export default defineCommand({
 
 To use Bunli's automatic type inference, you need:
 
-1. **`as const` Required** - Command names MUST use `as const` for type inference
+1. **`as const` strongly recommended** - Command names should use `as const` for optimal type inference (without it, type inference still works but with less precision)
 2. **Generated File Required** - `.bunli/commands.gen.ts` must be in `tsconfig.json`
 3. **Type Generation Required** - Codegen must be enabled
 4. **No Manual Annotations** - Handler type annotations are automatic
@@ -110,10 +110,15 @@ await cli.execute("deploy", {
 
 ## Command Discovery
 
-The generated store provides helper methods for command discovery. Import the generated store from the auto-generated `.bunli/commands.gen.ts`:
+The generated store provides helper methods for command discovery. Import `createGeneratedHelpers` from the auto-generated `.bunli/commands.gen.ts`:
 
 ```typescript
-import { cli } from "./.bunli/commands.gen";
+import { createGeneratedHelpers } from "./.bunli/commands.gen";
+import * as commands from "./commands.gen.js";
+import * as metadata from "./.bunli/commands.meta.js";
+
+// Create the generated store
+const cli = createGeneratedHelpers(commands, metadata);
 
 // List all commands
 const commands = cli.list();
