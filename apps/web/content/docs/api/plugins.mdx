@@ -225,6 +225,51 @@ const myPlugin = createPlugin<Options, MyStore>((options) => ({
 }));
 ```
 
+### createTestPlugin
+
+Create a plugin for testing and development. Useful for mocking plugin behavior in tests.
+
+```typescript
+function createTestPlugin<TStore = {}>(
+  store: TStore,
+  hooks?: Partial<BunliPlugin<TStore>>,
+): BunliPlugin<TStore>;
+```
+
+**Example:**
+
+```typescript
+const testPlugin = createTestPlugin(
+  { count: 0, message: "" },
+  {
+    beforeCommand(context) {
+      context.store.count++;
+      console.log(`Count: ${context.store.count}`);
+    },
+  },
+);
+```
+
+### composePlugins
+
+Compose multiple plugins into a single plugin with merged store.
+
+```typescript
+function composePlugins<T extends BunliPlugin[]>(
+  ...plugins: T
+): BunliPlugin<MergeStores<T>>;
+```
+
+**Example:**
+
+```typescript
+const composedPlugin = composePlugins(
+  authPlugin({ provider: "github" }),
+  loggingPlugin({ level: "debug" }),
+  metricsPlugin({ enabled: true }),
+);
+```
+
 ## Type Utilities
 
 ### StoreOf\<P\>
@@ -250,6 +295,31 @@ type CombinedStore = MergeStores<[
   typeof pluginA,
   typeof pluginB
 ]>
+```
+
+### InferPluginOptions\<T\>
+
+Extract the options type from a plugin factory.
+
+```typescript
+type InferPluginOptions<T> = T extends PluginFactory<infer O, any> ? O : never;
+
+// Example
+type Options = InferPluginOptions<typeof myPluginFactory>;
+```
+
+### InferPluginStore\<T\>
+
+Extract the store type from a plugin or plugin factory.
+
+```typescript
+type InferPluginStore<T> =
+  T extends BunliPlugin<infer S> ? S
+    : T extends PluginFactory<any, infer S> ? S
+    : {};
+
+// Example
+type Store = InferPluginStore<typeof myPlugin>;
 ```
 
 ## Plugin Configuration
@@ -303,6 +373,36 @@ interface Logger {
 
   /** Log error message */
   error(message: string): void;
+}
+```
+
+### ExecutionState
+
+A key-value store for sharing data between plugins during a single command execution. Available in `preRun` and `postRun` hooks.
+
+```typescript
+class ExecutionState {
+  get<K extends string>(key: K): unknown;
+  set<K extends string>(value: unknown): void;
+  has<K extends string>(key: K): boolean;
+  delete<K extends string>(key: K): void;
+}
+```
+
+**Example:**
+
+```typescript
+preRun(context, state) {
+  // Store start time in execution state (shared with postRun)
+  state.set("startTime", Date.now());
+  console.log(`About to run command: ${context.command}`);
+}
+
+postRun(context, state) {
+  const startTime = state.get<number>("startTime");
+  if (startTime) {
+    console.log(`Command took ${Date.now() - startTime}ms`);
+  }
 }
 ```
 

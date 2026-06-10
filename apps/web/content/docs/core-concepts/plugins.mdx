@@ -231,6 +231,10 @@ cli.command(
 );
 ```
 
+<Callout type="note">
+  **Handler `context` vs Plugin `context`**: The `context` available in command handlers is `CommandContext`, which provides access to the merged plugin store and command execution data. The `PluginContext` (with `updateConfig`, `registerCommand`, `logger`, `paths`) is only available during plugin `setup` and `configResolved` hooks, not in command handlers.
+</Callout>
+
 ## Multiple Plugins
 
 When using multiple plugins, their stores are automatically merged:
@@ -512,17 +516,16 @@ When using type generation, plugin context is included in the generated types:
 
 ```typescript
 // Generated in .bunli/commands.gen.ts
-import { cli } from "./.bunli/commands.gen";
+import { createGeneratedHelpers } from "./.bunli/commands.gen";
+import * as commands from "./commands.gen.js";
+import * as metadata from "./.bunli/commands.meta.js";
 
-// Generated types include plugin context
-interface CommandContext<TStore> {
-  store: TStore;
-  // Plugin-specific context is included
-}
+// Create the generated store
+const generatedCLI = createGeneratedHelpers(commands, metadata);
 
 // Access generated CLI API
-const commands = cli.list();
-const deploy = cli.findByName("deploy");
+const commands = generatedCLI.list();
+const deploy = generatedCLI.findByName("deploy");
 
 // Type-safe plugin store access
 function usePluginData(context: CommandContext<any>) {
