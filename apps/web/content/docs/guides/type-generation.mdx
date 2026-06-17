@@ -222,12 +222,13 @@ bunli build
 
 Generate types manually when needed:
 
-````bash
+```bash
 # Generate types once
 bunli generate
 
 # Generate and watch for changes
 bunli generate --watch
+```
 
 ## Advanced Features
 
@@ -240,7 +241,7 @@ import { UnionToIntersection, MergeAll, Expand } from '@bunli/core'
 type AllCommandOptions = UnionToIntersection<
   CommandRegistry[keyof CommandRegistry]['options']
 >
-````
+```
 
 ### Build Integration
 

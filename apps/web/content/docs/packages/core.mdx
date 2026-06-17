@@ -175,8 +175,30 @@ interface HandlerArgs<T> {
   spinner: import("@bunli/runtime/prompt").PromptSpinnerFactory;
   colors: typeof import("@bunli/utils").colors;
 
-  // Plugin context (when using plugins)
+  // Plugin context (if plugins provide store data)
   context?: CommandContext<Record<string, unknown>>;
+
+  // Terminal information
+  terminal: TerminalInfo;
+
+  // Runtime information
+  runtime: RuntimeInfo;
+
+  // Cooperative cancellation signal for interrupt handling
+  signal: AbortSignal;
+
+  // Resolved terminal image preview configuration
+  image: ResolvedTuiImageOptions;
+
+  // Output format information
+  format: OutputFormat;
+  formatExplicit: boolean;
+
+  // Whether the consumer is an agent (stdout is not a TTY)
+  agent: boolean;
+
+  // Format and write structured data to stdout
+  output: (data: unknown) => void;
 }
 ```
 
@@ -543,8 +565,8 @@ Bunli includes a powerful plugin system for extending functionality:
 import { createCLI, defineCommand } from "@bunli/core";
 import { createPlugin } from "@bunli/core/plugin";
 
-// Create a simple plugin
-const myPlugin = createPlugin<{ requestCount: number }>({
+// Create a simple plugin (direct form)
+const myPlugin = createPlugin({
   name: "my-plugin",
   store: {
     requestCount: 0,
@@ -557,6 +579,50 @@ const myPlugin = createPlugin<{ requestCount: number }>({
   },
 });
 
+// Plugin factory with options (factory form)
+const createMyPlugin = createPlugin((options: { prefix: string }) => ({
+  name: "my-plugin",
+  store: { requestCount: 0 },
+  beforeCommand(context) {
+    console.log(`${options.prefix}: ${context.store.requestCount}`);
+  },
+}));
+
+const myPlugin = createMyPlugin({ prefix: "debug" });
+```
+
+### Plugin Hooks
+
+Bunli plugins support the following lifecycle hooks:
+
+| Hook | When | Purpose |
+|------|------|---------|
+| `setup` | During CLI initialization | Modify configuration, register commands |
+| `configResolved` | After configuration is finalized | Read-only access to final config |
+| `beforeCommand` | Before command execution | Inject context, validate |
+| `preRun` | Immediately before handler | Share per-run state via ExecutionState |
+| `postRun` | Immediately after handler | Access handler result/error |
+| `afterCommand` | After command execution | Final cleanup, logging |
+
+Lifecycle order: `setup` → `configResolved` → `beforeCommand` → `preRun` → `[handler]` → `postRun` → `afterCommand`
+
+### Plugin Store Access
+
+Plugins can access their store via the typed `context.store`:
+
+```typescript
+// Direct property access (type-safe)
+context.store.requestCount = context.store.requestCount + 1;
+
+// Type-safe accessor methods
+context.setStoreValue("requestCount", newValue);
+const count = context.getStoreValue("requestCount");
+const hasCount = context.hasStoreValue("requestCount");
+```
+
+### Using Plugins with CLI
+
+```typescript
 // Use in CLI with a typed store
 const cli = await createCLI({
   name: "my-cli",
