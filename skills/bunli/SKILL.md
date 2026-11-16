@@ -278,6 +278,7 @@ handler: async ({ prompt }) => {
 - `@bunli/plugin-completions` - Shell completions (bash, zsh, fish)
 - `@bunli/plugin-config` - Config loading from multiple sources
 - `@bunli/plugin-mcp` - MCP tools to CLI commands
+- `@bunli/plugin-skills` - Generates agent SKILL.md files for your CLI
 
 ## Relationship with OpenTUI
 

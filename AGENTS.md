@@ -5,7 +5,7 @@
 
 ## OVERVIEW
 
-Minimal, type-safe CLI framework for Bun with advanced plugin system. Uses Zod for command validation, Bun Shell for execution, Turborepo for builds, and better-result for error handling.
+Minimal, type-safe CLI framework for Bun with advanced plugin system. Uses Standard Schema-compatible validators such as Zod for command validation, Bun Shell for execution, Turborepo for builds, and better-result for error handling.
 
 ## STRUCTURE
 
@@ -40,7 +40,7 @@ Minimal, type-safe CLI framework for Bun with advanced plugin system. Uses Zod f
 | Type generation | `packages/generator/src/`    | Creates `commands.gen.ts`            |
 | Utilities       | `packages/utils/src/`        | colors, validation                   |
 | Runtime         | `packages/runtime/src/`      | OpenTUI prompt/renderer runtime      |
-| Tests           | `packages/*/test/*.test.ts`  | Bun test runner                      |
+| Tests           | `packages/*/test/`, `packages/plugin-ai-detect/tests/` | Bun test runner |
 
 ## CODE MAP
 
@@ -57,9 +57,9 @@ Minimal, type-safe CLI framework for Bun with advanced plugin system. Uses Zod f
 - **ESM imports**: Always use `.js` extension for local imports
 - **Named exports**: Avoid default exports for tree-shaking
 - **File naming**: kebab-case (`my-command.ts`)
-- **Zod validation**: All command options use Zod schemas
+- **Option validation**: Command options accept Standard Schema-compatible validators, including Zod schemas
 - **Plugin store**: Typed via generics, prefer direct property access (`context.store.foo`) over accessor methods
-- **Test files**: `.test.ts` suffix in `packages/*/test/`
+- **Test files**: `.test.ts` suffix in `packages/*/test/` or `packages/plugin-ai-detect/tests/`
 - **Error handling**: Use `better-result` with `TaggedError` pattern
 - **Import ordering**: External packages → `@bunli/*` → relative imports → type-only imports
 
@@ -110,8 +110,6 @@ bun run release
 | `packages/plugin-config/`      | Config merging plugin                         |
 | `packages/plugin-completions/` | Shell completions                             |
 | `packages/plugin-mcp/`         | MCP tool→command conversion                   |
-| `packages/plugin-skills/`      | AI agent skill sync                           |
-| `packages/store/`              | Persistent typed store                        |
 | `packages/generator/`          | Type generation                               |
 | `packages/test/`               | Testing utilities                             |
 | `packages/runtime/`            | OpenTUI runtime patterns                      |

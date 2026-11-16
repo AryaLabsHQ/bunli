@@ -242,15 +242,31 @@ Variables can be used in file contents and filenames:
 
 ## Programmatic Usage
 
+`createProject` requires a destination directory and prompt, spinner, colors, and shell context. It returns a `Result<void, CreateProjectError>`; handle the error before treating scaffolding as successful. In a Bunli handler, use the context supplied to the handler. A standalone Bun script can create its own prompt session:
+
 ```typescript
+import { createPromptSession } from "@bunli/runtime/prompt";
+import { colors } from "@bunli/utils";
 import { createProject } from "create-bunli";
 
-await createProject({
-  name: "my-cli",
-  template: "advanced",
-  install: true,
-  git: true,
-});
+const session = createPromptSession();
+try {
+  await session.initialize();
+  const result = await createProject({
+    name: "my-cli",
+    dir: `${process.cwd()}/my-cli`,
+    template: "advanced",
+    install: true,
+    git: true,
+    prompt: session.prompt,
+    spinner: session.spinner,
+    colors,
+    shell: Bun.$,
+  });
+  if (result.isErr()) throw result.error;
+} finally {
+  await session.dispose();
+}
 ```
 
 ## Development

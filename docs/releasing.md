@@ -33,7 +33,12 @@ Useful flags:
 - `--since <tag|commit>`: override the commit range
 - `--dry-run`: show what would be created without writing files
 - `--pr`: open a PR with the changeset(s) via `gh`
-- `--ai`: generate changeset summaries with AI (optional, requires `AI_GATEWAY_API_KEY`)
+- `--yes, -y`: skip confirmation prompts
+- `--ai`: try AI-generated changeset summaries using `AI_GATEWAY_API_KEY`, with a deterministic fallback
+
+`--yes` skips interactive confirmations. A dirty working tree proceeds with a warning instead of prompting; when neither `--package` nor `--all` is set, all modified packages are selected without the multiselect; and `--pr` opens the PR without asking. Without `--yes`, a dirty tree prompts "Working tree is not clean. Continue anyway?" and defaults to no. `--dry-run` skips the dirty-tree check and does not write changesets or open a PR.
+
+`--ai` is best-effort. If `AI_GATEWAY_API_KEY` is unset, or the AI request fails, the script logs a warning and uses a deterministic summary containing package names and up to three unique commit messages. Normal changeset creation continues; `--dry-run` only previews the result.
 
 ## CI-managed releases
 
