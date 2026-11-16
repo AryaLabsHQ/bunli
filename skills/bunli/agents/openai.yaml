@@ -1,0 +1,4 @@
+interface:
+  display_name: "Bunli"
+  short_description: "Build type-safe CLIs with Bun and Bunli."
+  default_prompt: "Use $bunli to create or extend this Bun CLI."
