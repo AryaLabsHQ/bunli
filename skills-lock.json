@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "skills": {
+    "cloudflare": {
+      "source": "aryasaatvik/skills",
+      "sourceType": "github",
+      "skillPath": "skills/domain/cloudflare/SKILL.md",
+      "computedHash": "b977701f571e9e37ef9f68ba7310ceb5c79d51c1974b325c1935349362de3e3b",
+      "agents": [
+        "universal",
+        "claude-code"
+      ]
+    },
+    "documentation": {
+      "source": "./.agents/skills/documentation",
+      "sourceType": "local",
+      "computedHash": "471d8d1f0aa47377b1cd11fa8d7e2be1045c9e94b5a71a27a5497033cff2d502",
+      "agents": [
+        "claude-code"
+      ]
+    },
+    "opentui": {
+      "source": "aryasaatvik/skills",
+      "sourceType": "github",
+      "skillPath": "skills/domain/opentui/SKILL.md",
+      "computedHash": "6c9857250f8c84568cfedb33de1424e167816fdbbdcaa84410beeb835c798833",
+      "agents": [
+        "universal",
+        "claude-code"
+      ]
+    },
+    "react-best-practices": {
+      "source": "aryasaatvik/skills",
+      "sourceType": "github",
+      "skillPath": "skills/domain/react-best-practices/SKILL.md",
+      "computedHash": "5094966293d4661280f2070bce22c4438600edc955ffbf0ef43b5175157db050",
+      "agents": [
+        "universal",
+        "claude-code"
+      ]
+    },
+    "react-composition-patterns": {
+      "source": "aryasaatvik/skills",
+      "sourceType": "github",
+      "skillPath": "skills/domain/react-composition-patterns/SKILL.md",
+      "computedHash": "accbc4a267c42cafed17fc94320a55278250e77b03fe4faf7712a8eae2ad42f6",
+      "agents": [
+        "universal",
+        "claude-code"
+      ]
+    }
+  }
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Cloudflare"
+  short_description: "Build and configure Cloudflare Workers apps."
+  default_prompt: "Use $cloudflare to build, configure, or deploy this Workers-related work."

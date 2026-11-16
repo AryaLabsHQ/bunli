@@ -1,0 +1,4 @@
+interface:
+  display_name: "OpenTUI"
+  short_description: "Build terminal UIs with OpenTUI components."
+  default_prompt: "Use $opentui to build or refine this terminal UI."

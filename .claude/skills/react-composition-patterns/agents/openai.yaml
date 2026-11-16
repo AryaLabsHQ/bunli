@@ -1,0 +1,4 @@
+interface:
+  display_name: "React Composition Patterns"
+  short_description: "Composable React APIs that scale without prop sprawl."
+  default_prompt: "Use $react-composition-patterns to redesign this React component API."

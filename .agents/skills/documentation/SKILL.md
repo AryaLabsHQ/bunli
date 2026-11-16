@@ -20,6 +20,7 @@ You are checking whether recent code changes require documentation updates in th
    - `packages/core/src/types.ts` → `docs/api/define-command.mdx`, `docs/api/option.mdx`
    - `packages/core/src/config.ts` → `docs/api/define-config.mdx`
    - `packages/core/src/plugin/` → `docs/api/plugins.mdx`, `docs/core-concepts/plugins.mdx`
+   - `packages/plugin-*/src/` → `docs/packages/plugins/<plugin>.mdx` (`ai-detect`, `completions`, `config`, `mcp`, `skills`)
    - `packages/*/` → `docs/packages/*.mdx`
 
 3. For each matched pair, do a quick comparison: did the implementation change in a way that affects the documented API surface? (new exports, changed signatures, new options, removed features)

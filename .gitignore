@@ -36,6 +36,7 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 .turbo
 
 .claude/settings.local.json
+.opencode/package-lock.json
 
 .bunli/
 
